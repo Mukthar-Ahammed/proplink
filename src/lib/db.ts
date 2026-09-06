@@ -6,9 +6,15 @@ import { PrismaClient } from "@/generated/prisma/client";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createClient(): PrismaClient {
-  const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL ?? "",
-  });
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    // An empty string is falsy to `pg`, which then silently connects to
+    // 127.0.0.1:5432 instead of erroring — surface the real problem instead.
+    throw new Error(
+      "DATABASE_URL is not set — cannot create a Prisma client. Check the environment variables for this deploy context.",
+    );
+  }
+  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
 
