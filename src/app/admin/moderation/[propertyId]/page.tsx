@@ -15,16 +15,12 @@ export default async function AgentListingReviewStudioPage(
 
   const { propertyId } = await props.params;
 
-  try {
-    const listing = await getListingForModeration(propertyId);
-    return (
-      <ListingReviewStudioClient
-        propertyId={propertyId}
-        initialData={listing}
-        currentAdminUserId={session.user.id}
-      />
-    );
-  } catch {
-    notFound();
-  }
+  const listing = await getListingForModeration(propertyId).catch(() => notFound());
+  return (
+    <ListingReviewStudioClient
+      propertyId={propertyId}
+      initialData={listing}
+      currentAdminUserId={session.user.id}
+    />
+  );
 }

@@ -44,7 +44,6 @@ vi.mock("@/lib/db", () => ({ db: mockDb }));
 import {
   getDashboardKpis,
   getAttentionItems,
-  type AttentionItem,
 } from "@/services/admin/dashboardService";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

@@ -2,14 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   KycSubmissionStatus,
-  KycStatus,
 } from "@/generated/prisma/enums";
 import type { AdminKycSubmissionDetail } from "@/services/admin/kycAdminService";
 import { KYC_REJECTION_REASONS } from "@/services/admin/kycConstants";
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { AdminBreadcrumbs } from "@/components/admin/AdminBreadcrumbs";
 
@@ -24,7 +23,6 @@ export function KycReviewStudioClient({
 }) {
   const router = useRouter();
   const [detail, setDetail] = useState<AdminKycSubmissionDetail>(initialData);
-  const [detailLoading, setDetailLoading] = useState(false);
 
   // Document preview state
   const [selectedDocId, setSelectedDocId] = useState<string | null>(
@@ -48,7 +46,6 @@ export function KycReviewStudioClient({
 
   // Refresh submission detail
   const refreshDetail = useCallback(async () => {
-    setDetailLoading(true);
     try {
       const res = await fetch(`/api/admin/kyc/${submissionId}`);
       if (res.ok) {
@@ -57,8 +54,6 @@ export function KycReviewStudioClient({
       }
     } catch (err) {
       console.error("Failed to refresh detail:", err);
-    } finally {
-      setDetailLoading(false);
     }
   }, [submissionId]);
 
@@ -82,9 +77,11 @@ export function KycReviewStudioClient({
   }, []);
 
   useEffect(() => {
-    if (selectedDocId) {
-      loadDocumentPreview(selectedDocId);
-    }
+    if (!selectedDocId) return;
+    const timer = window.setTimeout(() => {
+      void loadDocumentPreview(selectedDocId);
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [selectedDocId, loadDocumentPreview]);
 
   // Handle Approve
@@ -320,10 +317,12 @@ export function KycReviewStudioClient({
                     selectedDoc.contentType.startsWith("image/") ? (
                       /* Image inline viewer */
                       <div className="w-full h-full p-2 flex items-center justify-center overflow-auto max-h-[500px]">
-                        {/* eslint-disable-next-html-element-suppress */}
-                        <img
+                        <Image
                           src={previewUrl}
                           alt={`${selectedDoc.kind} preview`}
+                          width={600}
+                          height={480}
+                          unoptimized
                           className="max-w-full max-h-[480px] object-contain rounded shadow"
                         />
                       </div>

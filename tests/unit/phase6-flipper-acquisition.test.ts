@@ -15,7 +15,6 @@ import {
 import {
   hasFlipperCapability,
   getFlipperWorkspace,
-  createFlipperOpportunity,
   submitFlipperOffer,
   withdrawFlipperOffer,
   acceptFlipperOffer,

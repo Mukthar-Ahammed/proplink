@@ -2,11 +2,10 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { Role, InvestorType, KycStatus } from "@/generated/prisma/enums";
+import { Role, InvestorType } from "@/generated/prisma/enums";
 import {
   createSignupIntent,
   investorSignupSchema,
-  signupSchema,
 } from "@/services/auth/supabaseAuthService";
 import {
   completeInvestorTypeOnboarding,

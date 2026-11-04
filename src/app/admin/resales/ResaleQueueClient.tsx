@@ -114,11 +114,17 @@ export function ResaleQueueClient() {
   }, [statusFilter, subtypeFilter, search, sortOrder, page]);
 
   useEffect(() => {
-    fetchSummary();
+    const timer = window.setTimeout(() => {
+      void fetchSummary();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchSummary]);
 
   useEffect(() => {
-    fetchQueue();
+    const timer = window.setTimeout(() => {
+      void fetchQueue();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchQueue]);
 
   const handleStatusChange = (newStatus: FlipperResaleStatus | "ALL") => {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PropertyStatus } from "@/generated/prisma/enums";
@@ -179,10 +180,12 @@ export function ListingReviewStudioClient({
             {/* Main Image Viewer */}
             <div className="min-h-[360px] bg-gray-900 rounded-lg border border-line flex items-center justify-center overflow-hidden relative">
               {currentImage ? (
-                /* eslint-disable-next-html-element-suppress */
-                <img
+                <Image
                   src={currentImage}
                   alt={`Listing image ${selectedImageIndex + 1}`}
+                  width={760}
+                  height={380}
+                  unoptimized
                   className="max-w-full max-h-[380px] object-contain rounded"
                 />
               ) : (
@@ -201,8 +204,14 @@ export function ListingReviewStudioClient({
                       selectedImageIndex === idx ? "border-accent shadow-xs" : "border-transparent opacity-70 hover:opacity-100"
                     }`}
                   >
-                    {/* eslint-disable-next-html-element-suppress */}
-                    <img src={img.url} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                    <Image
+                      src={img.url}
+                      alt={`Thumbnail ${idx + 1}`}
+                      width={80}
+                      height={64}
+                      unoptimized
+                      className="w-full h-full object-cover"
+                    />
                   </button>
                 ))}
               </div>

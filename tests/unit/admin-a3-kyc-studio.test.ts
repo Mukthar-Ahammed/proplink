@@ -50,7 +50,6 @@ vi.mock("@/lib/db", () => ({ db: mockDb }));
 
 import {
   getAdminKycSummary,
-  getAdminKycQueue,
   getAdminKycSubmissionDetail,
   approveKycSubmission,
   rejectKycSubmission,

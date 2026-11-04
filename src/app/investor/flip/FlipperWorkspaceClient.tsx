@@ -3,9 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import {
-  FlipperOpportunityStatus,
   FlipperOfferStatus,
-  FlipperAcquisitionStatus,
 } from "@/generated/prisma/enums";
 import { FlipperWorkspaceSummary } from "@/services/flipper/flipperService";
 
@@ -43,7 +41,10 @@ export function FlipperWorkspaceClient() {
   }, []);
 
   useEffect(() => {
-    fetchWorkspace();
+    const timer = window.setTimeout(() => {
+      void fetchWorkspace();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchWorkspace]);
 
   const openOfferModal = (propertyId: string, title: string, pricePence: number) => {

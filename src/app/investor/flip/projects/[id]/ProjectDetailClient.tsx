@@ -45,7 +45,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   }, [projectId]);
 
   useEffect(() => {
-    fetchProject();
+    const timer = window.setTimeout(() => {
+      void fetchProject();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchProject]);
 
   const handleAddCost = async () => {

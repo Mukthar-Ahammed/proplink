@@ -5,7 +5,6 @@ vi.mock("server-only", () => ({}));
 import { Role, KycStatus, KycSubmissionStatus, KycDocumentKind, InvestorType } from "@/generated/prisma/enums";
 import {
   getOrCreateKycDraft,
-  presignKycDocumentUpload,
   recordKycDocument,
   submitKycApplication,
   getKycStatusSummary,

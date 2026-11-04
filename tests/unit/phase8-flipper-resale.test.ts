@@ -16,7 +16,6 @@ import {
   submitFlipperResale,
   resubmitFlipperResale,
   getFlipperResaleDetail,
-  listInvestorResales,
 } from "@/services/flipper/flipperResaleService";
 import {
   getAdminResaleQueue,
@@ -307,7 +306,6 @@ describe("Phase 8: Flipper Resale & Exit Workflow", () => {
       expect(res.ok).toBe(true);
 
       // Verify update call used the new price and recalculated profit
-      const updateSpy = vi.spyOn(db.flipperResale, "update");
       // The mock has already been called; the test verifies no error occurred
     });
 

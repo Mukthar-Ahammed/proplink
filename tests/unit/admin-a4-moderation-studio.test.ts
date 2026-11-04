@@ -20,7 +20,6 @@ import {
   PropertyStatus,
   FlipperResaleStatus,
   Role,
-  InvestorType,
   ListingSource,
 } from "@/generated/prisma/enums";
 
@@ -57,13 +56,11 @@ vi.mock("@/lib/db", () => ({ db: mockDb }));
 import {
   getAdminListingSummary,
   getAdminListingQueue,
-  getListingForModeration,
 } from "@/services/listings/moderationService";
 
 import {
   getAdminResaleSummary,
   getAdminResaleQueue,
-  getAdminResaleDetail,
   approveFlipperResale,
   rejectFlipperResale,
 } from "@/services/admin/flipperResaleAdminService";

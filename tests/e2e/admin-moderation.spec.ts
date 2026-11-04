@@ -71,7 +71,7 @@ test("admin approves a pending listing to LIVE", async ({ page }) => {
   const title = `${RUN} — approve — Three-bed semi needing full refurbishment`;
   await submitListingForReview(page, title);
 
-  await login(page, "admin@proplink.test", "Password123!");
+  await login(page, "admin@proplink.test", "Password123!", "ADMIN");
   await page.goto("/admin/moderation");
 
   const row = page.locator("tr", { hasText: title });
@@ -109,7 +109,7 @@ test("admin rejects a pending listing with a reason", async ({ page }) => {
   const title = `${RUN} — reject — Three-bed semi needing full refurbishment`;
   await submitListingForReview(page, title);
 
-  await login(page, "admin@proplink.test", "Password123!");
+  await login(page, "admin@proplink.test", "Password123!", "ADMIN");
   await page.goto("/admin/moderation");
 
   const row = page.locator("tr", { hasText: title });

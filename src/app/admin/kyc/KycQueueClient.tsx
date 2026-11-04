@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   KycSubmissionStatus,
-  KycStatus,
   InvestorType,
 } from "@/generated/prisma/enums";
 import type {
@@ -118,11 +117,17 @@ export function KycQueueClient() {
   }, [statusFilter, subtypeFilter, search, sortOrder, page]);
 
   useEffect(() => {
-    fetchSummary();
+    const timer = window.setTimeout(() => {
+      void fetchSummary();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchSummary]);
 
   useEffect(() => {
-    fetchQueue();
+    const timer = window.setTimeout(() => {
+      void fetchQueue();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchQueue]);
 
   // Handler functions for controls

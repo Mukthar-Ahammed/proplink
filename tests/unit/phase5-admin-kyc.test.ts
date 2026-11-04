@@ -13,7 +13,6 @@ import {
   approveKycSubmission,
   rejectKycSubmission,
   getAdminKycQueue,
-  getAdminKycSubmissionDetail,
   presignAdminKycDocumentView,
   AdminCaller,
 } from "@/services/admin/kycAdminService";
