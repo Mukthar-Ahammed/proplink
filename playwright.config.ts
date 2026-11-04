@@ -20,8 +20,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
     env: {
-      // Auth.js redirects must stay on the test server's port.
-      NEXTAUTH_URL: `http://localhost:${PORT}`,
+      APP_ORIGIN: `http://localhost:${PORT}`,
     },
   },
 });
