@@ -14,7 +14,8 @@ export const createEnquirySchema = z.object({
   propertyId: z.string().trim().min(1, "propertyId is required"),
   message: z.string().trim().min(10, "Message must be at least 10 characters").max(2000),
   contactPhone: z.string().trim().max(30).optional(),
-});
+  turnstileToken: z.string().max(2048).optional(),
+}).strict();
 
 export type CreateEnquiryInput = z.infer<typeof createEnquirySchema>;
 

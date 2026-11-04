@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/services/search", async (importOriginal) => ({
   // Keep the real `parseSearchParams` so these tests exercise the route's
   // actual URL → params path; only the DB-backed service is stubbed.

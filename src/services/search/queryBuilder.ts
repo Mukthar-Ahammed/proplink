@@ -48,7 +48,10 @@ function enumList(values: string[], enumType: string): Prisma.Sql {
   );
 }
 
-function buildPredicates(params: SearchParams): Prisma.Sql[] {
+function buildPredicates(
+  params: SearchParams,
+  financialPromotionsReviewed: boolean,
+): Prisma.Sql[] {
   const predicates: Prisma.Sql[] = [
     Prisma.sql`p."status" IN (${enumList(SEARCHABLE_STATUSES, "PropertyStatus")})`,
     Prisma.sql`EXISTS (
@@ -67,7 +70,7 @@ function buildPredicates(params: SearchParams): Prisma.Sql[] {
   if (params.minBedrooms != null) {
     predicates.push(Prisma.sql`p."bedrooms" >= ${params.minBedrooms}`);
   }
-  if (params.minRoiPct != null) {
+  if (financialPromotionsReviewed && params.minRoiPct != null) {
     predicates.push(Prisma.sql`p."targetRoiPct" >= ${params.minRoiPct}`);
   }
   if (params.propertyType) {
@@ -127,8 +130,11 @@ function buildPredicates(params: SearchParams): Prisma.Sql[] {
   return predicates;
 }
 
-function whereClause(params: SearchParams): Prisma.Sql {
-  return Prisma.sql`WHERE ${Prisma.join(buildPredicates(params), " AND ")}`;
+function whereClause(
+  params: SearchParams,
+  financialPromotionsReviewed: boolean,
+): Prisma.Sql {
+  return Prisma.sql`WHERE ${Prisma.join(buildPredicates(params, financialPromotionsReviewed), " AND ")}`;
 }
 
 /**
@@ -136,13 +142,17 @@ function whereClause(params: SearchParams): Prisma.Sql {
  * equal sort keys can swap between page requests, so the same listing shows up
  * twice — or never — as a user pages through.
  */
-function orderByClause(params: SearchParams): Prisma.Sql {
+function orderByClause(
+  params: SearchParams,
+  financialPromotionsReviewed: boolean,
+): Prisma.Sql {
   const q = trimmedQuery(params);
 
   switch (params.sort) {
     case "price":
       return Prisma.sql`ORDER BY p."askingPriceGBP" ASC, p."id" ASC`;
     case "roi":
+      if (!financialPromotionsReviewed) break;
       return Prisma.sql`ORDER BY p."targetRoiPct" DESC NULLS LAST, p."id" ASC`;
     case "relevance":
       // ts_rank against an empty tsquery scores every row 0, leaving the order
@@ -170,7 +180,10 @@ export function resolvePage(page?: number): number {
  * from correlated subqueries rather than a second round trip, so one query
  * returns everything a `PropertyCard` renders, already ordered.
  */
-export function buildSearchQuery(params: SearchParams): Prisma.Sql {
+export function buildSearchQuery(
+  params: SearchParams,
+  financialPromotionsReviewed = false,
+): Prisma.Sql {
   const pageSize = resolvePageSize(params.pageSize);
   const offset = (resolvePage(params.page) - 1) * pageSize;
 
@@ -184,7 +197,7 @@ export function buildSearchQuery(params: SearchParams): Prisma.Sql {
       p."propertyType",
       p."bedrooms",
       p."askingPriceGBP",
-      p."targetRoiPct",
+      ${financialPromotionsReviewed ? Prisma.sql`p."targetRoiPct"` : Prisma.sql`NULL::integer`} AS "targetRoiPct",
       p."epcRating",
       p."status",
       p."publishedAt",
@@ -202,17 +215,20 @@ export function buildSearchQuery(params: SearchParams): Prisma.Sql {
         WHERE pdt."propertyId" = p."id"
       ), ARRAY[]::text[]) AS "distressTags"
     FROM "Property" p
-    ${whereClause(params)}
-    ${orderByClause(params)}
+    ${whereClause(params, financialPromotionsReviewed)}
+    ${orderByClause(params, financialPromotionsReviewed)}
     LIMIT ${pageSize} OFFSET ${offset}
   `;
 }
 
 /** The live-count query: same predicates, no ordering and no pagination. */
-export function buildSearchCountQuery(params: SearchParams): Prisma.Sql {
+export function buildSearchCountQuery(
+  params: SearchParams,
+  financialPromotionsReviewed = false,
+): Prisma.Sql {
   return Prisma.sql`
     SELECT COUNT(*)::int AS "count"
     FROM "Property" p
-    ${whereClause(params)}
+    ${whereClause(params, financialPromotionsReviewed)}
   `;
 }

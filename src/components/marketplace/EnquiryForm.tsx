@@ -4,15 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-
-async function parseErrorMessage(res: Response): Promise<string> {
-  const data = await res.json().catch(() => null);
-  if (data?.issues) {
-    const first = Object.values(data.issues as Record<string, string[]>).flat()[0];
-    if (first) return first;
-  }
-  return data?.error ?? `Request failed (${res.status})`;
-}
+import { TurnstileWidget } from "@/components/security/TurnstileWidget";
+import { RateLimitCountdown } from "@/components/security/RateLimitCountdown";
+import { readApiError } from "@/lib/security/rate-limit-client";
 
 interface EnquiryFormProps {
   propertyId: string;
@@ -36,6 +30,9 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
   const [contactPhone, setContactPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState<number>();
+  const [turnstileToken, setTurnstileToken] = useState<string>();
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   if (!sessionUser) {
     return (
@@ -54,6 +51,7 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    setRetryAfterSeconds(undefined);
     try {
       const res = await fetch("/api/enquiries", {
         method: "POST",
@@ -62,15 +60,20 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
           propertyId,
           message: message.trim(),
           ...(contactPhone.trim() ? { contactPhone: contactPhone.trim() } : {}),
+          turnstileToken,
         }),
       });
       if (!res.ok) {
-        setError(await parseErrorMessage(res));
+        const apiError = await readApiError(res);
+        setError(apiError.message);
+        setRetryAfterSeconds(apiError.retryAfterSeconds);
         return;
       }
       toast("Enquiry sent", "success");
       setMessage("");
       setContactPhone("");
+      setTurnstileToken(undefined);
+      setTurnstileResetKey((key) => key + 1);
     } finally {
       setSubmitting(false);
     }
@@ -120,9 +123,14 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
         />
       </div>
 
+      <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileResetKey} />
+
       {error && (
         <p role="alert" className="text-sm font-medium text-danger">
           {error}
+          {retryAfterSeconds ? (
+            <RateLimitCountdown key={retryAfterSeconds} seconds={retryAfterSeconds} />
+          ) : null}
         </p>
       )}
 

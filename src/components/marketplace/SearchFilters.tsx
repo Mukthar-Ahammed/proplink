@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DistressTag, EpcRating, PropertyType } from "@/generated/prisma/enums";
 import { DISTRESS_TAG_OPTIONS } from "@/components/listings/wizardTypes";
+import { RateLimitCountdown } from "@/components/security/RateLimitCountdown";
 // Imported from the concrete modules, NOT the `@/services/search` barrel:
 // that barrel re-exports `PostgresSearchService`, which imports `@/lib/db`,
 // and Prisma cannot be pulled into a client bundle (same trap Task 2.2 hit
@@ -11,6 +12,7 @@ import { DISTRESS_TAG_OPTIONS } from "@/components/listings/wizardTypes";
 // type-only, so both are safe here.
 import { buildSearchQueryString } from "@/services/search/queryString";
 import type { SearchParams } from "@/services/search/types";
+import { readApiError } from "@/lib/security/rate-limit-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MultiSelect } from "@/components/ui/multi-select";
@@ -73,6 +75,7 @@ export function SearchFilters({
   resultCount,
   basePath = "/marketplace",
   collapseDistress = false,
+  financialPromotionsReviewed = false,
 }: {
   initial: SearchParams;
   resultCount: number;
@@ -88,6 +91,7 @@ export function SearchFilters({
    * a removal — the filters are one click away and still in the DOM.
    */
   collapseDistress?: boolean;
+  financialPromotionsReviewed?: boolean;
 }) {
   const router = useRouter();
 
@@ -104,7 +108,9 @@ export function SearchFilters({
   const [minRoiPct, setMinRoiPct] = useState(
     initial.minRoiPct != null ? String(initial.minRoiPct) : "",
   );
-  const [sort, setSort] = useState<string>(initial.sort ?? "newest");
+  const normalizeSort = (value: string | undefined) =>
+    !financialPromotionsReviewed && value === "roi" ? "newest" : (value ?? "newest");
+  const [sort, setSort] = useState<string>(normalizeSort(initial.sort));
 
   /**
    * Adopt the URL when it changes underneath us.
@@ -134,11 +140,13 @@ export function SearchFilters({
     setPropertyType(initial.propertyType ?? "");
     setMinBedrooms(initial.minBedrooms != null ? String(initial.minBedrooms) : "");
     setMinRoiPct(initial.minRoiPct != null ? String(initial.minRoiPct) : "");
-    setSort(initial.sort ?? "newest");
+    setSort(normalizeSort(initial.sort));
   }
 
   // Seeded from the server render so the count is correct before any fetch.
   const [liveCount, setLiveCount] = useState<number | null>(resultCount);
+  const [countError, setCountError] = useState<string | null>(null);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState<number>();
   const requestId = useRef(0);
 
   const currentParams = useCallback((): SearchParams => {
@@ -150,8 +158,12 @@ export function SearchFilters({
     if (distressTags.length) params.distressTags = distressTags as DistressTag[];
     if (propertyType) params.propertyType = propertyType as PropertyType;
     if (minBedrooms) params.minBedrooms = Number(minBedrooms);
-    if (minRoiPct) params.minRoiPct = Number(minRoiPct);
-    if (sort !== "newest") params.sort = sort as SearchParams["sort"];
+    if (financialPromotionsReviewed && minRoiPct) {
+      params.minRoiPct = Number(minRoiPct);
+    }
+    if (sort !== "newest" && (financialPromotionsReviewed || sort !== "roi")) {
+      params.sort = sort as SearchParams["sort"];
+    }
     // Filters changing always returns to page 1 — staying on page 7 of a
     // narrower result set would show an empty grid.
     if (initial.bbox) params.bbox = initial.bbox;
@@ -166,6 +178,7 @@ export function SearchFilters({
     minBedrooms,
     minRoiPct,
     sort,
+    financialPromotionsReviewed,
     initial.bbox,
     initial.centre,
   ]);
@@ -177,15 +190,27 @@ export function SearchFilters({
     const timer = setTimeout(() => {
       const id = ++requestId.current;
       setLiveCount(null);
+      setCountError(null);
+      setRetryAfterSeconds(undefined);
 
       fetch(`/api/search/count?${qs}`)
-        .then((res) => (res.ok ? res.json() : null))
+        .then(async (res) => {
+          if (res.ok) return res.json();
+          const apiError = await readApiError(res);
+          if (id === requestId.current) {
+            setCountError(apiError.message);
+            setRetryAfterSeconds(apiError.retryAfterSeconds);
+          }
+          return null;
+        })
         .then((data: { count: number } | null) => {
           // Ignore a response that a newer request has already superseded.
-          if (id === requestId.current) setLiveCount(data?.count ?? 0);
+          if (id === requestId.current && data) setLiveCount(data.count);
         })
         .catch(() => {
-          if (id === requestId.current) setLiveCount(0);
+          if (id === requestId.current) {
+            setCountError("Unable to update the result count.");
+          }
         });
 
       // Only when it actually differs from the URL. Pushing on mount — when
@@ -229,9 +254,18 @@ export function SearchFilters({
         aria-live="polite"
         className="rounded-md bg-pale px-3 py-2 text-sm font-semibold text-secondary"
       >
-        {liveCount === null
-          ? "Counting…"
-          : `${liveCount.toLocaleString("en-GB")} ${liveCount === 1 ? "property" : "properties"}`}
+        {countError ? (
+          <>
+            {countError}
+            {retryAfterSeconds ? (
+              <RateLimitCountdown key={retryAfterSeconds} seconds={retryAfterSeconds} />
+            ) : null}
+          </>
+        ) : liveCount === null ? (
+          "Counting…"
+        ) : (
+          `${liveCount.toLocaleString("en-GB")} ${liveCount === 1 ? "property" : "properties"}`
+        )}
       </p>
 
       <div>
@@ -310,21 +344,25 @@ export function SearchFilters({
         onChange={(e) => setMinBedrooms(e.target.value)}
       />
 
-      <Input
-        id="search-roi"
-        label="Minimum target ROI (%)"
-        type="number"
-        min={0}
-        max={100}
-        placeholder="Any"
-        value={minRoiPct}
-        onChange={(e) => setMinRoiPct(e.target.value)}
-      />
+      {financialPromotionsReviewed && (
+        <Input
+          id="search-roi"
+          label="Minimum target ROI (%)"
+          type="number"
+          min={0}
+          max={100}
+          placeholder="Any"
+          value={minRoiPct}
+          onChange={(e) => setMinRoiPct(e.target.value)}
+        />
+      )}
 
       <Select
         id="search-sort"
         label="Sort by"
-        options={SORT_OPTIONS}
+        options={SORT_OPTIONS.filter(
+          (option) => financialPromotionsReviewed || option.value !== "roi",
+        )}
         value={sort}
         onChange={(e) => setSort(e.target.value)}
       />

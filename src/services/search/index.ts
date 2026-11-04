@@ -1,4 +1,5 @@
 import { PostgresSearchService } from "@/services/search/postgresSearchService";
+import { isFinancialPromotionsReviewed } from "@/env";
 import type { SearchService } from "@/services/search/types";
 
 export type {
@@ -23,4 +24,6 @@ export { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@/services/search/queryBuilder
  * swap stays a one-line change here (ARCHITECTURE.md: no Elasticsearch in this
  * build).
  */
-export const searchService: SearchService = new PostgresSearchService();
+export const searchService: SearchService = new PostgresSearchService(
+  isFinancialPromotionsReviewed(),
+);

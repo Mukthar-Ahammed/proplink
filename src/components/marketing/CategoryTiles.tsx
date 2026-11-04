@@ -33,7 +33,7 @@ export interface CategoryTile {
 export function CategoryTiles({ tiles }: { tiles: CategoryTile[] }) {
   return (
     <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
-      {tiles.map((tile, i) => (
+      {tiles.map((tile) => (
         <Link
           key={tile.label}
           href={tile.href}

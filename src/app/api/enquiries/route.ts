@@ -3,6 +3,7 @@ import { requireRole } from "@/lib/authz";
 import { createEnquirySchema } from "@/services/enquiries/validation";
 import { createEnquiry } from "@/services/enquiries/enquiryService";
 import { EnquiryServiceError, enquiryErrorStatus } from "@/services/enquiries/errors";
+import { verifyTurnstileToken } from "@/services/security/turnstile";
 
 // TODO(H1.5): rate-limit with @upstash/ratelimit once Upstash keys exist.
 export async function POST(request: Request) {
@@ -24,6 +25,22 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.flatten().fieldErrors },
       { status: 400 },
+    );
+  }
+
+  const verification = await verifyTurnstileToken(
+    parsed.data.turnstileToken,
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim(),
+  );
+  if (!verification.ok) {
+    return NextResponse.json(
+      {
+        error:
+          verification.reason === "unavailable"
+            ? "Security verification is temporarily unavailable."
+            : "Please complete the security verification and try again.",
+      },
+      { status: verification.reason === "unavailable" ? 503 : 400 },
     );
   }
 

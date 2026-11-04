@@ -26,6 +26,7 @@ import { PriceHistory } from "@/components/buy/PriceHistory";
 import { getComparables } from "@/services/intel/comparables";
 import { postcodeDistrict } from "@/lib/postcode";
 import { isListingSavedBy } from "@/services/listings/savedProperties";
+import { isFinancialPromotionsReviewed } from "@/env";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -122,6 +123,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
     : null;
 
   const isPublic = isPubliclyVisibleStatus(listing.status);
+  const financialPromotionsReviewed = isFinancialPromotionsReviewed();
 
   // Task 2.6: saving is a demand-side signal, so only BUYER/INVESTOR see the
   // toggle — the route enforces the same rule, this just avoids offering an
@@ -200,7 +202,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
             {listing.propertyType}
           </dd>
         </div>
-        {listing.targetRoiPct != null && (
+        {financialPromotionsReviewed && listing.targetRoiPct != null && (
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-muted">
               Target ROI

@@ -1,7 +1,12 @@
-import { formatPenceGBP, getGlobalMetrics } from "@/services/metrics/globalMetrics";
+import {
+  formatPenceGBP,
+  getGlobalMetrics,
+  getLandingStats,
+} from "@/services/metrics/globalMetrics";
 
 /**
- * The sprint plan's four-metric global strip (Task 1.5).
+ * A compact live inventory strip. Public success-fee and syndicate metrics are
+ * intentionally omitted under the current subscription/EOI-only business model.
  *
  * No longer mounted in the root layout: as of ADR-005 the marketing landing
  * page carries these figures in its hero (`<HeroStats>`), which omits the
@@ -9,21 +14,22 @@ import { formatPenceGBP, getGlobalMetrics } from "@/services/metrics/globalMetri
  * strip earns its space and every metric eventually has a value.
  */
 export async function MetricsStrip() {
-  const m = await getGlobalMetrics();
+  const [metrics, landing] = await Promise.all([
+    getGlobalMetrics(),
+    getLandingStats(),
+  ]);
 
   const items = [
     {
       label: "Total Distress Inventory",
-      value: formatPenceGBP(m.totalDistressInventoryGBP),
+      value: formatPenceGBP(metrics.totalDistressInventoryGBP),
     },
-    { label: "Completed Syndicate Deals", value: String(m.completedSyndicateDeals) },
-    { label: "Accrued Success Fees", value: formatPenceGBP(m.accruedSuccessFeesGBP) },
-    { label: "Vetted Referrals Routed", value: String(m.vettedReferralsRouted) },
+    { label: "Live Listings", value: String(landing.liveListings) },
   ];
 
   return (
     <div className="border-b border-line bg-primary text-white">
-      <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-2 px-6 py-3 text-center sm:grid-cols-4">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-2 gap-2 px-6 py-3 text-center">
         {items.map((item) => (
           <div key={item.label}>
             <div data-testid="metric-value" className="text-lg font-semibold">

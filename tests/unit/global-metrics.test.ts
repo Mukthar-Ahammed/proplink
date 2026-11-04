@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   formatCompactPenceGBP,
   formatPenceGBP,
@@ -10,35 +10,24 @@ import { db } from "@/lib/db";
 vi.mock("@/lib/db", () => ({
   db: {
     property: { aggregate: vi.fn(), count: vi.fn() },
-    syndicateProject: { count: vi.fn() },
-    successFee: { aggregate: vi.fn() },
-    partner: { aggregate: vi.fn() },
   },
 }));
+vi.mock("server-only", () => ({}));
 
 // No Upstash env in tests → cached() falls through to direct compute.
 const mockDb = vi.mocked(db, true);
 
 beforeEach(() => vi.clearAllMocks());
+afterEach(() => vi.unstubAllEnvs());
 
 describe("getGlobalMetrics", () => {
-  it("aggregates the four global metrics, VAT included in fees", async () => {
+  it("aggregates public live-listing inventory only", async () => {
     mockDb.property.aggregate.mockResolvedValue({
       _sum: { askingPriceGBP: 50_000_00 },
-    } as never);
-    mockDb.syndicateProject.count.mockResolvedValue(3);
-    mockDb.successFee.aggregate.mockResolvedValue({
-      _sum: { amountGBP: 200_00, vatGBP: 40_00 },
-    } as never);
-    mockDb.partner.aggregate.mockResolvedValue({
-      _sum: { clickCount: 17 },
     } as never);
 
     expect(await getGlobalMetrics()).toEqual({
       totalDistressInventoryGBP: 50_000_00,
-      completedSyndicateDeals: 3,
-      accruedSuccessFeesGBP: 240_00,
-      vettedReferralsRouted: 17,
     });
   });
 
@@ -46,16 +35,8 @@ describe("getGlobalMetrics", () => {
     mockDb.property.aggregate.mockResolvedValue({
       _sum: { askingPriceGBP: null },
     } as never);
-    mockDb.syndicateProject.count.mockResolvedValue(0);
-    mockDb.successFee.aggregate.mockResolvedValue({
-      _sum: { amountGBP: null, vatGBP: null },
-    } as never);
-    mockDb.partner.aggregate.mockResolvedValue({ _sum: { clickCount: null } } as never);
-
     const m = await getGlobalMetrics();
     expect(m.totalDistressInventoryGBP).toBe(0);
-    expect(m.accruedSuccessFeesGBP).toBe(0);
-    expect(m.vettedReferralsRouted).toBe(0);
   });
 });
 
@@ -67,7 +48,21 @@ describe("formatPenceGBP", () => {
 });
 
 describe("getLandingStats", () => {
-  it("counts live listings and rounds the mean target ROI", async () => {
+  it("withholds the mean target ROI until financial-promotion review", async () => {
+    mockDb.property.count.mockResolvedValue(42);
+    mockDb.property.aggregate.mockResolvedValue({
+      _avg: { targetRoiPct: 18.4 },
+    } as never);
+
+    expect(await getLandingStats()).toEqual({
+      liveListings: 42,
+      avgTargetRoiPct: null,
+    });
+    expect(mockDb.property.aggregate).not.toHaveBeenCalled();
+  });
+
+  it("rounds the mean ROI after financial-promotion review", async () => {
+    vi.stubEnv("FINANCIAL_PROMOTIONS_REVIEWED", "true");
     mockDb.property.count.mockResolvedValue(42);
     mockDb.property.aggregate.mockResolvedValue({
       _avg: { targetRoiPct: 18.4 },

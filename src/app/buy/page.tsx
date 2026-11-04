@@ -5,6 +5,7 @@ import { SearchFilters } from "@/components/marketplace/SearchFilters";
 import { SearchPagination } from "@/components/marketplace/SearchPagination";
 import { AffordabilityCalculator } from "@/components/buy/AffordabilityCalculator";
 import { PortalEmpty } from "@/components/portal/PortalShell";
+import { isFinancialPromotionsReviewed } from "@/env";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ export default async function BuyerSearchPage({ searchParams }: PageProps) {
 
   const params = parseSearchParams(sp);
   const results = await searchService.search(params);
+  const financialPromotionsReviewed = isFinancialPromotionsReviewed();
 
   return (
     <>
@@ -48,6 +50,7 @@ export default async function BuyerSearchPage({ searchParams }: PageProps) {
           resultCount={results.total}
           basePath="/buy"
           collapseDistress
+          financialPromotionsReviewed={financialPromotionsReviewed}
         />
 
         <section aria-label="Search results">

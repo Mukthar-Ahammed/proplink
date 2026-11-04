@@ -9,8 +9,7 @@ import { parseSearchParams, searchService } from "@/services/search";
  * rejected, so a stale or hand-edited shared link degrades to a broader search
  * instead of a 400.
  */
-// TODO(H1.5): rate-limit with @upstash/ratelimit once Upstash keys exist —
-// public and query-heavy, even though it is a read.
+// The global proxy applies the public-search rate limit before this handler.
 export async function GET(request: Request) {
   const params = parseSearchParams(new URL(request.url).searchParams);
   const result = await searchService.search(params);

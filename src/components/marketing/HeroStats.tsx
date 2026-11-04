@@ -16,12 +16,8 @@ interface Stat {
  * The landing page's headline figures — the successor to the full-width
  * `MetricsStrip` that used to sit above the site header (ADR-005).
  *
- * Zero-valued metrics are omitted deliberately: pre-launch, three of the
- * sprint plan's four global metrics are structurally 0 (no syndicate has
- * completed, so no success fee has accrued), and a hero advertising "0
- * completed deals · £0 fees" actively damages the credibility the strip
- * exists to build. They reappear on their own the moment they have a value,
- * so nothing needs changing at launch.
+ * Only verified inventory metrics are public here. ROI is omitted until the
+ * financial-promotions review flag is approved.
  */
 export async function HeroStats() {
   const [metrics, landing] = await Promise.all([getGlobalMetrics(), getLandingStats()]);
@@ -44,26 +40,6 @@ export async function HeroStats() {
   if (landing.avgTargetRoiPct != null) {
     stats.push({ value: `${landing.avgTargetRoiPct}%`, label: "Avg target ROI" });
   }
-  if (metrics.completedSyndicateDeals > 0) {
-    stats.push({
-      value: String(metrics.completedSyndicateDeals),
-      label: "Completed Syndicate Deals",
-    });
-  }
-  if (metrics.accruedSuccessFeesGBP > 0) {
-    stats.push({
-      value: formatCompactPenceGBP(metrics.accruedSuccessFeesGBP),
-      label: "Accrued Success Fees",
-      title: formatPenceGBP(metrics.accruedSuccessFeesGBP),
-    });
-  }
-  if (metrics.vettedReferralsRouted > 0) {
-    stats.push({
-      value: String(metrics.vettedReferralsRouted),
-      label: "Vetted Referrals Routed",
-    });
-  }
-
   // An empty database would otherwise render an empty bordered box.
   if (stats.length === 0) return null;
 

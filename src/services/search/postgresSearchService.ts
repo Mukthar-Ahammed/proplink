@@ -33,9 +33,13 @@ interface RawSearchRow {
   distressTags: string[] | null;
 }
 
-function toItem(row: RawSearchRow): SearchResultItem {
+function toItem(
+  row: RawSearchRow,
+  financialPromotionsReviewed: boolean,
+): SearchResultItem {
   return {
     ...row,
+    targetRoiPct: financialPromotionsReviewed ? row.targetRoiPct : null,
     // `array_agg` returns NULL, not an empty array, when a listing has no tags —
     // the query COALESCEs it, but the mapper stays defensive since a null here
     // would crash every card that maps over the list.
@@ -50,6 +54,10 @@ function toItem(row: RawSearchRow): SearchResultItem {
  * sibling class rather than unpicking SQL from business logic.
  */
 export class PostgresSearchService implements SearchService {
+  constructor(
+    private readonly financialPromotionsReviewed = false,
+  ) {}
+
   async search(params: SearchParams): Promise<SearchResult> {
     const page = resolvePage(params.page);
     const pageSize = resolvePageSize(params.pageSize);
@@ -57,12 +65,16 @@ export class PostgresSearchService implements SearchService {
     // Rows and total in parallel: the count is needed for pagination on the
     // very same render, so serialising them would just add a round trip.
     const [rows, total] = await Promise.all([
-      db.$queryRaw<RawSearchRow[]>(buildSearchQuery(params)),
+      db.$queryRaw<RawSearchRow[]>(
+        buildSearchQuery(params, this.financialPromotionsReviewed),
+      ),
       this.count(params),
     ]);
 
     return {
-      items: rows.map(toItem),
+      items: rows.map((row) =>
+        toItem(row, this.financialPromotionsReviewed),
+      ),
       total,
       // Report what was actually queried, not what was asked for — the caller
       // paginates against these numbers.
@@ -73,7 +85,9 @@ export class PostgresSearchService implements SearchService {
   }
 
   async count(params: SearchParams): Promise<number> {
-    const rows = await db.$queryRaw<{ count: number }[]>(buildSearchCountQuery(params));
+    const rows = await db.$queryRaw<{ count: number }[]>(
+      buildSearchCountQuery(params, this.financialPromotionsReviewed),
+    );
     return rows[0]?.count ?? 0;
   }
 }

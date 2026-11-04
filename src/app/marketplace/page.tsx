@@ -3,11 +3,12 @@ import { parseSearchParams, searchService } from "@/services/search";
 import { PropertyCard } from "@/components/marketplace/PropertyCard";
 import { SearchFilters } from "@/components/marketplace/SearchFilters";
 import { SearchPagination } from "@/components/marketplace/SearchPagination";
+import { isFinancialPromotionsReviewed } from "@/env";
 
 export const metadata: Metadata = {
   title: "Distressed property marketplace",
   description:
-    "Search UK distressed property: probate sales, repossessions, fire and flood damage, subsidence and part-complete refurbishments — with EPC ratings and target ROI on every listing.",
+    "Search UK distressed property: probate sales, repossessions, fire and flood damage, subsidence and part-complete refurbishments — with EPC ratings and disclosed defects.",
   alternates: { canonical: "/marketplace" },
 };
 
@@ -39,6 +40,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
 
   const params = parseSearchParams(sp);
   const results = await searchService.search(params);
+  const financialPromotionsReviewed = isFinancialPromotionsReviewed();
 
   return (
     <main className="flex flex-1 flex-col">
@@ -60,8 +62,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
               Distressed property <span className="font-light">marketplace</span>
             </h1>
             <p className="max-w-sm text-sm leading-relaxed text-pale/75">
-              Every listing shows its EPC rating, disclosed defects and the agent&apos;s
-              target refurbishment ROI.
+              Listings show EPC ratings and disclosed defects.
             </p>
           </div>
         </div>
@@ -69,7 +70,11 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
 
       <div className="mx-auto w-full max-w-7xl px-6 py-10">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
-          <SearchFilters initial={params} resultCount={results.total} />
+          <SearchFilters
+            initial={params}
+            resultCount={results.total}
+            financialPromotionsReviewed={financialPromotionsReviewed}
+          />
 
           <section aria-label="Search results">
             {results.items.length === 0 ? (

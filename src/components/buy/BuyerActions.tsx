@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { RateLimitCountdown } from "@/components/security/RateLimitCountdown";
+import { readApiError } from "@/lib/security/rate-limit-client";
 
 /**
  * The buyer's write actions on a listing (ADR-017, Task 5.7): request a viewing,
@@ -50,11 +52,13 @@ export function BuyerActions({
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState<number>();
   const [done, setDone] = useState<string | null>(null);
 
   async function post(url: string, payload: unknown, success: string) {
     setBusy(true);
     setError(null);
+    setRetryAfterSeconds(undefined);
     setDone(null);
     try {
       const res = await fetch(url, {
@@ -63,8 +67,9 @@ export function BuyerActions({
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(data?.error ?? "Something went wrong. Try again.");
+        const apiError = await readApiError(res);
+        setError(apiError.message);
+        setRetryAfterSeconds(apiError.retryAfterSeconds);
         return;
       }
       setDone(success);
@@ -209,7 +214,14 @@ export function BuyerActions({
       </div>
 
       <p aria-live="polite" className="mt-4 text-sm">
-        {error ? <span className="text-danger">{error}</span> : null}
+        {error ? (
+          <span className="text-danger">
+            {error}
+            {retryAfterSeconds ? (
+              <RateLimitCountdown key={retryAfterSeconds} seconds={retryAfterSeconds} />
+            ) : null}
+          </span>
+        ) : null}
         {done ? <span className="text-success">{done}</span> : null}
       </p>
     </section>

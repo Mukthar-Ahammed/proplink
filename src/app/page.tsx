@@ -76,19 +76,19 @@ function Line({ children, delay = "" }: { children: React.ReactNode; delay?: str
 const STEPS = [
   {
     title: "Agent lists",
-    desc: "Distressed stock goes live with disclosed defects, EPC rating and a target refurbishment ROI.",
+    desc: "Invited Agents review approved private listings and agree an exclusive mandate.",
   },
   {
-    title: "Investors pool",
-    desc: "KYC-verified members register expressions of interest against a deal and its refurb plan.",
+    title: "Investors assess",
+    desc: "Lead and Co-Investors access authorised project information; funds move outside the app.",
   },
   {
     title: "Buyer purchases",
-    desc: "Enquiries, viewings and offers run through the platform, with every lead attributed.",
+    desc: "Approved listings reach retail buyers for enquiries, viewings and offers.",
   },
   {
-    title: "Deal completes",
-    desc: "Refurbishment is tracked to completion and the outcome joins the agent's verified record.",
+    title: "Solicitor coordinates",
+    desc: "Project agreements and external fund-status updates stay within the project-scoped Solicitor workflow.",
   },
 ];
 
@@ -149,8 +149,8 @@ export default async function Home() {
           <p
             className={`${RISE} mt-5 max-w-2xl text-center text-base leading-relaxed text-pale/85 delay-[300ms] sm:text-lg`}
           >
-            Disclosed defects, EPC rating and target refurbishment ROI on the face of
-            every listing.
+            Private listings, verified access, disclosed defects and EPC ratings in
+            one controlled pipeline.
           </p>
 
           {/* Primary CTAs */}
@@ -195,7 +195,7 @@ export default async function Home() {
                   UK Distressed Stock
                 </span>
                 <span className="hidden sm:flex items-center gap-1.5 rounded-xl bg-white/70 px-3 py-1.5 text-xs font-medium text-muted">
-                  ROI &gt; 15%
+                  Private until approved
                 </span>
                 <span className="hidden md:flex items-center gap-1.5 rounded-xl bg-white/70 px-3 py-1.5 text-xs font-medium text-muted">
                   Probate & Renovation
@@ -204,7 +204,7 @@ export default async function Home() {
                   href="/marketplace"
                   className="rounded-xl bg-primary px-4 py-1.5 text-xs font-semibold text-white hover:bg-accent transition-colors"
                 >
-                  Filter deals
+                  Browse marketplace
                 </Link>
               </div>
             </div>
@@ -260,9 +260,8 @@ export default async function Home() {
               Buy the <span className="font-light">defect</span> you understand
             </h2>
             <p className="mt-6 max-w-md text-base leading-relaxed text-pale/75">
-              Every listing carries its disclosed defects, EPC rating and the agent&apos;s
-              target refurbishment ROI — so due diligence starts before you enquire, not
-              after.
+              Public listings carry disclosed defects and EPC ratings. Private
+              opportunities remain restricted to authorised participants.
             </p>
             <Link
               href="/marketplace"
@@ -291,8 +290,8 @@ export default async function Home() {
             deal
           </h2>
           <p className="mx-auto mt-7 max-w-xl text-center text-base leading-relaxed text-muted">
-            Discovery, due diligence, syndication and refurbishment — on one platform, for
-            agents, investors and buyers alike.
+            Discovery, authorised project access and retail enquiries — with funds
+            handled outside the platform.
           </p>
           <HeroStats />
         </div>

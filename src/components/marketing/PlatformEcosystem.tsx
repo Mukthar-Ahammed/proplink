@@ -18,7 +18,7 @@ const PORTALS: PortalItem[] = [
   {
     id: "01",
     name: "Marketplace",
-    desc: "Search by defect, EPC band, budget and target ROI.",
+    desc: "Search approved listings by defect, EPC band and budget.",
     href: "/marketplace",
     label: "SHARED PROPERTY DATA",
     icon: "M10.5 4a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13Z M15.4 15.4 20.2 20.2 M6.9 11.7 10.5 8.7l3.6 3 M8.3 10.5v3.8h4.4v-3.8",

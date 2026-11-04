@@ -79,7 +79,7 @@ export default async function InvestorPage() {
         <Link href="/marketplace" className="group rounded-2xl border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Explore</p>
           <p className="mt-2 font-semibold text-primary">Find new opportunities <span className="text-accent transition group-hover:translate-x-1 inline-block">→</span></p>
-          <p className="mt-1 text-sm text-muted">Browse distressed stock and target returns.</p>
+          <p className="mt-1 text-sm text-muted">Browse approved distressed stock and project information.</p>
         </Link>
         <Link href="/investor/kyc" className="group rounded-2xl border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted">Compliance</p>
@@ -175,7 +175,7 @@ export default async function InvestorPage() {
             <div className="rounded-2xl border border-line bg-white p-5">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted">Property Acquisition</span>
               <p className="mt-2 text-base font-bold text-primary">Browse Refurb Inventory</p>
-              <p className="mt-1 text-xs text-muted">Filter deals with disclosed defects & ROI targets</p>
+              <p className="mt-1 text-xs text-muted">Filter listings with disclosed defects and EPC ratings</p>
               <Link
                 href="/marketplace"
                 className="mt-4 inline-block text-xs font-semibold text-primary underline hover:text-accent"
@@ -212,7 +212,7 @@ export default async function InvestorPage() {
       >
         <p className="text-sm leading-relaxed text-muted">
           Every listing carries its disclosed defects, EPC rating and the agent&apos;s
-          target refurbishment ROI.
+          approved project information.
         </p>
       </PortalSection>
     </>
