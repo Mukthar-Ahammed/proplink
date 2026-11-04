@@ -26,6 +26,36 @@ enum KycStatus {
   REJECTED
 }
 
+/// KYC document kind — drives file-type allowlists and storage path prefix.
+enum KycDocumentKind {
+  PASSPORT
+  DRIVERS_LICENCE
+  NATIONAL_ID
+  PROOF_OF_ADDRESS
+  COMPANY_REGISTRATION
+  OTHER
+}
+
+/// KYC submission lifecycle status (not the same as KycStatus on the profile).
+/// DRAFT → SUBMITTED → (Admin reviews in Phase 5) APPROVED or REJECTED.
+enum KycSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum InvestorType {
+  FLIPPER
+  SYNDICATE
+  BOTH
+}
+
+enum ListingSource {
+  AGENT
+  FLIPPER_RESALE
+}
+
 enum PropertyStatus {
   DRAFT
   PENDING_REVIEW
@@ -157,13 +187,42 @@ model User {
   appraisals        Appraisal[]
   subscription      Subscription?
   offers            Offer[]
-  viewings          Viewing[]
+  viewings           Viewing[]
   sentMessages      ChatMessage[]     @relation("SentMessages")
   receivedMessages  ChatMessage[]     @relation("ReceivedMessages")
   kycRecords        KycRecord[]
+  kycSubmissions    KycSubmission[]
   auditLogs         AuditLog[]
   ledgerEntries     LedgerEntry[]
   verificationTokens VerificationToken[]
+  authProfile       Profile?
+
+  flipperOpportunities FlipperOpportunity[]
+  flipperOffers        FlipperOffer[]
+  flipperAcquisitions  FlipperAcquisition[]
+  flipperProjects      FlipperProject[]
+  flipperResales       FlipperResale[]
+}
+
+/// Supabase Auth extension row. The UUID primary key is also a database-level
+/// foreign key to auth.users(id), created in the raw SQL migration.
+model Profile {
+  id             String    @id @db.Uuid
+  legacyUserId   String?   @unique
+  role           Role      @default(BUYER)
+  investorType   InvestorType?
+  name           String?
+  kycStatus      KycStatus @default(NOT_STARTED)
+  complianceCode String?
+  avatarUrl      String?
+  gdprConsentAt  DateTime?
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  legacyUser User? @relation(fields: [legacyUserId], references: [id], onDelete: SetNull)
+
+  @@map("profiles")
 }
 
 model VerificationToken {
@@ -200,7 +259,8 @@ model AgentProfile {
 
 model Property {
   id             String         @id @default(cuid())
-  agentProfileId String
+  agentProfileId String?
+  listingSource  ListingSource  @default(AGENT)
   title          String
   description    String
   status         PropertyStatus @default(DRAFT)
@@ -239,7 +299,8 @@ model Property {
   /// DRAFT; cleared on approval. Null until a listing has been rejected once.
   rejectionReason String?
 
-  agentProfile      AgentProfile          @relation(fields: [agentProfileId], references: [id])
+  agentProfile      AgentProfile?         @relation(fields: [agentProfileId], references: [id])
+  resaleFor         FlipperResale?        @relation("ResaleProperty")
   distressTags      PropertyDistressTag[]
   images            PropertyImage[]
   syndicateProjects SyndicateProject[]
@@ -250,6 +311,11 @@ model Property {
   deals             Deal[]
   viewings          Viewing[]
   chatMessages      ChatMessage[]
+  flipperOpportunities FlipperOpportunity[]
+  flipperOffers        FlipperOffer[]
+  flipperAcquisitions  FlipperAcquisition[]
+  flipperProjects      FlipperProject[]
+  flipperResales       FlipperResale[]
 
   @@index([status])
   @@index([agentProfileId])
@@ -294,6 +360,7 @@ model SyndicateProject {
   successFees SuccessFee[]
 
   @@index([status])
+  @@index([propertyId])
 }
 
 /// EOI mode: pledges record intent only — money NEVER moves (see docs/CONTEXT.md).
@@ -332,6 +399,8 @@ model MilestonePhoto {
   url         String
 
   milestone Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@index([milestoneId])
 }
 
 model LedgerEntry {
@@ -347,6 +416,7 @@ model LedgerEntry {
   author  User             @relation(fields: [createdBy], references: [id])
 
   @@index([projectId])
+  @@index([createdBy])
 }
 
 model Enquiry {
@@ -372,6 +442,7 @@ model SavedProperty {
   property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
 
   @@id([userId, propertyId])
+  @@index([propertyId])
 }
 
 model SavedSearch {
@@ -413,6 +484,7 @@ model Appraisal {
   investor     User         @relation(fields: [investorUserId], references: [id])
 
   @@unique([agentProfileId, investorUserId])
+  @@index([investorUserId])
 }
 
 model Subscription {
@@ -437,6 +509,9 @@ model SuccessFee {
 
   property Property          @relation(fields: [propertyId], references: [id])
   project  SyndicateProject? @relation(fields: [projectId], references: [id])
+
+  @@index([propertyId])
+  @@index([projectId])
 }
 
 model Offer {
@@ -452,6 +527,7 @@ model Offer {
   deals    Deal[]
 
   @@index([propertyId])
+  @@index([buyerUserId])
 }
 
 model Deal {
@@ -463,6 +539,9 @@ model Deal {
 
   property Property @relation(fields: [propertyId], references: [id])
   offer    Offer    @relation(fields: [offerId], references: [id])
+
+  @@index([propertyId])
+  @@index([offerId])
 }
 
 model Viewing {
@@ -477,6 +556,7 @@ model Viewing {
   buyer    User     @relation(fields: [buyerUserId], references: [id])
 
   @@index([propertyId])
+  @@index([buyerUserId])
 }
 
 model ChatMessage {
@@ -493,6 +573,7 @@ model ChatMessage {
   to       User     @relation("ReceivedMessages", fields: [toUserId], references: [id])
 
   @@index([propertyId])
+  @@index([fromUserId])
   @@index([toUserId, readAt])
 }
 
@@ -519,6 +600,8 @@ model AdSlot {
   clicks      Int     @default(0)
 
   partner Partner @relation(fields: [partnerId], references: [id])
+
+  @@index([partnerId])
 }
 
 /// UK AML: retained 5 years — soft-delete only, survives user erasure (anonymised link).
@@ -536,6 +619,53 @@ model KycRecord {
   user User @relation(fields: [userId], references: [id])
 
   @@index([userId])
+}
+
+/// Phase 4: Investor KYC submission (one per attempt). Transitions:
+/// DRAFT (documents uploading) → SUBMITTED (investor confirms) →
+/// APPROVED | REJECTED (Admin in Phase 5).
+/// Financial KYC gating reads profiles.kycStatus, NOT this table.
+model KycSubmission {
+  id          String               @id @default(cuid())
+  userId      String
+  status      KycSubmissionStatus  @default(DRAFT)
+  /// Investor's own declaration text — free form, required on submit.
+  declaration String?
+  submittedAt DateTime?
+  reviewedAt       DateTime?
+  reviewedByUserId String?
+  /// Safe rejection reason visible to the Investor (Phase 5).
+  rejectionReason  String?
+  /// Admin-only confidential internal notes — NEVER exposed to Investor (Phase 5).
+  internalNotes    String?
+  /// Admin rejection reason legacy notes.
+  reviewNotes      String?
+  createdAt        DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  user      User          @relation(fields: [userId], references: [id])
+  documents KycDocument[]
+
+  @@index([userId, status])
+  @@index([status, submittedAt])
+}
+
+/// Individual document uploaded within a KycSubmission.
+/// storageKey is the private bucket key; the public URL is NEVER stored
+/// — it must be generated server-side on demand with a signed URL.
+model KycDocument {
+  id           String          @id @default(cuid())
+  submissionId String
+  kind         KycDocumentKind
+  /// Private bucket key, e.g. kyc/<userId>/<uuid>.pdf
+  storageKey   String
+  contentType  String
+  sizeBytes    Int
+  createdAt    DateTime        @default(now())
+
+  submission KycSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
 }
 
 /// Land Registry Price Paid ingest (Sprint 5).
@@ -563,4 +693,238 @@ model AuditLog {
   actor User @relation(fields: [actorUserId], references: [id])
 
   @@index([entity, entityId])
+  @@index([actorUserId])
+}
+
+enum FlipperOpportunityStatus {
+  SAVED
+  EVALUATING
+  OFFER_SUBMITTED
+  OFFER_ACCEPTED
+  DECLINED
+  WITHDRAWN
+}
+
+enum FlipperOfferStatus {
+  DRAFT
+  SUBMITTED
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+enum FlipperAcquisitionStatus {
+  PENDING_COMPLETION
+  COMPLETED
+  CANCELLED
+}
+
+/// Phase 6: Property Flipper opportunity evaluation tracking.
+model FlipperOpportunity {
+  id             String                   @id @default(cuid())
+  investorUserId String
+  propertyId     String
+  status         FlipperOpportunityStatus @default(SAVED)
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  investor User     @relation(fields: [investorUserId], references: [id])
+  property Property @relation(fields: [propertyId], references: [id])
+  offers   FlipperOffer[]
+  acquisitions FlipperAcquisition[]
+
+  @@unique([investorUserId, propertyId])
+  @@index([investorUserId, status])
+  @@index([propertyId])
+}
+
+/// Phase 6: Property Flipper acquisition offer.
+model FlipperOffer {
+  id             String             @id @default(cuid())
+  opportunityId String
+  investorUserId String
+  propertyId     String
+  amountGBP      Int // pence
+  status         FlipperOfferStatus @default(SUBMITTED)
+  submittedAt    DateTime           @default(now())
+  respondedAt    DateTime?
+  agentNotes     String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  opportunity FlipperOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  investor    User               @relation(fields: [investorUserId], references: [id])
+  property    Property           @relation(fields: [propertyId], references: [id])
+  acquisitions FlipperAcquisition[]
+
+  @@index([opportunityId])
+  @@index([investorUserId, status])
+  @@index([propertyId, status])
+}
+
+/// Phase 6: Confirmed Flipper acquisition opportunity (handoff to Phase 7 Refurbishment).
+model FlipperAcquisition {
+  id             String                   @id @default(cuid())
+  offerId        String                   @unique
+  opportunityId String
+  investorUserId String
+  propertyId     String
+  agreedPriceGBP Int // pence
+  status         FlipperAcquisitionStatus @default(PENDING_COMPLETION)
+  completedAt    DateTime?
+  completedByUserId String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  offer       FlipperOffer       @relation(fields: [offerId], references: [id])
+  opportunity FlipperOpportunity @relation(fields: [opportunityId], references: [id])
+  investor    User               @relation(fields: [investorUserId], references: [id])
+  property    Property           @relation(fields: [propertyId], references: [id])
+  projects    FlipperProject[]
+
+  @@index([investorUserId, status])
+  @@index([propertyId])
+}
+
+enum FlipperProjectStatus {
+  PLANNING
+  IN_PROGRESS
+  COMPLETED
+  ON_HOLD
+  CANCELLED
+}
+
+enum FlipperCostCategory {
+  MATERIALS
+  LABOUR
+  PROFESSIONAL_FEES
+  UTILITIES
+  OTHER
+}
+
+enum FlipperMilestoneStatus {
+  TODO
+  IN_PROGRESS
+  COMPLETED
+}
+
+/// Phase 7: Flipper refurbishment project tracking (unlocked after acquisition is COMPLETED).
+model FlipperProject {
+  id                   String               @id @default(cuid())
+  acquisitionId        String               @unique
+  investorUserId       String
+  propertyId           String
+  status               FlipperProjectStatus @default(PLANNING)
+  plannedBudgetGBP     Int                  @default(0) // pence
+  targetCompletionDate DateTime?
+  startedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  acquisition FlipperAcquisition        @relation(fields: [acquisitionId], references: [id])
+  investor    User                      @relation(fields: [investorUserId], references: [id])
+  property    Property                  @relation(fields: [propertyId], references: [id])
+  costs       FlipperProjectCost[]
+  milestones  FlipperProjectMilestone[]
+  resale      FlipperResale?
+
+  @@index([investorUserId, status])
+  @@index([propertyId])
+}
+
+/// Phase 7: Flipper project cost/expense ledger item.
+model FlipperProjectCost {
+  id          String              @id @default(cuid())
+  projectId   String
+  category    FlipperCostCategory @default(OTHER)
+  description String
+  amountGBP   Int // pence
+  incurredAt  DateTime            @default(now())
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  project FlipperProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, category])
+}
+
+/// Phase 7: Flipper project milestone tracking.
+model FlipperProjectMilestone {
+  id          String                 @id @default(cuid())
+  projectId   String
+  title       String
+  description String?
+  status      FlipperMilestoneStatus @default(TODO)
+  targetDate  DateTime?
+  completedAt DateTime?
+  sortOrder   Int                    @default(0)
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  project FlipperProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, status])
+}
+
+// ─── Phase 8: Flipper Resale & Exit Workflow ──────────────────────────────────
+
+/// Status lifecycle for Flipper resale listing.
+/// DRAFT → SUBMITTED (by Investor) → APPROVED | REJECTED (by Admin only).
+/// Investor can NEVER self-publish. LIVE is reached only via Admin approval.
+enum FlipperResaleStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+/// Phase 8: Resale listing created by a Flipper investor after project completion.
+/// The original FlipperProject is PRESERVED; this is a SEPARATE entity.
+/// All financial figures labelled *Estimated* are non-guaranteed and advisory only.
+/// Investor cannot transition to APPROVED directly; only Admin can.
+model FlipperResale {
+  id             String              @id @default(cuid())
+  projectId      String              @unique
+  investorUserId String
+  propertyId     String
+
+  /// Investor's estimated asking price for the renovated property (integer pence).
+  estimatedAskingPriceGBP Int // pence — advisory, not guaranteed
+
+  /// Investor's estimated profit margin (integer pence = estimated sale - total costs - acquisition price).
+  /// Server-calculated from project data on submission; stored for audit trail.
+  estimatedProfitGBP Int // pence — advisory
+
+  /// Investor's resale listing description/pitch.
+  description String?
+
+  /// Investor's declaration confirming the listing information is accurate.
+  declaration String?
+
+  /// Admin-visible internal notes (NEVER exposed to Investor).
+  internalNotes String?
+
+  /// Safe reason shown to the Investor when the listing is rejected.
+  rejectionReason String?
+
+  status FlipperResaleStatus @default(DRAFT)
+
+  resalePropertyId String?   @unique
+
+  submittedAt      DateTime?
+  reviewedAt       DateTime?
+  reviewedByUserId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project        FlipperProject @relation(fields: [projectId], references: [id])
+  investor       User           @relation(fields: [investorUserId], references: [id])
+  property       Property       @relation(fields: [propertyId], references: [id])
+  resaleProperty Property?      @relation("ResaleProperty", fields: [resalePropertyId], references: [id])
+
+  @@index([investorUserId, status])
+  @@index([status, submittedAt])
+  @@index([propertyId])
 }

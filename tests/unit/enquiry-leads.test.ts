@@ -27,7 +27,10 @@ function enquiryRow(ownerUserId = AGENT_USER_ID) {
   return {
     id: ENQUIRY_ID,
     status: EnquiryStatus.NEW,
-    property: { id: "property-1", agentProfile: { userId: ownerUserId } },
+    property: {
+      id: "property-1",
+      agentProfile: { userId: ownerUserId, active: true, user: { active: true } },
+    },
   } as never;
 }
 
@@ -36,6 +39,8 @@ describe("listEnquiriesForAgentProfile", () => {
     mockDb.agentProfile.findUnique.mockResolvedValue({
       id: AGENT_PROFILE_ID,
       userId: AGENT_USER_ID,
+      active: true,
+      user: { active: true },
     } as never);
     mockDb.enquiry.findMany.mockResolvedValue([{ id: ENQUIRY_ID }] as never);
 

@@ -14,6 +14,13 @@ import { buildSearchQuery, buildSearchCountQuery } from "@/services/search/query
  */
 
 describe("buildSearchQuery — visibility", () => {
+  it("requires an active Agent profile and active owning account", () => {
+    const { text } = buildSearchQuery({});
+
+    expect(text).toContain(`ap."active" = true`);
+    expect(text).toContain(`agent_user."active" = true`);
+  });
+
   it("restricts to marketable statuses even with no filters at all", () => {
     const { text, values } = buildSearchQuery({});
 
@@ -106,7 +113,7 @@ describe("buildSearchQuery — scalar filters", () => {
     const { text } = buildSearchQuery({ epcBands: [], distressTags: [] });
 
     expect(text).not.toContain(`"epcRating" IN`);
-    expect(text).not.toContain("EXISTS");
+    expect(text).not.toContain(`pdt."tag" IN`);
   });
 });
 

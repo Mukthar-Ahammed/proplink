@@ -23,18 +23,26 @@ marketing-only display face (**ADR-006**) plus a working hero search bar,
 live distress-category tiles and an editorial listing card. Palette unchanged.
 Detail in `SPRINT-03.md`.
 
+**Security migration Phase 3 (2026-10-07, staging only):** Supabase RLS and
+Storage foundation applied and rollback/reapply-tested (ADR-018). All 29
+application-owned public tables have RLS plus separate CRUD policies; anon and
+all four application roles were exercised across every table. KYC documents are
+private, property images are public-delivery without anonymous listing, and 14
+advisor-reported foreign keys gained covering indexes. Phase 3 is **not exit-gate
+complete**: Supabase Security Advisor still reports the platform-owned PostGIS
+`spatial_ref_sys` table (RLS disabled) and PostGIS/pg_trgm installed in public.
+The staging project role cannot alter these `supabase_admin` objects (42501).
+
 Sprint 1 fully verified locally (23 unit + 12 E2E tests green). Sprint 2 final
 state: typecheck/lint/format clean, production build green, 10 consecutive clean
 Playwright runs, Lighthouse on a seeded `/marketplace/[id]` at **SEO 100 /
 accessibility 100 / best practices 100**, and a 40-listing demo catalogue
-seeded across 12 UK cities. The Supabase
-pooler blocker that left Tasks 2.1–2.4 code-complete-but-unverified is worked
-around with a local PostGIS database (`BLOCKERS.md`); running the suite against
-it retro-verified all four and turned up a 500-on-null-coordinates bug, two WCAG
-contrast failures and three E2E harness races (see `SPRINT-02.md` § Task 2.5).
-Supabase itself still needs `npm run db:migrate` once H1.2 is restored: all
-three Sprint 2 migrations are applied locally only. Vercel/CI deployment
-criteria deferred per ADR-004.
+seeded across 12 UK cities. The Supabase blocker that originally left Tasks
+2.1–2.4 code-complete-but-unverified was first worked around with local PostGIS
+and was fully resolved on 2026-10-05: the hosted project is restored, both
+pooler connections authenticate, all four committed migrations are applied,
+and the complete demo dataset is seeded. Vercel/CI deployment criteria remain
+deferred per ADR-004.
 
 Legend: ✅ done · 🟡 code-complete, verification blocked (see BLOCKERS.md) ·
 🔵 in progress · ⬜ not started · ⏭ deferred
@@ -66,8 +74,8 @@ deploy criteria ⏭ deferred (ADR-004). Detail: `SPRINT-01.md`.
 ✅ 2.7 Seed 40 listings
 
 **Sprint 2 DoD: PASSED 2026-08-07** — full criteria table in `SPRINT-02.md`.
-Carried into Sprint 3: Supabase migrations still unapplied (H1.2), the real
-S3/Maps/Resend providers unexercised by tests (by design), `TODO(H1.5)` rate
+Carried into Sprint 3: the real S3/Maps/Resend providers remain unexercised by
+tests (by design), `TODO(H1.5)` rate
 limits on four public POSTs, and the missing `<main>` landmark on the
 authenticated portal pages.
 

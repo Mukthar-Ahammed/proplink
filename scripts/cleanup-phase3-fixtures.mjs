@@ -1,0 +1,11 @@
+import fs from "node:fs";
+import dotenv from "dotenv";
+import { spawnSync } from "node:child_process";
+import { readLedger, assertDisposable } from "./phase3-ledger.mjs";
+const env = dotenv.parse(fs.readFileSync(".env.staging.local"));
+const guard = spawnSync(process.execPath, ["scripts/assert-staging-db.mjs"], { env: { ...process.env, ...env }, stdio: "inherit", shell: false });
+if (guard.status !== 0) process.exit(guard.status ?? 1);
+if (env.CONFIRM_PHASE3_CLEANUP !== "yes") throw new Error("Set CONFIRM_PHASE3_CLEANUP=yes");
+const ledger = readLedger();
+for (const resource of ledger.resources) assertDisposable({ ...resource, projectRef: env.PROPLINK_STAGING_PROJECT_REF });
+throw new Error("Cleanup is intentionally disabled until an approved service-side deletion implementation is installed");

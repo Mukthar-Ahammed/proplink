@@ -99,7 +99,9 @@ export default async function PropertyDetailPage({ params }: PageProps) {
 
   const [coordinates, agentProfile] = await Promise.all([
     getListingCoordinates(id),
-    getAgentProfilePublic(listing.agentProfileId),
+    listing.agentProfileId
+      ? getAgentProfilePublic(listing.agentProfileId)
+      : Promise.resolve(null),
   ]);
 
   const images: GalleryImage[] = listing.images.map((img, i) => ({

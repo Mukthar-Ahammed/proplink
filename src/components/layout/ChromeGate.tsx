@@ -23,7 +23,11 @@ import { usePathname } from "next/navigation";
  */
 const BARE_ROUTES = [
   "/login",
+  "/admin/login",
+  "/admin-login",
   "/register",
+  "/check-email",
+  "/auth/confirm",
   "/forgot-password",
   "/reset-password",
   "/verify-email",

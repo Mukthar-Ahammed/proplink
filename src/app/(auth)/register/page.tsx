@@ -1,21 +1,45 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+
+import {
+  signupAgent,
+  signupBuyer,
+  signupInvestor,
+  type AuthActionResult,
+} from "@/app/(auth)/actions";
 import {
   AUTH_BUTTON,
   AUTH_INPUT,
   AUTH_LABEL,
   AuthShell,
 } from "@/components/auth/AuthShell";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { signIn } from "next-auth/react";
 
 const roles = [
   { value: "BUYER", label: "Buyer", hint: "Search and purchase property" },
-  { value: "INVESTOR", label: "Investor", hint: "Fund refurbishment projects" },
+  { value: "INVESTOR", label: "Investor", hint: "Flipping & syndicate investments" },
   { value: "AGENT", label: "Agent", hint: "List distressed stock" },
-];
+] as const;
+
+const investorSubtypes = [
+  {
+    value: "FLIPPER",
+    label: "Property Flipper",
+    description: "Buy properties, renovate them and prepare them for resale.",
+  },
+  {
+    value: "SYNDICATE",
+    label: "Syndicate Investor",
+    description: "Join property investment opportunities with other investors.",
+  },
+  {
+    value: "BOTH",
+    label: "Both",
+    description: "Access both property flipping and syndicate investment opportunities.",
+  },
+] as const;
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -23,39 +47,48 @@ export default function RegisterPage() {
     name: "",
     email: "",
     password: "",
-    role: "BUYER",
+    role: "BUYER" as "BUYER" | "INVESTOR" | "AGENT",
+    investorType: "FLIPPER" as "FLIPPER" | "SYNDICATE" | "BOTH",
     gdprConsent: false,
   });
-  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<AuthActionResult>({ kind: "idle" });
   const [submitting, setSubmitting] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setResult({ kind: "idle" });
     setSubmitting(true);
     try {
-      const res = await fetch("/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        const firstIssue =
-          data?.issues && (Object.values(data.issues).flat()[0] as string);
-        setError(firstIssue ?? data?.error ?? "Registration failed");
+      let response: AuthActionResult;
+      if (form.role === "INVESTOR") {
+        response = await signupInvestor({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          investorType: form.investorType,
+          gdprConsent: form.gdprConsent,
+        });
+      } else if (form.role === "AGENT") {
+        response = await signupAgent({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          gdprConsent: form.gdprConsent,
+        });
+      } else {
+        response = await signupBuyer({
+          name: form.name,
+          email: form.email,
+          password: form.password,
+          gdprConsent: form.gdprConsent,
+        });
+      }
+
+      if (response.kind === "success") {
+        router.push(response.destination ?? "/check-email?purpose=signup");
         return;
       }
-      const login = await signIn("credentials", {
-        email: form.email,
-        password: form.password,
-        redirect: false,
-      });
-      // `/portal` resolves the new account's role server-side and forwards to
-      // its dashboard, rather than dropping a fresh user on the landing page
-      // with no route into their own portal (ADR-016).
-      router.push(login?.error ? "/login" : "/portal");
-      router.refresh();
+      setResult(response);
     } finally {
       setSubmitting(false);
     }
@@ -87,9 +120,10 @@ export default function RegisterPage() {
           <input
             id="name"
             type="text"
+            autoComplete="name"
             required
             value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            onChange={(event) => setForm({ ...form, name: event.target.value })}
             className={AUTH_INPUT}
           />
         </div>
@@ -101,9 +135,10 @@ export default function RegisterPage() {
           <input
             id="email"
             type="email"
+            autoComplete="email"
             required
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            onChange={(event) => setForm({ ...form, email: event.target.value })}
             className={AUTH_INPUT}
           />
         </div>
@@ -115,73 +150,105 @@ export default function RegisterPage() {
           <input
             id="password"
             type="password"
+            autoComplete="new-password"
             required
             minLength={8}
+            maxLength={128}
             value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            onChange={(event) => setForm({ ...form, password: event.target.value })}
             className={AUTH_INPUT}
           />
-          <p className="mt-1 text-xs text-muted">
-            At least 8 characters, with a letter and a number.
-          </p>
+          <p className="mt-1 text-xs text-muted">At least 8 characters.</p>
         </div>
 
         <fieldset>
           <legend className={AUTH_LABEL}>I am a…</legend>
           <div className="mt-2 grid grid-cols-3 gap-2.5">
-            {roles.map((r) => (
+            {roles.map((role) => (
               <label
-                key={r.value}
+                key={role.value}
                 className={`cursor-pointer rounded-xl border p-3 text-center text-sm transition-colors ${
-                  form.role === r.value
+                  form.role === role.value
                     ? "border-accent bg-pale font-semibold text-secondary"
                     : "border-line bg-white hover:border-secondary"
                 }`}
               >
                 <input
                   type="radio"
-                  name="role"
-                  value={r.value}
-                  checked={form.role === r.value}
-                  onChange={() => setForm({ ...form, role: r.value })}
+                  name="role-choice"
+                  value={role.value}
+                  checked={form.role === role.value}
+                  onChange={() => setForm({ ...form, role: role.value })}
                   className="sr-only"
                 />
-                {r.label}
+                {role.label}
                 <span className="mt-1 block text-xs font-normal text-muted">
-                  {r.hint}
+                  {role.hint}
                 </span>
               </label>
             ))}
           </div>
         </fieldset>
 
+        {form.role === "INVESTOR" && (
+          <div className="space-y-3 rounded-2xl border border-line bg-pale/40 p-4">
+            <fieldset>
+              <legend className="text-sm font-semibold text-primary">
+                What type of investor are you?
+              </legend>
+              <div className="mt-2.5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+                {investorSubtypes.map((subtype) => (
+                  <label
+                    key={subtype.value}
+                    className={`cursor-pointer rounded-xl border p-3.5 text-left text-sm transition-all ${
+                      form.investorType === subtype.value
+                        ? "border-accent bg-white font-semibold text-primary shadow-sm ring-1 ring-accent"
+                        : "border-line bg-white/70 hover:border-secondary hover:bg-white"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="investor-subtype-choice"
+                      value={subtype.value}
+                      checked={form.investorType === subtype.value}
+                      onChange={() => setForm({ ...form, investorType: subtype.value })}
+                      className="sr-only"
+                    />
+                    <div className="font-medium">{subtype.label}</div>
+                    <p className="mt-1 text-xs font-normal leading-relaxed text-muted">
+                      {subtype.description}
+                    </p>
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+
+            <div className="rounded-xl border border-line bg-white p-3 text-xs text-muted">
+              <span className="font-semibold text-primary">Identity verification required:</span>{" "}
+              Investor accounts must complete identity verification before accessing investment-related financial actions.
+            </div>
+          </div>
+        )}
+
         <label className="flex items-start gap-2 text-sm">
           <input
             type="checkbox"
             required
             checked={form.gdprConsent}
-            onChange={(e) => setForm({ ...form, gdprConsent: e.target.checked })}
+            onChange={(event) =>
+              setForm({ ...form, gdprConsent: event.target.checked })
+            }
             className="mt-1"
           />
           <span>
-            I agree to the{" "}
-            <Link href="/privacy" className="text-accent underline">
-              privacy policy
-            </Link>{" "}
-            and{" "}
-            <Link href="/terms" className="text-accent underline">
-              terms of service
-            </Link>
-            .
+            I agree to the <Link href="/privacy" className="text-accent underline">privacy policy</Link>{" "}
+            and <Link href="/terms" className="text-accent underline">terms of service</Link>.
           </span>
         </label>
 
-        {error && (
-          <p
-            role="alert"
-            className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
-          >
-            {error}
+        {result.message && (
+          <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
+            {result.message}
           </p>
         )}
 
@@ -192,10 +259,7 @@ export default function RegisterPage() {
 
       <p className="mt-8 text-center text-sm text-muted">
         Already registered?{" "}
-        <Link
-          href="/login"
-          className="font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
-        >
+        <Link href="/login" className="font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent">
           Log in
         </Link>
       </p>

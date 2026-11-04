@@ -38,9 +38,7 @@ export function CategoryTiles({ tiles }: { tiles: CategoryTile[] }) {
           key={tile.label}
           href={tile.href}
           className={cn(
-            "group relative isolate flex flex-col justify-end overflow-hidden rounded-3xl bg-primary p-5 transition-transform duration-300 hover:-translate-y-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2",
-            // Alternating heights and offsets — the mosaic's whole effect.
-            i % 2 === 0 ? "aspect-3/4" : "aspect-4/5 lg:mt-10",
+            "group relative isolate flex flex-col justify-end overflow-hidden rounded-3xl bg-primary/90 p-6 aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 border border-white/10",
           )}
         >
           {/* Decorative: the label below carries the meaning, so `alt` is empty.

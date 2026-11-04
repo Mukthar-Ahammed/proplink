@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { auth, signOut } from "@/lib/auth";
+import { auth } from "@/lib/auth";
+import { logoutAction } from "@/app/(auth)/actions";
 import { KycPill } from "@/components/layout/KycPill";
 import { PORTAL_HOME, PORTAL_LABEL } from "@/lib/portalHome";
 
@@ -70,18 +71,13 @@ export async function SiteHeader() {
                   "KYC: not started" chip is noise about a gate that will never
                   apply to them — and it leaks one role's concerns into another's
                   chrome (ADR-016). */}
-              {(user.role === "INVESTOR" || user.role === "ADMIN") && (
+              {user.role === "INVESTOR" && (
                 <KycPill status={user.kycStatus} />
               )}
               <span className="hidden text-muted group-data-[overlay=true]/chrome:text-white/85 sm:inline">
                 {user.name}
               </span>
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut({ redirectTo: "/" });
-                }}
-              >
+              <form action={logoutAction}>
                 <button
                   type="submit"
                   className="rounded-full border border-line px-4 py-2 font-medium text-primary transition-colors group-data-[overlay=true]/chrome:border-white/35 group-data-[overlay=true]/chrome:text-white hover:border-primary hover:bg-primary hover:text-white"

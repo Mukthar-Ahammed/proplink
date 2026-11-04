@@ -13,7 +13,7 @@ import { geocodePostcode } from "@/services/maps";
 const FREE_TIER_LISTING_LIMIT = 3;
 
 const LISTING_INCLUDE = {
-  agentProfile: true,
+  agentProfile: { include: { user: { select: { active: true } } } },
   distressTags: true,
   images: { orderBy: { sortOrder: "asc" as const } },
 } satisfies Prisma.PropertyInclude;
@@ -48,10 +48,10 @@ async function findOwnedListing(
     include: LISTING_INCLUDE,
   });
   if (!property) throw new ListingServiceError("Listing not found", "NOT_FOUND");
-  if (property.agentProfile.userId !== userId) {
+  if (!property.agentProfile || property.agentProfile.userId !== userId) {
     throw new ListingServiceError("You do not own this listing", "FORBIDDEN");
   }
-  if (!property.agentProfile.active) {
+  if (!property.agentProfile.active || !property.agentProfile.user.active) {
     throw new ListingServiceError(
       "This listing's agency profile is inactive — reactivate it to continue",
       "PROFILE_INACTIVE",
@@ -91,11 +91,21 @@ export async function getListingForPublicView(params: {
 }): Promise<ListingWithRelations | null> {
   const listing = await getListingById(params.propertyId);
   if (!listing) return null;
-  if (isPubliclyVisibleStatus(listing.status)) return listing;
 
   const viewer = params.viewer;
-  if (viewer?.role === Role.ADMIN) return listing;
-  if (viewer && listing.agentProfile.userId === viewer.userId) return listing;
+  const isOwnerOrAdmin =
+    viewer?.role === Role.ADMIN ||
+    (viewer != null && listing.agentProfile?.userId === viewer.userId);
+
+  const hasActiveAgent =
+    listing.agentProfile?.active === true && listing.agentProfile.user.active === true;
+  if (!hasActiveAgent && !isOwnerOrAdmin) {
+    return null;
+  }
+
+  if (isPubliclyVisibleStatus(listing.status)) return listing;
+
+  if (isOwnerOrAdmin) return listing;
   return null;
 }
 
@@ -343,7 +353,7 @@ export async function transitionStatus(params: {
 
   if (
     params.actorRole !== Role.ADMIN &&
-    property.agentProfile.userId !== params.actorUserId
+    property.agentProfile?.userId !== params.actorUserId
   ) {
     throw new ListingServiceError("You do not own this listing", "FORBIDDEN");
   }
@@ -351,6 +361,9 @@ export async function transitionStatus(params: {
   assertListingTransition(property.status, params.to, params.actorRole);
 
   if (params.to === PropertyStatus.LIVE) {
+    if (!property.agentProfile) {
+      throw new ListingServiceError("Listing has no responsible Agent", "FORBIDDEN");
+    }
     await assertWithinListingLimit(property.agentProfile.userId);
   }
 

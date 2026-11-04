@@ -1,0 +1,1 @@
+import { config } from "dotenv"; import { defineConfig } from "prisma/config"; config({ path: ".env.staging.local", override: true }); export default defineConfig({ schema: "prisma/schema.prisma", datasource: { url: process.env.DIRECT_URL ?? "" }, migrations: { path: ".staging-checkpoint-migrations" } });

@@ -34,33 +34,172 @@ const PLATE_COUNT = 6;
 const plateUrl = (n: number) =>
   `/uploads/seed/plate-${String((n % PLATE_COUNT) + 1).padStart(2, "0")}.jpg`;
 
+async function ensureSchema() {
+  try {
+    await db.$executeRawUnsafe(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ListingSource') THEN
+          CREATE TYPE public."ListingSource" AS ENUM ('AGENT', 'FLIPPER_RESALE');
+        END IF;
+      END $$;
+    `);
+
+    await db.$executeRawUnsafe(`
+      ALTER TABLE public."Property"
+      ALTER COLUMN "agentProfileId" DROP NOT NULL,
+      ADD COLUMN IF NOT EXISTS "listingSource" public."ListingSource" NOT NULL DEFAULT 'AGENT';
+    `);
+
+    await db.$executeRawUnsafe(`
+      ALTER TABLE private.auth_signup_intents
+      ADD COLUMN IF NOT EXISTS "investorType" public."InvestorType";
+    `);
+  } catch (err) {
+    console.warn("Schema initialization check in seed:", err);
+  }
+}
+
 async function seedUsers(passwordHash: string) {
+  await ensureSchema();
+
   const users = [
-    { email: "admin@proplink.test", name: "Platform Admin", role: Role.ADMIN },
-    { email: "agent@proplink.test", name: "Alice Agent", role: Role.AGENT },
-    { email: "investor@proplink.test", name: "Ivan Investor", role: Role.INVESTOR },
-    { email: "buyer@proplink.test", name: "Bella Buyer", role: Role.BUYER },
-    // Task 2.7: four more demand-side accounts so the five seeded appraisals
-    // come from five distinct people. `Appraisal` is unique per
-    // (agentProfileId, investorUserId), so reusing two users would force
-    // several reviews onto the same profile pages.
-    { email: "investor2@proplink.test", name: "Priya Raman", role: Role.INVESTOR },
-    { email: "investor3@proplink.test", name: "Tom Okafor", role: Role.INVESTOR },
-    { email: "buyer2@proplink.test", name: "Grace Whitfield", role: Role.BUYER },
-    { email: "buyer3@proplink.test", name: "Daniel Mercer", role: Role.BUYER },
+    { email: "admin@proplink.test", name: "Platform Admin", role: Role.ADMIN, investorType: null },
+    { email: "agent@proplink.test", name: "Alice Agent", role: Role.AGENT, investorType: null },
+    { email: "investor@proplink.test", name: "Ivan Investor", role: Role.INVESTOR, investorType: "FLIPPER" as const },
+    { email: "buyer@proplink.test", name: "Bella Buyer", role: Role.BUYER, investorType: null },
+    { email: "investor2@proplink.test", name: "Priya Raman", role: Role.INVESTOR, investorType: "BOTH" as const },
+    { email: "investor3@proplink.test", name: "Tom Okafor", role: Role.INVESTOR, investorType: "FLIPPER" as const },
+    { email: "buyer2@proplink.test", name: "Grace Whitfield", role: Role.BUYER, investorType: null },
+    { email: "buyer3@proplink.test", name: "Daniel Mercer", role: Role.BUYER, investorType: null },
   ];
 
   for (const u of users) {
-    await db.user.upsert({
+    const legacyUser = await db.user.upsert({
       where: { email: u.email },
-      update: {},
+      update: {
+        kycStatus: "APPROVED",
+      },
       create: {
-        ...u,
+        email: u.email,
+        name: u.name,
+        role: u.role,
+        kycStatus: "APPROVED",
         passwordHash,
         emailVerified: new Date(),
         gdprConsentAt: new Date(),
       },
     });
+
+    // Provision Supabase Auth user & public.profile so test users can log in via Supabase Auth
+    try {
+      const existingAuth = await db.$queryRaw<{ id: string }[]>`
+        SELECT id FROM auth.users WHERE lower(email) = lower(${u.email}) LIMIT 1
+      `;
+
+      if (existingAuth.length === 0) {
+        await db.$executeRaw`
+          INSERT INTO auth.users (
+            id,
+            instance_id,
+            email,
+            encrypted_password,
+            email_confirmed_at,
+            raw_app_meta_data,
+            raw_user_meta_data,
+            aud,
+            role,
+            created_at,
+            updated_at
+          )
+          VALUES (
+            gen_random_uuid(),
+            '00000000-0000-0000-0000-000000000000',
+            ${u.email},
+            extensions.crypt('Password123!', extensions.gen_salt('bf')),
+            now(),
+            '{"provider":"email","providers":["email"]}'::jsonb,
+            '{}'::jsonb,
+            'authenticated',
+            'authenticated',
+            now(),
+            now()
+          )
+        `;
+      } else {
+        await db.$executeRaw`
+          UPDATE auth.users
+          SET encrypted_password = extensions.crypt('Password123!', extensions.gen_salt('bf')),
+              email_confirmed_at = coalesce(email_confirmed_at, now()),
+              confirmation_token = '',
+              recovery_token = '',
+              email_change_token_new = '',
+              email_change = '',
+              updated_at = now()
+          WHERE lower(email) = lower(${u.email})
+        `;
+      }
+
+      await db.$executeRaw`
+        DELETE FROM auth.identities
+        WHERE user_id IN (SELECT id FROM auth.users WHERE lower(email) = lower(${u.email}));
+      `;
+
+      await db.$executeRaw`
+        INSERT INTO auth.identities (
+          id,
+          user_id,
+          identity_data,
+          provider,
+          provider_id,
+          last_sign_in_at,
+          created_at,
+          updated_at
+        )
+        SELECT
+          gen_random_uuid(),
+          au.id,
+          jsonb_build_object('sub', au.id::text, 'email', au.email, 'email_verified', true, 'phone_verified', false),
+          'email',
+          au.id::text,
+          now(),
+          now(),
+          now()
+        FROM auth.users au
+        WHERE lower(au.email) = lower(${u.email});
+      `;
+
+      await db.$executeRaw`
+        INSERT INTO public.profiles (
+          id,
+          "legacyUserId",
+          role,
+          name,
+          "kycStatus",
+          active,
+          "investorType"
+        )
+        SELECT
+          au.id,
+          ${legacyUser.id},
+          ${u.role}::public."Role",
+          ${u.name},
+          'APPROVED'::public."KycStatus",
+          true,
+          ${u.investorType}::public."InvestorType"
+        FROM auth.users au
+        WHERE lower(au.email) = lower(${u.email})
+        ON CONFLICT (id) DO UPDATE
+        SET "legacyUserId" = EXCLUDED."legacyUserId",
+            role = EXCLUDED.role,
+            name = EXCLUDED.name,
+            "kycStatus" = EXCLUDED."kycStatus",
+            "investorType" = EXCLUDED."investorType",
+            active = true;
+      `;
+    } catch (err) {
+      console.warn(`Could not seed Supabase Auth/Profile for ${u.email}:`, err);
+    }
   }
 
   return users.length;

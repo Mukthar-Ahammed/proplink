@@ -36,7 +36,7 @@ function propertyRow(overrides: Record<string, unknown> = {}) {
   return {
     id: PROPERTY_ID,
     status: PropertyStatus.LIVE,
-    agentProfile: { userId: OWNER_USER_ID },
+    agentProfile: { active: true, userId: OWNER_USER_ID, user: { active: true } },
     ...overrides,
   } as never;
 }

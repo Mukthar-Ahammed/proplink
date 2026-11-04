@@ -8,6 +8,7 @@ import { DataTable } from "@/components/ui/data-table";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { DISTRESS_TAG_OPTIONS, formatPenceGBP } from "@/components/listings/wizardTypes";
+import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import type { DistressTag, EpcRating, PropertyType } from "@/generated/prisma/enums";
 
 export interface ModerationListingView {
@@ -112,10 +113,15 @@ export function ModerationQueue({ listings }: { listings: ModerationListingView[
   }
 
   return (
-    <div className="space-y-4">
-      <p className="text-sm text-muted">
-        {listings.length} listing{listings.length === 1 ? "" : "s"} awaiting review
-      </p>
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="Agent Listing Moderation Queue"
+        description="Inspect submitted property deal listings, verify EPC/floorplans, and approve to LIVE or return to DRAFT with feedback."
+      />
+
+      <div className="flex items-center justify-between text-xs text-muted">
+        <span>{listings.length} listing{listings.length === 1 ? "" : "s"} awaiting moderation review</span>
+      </div>
 
       <DataTable
         rows={listings}

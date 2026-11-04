@@ -11,11 +11,11 @@
 | Framework   | Next.js 16.2 (App Router) + TypeScript strict                                                                                                            | One repo, one deployable. Server Actions + Route Handlers — no separate API server. See ADR-003                                                                                                                                                                                                                |
 | Styling     | Tailwind CSS v4 (`@theme` tokens in `src/app/globals.css`)                                                                                               | shadcn/ui permitted for primitives                                                                                                                                                                                                                                                                             |
 | State       | Zustand (client) + TanStack Query (server state)                                                                                                         |                                                                                                                                                                                                                                                                                                                |
-| ORM / DB    | **Prisma 7** → PostgreSQL + PostGIS on Supabase                                                                                                          | Driver-adapter architecture — see ADR-001. Pooled URL at runtime, direct URL for migrations. ⚠️ Supabase is used as **managed Postgres ONLY** — never install `@supabase/supabase-js`/`@supabase/ssr` or follow Supabase's client/auth/RLS quickstarts; Prisma is the only DB client and Auth.js the only auth |
+| ORM / DB    | **Prisma 7** → PostgreSQL + PostGIS on Supabase                                                                                                          | Prisma remains the trusted server business-data client. Supabase Data API access is opt-in through grants plus RLS; 29/29 application-owned public tables have operation-specific policies. See ADR-001 and ADR-018. |
 | Search      | Postgres FTS (`tsvector` trigger) + `pg_trgm` + PostGIS                                                                                                  | Behind a `SearchService` interface; Elastic/Meilisearch can replace later. NO Elasticsearch in this build                                                                                                                                                                                                      |
 | Cache/queue | Upstash Redis                                                                                                                                            | Commute-matrix cache, AI response cache, rate limiting                                                                                                                                                                                                                                                         |
-| Auth        | Auth.js (NextAuth v5 beta) — credentials + Google                                                                                                        | JWT sessions carrying `role` + `kycStatus`                                                                                                                                                                                                                                                                     |
-| Storage     | `StorageService` interface (`src/services/storage/`) — `MockStorageService` (local disk, active) / `S3StorageService` (real presigned POST + CloudFront) | Sprint 2 Task 2.1. Selected by `STORAGE_PROVIDER=mock\|s3`, default mock while H1.4/H2.1 are deferred — see `docs/BLOCKERS.md`                                                                                                                                                                                 |
+| Auth        | Supabase Auth migration in progress; Auth.js remains active until cutover                                                                                | `@supabase/ssr` browser/server/proxy clients and `profiles` are installed. Authoritative role/KYC fields are server-written, never `user_metadata`. Server Supabase checks use `auth.getUser()`. See ADR-018. |
+| Storage     | Existing `StorageService` remains active; Supabase Storage security foundation added                                                                     | `kyc-documents` is private; `property-images` is public-delivery but not anonymously listable. Application upload wiring remains a later migration phase. |
 | AI          | Anthropic API — Sonnet (Advisor/AVM/Planning), Haiku (Enhancer/tagging)                                                                                  | Arrives Sprint 5; Redis-cached, budget-capped                                                                                                                                                                                                                                                                  |
 | Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active  | Distance Matrix API is Legacy — do not use. Two distinct keys: `GOOGLE_MAPS_SERVER_KEY` (geocoding) and `GOOGLE_MAPS_API_KEY` (browser-restricted: static maps, and the Sprint 3 interactive map) — see `docs/BLOCKERS.md`                                                                                     |
 | KYC         | Sumsub (sandbox) behind `KycService` + mock                                                                                                              | Arrives Sprint 4                                                                                                                                                                                                                                                                                               |
@@ -96,6 +96,20 @@ Full schema: `prisma/schema.prisma` (implements the sprint plan's core schema).
 
 ## Auth architecture
 
+**Supabase migration boundary (Phases 2–3).** `src/lib/supabase/` now provides
+separate browser, server and proxy clients through `@supabase/ssr`. The
+`public.profiles` UUID primary key references `auth.users.id`; its `role`,
+`kycStatus`, `legacyUserId`, compliance and active fields are server-written.
+Public signup can provision only AGENT/INVESTOR/BUYER from protected
+`app_metadata`; client-writable `user_metadata` is never an authorization
+source. The legacy `public."User"` CUID is bridged by nullable
+`profiles.legacyUserId` while IDs are migrated deliberately.
+
+The existing Auth.js routes below remain active until the later authentication
+cutover phase. This phase did not replace login, registration, KYC or pledge
+service logic. Any new server-side Supabase authorization must verify the caller
+with `supabase.auth.getUser()`, not a locally read session.
+
 - `src/lib/auth.ts` — NextAuth v5: Credentials (bcrypt) always; Google provider
   registered only when H1.6 credentials exist.
 - **JWT strategy**; token carries `uid`, `role`, `kycStatus` → exposed on
@@ -119,6 +133,26 @@ Full schema: `prisma/schema.prisma` (implements the sprint plan's core schema).
   `services/admin/audit.ts` — no exceptions.
 - **Metrics**: `services/metrics/globalMetrics.ts`, Redis `cached()` 60 s
   (`src/lib/redis.ts` — degrades to direct compute without Upstash keys).
+
+### Data API and RLS
+
+The complete one-line policy rationale is in
+[`docs/security/PHASE-3-RLS.md`](security/PHASE-3-RLS.md).
+
+- All 29 application-owned tables in `public` have RLS enabled and separate
+  SELECT/INSERT/UPDATE/DELETE policies. Every table starts with explicit deny;
+  only documented marketplace reads and owner/participant operations are opened.
+- RLS resolves roles and legacy IDs through `private` SECURITY DEFINER helpers
+  with `search_path = ''`. The schema is not exposed through the Data API.
+- `profiles.role`, `profiles.kycStatus`, `profiles.legacyUserId`, verification,
+  compliance and active fields have no client INSERT/UPDATE grant. Safe profile
+  edits use column-level grants.
+- `KycRecord`, `VerificationToken` and Prisma migration history are server-only.
+  Pledge inserts require role INVESTOR, authoritative KYC APPROVED, ownership,
+  positive pence amount and an OPEN project. No pledge DELETE policy exists.
+- Public functions have pinned search paths where needed and cannot be invoked
+  by anon/authenticated. PostGIS-owned `spatial_ref_sys` and its two metadata
+  views remain a platform-owned exception; see `docs/BLOCKERS.md` and ADR-018.
 
 ## Uploads
 
@@ -845,3 +879,4 @@ of the boundary.
 | [ADR-015](adr/ADR-015-marketplace-masthead.md)                      | Marketplace takes the reference's shell at tool scale; EPC band ink fixed                |
 | [ADR-016](adr/ADR-016-role-portals.md)                              | Three strictly separate role portals; `/portal` role router; read-side only              |
 | [ADR-017](adr/ADR-017-buyer-portal.md)                              | Buyer portal is a marketplace; real viewing/offer/chat writes; sample price data flagged |
+| [ADR-018](adr/ADR-018-supabase-auth-and-rls-foundation.md)          | Supabase Auth UUID/CUID bridge, least-privilege RLS and Storage foundation                |

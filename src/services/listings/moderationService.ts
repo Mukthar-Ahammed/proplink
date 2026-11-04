@@ -31,6 +31,125 @@ export async function listPendingListings(): Promise<ModerationListing[]> {
   });
 }
 
+export type AdminListingSummary = {
+  pendingCount: number;
+  liveCount: number;
+  rejectedCount: number;
+  totalCount: number;
+  oldestPendingSubmittedAt: Date | null;
+};
+
+export async function getAdminListingSummary(): Promise<AdminListingSummary> {
+  const [pendingCount, liveCount, rejectedCount, totalCount, oldestPending] =
+    await Promise.all([
+      db.property.count({
+        where: { status: PropertyStatus.PENDING_REVIEW, listingSource: "AGENT" },
+      }),
+      db.property.count({
+        where: { status: PropertyStatus.LIVE, listingSource: "AGENT" },
+      }),
+      db.property.count({
+        where: { status: PropertyStatus.DRAFT, rejectionReason: { not: null }, listingSource: "AGENT" },
+      }),
+      db.property.count({
+        where: { listingSource: "AGENT" },
+      }),
+      db.property.findFirst({
+        where: { status: PropertyStatus.PENDING_REVIEW, listingSource: "AGENT" },
+        orderBy: { submittedAt: "asc" },
+        select: { submittedAt: true },
+      }),
+    ]);
+
+  return {
+    pendingCount,
+    liveCount,
+    rejectedCount,
+    totalCount,
+    oldestPendingSubmittedAt: oldestPending?.submittedAt ?? null,
+  };
+}
+
+export type AdminListingQueueParams = {
+  status?: PropertyStatus | "REJECTED" | "ALL";
+  search?: string;
+  sort?: "oldest" | "newest";
+  page?: number;
+  pageSize?: number;
+};
+
+export type AdminListingQueueResult = {
+  items: ModerationListing[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+};
+
+export async function getAdminListingQueue(
+  params?: AdminListingQueueParams,
+): Promise<AdminListingQueueResult> {
+  const statusFilter =
+    params?.status === "REJECTED"
+      ? { status: PropertyStatus.DRAFT, rejectionReason: { not: null } }
+      : params?.status && params.status !== "ALL"
+      ? { status: params.status }
+      : params?.status === "ALL"
+      ? {}
+      : { status: PropertyStatus.PENDING_REVIEW };
+
+  const searchFilter = params?.search?.trim()
+    ? {
+        OR: [
+          { title: { contains: params.search.trim(), mode: "insensitive" as const } },
+          { city: { contains: params.search.trim(), mode: "insensitive" as const } },
+          {
+            agentProfile: {
+              user: {
+                OR: [
+                  { name: { contains: params.search.trim(), mode: "insensitive" as const } },
+                  { email: { contains: params.search.trim(), mode: "insensitive" as const } },
+                ],
+              },
+            },
+          },
+        ],
+      }
+    : {};
+
+  const whereClause = {
+    listingSource: "AGENT" as const,
+    ...statusFilter,
+    ...searchFilter,
+  };
+
+  const sortOrder = params?.sort === "newest" ? ("desc" as const) : ("asc" as const);
+  const page = Math.max(1, params?.page ?? 1);
+  const pageSize = Math.max(1, Math.min(100, params?.pageSize ?? 10));
+  const skip = (page - 1) * pageSize;
+
+  const [total, items] = await Promise.all([
+    db.property.count({ where: whereClause }),
+    db.property.findMany({
+      where: whereClause,
+      include: MODERATION_LISTING_INCLUDE,
+      orderBy: { submittedAt: sortOrder },
+      skip,
+      take: pageSize,
+    }),
+  ]);
+
+  const totalPages = Math.ceil(total / pageSize) || 1;
+
+  return {
+    items,
+    total,
+    page,
+    pageSize,
+    totalPages,
+  };
+}
+
 /** Full-preview fetch for one listing — used by approve/reject to build the notification email. */
 export async function getListingForModeration(
   propertyId: string,
@@ -58,6 +177,9 @@ export async function approveListing(params: {
   adminUserId: string;
 }): Promise<Prisma.PropertyGetPayload<Record<string, never>>> {
   const listing = await getListingForModeration(params.listingId);
+  if (!listing.agentProfile) {
+    throw new ListingServiceError("Agent listing not found", "NOT_FOUND");
+  }
 
   const updated = await transitionStatus({
     actorUserId: params.adminUserId,
@@ -103,6 +225,9 @@ export async function rejectListing(params: {
   }
 
   const listing = await getListingForModeration(params.listingId);
+  if (!listing.agentProfile) {
+    throw new ListingServiceError("Agent listing not found", "NOT_FOUND");
+  }
 
   const updated = await transitionStatus({
     actorUserId: params.adminUserId,

@@ -14,7 +14,7 @@ import { messageSchema, sendMessage } from "@/services/chat/chatService";
  * session, the recipient from the property's agent — so neither can be spoofed.
  */
 export async function POST(request: Request) {
-  const authz = await requireRole();
+  const authz = await requireRole("BUYER");
   if (!authz.ok) return authz.response;
 
   let body: unknown;
@@ -32,7 +32,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const result = await sendMessage(authz.session.user.id, parsed.data);
+  const result = await sendMessage(
+    { userId: authz.session.user.id, role: authz.session.user.role },
+    parsed.data,
+  );
   if (!result.ok) return NextResponse.json({ error: result.error }, { status: 409 });
 
   return NextResponse.json(result.message, { status: 201 });

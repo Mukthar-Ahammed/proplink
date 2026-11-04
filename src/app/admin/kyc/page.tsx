@@ -1,9 +1,13 @@
-export const metadata = { title: "Admin — KYC Queue" };
+import "server-only";
 
-export default function KycQueuePage() {
-  return (
-    <p className="text-sm text-muted">
-      KYC monitoring arrives with the Investor Portal (Sprint 4, Task 4.1).
-    </p>
-  );
+import { requirePageRole } from "@/lib/authz";
+import { Role } from "@/generated/prisma/enums";
+import { KycQueueClient } from "./KycQueueClient";
+
+export const metadata = { title: "Admin — KYC Queue & Review" };
+
+export default async function KycQueuePage() {
+  await requirePageRole(Role.ADMIN);
+
+  return <KycQueueClient />;
 }

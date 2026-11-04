@@ -51,6 +51,14 @@ function enumList(values: string[], enumType: string): Prisma.Sql {
 function buildPredicates(params: SearchParams): Prisma.Sql[] {
   const predicates: Prisma.Sql[] = [
     Prisma.sql`p."status" IN (${enumList(SEARCHABLE_STATUSES, "PropertyStatus")})`,
+    Prisma.sql`EXISTS (
+      SELECT 1
+      FROM "AgentProfile" ap
+      JOIN "User" agent_user ON agent_user."id" = ap."userId"
+      WHERE ap."id" = p."agentProfileId"
+        AND ap."active" = true
+        AND agent_user."active" = true
+    )`,
   ];
 
   if (params.maxPriceGBP != null) {

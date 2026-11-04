@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { listActiveAgentProfiles } from "@/services/listings/listingService";
 import { ActiveProfileSwitcher } from "@/components/agents/ActiveProfileSwitcher";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -19,8 +19,8 @@ import {
  * the page is showing without leaving it.
  */
 export default async function AgentLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
-  const profiles = session?.user ? await listActiveAgentProfiles(session.user.id) : [];
+  const session = await requirePageRole("AGENT");
+  const profiles = await listActiveAgentProfiles(session.user.id);
   const cookieStore = await cookies();
   const activeId = resolveActiveAgentProfileId(
     profiles,

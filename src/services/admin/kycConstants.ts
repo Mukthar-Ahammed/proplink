@@ -1,0 +1,10 @@
+export const KYC_REJECTION_REASONS = [
+  "DOCUMENT_UNREADABLE",
+  "DOCUMENT_EXPIRED",
+  "DOCUMENT_MISMATCH",
+  "MISSING_REQUIRED_DOCUMENT",
+  "INFORMATION_MISMATCH",
+  "OTHER",
+] as const;
+
+export type KycRejectionReasonCode = (typeof KYC_REJECTION_REASONS)[number];

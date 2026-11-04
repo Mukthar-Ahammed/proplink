@@ -1,0 +1,8 @@
+import { describe, expect, it, vi } from "vitest";
+import { createOwnershipRegistryAdapter } from "../../scripts/phase3-ownership-registry.mjs";
+
+describe("phase3 ownership registry", () => {
+  it("writes planned intent through parameterized SQL", async () => { const query = vi.fn(async () => ({ rows: [] })); const a = createOwnershipRegistryAdapter({ clientFactory: () => ({ query, connect: async () => {}, end: async () => {} }) as any }); await a.recordPlanned({ query }, { projectRef: "staging", runId: "r", resourceType: "Property", resourceKey: { id: "p" }, resourceId: "p", ownerAuthUserId: "a", ownerLegacyUserId: "u" }); expect(query).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO private.phase3_fixture_resources"), expect.any(Array)); });
+  it("requires verified registry and business-row agreement", async () => { const query = vi.fn(async () => ({ rows: [{ state: "VERIFIED", run_id: "r", owner_legacy_user_id: "u" }] })); const a = createOwnershipRegistryAdapter({ clientFactory: () => ({ query, connect: async () => {}, end: async () => {} }) as any }); await expect(a.reconcile({ projectRef: "staging", runId: "r", resourceType: "Property", resourceId: "p", ownerLegacyUserId: "u" }, async () => true)).resolves.toEqual({ status: "VERIFIED" }); });
+  it("rejects cleanup when registry or business verification fails", async () => { const query = vi.fn(async () => ({ rows: [] })); const a = createOwnershipRegistryAdapter({ clientFactory: () => ({ query, connect: async () => {}, end: async () => {} }) as any }); await expect(a.authorizeCleanup({ projectRef: "staging", runId: "r", resourceType: "Property", resourceId: "p", ownerLegacyUserId: "u" }, async () => true)).rejects.toThrow(/rejected/); });
+});

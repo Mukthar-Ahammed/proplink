@@ -1,30 +1,32 @@
-import Link from "next/link";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
+import { AdminShell } from "@/components/admin/AdminShell";
 
-// Role gating happens in src/middleware.ts (ADMIN only) + per-action requireRole.
-const TABS = [
-  { href: "/admin", label: "Users" },
-  { href: "/admin/moderation", label: "Moderation" },
-  { href: "/admin/kyc", label: "KYC Queue" },
-  { href: "/admin/fees", label: "Fees" },
-  { href: "/admin/ads", label: "Ads" },
-];
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  const headerList = await headers();
+  const pathname = headerList.get("x-pathname") || "";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  // The Admin Login surface (/admin/login) shares this route segment layout.
+  // Unauthenticated visitors to /admin/login must render the login page without shell wrapper.
+  if (pathname === "/admin/login" || pathname === "/admin-login") {
+    return <>{children}</>;
+  }
+
+  // SEC-01 Hardening: Fail Closed Boundary.
+  // Any attempt to access protected /admin/* routes without an active ADMIN session
+  // is blocked and redirected immediately at the layout level.
+  const session = await auth();
+  if (!session?.user || session.user.role !== "ADMIN" || !session.user.active) {
+    redirect("/admin/login");
+  }
+
   return (
-    <div className="mx-auto w-full max-w-6xl flex-1 px-6 py-8">
-      <h1 className="text-2xl font-bold text-primary">Admin</h1>
-      <nav className="mt-4 flex gap-1 border-b border-line text-sm font-medium">
-        {TABS.map((t) => (
-          <Link
-            key={t.href}
-            href={t.href}
-            className="rounded-t-md px-4 py-2 text-secondary hover:bg-pale hover:text-primary"
-          >
-            {t.label}
-          </Link>
-        ))}
-      </nav>
-      <div className="py-6">{children}</div>
-    </div>
+    <AdminShell
+      userName={session.user.name ?? "Administrator"}
+      userEmail={session.user.email}
+    >
+      {children}
+    </AdminShell>
   );
 }

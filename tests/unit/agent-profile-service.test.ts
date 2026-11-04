@@ -39,14 +39,32 @@ const AGENT_PROFILE_ID = "profile-1";
 const CASE_STUDY_ID = "case-study-1";
 const INVESTOR_ID = "user-investor-1";
 
-function ownedProfile(overrides: Partial<{ userId: string }> = {}) {
-  return { id: AGENT_PROFILE_ID, userId: AGENT_USER_ID, ...overrides } as never;
+function ownedProfile(overrides: Partial<{ userId: string; active: boolean }> = {}) {
+  return {
+    id: AGENT_PROFILE_ID,
+    userId: AGENT_USER_ID,
+    active: true,
+    user: { active: true },
+    ...overrides,
+  } as never;
 }
 
 describe("getAgentProfilePublic", () => {
   it("returns null when the profile does not exist", async () => {
     mockDb.agentProfile.findUnique.mockResolvedValue(null);
     expect(await getAgentProfilePublic("missing")).toBeNull();
+  });
+
+  it("does not expose a profile whose owning account is inactive", async () => {
+    mockDb.agentProfile.findUnique.mockResolvedValue({
+      id: AGENT_PROFILE_ID,
+      userId: AGENT_USER_ID,
+      active: true,
+      user: { active: false },
+    } as never);
+
+    expect(await getAgentProfilePublic(AGENT_PROFILE_ID)).toBeNull();
+    expect(mockDb.appraisal.aggregate).not.toHaveBeenCalled();
   });
 
   it("aggregates rating average/count, verified SOLD deal count, case studies and appraisals", async () => {
@@ -56,6 +74,7 @@ describe("getAgentProfilePublic", () => {
       bio: "Distressed stock specialists.",
       complianceCode: "PL-AG-0001",
       active: true,
+      user: { active: true },
       caseStudies: [
         {
           id: CASE_STUDY_ID,
@@ -124,6 +143,7 @@ describe("getAgentProfilePublic", () => {
       bio: null,
       complianceCode: "PL-AG-0099",
       active: true,
+      user: { active: true },
       caseStudies: [],
       appraisals: [],
     } as never);

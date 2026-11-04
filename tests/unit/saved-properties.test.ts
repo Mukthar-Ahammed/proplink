@@ -12,7 +12,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { db } from "@/lib/db";
-import { PropertyStatus } from "@/generated/prisma/enums";
+import { PropertyStatus, Role } from "@/generated/prisma/enums";
 import { ListingServiceError } from "@/services/listings/errors";
 import {
   isListingSavedBy,
@@ -28,7 +28,11 @@ const USER_ID = "buyer-1";
 const PROPERTY_ID = "property-1";
 
 function propertyRow(status: PropertyStatus = PropertyStatus.LIVE) {
-  return { id: PROPERTY_ID, status } as never;
+  return {
+    id: PROPERTY_ID,
+    status,
+    agentProfile: { active: true, user: { active: true } },
+  } as never;
 }
 
 describe("saveListing", () => {
@@ -36,7 +40,7 @@ describe("saveListing", () => {
     mockDb.property.findUnique.mockResolvedValue(propertyRow());
     mockDb.savedProperty.upsert.mockResolvedValue({} as never);
 
-    await saveListing({ userId: USER_ID, propertyId: PROPERTY_ID });
+    await saveListing({ userId: USER_ID, role: Role.BUYER, propertyId: PROPERTY_ID });
 
     expect(mockDb.savedProperty.upsert).toHaveBeenCalledWith({
       where: { userId_propertyId: { userId: USER_ID, propertyId: PROPERTY_ID } },
@@ -53,7 +57,7 @@ describe("saveListing", () => {
     mockDb.savedProperty.upsert.mockResolvedValue({} as never);
 
     await expect(
-      saveListing({ userId: USER_ID, propertyId: PROPERTY_ID }),
+      saveListing({ userId: USER_ID, role: Role.BUYER, propertyId: PROPERTY_ID }),
     ).resolves.not.toThrow();
   });
 
@@ -61,7 +65,7 @@ describe("saveListing", () => {
     mockDb.property.findUnique.mockResolvedValue(null);
 
     await expect(
-      saveListing({ userId: USER_ID, propertyId: PROPERTY_ID }),
+      saveListing({ userId: USER_ID, role: Role.BUYER, propertyId: PROPERTY_ID }),
     ).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(mockDb.savedProperty.upsert).not.toHaveBeenCalled();
   });
@@ -70,7 +74,7 @@ describe("saveListing", () => {
     mockDb.property.findUnique.mockResolvedValue(null);
 
     await expect(
-      saveListing({ userId: USER_ID, propertyId: PROPERTY_ID }),
+      saveListing({ userId: USER_ID, role: Role.BUYER, propertyId: PROPERTY_ID }),
     ).rejects.toBeInstanceOf(ListingServiceError);
   });
 
@@ -80,7 +84,7 @@ describe("saveListing", () => {
       mockDb.property.findUnique.mockResolvedValue(propertyRow(status));
 
       await expect(
-        saveListing({ userId: USER_ID, propertyId: PROPERTY_ID }),
+        saveListing({ userId: USER_ID, role: Role.BUYER, propertyId: PROPERTY_ID }),
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
       expect(mockDb.savedProperty.upsert).not.toHaveBeenCalled();
     },

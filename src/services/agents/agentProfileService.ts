@@ -8,6 +8,7 @@ import type {
 } from "@/services/agents/validation";
 
 const PROFILE_INCLUDE = {
+  user: { select: { active: true } },
   caseStudies: true,
   appraisals: {
     include: { investor: { select: { name: true } } },
@@ -60,7 +61,7 @@ export async function getAgentProfilePublic(
     where: { id: agentProfileId },
     include: PROFILE_INCLUDE,
   });
-  if (!profile) return null;
+  if (!profile || !profile.active || !profile.user.active) return null;
 
   const [ratingAgg, verifiedDealCount] = await Promise.all([
     db.appraisal.aggregate({
@@ -108,8 +109,16 @@ export async function getAgentProfilePublic(
  * inactive.
  */
 async function findOwnedProfile(userId: string, agentProfileId: string) {
-  const profile = await db.agentProfile.findUnique({ where: { id: agentProfileId } });
-  if (!profile || profile.userId !== userId) {
+  const profile = await db.agentProfile.findUnique({
+    where: { id: agentProfileId },
+    include: { user: { select: { active: true } } },
+  });
+  if (
+    !profile ||
+    profile.userId !== userId ||
+    !profile.active ||
+    !profile.user.active
+  ) {
     throw new AgentServiceError(
       "Agent profile not found, or not owned by this user",
       "FORBIDDEN",

@@ -1,0 +1,33 @@
+import "server-only";
+
+import { NextResponse } from "next/server";
+import { requireRole } from "@/lib/authz";
+import { Role } from "@/generated/prisma/enums";
+import { withdrawFlipperOffer } from "@/services/flipper/flipperService";
+
+export async function POST(
+  _request: Request,
+  props: { params: Promise<{ id: string }> },
+) {
+  const authResult = await requireRole(Role.INVESTOR);
+  if (!authResult.ok) return authResult.response;
+
+  const { id } = await props.params;
+
+  const result = await withdrawFlipperOffer(
+    {
+      userId: authResult.session.user.id,
+      role: authResult.session.user.role,
+      investorType: authResult.session.user.investorType ?? null,
+      kycStatus: authResult.session.user.kycStatus,
+      active: authResult.session.user.active ?? true,
+    },
+    id,
+  );
+
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true, offerId: result.data.offerId });
+}

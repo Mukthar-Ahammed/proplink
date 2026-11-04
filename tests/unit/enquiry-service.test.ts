@@ -14,7 +14,7 @@ vi.mock("@/services/email/mailer", () => ({
 
 import { db } from "@/lib/db";
 import { sendNewEnquiryEmail } from "@/services/email/mailer";
-import { PropertyStatus } from "@/generated/prisma/enums";
+import { PropertyStatus, Role } from "@/generated/prisma/enums";
 import { EnquiryServiceError } from "@/services/enquiries/errors";
 import { createEnquiry } from "@/services/enquiries/enquiryService";
 
@@ -32,9 +32,16 @@ function propertyRow(overrides: Record<string, unknown> = {}) {
     id: PROPERTY_ID,
     title: "Three-bed semi needing full refurbishment",
     status: PropertyStatus.LIVE,
+    listingSource: "AGENT",
     agentProfile: {
       id: "profile-1",
-      user: { id: "agent-user-1", email: AGENT_EMAIL, name: "Alex Agent" },
+      active: true,
+      user: {
+        id: "agent-user-1",
+        email: AGENT_EMAIL,
+        name: "Alex Agent",
+        active: true,
+      },
     },
     ...overrides,
   } as never;
@@ -45,17 +52,35 @@ function buyerRow(overrides: Record<string, unknown> = {}) {
     id: BUYER_ID,
     name: "Bea Buyer",
     email: "bea@example.com",
+    role: Role.BUYER,
+    active: true,
     ...overrides,
   } as never;
 }
 
 const validParams = {
   userId: BUYER_ID,
+  role: Role.BUYER,
   propertyId: PROPERTY_ID,
   message: "I would like to arrange a viewing for this property, please.",
 };
 
 describe("createEnquiry", () => {
+  it("hides a listing whose responsible Agent account is inactive", async () => {
+    mockDb.property.findUnique.mockResolvedValue(
+      propertyRow({
+        agentProfile: {
+          id: "profile-1",
+          active: true,
+          user: { id: "agent-user-1", active: false },
+        },
+      }),
+    );
+
+    await expect(createEnquiry(validParams)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(mockDb.enquiry.create).not.toHaveBeenCalled();
+  });
+
   it("404s when the property does not exist", async () => {
     mockDb.property.findUnique.mockResolvedValue(null);
 

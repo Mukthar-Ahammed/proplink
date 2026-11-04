@@ -7,8 +7,9 @@ import { EnquiryServiceError, enquiryErrorStatus } from "@/services/enquiries/er
 // TODO(H1.5): rate-limit with @upstash/ratelimit once Upstash keys exist.
 export async function POST(request: Request) {
   // `Enquiry.fromUserId` is required (non-null) — no role restriction beyond
-  // "must be logged in" (any of AGENT/INVESTOR/BUYER/ADMIN may send one).
-  const authz = await requireRole();
+  // Current marketplace enquiries are Buyer-only; actor and role come from
+  // the verified server session, never from request data.
+  const authz = await requireRole("BUYER");
   if (!authz.ok) return authz.response;
 
   let body: unknown;
@@ -29,6 +30,7 @@ export async function POST(request: Request) {
   try {
     const enquiry = await createEnquiry({
       userId: authz.session.user.id,
+      role: authz.session.user.role,
       propertyId: parsed.data.propertyId,
       message: parsed.data.message,
       contactPhone: parsed.data.contactPhone,

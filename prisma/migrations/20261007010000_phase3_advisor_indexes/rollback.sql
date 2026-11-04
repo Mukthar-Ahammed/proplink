@@ -1,0 +1,14 @@
+DROP INDEX IF EXISTS public."Viewing_buyerUserId_idx";
+DROP INDEX IF EXISTS public."SyndicateProject_propertyId_idx";
+DROP INDEX IF EXISTS public."SuccessFee_propertyId_idx";
+DROP INDEX IF EXISTS public."SuccessFee_projectId_idx";
+DROP INDEX IF EXISTS public."SavedProperty_propertyId_idx";
+DROP INDEX IF EXISTS public."Offer_buyerUserId_idx";
+DROP INDEX IF EXISTS public."MilestonePhoto_milestoneId_idx";
+DROP INDEX IF EXISTS public."LedgerEntry_createdBy_idx";
+DROP INDEX IF EXISTS public."Deal_propertyId_idx";
+DROP INDEX IF EXISTS public."Deal_offerId_idx";
+DROP INDEX IF EXISTS public."ChatMessage_fromUserId_idx";
+DROP INDEX IF EXISTS public."AuditLog_actorUserId_idx";
+DROP INDEX IF EXISTS public."Appraisal_investorUserId_idx";
+DROP INDEX IF EXISTS public."AdSlot_partnerId_idx";

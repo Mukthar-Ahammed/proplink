@@ -1,111 +1,63 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-import {
-  AUTH_BUTTON,
-  AUTH_INPUT,
-  AUTH_LABEL,
-  AuthShell,
-} from "@/components/auth/AuthShell";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-function ResetPasswordForm() {
+import { resetPasswordAction } from "@/app/(auth)/actions";
+import { AUTH_BUTTON, AUTH_INPUT, AUTH_LABEL, AuthShell } from "@/components/auth/AuthShell";
+
+export default function ResetPasswordPage() {
   const router = useRouter();
-  const token = useSearchParams().get("token") ?? "";
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
-      const res = await fetch("/api/password-reset/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, password }),
-      });
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: string };
-        setError(data.error ?? "Reset failed");
+      const result = await resetPasswordAction(password);
+      if (result.kind === "success") {
+        router.push("/login?reset=1");
+        router.refresh();
         return;
       }
-      router.push("/login?reset=1");
+      setError(result.message ?? "Unable to update the password.");
     } finally {
       setSubmitting(false);
     }
   }
 
-  if (!token) {
-    return (
-      <p className="mt-4 text-sm text-danger">
-        Missing reset token — use the link from your email, or{" "}
-        <Link href="/forgot-password" className="text-accent underline">
-          request a new one
-        </Link>
-        .
-      </p>
-    );
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-5">
-      <div>
-        <label htmlFor="password" className={AUTH_LABEL}>
-          New password
-        </label>
-        <input
-          id="password"
-          type="password"
-          required
-          minLength={8}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className={AUTH_INPUT}
-        />
-        <p className="mt-1 text-xs text-muted">
-          At least 8 characters, with a letter and a number.
-        </p>
-      </div>
-      {error && (
-        <p
-          role="alert"
-          className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
-        >
-          {error}
-        </p>
-      )}
-      <button type="submit" disabled={submitting} className={AUTH_BUTTON}>
-        {submitting ? "Saving…" : "Set new password"}
-      </button>
-    </form>
-  );
-}
-
-export default function ResetPasswordPage() {
   return (
     <AuthShell
       title="Choose a new password"
-      subtitle="Pick something you have not used here before."
+      subtitle="Your verified reset session is valid for a limited time."
       aside={{
-        headline: (
-          <>
-            The whole distressed deal,
-            <span className="mt-1 block font-light">in one place</span>
-          </>
-        ),
+        headline: <><>A fresh password,</><span className="mt-1 block font-light">after mailbox verification</span></>,
         points: [
-          "Search live UK distressed stock by defect, EPC band and target ROI",
-          "Track enquiries, viewings and offers against every listing",
-          "Register expressions of interest in syndicated refurbishments",
+          "A normal login session cannot impersonate a recovery flow",
+          "The recovery grant is HTTP-only, signed and short-lived",
+          "Successful reset signs every local browser session out",
         ],
       }}
     >
-      <Suspense>
-        <ResetPasswordForm />
-      </Suspense>
+      <form onSubmit={onSubmit} className="space-y-5">
+        <div>
+          <label htmlFor="password" className={AUTH_LABEL}>New password</label>
+          <input id="password" type="password" autoComplete="new-password" required minLength={8} maxLength={128} value={password} onChange={(event) => setPassword(event.target.value)} className={AUTH_INPUT} />
+          <p className="mt-1 text-xs text-muted">At least 8 characters.</p>
+        </div>
+        {error && <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">{error}</p>}
+        <button type="submit" disabled={submitting} className={AUTH_BUTTON}>
+          {submitting ? "Saving…" : "Set new password"}
+        </button>
+      </form>
+      <Link href="/forgot-password" className="mt-6 block text-center text-sm font-semibold text-primary underline">
+        Request a new reset email
+      </Link>
     </AuthShell>
   );
 }
+

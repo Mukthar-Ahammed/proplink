@@ -1,53 +1,123 @@
 import "server-only";
-import { auth } from "@/lib/auth";
-import type { Session } from "next-auth";
+
+import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
-import type { Role } from "@/generated/prisma/enums";
+
+import { InvestorType, KycStatus, Role } from "@/generated/prisma/enums";
+import { auth, type AppSession } from "@/lib/auth";
+import { getInvestorCapabilities } from "@/services/syndicates/investorType";
 
 export type AuthzResult =
-  { ok: true; session: Session } | { ok: false; response: NextResponse };
+  | { ok: true; session: AppSession }
+  | { ok: false; response: NextResponse };
 
-/**
- * Server-side role gate for route handlers and server actions.
- * NEVER trust client-provided role — this reads the JWT session only.
- */
-export async function requireRole(...roles: Role[]): Promise<AuthzResult> {
-  const session = await auth();
-  if (!session?.user) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Authentication required" }, { status: 401 }),
-    };
-  }
-  if (roles.length > 0 && !roles.includes(session.user.role)) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
-    };
-  }
-  return { ok: true, session };
+export type InvestorCapability = "FLIPPER" | "SYNDICATE";
+export type AuthenticationAudience = "USER" | "ADMIN";
+
+type RoleSubject = Pick<AppSession["user"], "role">;
+type InvestorSubject = Pick<AppSession["user"], "role" | "investorType">;
+type FinancialInvestorSubject = Pick<
+  AppSession["user"],
+  "role" | "investorType" | "kycStatus" | "active"
+>;
+
+/** Keeps privileged credentials out of the public account sign-in flow. */
+export function isAuthenticationAudienceAllowed(
+  user: RoleSubject,
+  audience: AuthenticationAudience,
+): boolean {
+  return audience === "ADMIN" ? user.role === Role.ADMIN : user.role !== Role.ADMIN;
+}
+
+export function hasAllowedRole(
+  user: RoleSubject,
+  roles: readonly Role[],
+): boolean {
+  return roles.length === 0 || roles.includes(user.role);
+}
+
+export function hasInvestorCapability(
+  user: InvestorSubject,
+  capability: InvestorCapability,
+): boolean {
+  const capabilities = getInvestorCapabilities(user);
+  return capability === InvestorType.FLIPPER
+    ? capabilities.flipper
+    : capabilities.syndicate;
+}
+
+export function isInvestorFinanciallyEligible(
+  user: FinancialInvestorSubject,
+  capability: InvestorCapability,
+): boolean {
+  return (
+    user.active === true &&
+    user.role === Role.INVESTOR &&
+    hasInvestorCapability(user, capability) &&
+    user.kycStatus === KycStatus.APPROVED
+  );
+}
+
+function authenticationRequired(): AuthzResult {
+  return {
+    ok: false,
+    response: NextResponse.json({ error: "Authentication required" }, { status: 401 }),
+  };
+}
+
+function forbidden(): AuthzResult {
+  return {
+    ok: false,
+    response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+  };
 }
 
 /**
- * KYC gate — the compliance-critical check for every pledge mutation
- * (sprint plan non-negotiable #2). Server-side only.
+ * Route-handler authorization. `auth()` has already verified Supabase Auth,
+ * active Profile/User state and the compatibility mapping before this role
+ * check runs.
  */
-export async function requireKyc(): Promise<AuthzResult> {
+export async function requireRole(...roles: Role[]): Promise<AuthzResult> {
+  const session = await auth();
+  if (!session?.user) return authenticationRequired();
+  if (!hasAllowedRole(session.user, roles)) return forbidden();
+  return { ok: true, session };
+}
+
+/** Page-level gate. Layout and Proxy checks are deliberately not relied upon. */
+export async function requirePageRole(...roles: Role[]): Promise<AppSession> {
   const session = await auth();
   if (!session?.user) {
-    return {
-      ok: false,
-      response: NextResponse.json({ error: "Authentication required" }, { status: 401 }),
-    };
+    redirect(roles.includes(Role.ADMIN) ? "/admin/login" : "/login");
   }
-  if (session.user.kycStatus !== "APPROVED") {
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { error: "KYC required", kycStatus: session.user.kycStatus },
-        { status: 403 },
-      ),
-    };
+  if (!hasAllowedRole(session.user, roles)) redirect("/403");
+  return session;
+}
+
+export async function requireInvestorType(
+  capability: InvestorCapability,
+): Promise<AuthzResult> {
+  const result = await requireRole(Role.INVESTOR);
+  if (!result.ok) return result;
+  if (!hasInvestorCapability(result.session.user, capability)) return forbidden();
+  return result;
+}
+
+export async function requireInvestorFinancialEligibility(
+  capability: InvestorCapability,
+): Promise<AuthzResult> {
+  const result = await requireRole(Role.INVESTOR);
+  if (!result.ok) return result;
+  if (!isInvestorFinanciallyEligible(result.session.user, capability)) {
+    return forbidden();
   }
+  return result;
+}
+
+/** Existing generic KYC gate, retained for compatibility and made non-leaky. */
+export async function requireKyc(): Promise<AuthzResult> {
+  const session = await auth();
+  if (!session?.user) return authenticationRequired();
+  if (session.user.kycStatus !== KycStatus.APPROVED) return forbidden();
   return { ok: true, session };
 }

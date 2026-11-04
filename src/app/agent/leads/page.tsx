@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import {
   ACTIVE_AGENT_PROFILE_COOKIE,
   resolveActiveAgentProfileId,
@@ -20,10 +20,7 @@ export const metadata = { title: "Agent — Leads" };
  * re-verifies ownership server-side; the cookie is only ever a hint.
  */
 export default async function AgentLeadsPage() {
-  const session = await auth();
-  if (!session?.user) {
-    return <p className="text-sm text-muted">Log in as an agent to see your leads.</p>;
-  }
+  const session = await requirePageRole("AGENT");
 
   const profiles = await listActiveAgentProfiles(session.user.id);
   const activeId = resolveActiveAgentProfileId(

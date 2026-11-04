@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { listActiveAgentProfiles } from "@/services/listings/listingService";
 import { ListingWizard } from "@/components/listings/ListingWizard";
 import { emptyWizardState } from "@/components/listings/wizardTypes";
@@ -12,8 +12,8 @@ import {
 export const metadata = { title: "Agent — New listing" };
 
 export default async function NewListingPage() {
-  const session = await auth();
-  const profiles = session?.user ? await listActiveAgentProfiles(session.user.id) : [];
+  const session = await requirePageRole("AGENT");
+  const profiles = await listActiveAgentProfiles(session.user.id);
 
   if (profiles.length === 0) {
     return (

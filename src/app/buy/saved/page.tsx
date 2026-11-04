@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { formatPenceGBP } from "@/services/metrics/globalMetrics";
 import { PortalEmpty } from "@/components/portal/PortalShell";
@@ -8,10 +7,7 @@ import { PortalEmpty } from "@/components/portal/PortalShell";
 export const dynamic = "force-dynamic";
 
 export default async function SavedPage() {
-  const session = await auth();
-  const user = session?.user;
-  if (!user) redirect("/login");
-  if (!["BUYER", "ADMIN"].includes(user.role)) redirect("/403");
+  const { user } = await requirePageRole("BUYER");
 
   // Scoped by `userId` in the `where` — never filtered after the fact.
   const saved = await db.savedProperty.findMany({

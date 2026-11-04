@@ -1,29 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import {
-  AUTH_BUTTON,
-  AUTH_INPUT,
-  AUTH_LABEL,
-  AuthShell,
-} from "@/components/auth/AuthShell";
 import { useState } from "react";
+
+import { requestPasswordResetAction } from "@/app/(auth)/actions";
+import { AUTH_BUTTON, AUTH_INPUT, AUTH_LABEL, AuthShell } from "@/components/auth/AuthShell";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSubmit(event: React.FormEvent) {
+    event.preventDefault();
     setSubmitting(true);
     try {
-      await fetch("/api/password-reset/request", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      setSent(true);
+      const result = await requestPasswordResetAction(email);
+      setMessage(result.message ?? "If an account exists, a reset email will be sent.");
     } finally {
       setSubmitting(false);
     }
@@ -32,55 +25,33 @@ export default function ForgotPasswordPage() {
   return (
     <AuthShell
       title="Reset your password"
-      subtitle="We will email you a link to choose a new one."
+      subtitle="We will email a verification link before accepting a new password."
       aside={{
-        headline: (
-          <>
-            The whole distressed deal,
-            <span className="mt-1 block font-light">in one place</span>
-          </>
-        ),
+        headline: <><>Recover access,</><span className="mt-1 block font-light">without bypassing verification</span></>,
         points: [
-          "Search live UK distressed stock by defect, EPC band and target ROI",
-          "Track enquiries, viewings and offers against every listing",
-          "Register expressions of interest in syndicated refurbishments",
+          "Responses never reveal whether an account exists",
+          "Reset links require an explicit verification button press",
+          "Reset sessions expire and are single-use",
         ],
       }}
     >
-      {sent ? (
-        <p className="text-sm text-body">
-          If an account exists for <strong>{email}</strong>, a reset link is on its way.
-          Check your inbox (and the dev console when running locally).
-        </p>
+      {message ? (
+        <p className="rounded-xl bg-pale px-4 py-3 text-sm text-body">{message}</p>
       ) : (
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
-            <label htmlFor="email" className={AUTH_LABEL}>
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={AUTH_INPUT}
-            />
+            <label htmlFor="email" className={AUTH_LABEL}>Email</label>
+            <input id="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} className={AUTH_INPUT} />
           </div>
           <button type="submit" disabled={submitting} className={AUTH_BUTTON}>
             {submitting ? "Sending…" : "Send reset link"}
           </button>
         </form>
       )}
-
       <p className="mt-8 text-center text-sm text-muted">
-        <Link
-          href="/login"
-          className="font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
-        >
-          Back to log in
-        </Link>
+        <Link href="/login" className="font-semibold text-primary underline">Back to log in</Link>
       </p>
     </AuthShell>
   );
 }
+

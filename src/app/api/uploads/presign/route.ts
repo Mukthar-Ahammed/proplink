@@ -6,7 +6,7 @@ import { storageService } from "@/services/storage";
 
 // TODO(week-2): rate-limit with @upstash/ratelimit once H1.5 keys are in.
 export async function POST(request: Request) {
-  const authz = await requireRole(Role.AGENT, Role.ADMIN);
+  const authz = await requireRole(Role.AGENT);
   if (!authz.ok) return authz.response;
 
   let body: unknown;

@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { Role } from "@/generated/prisma/enums";
 
 /**
  * Viewing requests (ADR-017, sprint plan Task 5.7).
@@ -24,15 +25,42 @@ export type ViewingRequestInput = z.infer<typeof viewingRequestSchema>;
 /** Viewings run for an hour; the buyer picks a start, not a range. */
 const SLOT_MINUTES = 60;
 
-export async function requestViewing(buyerUserId: string, input: ViewingRequestInput) {
+export async function requestViewing(
+  actor: { userId: string; role: Role },
+  input: ViewingRequestInput,
+) {
+  if (actor.role !== Role.BUYER) {
+    return { ok: false as const, error: "Forbidden" };
+  }
+  const buyerUserId = actor.userId;
   const property = await db.property.findUnique({
     where: { id: input.propertyId },
-    select: { id: true, status: true },
+    select: {
+      id: true,
+      status: true,
+      listingSource: true,
+      agentProfile: {
+        select: { active: true, user: { select: { active: true } } },
+      },
+    },
   });
 
   // Only stock a buyer can actually see. Requesting a viewing on a draft or
   // rejected listing would leak that it exists.
   if (!property || !["LIVE", "UNDER_OFFER"].includes(property.status)) {
+    return { ok: false as const, error: "Property not available for viewing" };
+  }
+  if (property.listingSource === "FLIPPER_RESALE") {
+    return { ok: false as const, error: "Direct viewing bookings for Flipper resale listings are not currently supported." };
+  }
+  const buyer = await db.user.findUnique({
+    where: { id: buyerUserId },
+    select: { active: true, role: true },
+  });
+  if (!buyer?.active || buyer.role !== Role.BUYER) {
+    return { ok: false as const, error: "Forbidden" };
+  }
+  if (!property.agentProfile?.active || !property.agentProfile.user.active) {
     return { ok: false as const, error: "Property not available for viewing" };
   }
 

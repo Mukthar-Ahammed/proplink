@@ -16,7 +16,10 @@ export function PortalNav({ items }: { items: PortalNavItem[] }) {
   const pathname = usePathname();
 
   return (
-    <nav aria-label="Portal" className="mt-10 flex gap-8 overflow-x-auto">
+    <nav
+      aria-label="Portal"
+      className="relative z-10 mt-8 flex gap-2 overflow-x-auto pb-3"
+    >
       {items.map((item) => {
         // Exact for the portal root, prefix for its sections — so
         // `/agent/listings/new` still marks `Listings`.
@@ -29,10 +32,10 @@ export function PortalNav({ items }: { items: PortalNavItem[] }) {
             key={item.href}
             href={item.href}
             aria-current={active ? "page" : undefined}
-            className={`-mb-px border-b-2 pb-4 text-sm font-medium whitespace-nowrap transition-colors ${
+            className={`rounded-full px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-all ${
               active
-                ? "border-accent text-white"
-                : "border-transparent text-pale/60 hover:border-white/30 hover:text-white"
+                ? "bg-white text-primary shadow-sm"
+                : "text-pale/65 hover:bg-white/10 hover:text-white"
             }`}
           >
             {item.label}

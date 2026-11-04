@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { listActiveAgentProfiles } from "@/services/listings/listingService";
 import { listCaseStudiesForOwnedProfile } from "@/services/agents/agentProfileService";
 import { CaseStudyManager } from "@/components/agents/CaseStudyManager";
@@ -14,14 +14,7 @@ export const metadata = { title: "Agent — Profile" };
  * appraisals are read-only aggregates shown on the public page, not here.
  */
 export default async function AgentPortalProfilePage() {
-  const session = await auth();
-  if (!session?.user) {
-    return (
-      <p className="text-sm text-muted">
-        Log in as an agent to manage your agency profiles.
-      </p>
-    );
-  }
+  const session = await requirePageRole("AGENT");
   const userId = session.user.id;
 
   const profiles = await listActiveAgentProfiles(userId);

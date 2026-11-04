@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { parseSearchParams, searchService } from "@/services/search";
 import { PropertyCard } from "@/components/marketplace/PropertyCard";
 import { SearchFilters } from "@/components/marketplace/SearchFilters";
@@ -27,10 +26,7 @@ interface PageProps {
  * component re-renders from it, so there is no second copy to drift.
  */
 export default async function BuyerSearchPage({ searchParams }: PageProps) {
-  const session = await auth();
-  const user = session?.user;
-  if (!user) redirect("/login");
-  if (!["BUYER", "ADMIN"].includes(user.role)) redirect("/403");
+  await requirePageRole("BUYER");
 
   const raw = await searchParams;
   const sp = new URLSearchParams();
@@ -64,7 +60,7 @@ export default async function BuyerSearchPage({ searchParams }: PageProps) {
             <>
               <div
                 data-testid="results-grid"
-                className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3"
+                className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
               >
                 {results.items.map((listing) => (
                   <PropertyCard key={listing.id} listing={listing} />

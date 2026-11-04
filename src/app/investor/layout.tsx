@@ -1,18 +1,22 @@
 import { PortalShell } from "@/components/portal/PortalShell";
-import { INVESTOR_NAV } from "@/app/investor/nav";
+import { getInvestorNav } from "@/app/investor/nav";
+import { requirePageRole } from "@/lib/authz";
 
-/**
- * The investor portal's frame (ADR-016). Role gating is `src/middleware.ts`
- * (INVESTOR/ADMIN) plus the page's own `auth()` check.
- */
-export default function InvestorLayout({ children }: { children: React.ReactNode }) {
+export default async function InvestorLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const session = await requirePageRole("INVESTOR");
+  const nav = getInvestorNav(session.user.investorType);
+
   return (
     <PortalShell
       eyebrow="Investor portal"
       title="Your syndicates,"
       titleTail="your position"
       standfirst="Expressions of interest, funding progress and the projects behind them."
-      nav={INVESTOR_NAV}
+      nav={nav}
     >
       {children}
     </PortalShell>

@@ -69,11 +69,22 @@ export async function recordListingView(params: {
 }): Promise<{ counted: boolean; viewedIds: string[] }> {
   const property = await db.property.findUnique({
     where: { id: params.propertyId },
-    select: { id: true, status: true, agentProfile: { select: { userId: true } } },
+    select: {
+      id: true,
+      status: true,
+      agentProfile: {
+        select: { active: true, userId: true, user: { select: { active: true } } },
+      },
+    },
   });
   // Same 404-not-403 rule as the page and the enquiry service: a non-public
   // listing is only reachable by its owner or an admin, neither of whom counts.
-  if (!property || !isPubliclyVisibleStatus(property.status)) {
+  if (
+    !property ||
+    !isPubliclyVisibleStatus(property.status) ||
+    !property.agentProfile?.active ||
+    !property.agentProfile.user.active
+  ) {
     throw new ListingServiceError("Listing not found", "NOT_FOUND");
   }
 

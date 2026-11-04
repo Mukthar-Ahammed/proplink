@@ -1,5 +1,7 @@
 import "server-only";
+import type { AppSession } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { getInvestorCapabilities } from "@/services/syndicates/investorType";
 import {
   equityPct,
   summarisePortfolio,
@@ -43,24 +45,28 @@ export interface InvestorDashboard {
   savedCount: number;
 }
 
-export async function getInvestorDashboard(userId: string): Promise<InvestorDashboard> {
-  const [user, pledges, savedCount] = await Promise.all([
-    db.user.findUnique({ where: { id: userId }, select: { kycStatus: true } }),
-    db.syndicatePledge.findMany({
-      where: { investorUserId: userId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        project: {
+export async function getInvestorDashboard(
+  user: Pick<AppSession["user"], "id" | "role" | "investorType" | "kycStatus">,
+): Promise<InvestorDashboard> {
+  const canReadSyndicates = getInvestorCapabilities(user).syndicate;
+  const [pledges, savedCount] = await Promise.all([
+    canReadSyndicates
+      ? db.syndicatePledge.findMany({
+          where: { investorUserId: user.id },
+          orderBy: { createdAt: "desc" },
           include: {
-            property: { select: { title: true } },
-            // Every standing pledge on the project, so the funding bar shows the
-            // syndicate's progress rather than only this investor's share.
-            pledges: { select: { amountGBP: true, status: true } },
+            project: {
+              include: {
+                property: { select: { title: true } },
+                // Every standing pledge on the project, so the funding bar shows the
+                // syndicate's progress rather than only this investor's share.
+                pledges: { select: { amountGBP: true, status: true } },
+              },
+            },
           },
-        },
-      },
-    }),
-    db.savedProperty.count({ where: { userId } }),
+        })
+      : Promise.resolve([]),
+    db.savedProperty.count({ where: { userId: user.id } }),
   ]);
 
   const rows: InvestorPledgeRow[] = pledges.map((p) => {
@@ -87,7 +93,7 @@ export async function getInvestorDashboard(userId: string): Promise<InvestorDash
   });
 
   return {
-    kycStatus: user?.kycStatus ?? "NOT_STARTED",
+    kycStatus: user.kycStatus,
     pledges: rows,
     summary: summarisePortfolio(
       pledges.map((p) => ({

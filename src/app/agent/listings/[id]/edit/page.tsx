@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { getOwnedListing } from "@/services/listings/listingService";
 import { ListingServiceError } from "@/services/listings/errors";
 import { ListingWizard } from "@/components/listings/ListingWizard";
@@ -13,6 +13,9 @@ export const metadata = { title: "Agent — Edit listing" };
 type OwnedListing = Awaited<ReturnType<typeof getOwnedListing>>;
 
 function toWizardState(listing: OwnedListing): WizardFormState {
+  if (!listing.agentProfileId) {
+    throw new ListingServiceError("Agent listing not found", "NOT_FOUND");
+  }
   return {
     id: listing.id,
     agentProfileId: listing.agentProfileId,
@@ -53,15 +56,7 @@ export default async function EditListingPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const session = await auth();
-  if (!session?.user) {
-    return (
-      <NoticeCard
-        title="Sign in required"
-        body="Please log in as an agent to continue."
-      />
-    );
-  }
+  const session = await requirePageRole("AGENT");
 
   let listing: OwnedListing;
   try {
@@ -79,6 +74,15 @@ export default async function EditListingPage({
       <NoticeCard
         title="This listing is no longer editable here"
         body={`"${listing.title}" is ${listing.status.replace("_", " ").toLowerCase()}. Only draft listings can be edited from this form.`}
+      />
+    );
+  }
+
+  if (!listing.agentProfile) {
+    return (
+      <NoticeCard
+        title="Can't open this listing"
+        body="This listing is not assigned to your Agent profile."
       />
     );
   }

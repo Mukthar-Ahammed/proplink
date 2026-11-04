@@ -1,10 +1,16 @@
 import { config } from "dotenv";
 import { defineConfig } from "prisma/config";
 
-// Next.js reads .env.local automatically, but the Prisma CLI does not —
-// load it here (first wins), then fall back to .env.
-config({ path: ".env.local" });
-config();
+if (process.env.PROPLINK_ENV === "staging") {
+  config({ path: ".env.staging.local", override: true });
+} else {
+  config({ path: ".env.local" });
+  config();
+}
+
+if (process.env.PROPLINK_ENV === "staging" && !process.env.PROPLINK_STAGING_PROJECT_REF) {
+  throw new Error("Staging Prisma commands require PROPLINK_STAGING_PROJECT_REF");
+}
 
 export default defineConfig({
   schema: "prisma/schema.prisma",

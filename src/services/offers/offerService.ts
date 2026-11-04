@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { Role } from "@/generated/prisma/enums";
 
 /**
  * Buyer offers and the deal that follows one (ADR-017, sprint plan Task 5.7).
@@ -28,13 +29,41 @@ export const offerSchema = z.object({
 
 export type OfferInput = z.infer<typeof offerSchema>;
 
-export async function submitOffer(buyerUserId: string, input: OfferInput) {
+export async function submitOffer(
+  actor: { userId: string; role: Role },
+  input: OfferInput,
+) {
+  if (actor.role !== Role.BUYER) {
+    return { ok: false as const, error: "Forbidden" };
+  }
+  const buyerUserId = actor.userId;
   const property = await db.property.findUnique({
     where: { id: input.propertyId },
-    select: { id: true, status: true, askingPriceGBP: true },
+    select: {
+      id: true,
+      status: true,
+      askingPriceGBP: true,
+      listingSource: true,
+      agentProfile: {
+        select: { active: true, user: { select: { active: true } } },
+      },
+    },
   });
 
   if (!property || !["LIVE", "UNDER_OFFER"].includes(property.status)) {
+    return { ok: false as const, error: "Property not available for offers" };
+  }
+  if (property.listingSource === "FLIPPER_RESALE") {
+    return { ok: false as const, error: "Direct buyer offers on Flipper resale listings are not currently supported." };
+  }
+  const buyer = await db.user.findUnique({
+    where: { id: buyerUserId },
+    select: { active: true, role: true },
+  });
+  if (!buyer?.active || buyer.role !== Role.BUYER) {
+    return { ok: false as const, error: "Forbidden" };
+  }
+  if (!property.agentProfile?.active || !property.agentProfile.user.active) {
     return { ok: false as const, error: "Property not available for offers" };
   }
 

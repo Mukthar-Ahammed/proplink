@@ -230,6 +230,7 @@ describe("POST/DELETE /api/listings/[id]/save", () => {
     expect(await res.json()).toEqual({ saved: true });
     expect(mockSaveListing).toHaveBeenCalledWith({
       userId: "buyer-1",
+      role: "BUYER",
       propertyId: "property-1",
     });
   });

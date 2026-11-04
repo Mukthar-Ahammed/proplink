@@ -1,0 +1,187 @@
+{
+  "version": 2,
+  "resources": [
+    {
+      "role": "AGENT",
+      "email": "phase3-test-agent@example.invalid",
+      "projectRef": "staging",
+      "marker": "phase3-a2273f43-9291-4439-92fb-96b6863a636d",
+      "state": "READY",
+      "authUserId": "phase3-test-agent",
+      "legacyUserId": "legacy"
+    },
+    {
+      "role": "INVESTOR",
+      "email": "phase3-test-investor@example.invalid",
+      "projectRef": "staging",
+      "marker": "phase3-633006ff-61a1-484f-a78b-554a5e64dfa1",
+      "state": "READY",
+      "authUserId": "phase3-test-investor",
+      "legacyUserId": "legacy"
+    },
+    {
+      "role": "BUYER",
+      "email": "phase3-test-buyer@example.invalid",
+      "projectRef": "staging",
+      "marker": "phase3-6846f8df-914c-4c13-9661-3e7d98a5ef3e",
+      "state": "READY",
+      "authUserId": "phase3-test-buyer",
+      "legacyUserId": "legacy"
+    },
+    {
+      "role": "ADMIN",
+      "email": "phase3-test-admin@example.invalid",
+      "projectRef": "staging",
+      "marker": "phase3-120054fb-93ae-4d25-8b7b-9958058f70ea",
+      "state": "READY",
+      "authUserId": "phase3-test-admin",
+      "legacyUserId": "legacy"
+    },
+    {
+      "key": "db:Property",
+      "kind": "Property",
+      "model": "Property",
+      "projectRef": "staging",
+      "ownerId": "legacy",
+      "parentRefs": {
+        "id": "phase3-test-property",
+        "listingSource": "AGENT",
+        "title": "Phase 3 disposable property",
+        "description": "Disposable RLS fixture",
+        "status": "DRAFT",
+        "addressLine1": "1 Phase 3 Way",
+        "city": "London",
+        "region": "Greater London",
+        "postcode": "SW1A 1AA",
+        "propertyType": "RESIDENTIAL",
+        "bedrooms": 2,
+        "askingPriceGBP": 100000
+      },
+      "disposableMarker": "phase3-test-legacy",
+      "state": "VERIFIED",
+      "id": "Property"
+    },
+    {
+      "key": "db:SyndicateProject",
+      "kind": "SyndicateProject",
+      "model": "SyndicateProject",
+      "projectRef": "staging",
+      "ownerId": "legacy",
+      "parentRefs": {
+        "id": "phase3-test-project",
+        "propertyId": "phase3-test-property",
+        "name": "Phase 3 disposable syndicate",
+        "capitalTargetGBP": 1000,
+        "status": "OPEN",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      },
+      "disposableMarker": "phase3-test-legacy",
+      "state": "VERIFIED",
+      "id": "SyndicateProject"
+    },
+    {
+      "key": "db:Enquiry",
+      "kind": "Enquiry",
+      "model": "Enquiry",
+      "projectRef": "staging",
+      "ownerId": "legacy",
+      "parentRefs": {
+        "id": "phase3-test-enquiry",
+        "propertyId": "phase3-test-property",
+        "fromUserId": "legacy",
+        "message": "Phase 3 disposable enquiry",
+        "status": "NEW",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      },
+      "disposableMarker": "phase3-test-legacy",
+      "state": "VERIFIED",
+      "id": "Enquiry"
+    },
+    {
+      "key": "db:SavedProperty",
+      "kind": "SavedProperty",
+      "model": "SavedProperty",
+      "projectRef": "staging",
+      "ownerId": "legacy",
+      "parentRefs": {
+        "userId": "legacy",
+        "propertyId": "phase3-test-property"
+      },
+      "disposableMarker": "phase3-test-legacy",
+      "state": "VERIFIED",
+      "id": "SavedProperty"
+    },
+    {
+      "key": "db:Offer",
+      "kind": "Offer",
+      "model": "Offer",
+      "projectRef": "staging",
+      "ownerId": "legacy",
+      "parentRefs": {
+        "id": "phase3-test-offer",
+        "propertyId": "phase3-test-property",
+        "buyerUserId": "legacy",
+        "amountGBP": 90000,
+        "status": "SUBMITTED",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      },
+      "disposableMarker": "phase3-test-legacy",
+      "state": "VERIFIED",
+      "id": "Offer"
+    },
+    {
+      "key": "db:Viewing",
+      "kind": "Viewing",
+      "model": "Viewing",
+      "projectRef": "staging",
+      "ownerId": "legacy",
+      "parentRefs": {
+        "id": "phase3-test-viewing",
+        "propertyId": "phase3-test-property",
+        "buyerUserId": "legacy",
+        "slotStart": "2026-01-01T00:00:00.000Z",
+        "slotEnd": "2026-01-01T01:00:00.000Z",
+        "status": "REQUESTED"
+      },
+      "disposableMarker": "phase3-test-legacy",
+      "state": "VERIFIED",
+      "id": "Viewing"
+    },
+    {
+      "key": "db:ChatMessage",
+      "kind": "ChatMessage",
+      "model": "ChatMessage",
+      "projectRef": "staging",
+      "ownerId": "legacy",
+      "parentRefs": {
+        "id": "phase3-test-chat",
+        "propertyId": "phase3-test-property",
+        "fromUserId": "legacy",
+        "toUserId": "legacy",
+        "body": "Phase 3 disposable message",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      },
+      "disposableMarker": "phase3-test-legacy",
+      "state": "VERIFIED",
+      "id": "ChatMessage"
+    },
+    {
+      "key": "db:SyndicatePledge",
+      "kind": "SyndicatePledge",
+      "model": "SyndicatePledge",
+      "projectRef": "staging",
+      "ownerId": "legacy",
+      "parentRefs": {
+        "id": "phase3-test-pledge",
+        "projectId": "phase3-test-project",
+        "investorUserId": "legacy",
+        "amountGBP": 100,
+        "status": "PLEDGED",
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      },
+      "disposableMarker": "phase3-test-legacy",
+      "state": "VERIFIED",
+      "id": "SyndicatePledge"
+    }
+  ]
+}

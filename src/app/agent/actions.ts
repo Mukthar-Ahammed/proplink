@@ -18,7 +18,7 @@ const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
  */
 export async function setActiveAgentProfile(agentProfileId: string): Promise<void> {
   const session = await auth();
-  if (!session?.user) return;
+  if (!session?.user || session.user.role !== "AGENT") return;
 
   const profiles = await listActiveAgentProfiles(session.user.id);
   if (!profiles.some((p) => p.id === agentProfileId)) return;

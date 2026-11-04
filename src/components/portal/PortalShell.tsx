@@ -48,8 +48,10 @@ export function PortalShell({
 }) {
   return (
     <main className="flex flex-1 flex-col">
-      <section className="bg-primary pt-28 pb-0 sm:pt-32">
-        <div className="mx-auto w-full max-w-7xl px-6">
+      <section className="relative overflow-hidden bg-primary pt-24 pb-0 sm:pt-28">
+        <div className="pointer-events-none absolute -right-24 -top-32 h-96 w-96 rounded-full bg-accent/15 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-40 left-1/3 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
+        <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 xl:px-10">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-[11px] tracking-[0.22em] text-pale/60 uppercase">
               {eyebrow}
@@ -74,7 +76,11 @@ export function PortalShell({
         </div>
       </section>
 
-      <div className="mx-auto w-full max-w-7xl px-6 py-10">{children}</div>
+      <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-8 sm:py-10 xl:px-10">
+        <div className="rounded-[1.75rem] border border-line/70 bg-white/80 p-5 shadow-[0_18px_60px_rgba(15,35,32,0.06)] backdrop-blur-sm sm:p-8">
+          {children}
+        </div>
+      </div>
     </main>
   );
 }
@@ -90,7 +96,7 @@ export function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="border-t border-line pt-4">
+    <div className="rounded-2xl border border-line/70 bg-surface/70 p-5 transition-shadow hover:shadow-md">
       <p className="text-3xl font-semibold tracking-tight text-primary">{value}</p>
       <p className="mt-2 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
         {label}

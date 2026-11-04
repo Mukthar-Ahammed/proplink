@@ -68,18 +68,18 @@ export async function HeroStats() {
   if (stats.length === 0) return null;
 
   return (
-    // Editorial stat row: oversized italic display figures over hairline-topped
-    // columns, left-aligned to the statement above them.
+    // Editorial stat row: oversized display figures over hairline-topped
+    // columns, centered to match the heading block above.
     <dl
       data-testid="hero-stats"
-      className="mt-14 grid grid-cols-2 gap-x-8 gap-y-10 sm:grid-cols-4"
+      className="mx-auto mt-14 grid max-w-3xl grid-cols-1 gap-x-10 gap-y-10 text-center sm:grid-cols-3"
     >
       {stats.map((stat) => (
         // `flex-col-reverse` renders the figure above its caption while keeping
         // the `dt`-before-`dd` order the spec (and screen readers) expect.
         <div
           key={stat.label}
-          className="flex flex-col-reverse items-start border-t border-line pt-4"
+          className="flex flex-col-reverse items-center justify-center text-center border-t border-line pt-4"
         >
           <dt className="mt-2 text-[11px] tracking-[0.14em] text-muted uppercase">
             {stat.label}

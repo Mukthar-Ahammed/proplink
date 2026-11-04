@@ -4,19 +4,28 @@ import { db } from "@/lib/db";
 
 vi.mock("@/lib/db", () => ({
   db: {
+    $transaction: vi.fn(),
     user: { findUnique: vi.fn(), update: vi.fn() },
+    profile: { update: vi.fn() },
     verificationToken: { deleteMany: vi.fn() },
     kycRecord: { deleteMany: vi.fn() },
+    auditLog: { create: vi.fn() },
   },
 }));
 
 const mockDb = vi.mocked(db, true);
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockDb.$transaction.mockImplementation(async (callback) => callback(mockDb as never));
+});
 
 describe("eraseUser (GDPR right to erasure)", () => {
   it("anonymises the user in place", async () => {
-    mockDb.user.findUnique.mockResolvedValue({ id: "u1" } as never);
+    mockDb.user.findUnique.mockResolvedValue({
+      id: "u1",
+      authProfile: { id: "11111111-1111-4111-8111-111111111111" },
+    } as never);
 
     const result = await eraseUser("u1");
     expect(result.ok).toBe(true);
@@ -27,10 +36,17 @@ describe("eraseUser (GDPR right to erasure)", () => {
     expect(update.data.name).toBe("Erased User");
     expect(update.data.passwordHash).toBeNull();
     expect(update.data.active).toBe(false);
+    expect(mockDb.profile.update).toHaveBeenCalledWith({
+      where: { id: "11111111-1111-4111-8111-111111111111" },
+      data: expect.objectContaining({ active: false, name: "Erased User" }),
+    });
+    expect(mockDb.auditLog.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ action: "USER_ERASED", actorUserId: "u1" }),
+    });
   });
 
   it("NEVER deletes KYC records (UK AML 5-year retention)", async () => {
-    mockDb.user.findUnique.mockResolvedValue({ id: "u1" } as never);
+    mockDb.user.findUnique.mockResolvedValue({ id: "u1", authProfile: null } as never);
     await eraseUser("u1");
     expect(mockDb.kycRecord.deleteMany).not.toHaveBeenCalled();
   });

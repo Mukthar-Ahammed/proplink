@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/authz", () => ({ requireRole: vi.fn() }));
 vi.mock("node:fs/promises", () => ({
   mkdir: vi.fn().mockResolvedValue(undefined),
@@ -137,6 +138,6 @@ describe("POST /api/uploads/dev", () => {
     expect(mockMkdir).toHaveBeenCalledTimes(1);
     expect(mockWriteFile).toHaveBeenCalledTimes(1);
     const [writtenPath] = mockWriteFile.mock.calls[0];
-    expect(String(writtenPath).endsWith(VALID_KEY)).toBe(true);
+    expect(String(writtenPath).replaceAll("\\", "/").endsWith(VALID_KEY)).toBe(true);
   });
 });

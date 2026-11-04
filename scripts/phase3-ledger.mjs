@@ -1,0 +1,9 @@
+import fs from "node:fs";
+import path from "node:path";
+export const ledgerPath = ".phase3-fixtures-ledger.json";
+export const ledgerVersion = 2;
+function validate(data) { if (!data || data.version !== ledgerVersion || !Array.isArray(data.resources)) throw new Error("Invalid or corrupt fixture ledger"); for (const r of data.resources) { const identity = r.role && r.email?.startsWith("phase3-test-"); const dependent = r.key?.startsWith("db:") && r.model && r.projectRef; if ((!identity && !dependent) || !["PLANNED","AUTH_CREATED","DATABASE_MAPPED","READY","VERIFIED","FAILED","NEEDS_RECONCILIATION"].includes(r.state)) throw new Error("Invalid fixture ledger entry"); } return data; }
+export function readLedger(file = ledgerPath) { if (!fs.existsSync(file)) return { version: ledgerVersion, resources: [] }; return validate(JSON.parse(fs.readFileSync(file, "utf8"))); }
+export function writeLedger(data, file = ledgerPath) { validate(data); const lock = `${file}.lock`; const fd = fs.openSync(lock, "wx", 0o600); try { const tmp = `${file}.${process.pid}.tmp`; const out = fs.openSync(tmp, "w", 0o600); fs.writeFileSync(out, `${JSON.stringify(data, null, 2)}\n`); fs.fsyncSync(out); fs.closeSync(out); fs.renameSync(tmp, file); try { const dir = fs.openSync(path.dirname(path.resolve(file)), "r"); fs.fsyncSync(dir); fs.closeSync(dir); } catch {} } finally { fs.closeSync(fd); fs.unlinkSync(lock); } }
+export function assertDisposable(resource) { if (!resource.email?.startsWith("phase3-test-") || resource.projectRef !== process.env.PROPLINK_STAGING_PROJECT_REF) throw new Error("Non-disposable or wrong-project resource"); }
+export function createMemoryLedger() { const m = new Map(); return { get: async (r) => m.get(r), put: async (e) => m.set(e.role, structuredClone(e)), entries: () => [...m.values()] }; }

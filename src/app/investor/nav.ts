@@ -1,8 +1,23 @@
 import type { PortalNavItem } from "@/components/portal/PortalShell";
+import { InvestorType } from "@/generated/prisma/enums";
 
-/**
- * The investor portal's navigation. Only the dashboard exists today — the
- * syndicate discovery and pledge flows are Sprint 4 (Task 4.2), and listing a
- * link to a route that 404s is worse than not listing it.
- */
+export function getInvestorNav(investorType: InvestorType | null): PortalNavItem[] {
+  const base: PortalNavItem[] = [{ href: "/investor", label: "Dashboard" }];
+
+  if (!investorType) {
+    return [...base, { href: "/investor/kyc", label: "Identity & Verification" }];
+  }
+
+  if (investorType === InvestorType.FLIPPER || investorType === InvestorType.BOTH) {
+    base.push({ href: "/investor/flip", label: "Flipper Workspace" });
+  }
+
+  if (investorType === InvestorType.SYNDICATE || investorType === InvestorType.BOTH) {
+    base.push({ href: "/investor/syndicates", label: "Syndicate Deals" });
+  }
+
+  base.push({ href: "/investor/kyc", label: "Identity & Verification" });
+  return base;
+}
+
 export const INVESTOR_NAV: PortalNavItem[] = [{ href: "/investor", label: "Dashboard" }];

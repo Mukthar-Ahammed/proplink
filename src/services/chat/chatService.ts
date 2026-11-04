@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { Role } from "@/generated/prisma/enums";
 
 /**
  * Buyer↔agent messaging per property (ADR-017, sprint plan Task 5.7).
@@ -28,13 +29,35 @@ export type MessageInput = z.infer<typeof messageSchema>;
 async function agentUserIdFor(propertyId: string) {
   const property = await db.property.findUnique({
     where: { id: propertyId },
-    select: { status: true, agentProfile: { select: { userId: true } } },
+    select: {
+      status: true,
+      listingSource: true,
+      agentProfile: {
+        select: { active: true, userId: true, user: { select: { active: true } } },
+      },
+    },
   });
   if (!property || !["LIVE", "UNDER_OFFER"].includes(property.status)) return null;
-  return property.agentProfile?.userId ?? null;
+  if (property.listingSource === "FLIPPER_RESALE") return null;
+  if (!property.agentProfile?.active || !property.agentProfile.user.active) return null;
+  return property.agentProfile.userId;
 }
 
-export async function sendMessage(fromUserId: string, input: MessageInput) {
+export async function sendMessage(
+  actor: { userId: string; role: Role },
+  input: MessageInput,
+) {
+  if (actor.role !== Role.BUYER) {
+    return { ok: false as const, error: "Forbidden" };
+  }
+  const sender = await db.user.findUnique({
+    where: { id: actor.userId },
+    select: { active: true, role: true },
+  });
+  if (!sender?.active || sender.role !== Role.BUYER) {
+    return { ok: false as const, error: "Forbidden" };
+  }
+  const fromUserId = actor.userId;
   const toUserId = await agentUserIdFor(input.propertyId);
   if (!toUserId) return { ok: false as const, error: "Property not available" };
   if (toUserId === fromUserId) {

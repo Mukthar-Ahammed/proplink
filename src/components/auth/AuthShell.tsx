@@ -39,14 +39,6 @@ export function AuthShell({
           className="pointer-events-none absolute inset-0 -z-20 opacity-75"
           style={{ backgroundImage: PLATE_WASH }}
         />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/uploads/seed/plate-01.jpg"
-          alt=""
-          aria-hidden
-          className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-30 mix-blend-luminosity"
-        />
-
         <Link
           href="/"
           className="text-lg font-bold tracking-tight whitespace-nowrap text-white"

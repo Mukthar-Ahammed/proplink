@@ -23,7 +23,11 @@ export async function POST(
   const { id } = await params;
 
   try {
-    await saveListing({ userId: authz.session.user.id, propertyId: id });
+    await saveListing({
+      userId: authz.session.user.id,
+      role: authz.session.user.role,
+      propertyId: id,
+    });
     return NextResponse.json({ saved: true }, { status: 200 });
   } catch (err) {
     return errorResponse(err);

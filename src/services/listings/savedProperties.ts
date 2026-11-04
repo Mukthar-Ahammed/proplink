@@ -1,4 +1,5 @@
 import { db } from "@/lib/db";
+import { Role } from "@/generated/prisma/enums";
 import { ListingServiceError } from "@/services/listings/errors";
 import { isPubliclyVisibleStatus } from "@/services/listings/listingService";
 
@@ -16,12 +17,27 @@ import { isPubliclyVisibleStatus } from "@/services/listings/listingService";
 export async function saveListing(params: {
   userId: string;
   propertyId: string;
+  role: Role;
 }): Promise<void> {
+  if (params.role !== Role.BUYER && params.role !== Role.INVESTOR) {
+    throw new ListingServiceError("Forbidden", "FORBIDDEN");
+  }
   const property = await db.property.findUnique({
     where: { id: params.propertyId },
-    select: { id: true, status: true },
+    select: {
+      id: true,
+      status: true,
+      agentProfile: {
+        select: { active: true, user: { select: { active: true } } },
+      },
+    },
   });
-  if (!property || !isPubliclyVisibleStatus(property.status)) {
+  if (
+    !property ||
+    !isPubliclyVisibleStatus(property.status) ||
+    !property.agentProfile?.active ||
+    !property.agentProfile.user.active
+  ) {
     throw new ListingServiceError("Listing not found", "NOT_FOUND");
   }
 

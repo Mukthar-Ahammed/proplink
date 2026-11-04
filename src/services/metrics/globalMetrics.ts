@@ -14,7 +14,10 @@ export interface GlobalMetrics {
 async function compute(): Promise<GlobalMetrics> {
   const [inventory, completedDeals, fees, referrals] = await Promise.all([
     db.property.aggregate({
-      where: { status: "LIVE" },
+      where: {
+        status: "LIVE",
+        agentProfile: { is: { active: true, user: { active: true } } },
+      },
       _sum: { askingPriceGBP: true },
     }),
     db.syndicateProject.count({ where: { status: "COMPLETED" } }),
@@ -61,9 +64,18 @@ export interface LandingStats {
 
 async function computeLandingStats(): Promise<LandingStats> {
   const [liveListings, roi] = await Promise.all([
-    db.property.count({ where: { status: "LIVE" } }),
+    db.property.count({
+      where: {
+        status: "LIVE",
+        agentProfile: { is: { active: true, user: { active: true } } },
+      },
+    }),
     db.property.aggregate({
-      where: { status: "LIVE", targetRoiPct: { not: null } },
+      where: {
+        status: "LIVE",
+        targetRoiPct: { not: null },
+        agentProfile: { is: { active: true, user: { active: true } } },
+      },
       _avg: { targetRoiPct: true },
     }),
   ]);

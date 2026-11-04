@@ -81,7 +81,7 @@ describe("POST /api/uploads/presign", () => {
     expect(res.status).toBe(200);
     const json = await res.json();
     expect(json.publicUrl).toBe("/uploads/dev/images/abc.jpg");
-    expect(mockRequireRole).toHaveBeenCalledWith("AGENT", "ADMIN");
+    expect(mockRequireRole).toHaveBeenCalledWith("AGENT");
     expect(mockCreatePresignedUpload).toHaveBeenCalledWith(validBody);
   });
 });

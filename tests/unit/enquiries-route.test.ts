@@ -44,13 +44,13 @@ describe("POST /api/enquiries", () => {
     expect(mockCreateEnquiry).not.toHaveBeenCalled();
   });
 
-  it("requires only a session — no role restriction (any authenticated user may enquire)", async () => {
+  it("requires BUYER role for enquiry creation", async () => {
     mockRequireRole.mockResolvedValue(buyerSession);
     mockCreateEnquiry.mockResolvedValue({ id: "enquiry-1" } as never);
 
     await POST(request(validBody));
 
-    expect(mockRequireRole).toHaveBeenCalledWith();
+    expect(mockRequireRole).toHaveBeenCalledWith("BUYER");
   });
 
   it("400s for a missing message without calling the service", async () => {
@@ -88,6 +88,7 @@ describe("POST /api/enquiries", () => {
     expect(json.id).toBe("enquiry-1");
     expect(mockCreateEnquiry).toHaveBeenCalledWith({
       userId: "buyer-1",
+      role: "BUYER",
       propertyId: "property-1",
       message: validBody.message,
       contactPhone: undefined,

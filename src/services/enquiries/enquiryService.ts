@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import type { Enquiry } from "@/generated/prisma/client";
-import { EnquiryStatus } from "@/generated/prisma/enums";
+import { EnquiryStatus, Role } from "@/generated/prisma/enums";
 import { isPubliclyVisibleStatus } from "@/services/listings/listingService";
 import { EnquiryServiceError } from "@/services/enquiries/errors";
 import { sendNewEnquiryEmail } from "@/services/email/mailer";
@@ -27,6 +27,13 @@ async function findEnquirableProperty(propertyId: string) {
   if (!property || !isPubliclyVisibleStatus(property.status)) {
     throw new EnquiryServiceError("Listing not found", "NOT_FOUND");
   }
+  if (property.listingSource === "FLIPPER_RESALE" || !property.agentProfile) {
+    throw new EnquiryServiceError("Direct buyer enquiries for Flipper resale listings are not currently supported.", "FORBIDDEN");
+  }
+  const agentProfile = property.agentProfile;
+  if (!agentProfile.active || !agentProfile.user.active) {
+    throw new EnquiryServiceError("Listing not found", "NOT_FOUND");
+  }
   return property;
 }
 
@@ -45,14 +52,23 @@ async function findEnquirableProperty(propertyId: string) {
  */
 export async function createEnquiry(params: {
   userId: string;
+  role: Role;
   propertyId: string;
   message: CreateEnquiryInput["message"];
   contactPhone?: CreateEnquiryInput["contactPhone"];
 }): Promise<Enquiry> {
+  if (params.role !== Role.BUYER) {
+    throw new EnquiryServiceError("Forbidden", "FORBIDDEN");
+  }
+
   const property = await findEnquirableProperty(params.propertyId);
+  const agentProfile = property.agentProfile;
+  if (!agentProfile) {
+    throw new EnquiryServiceError("Listing not found", "NOT_FOUND");
+  }
 
   const fromUser = await db.user.findUnique({ where: { id: params.userId } });
-  if (!fromUser) {
+  if (!fromUser?.active || fromUser.role !== Role.BUYER) {
     throw new EnquiryServiceError("Enquiring user not found", "NOT_FOUND");
   }
 
@@ -73,7 +89,7 @@ export async function createEnquiry(params: {
   // approve/reject notifications: a mailer outage must not turn an
   // already-committed enquiry into a 500.
   sendNewEnquiryEmail({
-    to: property.agentProfile.user.email,
+    to: agentProfile.user.email,
     listingTitle: property.title,
     fromName: fromUser.name,
     fromEmail: fromUser.email,
@@ -111,9 +127,15 @@ export async function listEnquiriesForAgentProfile(params: {
 }) {
   const profile = await db.agentProfile.findUnique({
     where: { id: params.agentProfileId },
+    include: { user: { select: { active: true } } },
   });
   // "Not found" and "not yours" are the same answer, so neither leaks.
-  if (!profile || profile.userId !== params.agentUserId) {
+  if (
+    !profile ||
+    profile.userId !== params.agentUserId ||
+    !profile.active ||
+    !profile.user.active
+  ) {
     throw new EnquiryServiceError(
       "Agent profile not found, or not owned by this user",
       "FORBIDDEN",
@@ -152,12 +174,23 @@ export async function updateEnquiryStatus(params: {
 
   const enquiry = await db.enquiry.findUnique({
     where: { id: params.enquiryId },
-    include: { property: { include: { agentProfile: true } } },
+    include: {
+      property: {
+        include: {
+          agentProfile: { include: { user: { select: { active: true } } } },
+        },
+      },
+    },
   });
   if (!enquiry) {
     throw new EnquiryServiceError("Enquiry not found", "NOT_FOUND");
   }
-  if (enquiry.property.agentProfile.userId !== params.agentUserId) {
+  if (
+    !enquiry.property.agentProfile ||
+    enquiry.property.agentProfile.userId !== params.agentUserId ||
+    !enquiry.property.agentProfile.active ||
+    !enquiry.property.agentProfile.user.active
+  ) {
     throw new EnquiryServiceError("This lead belongs to another agency", "FORBIDDEN");
   }
 

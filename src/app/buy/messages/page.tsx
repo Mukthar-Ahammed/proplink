@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { listThreads } from "@/services/chat/chatService";
 import { PortalEmpty } from "@/components/portal/PortalShell";
 
@@ -14,10 +13,7 @@ const DATE = new Intl.DateTimeFormat("en-GB", {
 });
 
 export default async function MessagesPage() {
-  const session = await auth();
-  const user = session?.user;
-  if (!user) redirect("/login");
-  if (!["BUYER", "ADMIN"].includes(user.role)) redirect("/403");
+  const { user } = await requirePageRole("BUYER");
 
   const threads = await listThreads(user.id);
 

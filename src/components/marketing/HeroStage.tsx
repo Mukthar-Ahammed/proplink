@@ -1,8 +1,10 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { RenderObject } from "@/components/marketing/RenderObject";
 import { heroProgress, orbitTransform } from "@/lib/scrollOrbit";
+import heroImage from "@/assets/heroimage.jpeg";
 
 /**
  * The hero: a full-bleed band of `brand` petrol carrying one floating object,
@@ -121,45 +123,77 @@ export function HeroStage({ children }: { children: React.ReactNode }) {
       ref={heroRef}
       data-testid="hero-stage"
       data-entered={entered ? "true" : "false"}
-      className="group/hero bg-brand relative isolate flex min-h-[100svh] flex-col overflow-hidden"
+      className="group/hero relative isolate flex flex-col overflow-visible bg-[#0e4a55]"
     >
-      {/* A single soft bloom above the object, so the flat band has a light
-          source rather than reading as a colour swatch. */}
+      {/* Ambient radial bloom overlay */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-20"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-full"
         style={{
           backgroundImage:
-            "radial-gradient(60rem 40rem at 68% 18%, color-mix(in oklab, var(--color-pale) 16%, transparent), transparent 70%)",
+            "radial-gradient(70rem 36rem at 50% 0%, rgba(255, 255, 255, 0.12), transparent 70%)",
         }}
       />
 
-      {/* The object, on the orbit. Sized against the band rather than the
-          content column so it stays the hero's subject at every width. */}
+      {children}
+
+      {/* Panoramic photographic banner matching reference image composition */}
       <div
-        aria-hidden
-        className="pointer-events-none absolute inset-y-0 right-0 -z-10 flex w-full items-center justify-center opacity-0 transition-opacity duration-[1200ms] ease-out group-data-[entered=true]/hero:opacity-100 lg:w-[52%] lg:justify-start"
+        aria-hidden={false}
+        className="relative mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8"
       >
-        <div className="[perspective:1400px]">
+        <div
+          className="
+            relative overflow-hidden
+            rounded-[24px] sm:rounded-[32px] lg:rounded-[36px]
+            aspect-[21/9] sm:aspect-[24/9] min-h-[260px] max-h-[480px]
+            shadow-2xl border border-primary/10
+            opacity-0 transition-opacity duration-[1000ms] ease-out
+            group-data-[entered=true]/hero:opacity-100
+            motion-reduce:opacity-100 motion-reduce:transition-none
+          "
+        >
+          <Image
+            src={heroImage}
+            alt="A scaffolded Georgian terrace mid-restoration in London fog"
+            fill
+            priority
+            sizes="(min-width: 1280px) 1200px, (min-width: 1024px) calc(100vw - 80px), calc(100vw - 32px)"
+            placeholder="blur"
+            className="object-cover object-[28%_30%]"
+          />
+
+          {/* Soft vignette scrim */}
           <div
-            ref={planeRef}
-            data-testid="hero-plane"
-            data-orbit={reduced ? "static" : "live"}
-            className="will-change-transform [transform-origin:50%_50%]"
-            // Server-rendered at the start of the track, which is the correct
-            // frame for a page opened at the top — so there is no untransformed
-            // flash before the effect runs.
-            style={{ transform: orbitTransform(0) }}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-primary/30 via-transparent to-transparent"
+          />
+
+          {/* Orbit object marker */}
+          <div
+            className="pointer-events-none absolute right-4 bottom-4
+              opacity-0 transition-opacity duration-[1200ms] ease-out
+              group-data-[entered=true]/hero:opacity-100
+              motion-reduce:opacity-100 motion-reduce:transition-none
+              sm:right-8 sm:bottom-6 lg:right-10"
           >
-            <RenderObject
-              variant="gable"
-              className="h-[22rem] w-[22rem] sm:h-[26rem] sm:w-[26rem] lg:h-[34rem] lg:w-[34rem]"
-            />
+            <div className="[perspective:1400px]">
+              <div
+                ref={planeRef}
+                data-testid="hero-plane"
+                data-orbit={reduced ? "static" : "live"}
+                className="will-change-transform [transform-origin:50%_50%]"
+                style={{ transform: orbitTransform(0) }}
+              >
+                <RenderObject
+                  variant="gable"
+                  className="h-24 w-24 sm:h-32 sm:w-32 lg:h-36 lg:w-36 opacity-75 drop-shadow-md"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
-
-      {children}
     </section>
   );
 }

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { listListingsForAgentUser } from "@/services/listings/listingService";
 import { formatPenceGBP } from "@/services/metrics/globalMetrics";
 import { Badge } from "@/components/ui/badge";
@@ -21,8 +21,8 @@ const STATUS_TONE: Record<
 };
 
 export default async function AgentListingsPage() {
-  const session = await auth();
-  const listings = session?.user ? await listListingsForAgentUser(session.user.id) : [];
+  const session = await requirePageRole("AGENT");
+  const listings = await listListingsForAgentUser(session.user.id);
 
   return (
     <div className="space-y-4">

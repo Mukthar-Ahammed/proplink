@@ -11,7 +11,8 @@ import { saveDevUpload } from "@/services/storage/devUpload";
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const authz = await requireRole(Role.AGENT, Role.ADMIN);
+  // AGENT for listing images; INVESTOR for KYC document uploads (mock mode only).
+  const authz = await requireRole(Role.AGENT, Role.INVESTOR);
   if (!authz.ok) return authz.response;
 
   let form: FormData;

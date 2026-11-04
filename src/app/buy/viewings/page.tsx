@@ -1,5 +1,4 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { listBuyerViewings } from "@/services/viewings/viewingService";
 import { PortalEmpty } from "@/components/portal/PortalShell";
 import { ActivityList, type ActivityItem } from "@/components/buy/ActivityList";
@@ -15,10 +14,7 @@ const SLOT = new Intl.DateTimeFormat("en-GB", {
 });
 
 export default async function ViewingsPage() {
-  const session = await auth();
-  const user = session?.user;
-  if (!user) redirect("/login");
-  if (!["BUYER", "ADMIN"].includes(user.role)) redirect("/403");
+  const { user } = await requirePageRole("BUYER");
 
   const viewings = await listBuyerViewings(user.id);
 

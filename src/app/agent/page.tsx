@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { requirePageRole } from "@/lib/authz";
 import { getAgentDashboard } from "@/services/agents/agentDashboard";
 import { PortalEmpty, PortalSection, StatCard } from "@/components/portal/PortalShell";
 
@@ -20,10 +19,7 @@ export default async function AgentHomePage() {
   // The middleware already gated this route on the JWT at the edge; this is the
   // server-side check AGENTS.md requires before reading a user's own data, and
   // it is what narrows `session.user` for the query below.
-  const session = await auth();
-  const user = session?.user;
-  if (!user) redirect("/login");
-  if (!["AGENT", "ADMIN"].includes(user.role)) redirect("/403");
+  const { user } = await requirePageRole("AGENT");
   const data = await getAgentDashboard(user.id);
 
   return (
