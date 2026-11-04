@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { adminLoginAction, type AuthActionResult } from "@/app/(auth)/actions";
 import {
@@ -11,27 +11,45 @@ import {
   AUTH_LABEL,
   AuthShell,
 } from "@/components/auth/AuthShell";
+import { TurnstileWidget } from "@/components/security/TurnstileWidget";
 
 export function AdminLoginForm() {
   const router = useRouter();
   const [form, setForm] = useState({ email: "", password: "" });
   const [result, setResult] = useState<AuthActionResult>({ kind: "idle" });
   const [submitting, setSubmitting] = useState(false);
+  const [retrySeconds, setRetrySeconds] = useState(0);
+  const [turnstileToken, setTurnstileToken] = useState<string>();
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
+
+  useEffect(() => {
+    if (retrySeconds <= 0) return;
+    const timer = window.setInterval(
+      () => setRetrySeconds((seconds) => Math.max(0, seconds - 1)),
+      1000,
+    );
+    return () => window.clearInterval(timer);
+  }, [retrySeconds]);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setResult({ kind: "idle" });
     setSubmitting(true);
     try {
-      const response = await adminLoginAction(form);
+      const response = await adminLoginAction({ ...form, turnstileToken });
       if (response.kind === "success") {
         router.push("/admin");
         router.refresh();
         return;
       }
       setResult(response);
+      if (response.kind === "limited") {
+        setRetrySeconds(response.cooldownSeconds ?? 60);
+      }
     } finally {
       setSubmitting(false);
+      setTurnstileToken(undefined);
+      setTurnstileResetKey((key) => key + 1);
     }
   }
 
@@ -55,7 +73,9 @@ export function AdminLoginForm() {
     >
       <form onSubmit={onSubmit} className="space-y-5">
         <div>
-          <label htmlFor="admin-email" className={AUTH_LABEL}>Admin email</label>
+          <label htmlFor="admin-email" className={AUTH_LABEL}>
+            Admin email
+          </label>
           <input
             id="admin-email"
             type="email"
@@ -67,7 +87,9 @@ export function AdminLoginForm() {
           />
         </div>
         <div>
-          <label htmlFor="admin-password" className={AUTH_LABEL}>Password</label>
+          <label htmlFor="admin-password" className={AUTH_LABEL}>
+            Password
+          </label>
           <input
             id="admin-password"
             type="password"
@@ -80,19 +102,34 @@ export function AdminLoginForm() {
         </div>
 
         {result.message && (
-          <div role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
+          <div
+            role="alert"
+            className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
+          >
             {result.message}
+            {result.kind === "limited" && retrySeconds > 0 ? (
+              <p aria-live="polite">Try again in {retrySeconds} seconds.</p>
+            ) : null}
           </div>
         )}
 
-        <button type="submit" disabled={submitting} className={AUTH_BUTTON}>
+        <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileResetKey} />
+
+        <button
+          type="submit"
+          disabled={submitting || retrySeconds > 0}
+          className={AUTH_BUTTON}
+        >
           {submitting ? "Signing in…" : "Sign in to Admin"}
         </button>
       </form>
 
       <p className="mt-8 text-center text-sm text-muted">
         Not an administrator?{" "}
-        <Link href="/login" className="font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent">
+        <Link
+          href="/login"
+          className="font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
+        >
           Use user sign in
         </Link>
       </p>

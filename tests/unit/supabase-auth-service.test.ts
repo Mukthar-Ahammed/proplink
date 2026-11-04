@@ -17,17 +17,22 @@ beforeAll(() => {
 });
 
 describe("Supabase auth security primitives", () => {
-  it("strips a role field supplied in the signup body", () => {
+  it("normalizes email and rejects a role field supplied in the signup body", () => {
     const parsed = signupSchema.parse({
       email: "Person@Example.com",
       password: "correct horse battery staple",
       name: "Test Person",
       gdprConsent: true,
-      role: "ADMIN",
     });
 
     expect(parsed.email).toBe("person@example.com");
     expect(parsed).not.toHaveProperty("role");
+    expect(
+      signupSchema.safeParse({
+        ...parsed,
+        role: "ADMIN",
+      }).success,
+    ).toBe(false);
   });
 
   it("enforces the configured minimum and maximum password length", () => {

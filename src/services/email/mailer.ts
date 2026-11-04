@@ -1,5 +1,6 @@
-// Mailer interface — Resend when RESEND_API_KEY exists (H1.7), console fallback
-// otherwise (see docs/BLOCKERS.md). Tests always mock this module.
+import "server-only";
+
+import { getServerEnv } from "@/env";
 
 export interface Mail {
   to: string;
@@ -12,7 +13,8 @@ export interface Mailer {
   send(mail: Mail): Promise<void>;
 }
 
-const FROM = process.env.EMAIL_FROM ?? "PropLink UK <onboarding@resend.dev>";
+const env = getServerEnv();
+const FROM = env.EMAIL_FROM ?? "PropLink UK <onboarding@resend.dev>";
 
 class ResendMailer implements Mailer {
   constructor(private apiKey: string) {}
@@ -33,24 +35,37 @@ class ResendMailer implements Mailer {
       }),
     });
     if (!res.ok) {
-      throw new Error(`Resend API error ${res.status}: ${await res.text()}`);
+      throw new Error(`Resend API error ${res.status}`);
     }
   }
 }
 
-class ConsoleMailer implements Mailer {
+class MockMailer implements Mailer {
   async send(mail: Mail): Promise<void> {
-    console.log(
-      `\n📧 [ConsoleMailer] To: ${mail.to}\n   Subject: ${mail.subject}\n   ${mail.text.replace(/\n/g, "\n   ")}\n`,
+    console.info(
+      JSON.stringify({
+        event: "email.mock_delivery",
+        subjectLength: mail.subject.length,
+        textLength: mail.text.length,
+        hasHtml: Boolean(mail.html),
+      }),
     );
   }
 }
 
-export const mailer: Mailer = process.env.RESEND_API_KEY
-  ? new ResendMailer(process.env.RESEND_API_KEY)
-  : new ConsoleMailer();
+function createMailer(): Mailer {
+  if (env.EMAIL_PROVIDER === "resend") {
+    if (!env.RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is required for the Resend email provider");
+    }
+    return new ResendMailer(env.RESEND_API_KEY);
+  }
+  return new MockMailer();
+}
 
-const BASE_URL = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+export const mailer = createMailer();
+
+const BASE_URL = env.APP_ORIGIN ?? "http://localhost:3000";
 
 export async function sendVerificationEmail(to: string, token: string) {
   const url = `${BASE_URL}/verify-email?token=${token}`;

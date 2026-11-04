@@ -1,6 +1,7 @@
 "use server";
 
 import type { EmailOtpType } from "@supabase/supabase-js";
+import { z } from "zod";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
@@ -16,6 +17,7 @@ import {
   credentialsSchema,
   discardSignupIntent,
   investorSignupSchema,
+  investorTypeEnumSchema,
   loginLimits,
   passwordSchema,
   rateLimitsExceeded,
@@ -30,6 +32,7 @@ import {
 import { completeInvestorTypeOnboarding, investorTypeSchema } from "@/services/syndicates/investorType";
 import { isAuthenticationAudienceAllowed, requireRole } from "@/lib/authz";
 import { auth } from "@/lib/auth";
+import { verifyTurnstileToken } from "@/services/security/turnstile";
 
 export type AuthActionResult = {
   kind: "idle" | "error" | "success" | "unconfirmed" | "limited";
@@ -56,6 +59,20 @@ async function requestIp(): Promise<string> {
   );
 }
 
+async function verifyHuman(
+  token: string | undefined,
+): Promise<AuthActionResult | null> {
+  const result = await verifyTurnstileToken(token, await requestIp());
+  if (result.ok) return null;
+  return {
+    kind: "error",
+    message:
+      result.reason === "unavailable"
+        ? "Security verification is temporarily unavailable. Please try again."
+        : "Please complete the security verification and try again.",
+  };
+}
+
 async function minimumResponseTime(startedAt: number, milliseconds = 500) {
   const remaining = milliseconds - (Date.now() - startedAt);
   if (remaining > 0) await new Promise((resolve) => setTimeout(resolve, remaining));
@@ -64,18 +81,28 @@ async function minimumResponseTime(startedAt: number, milliseconds = 500) {
 async function signupAs(role: AppRole, raw: unknown): Promise<AuthActionResult> {
   const startedAt = Date.now();
   const isInvestor = role === Role.INVESTOR;
-  const schema = isInvestor ? investorSignupSchema : signupSchema;
+  const schema = (isInvestor ? investorSignupSchema : signupSchema)
+    .extend({ turnstileToken: z.string().max(2048).optional() })
+    .strict();
   const parsed = schema.safeParse(raw);
   if (!parsed.success) {
     return { kind: "error", message: parsed.error.issues[0]?.message };
   }
 
-  // `schema` is selected dynamically, so TypeScript cannot correlate the role
-  // branch with the successful union parse. Re-parse only the Investor branch
-  // to preserve the schema-derived type without trusting a cast.
-  const investorType = isInvestor ? investorSignupSchema.parse(raw).investorType : null;
+  const parsedInvestorType =
+    isInvestor && "investorType" in parsed.data
+      ? investorTypeEnumSchema.safeParse(parsed.data.investorType)
+      : null;
+  if (isInvestor && !parsedInvestorType?.success) {
+    return { kind: "error", message: "Select a valid investor type" };
+  }
+  const investorType = parsedInvestorType?.success
+    ? parsedInvestorType.data
+    : null;
 
   const ip = await requestIp();
+  const humanVerification = await verifyHuman(parsed.data.turnstileToken);
+  if (humanVerification) return humanVerification;
   const allowed = await consumeRateLimits(
     "signup",
     signupLimits(parsed.data.email, ip),
@@ -130,10 +157,6 @@ export async function signupInvestor(raw: unknown) {
   return signupAs(Role.INVESTOR, raw);
 }
 
-export async function signupAgent(raw: unknown) {
-  return signupAs(Role.AGENT, raw);
-}
-
 export async function completeInvestorOnboardingAction(rawType: unknown) {
   const authz = await requireRole(Role.INVESTOR);
   if (!authz.ok) return { kind: "error" as const, message: "Forbidden" };
@@ -160,19 +183,31 @@ async function loginForAudience(
   raw: unknown,
   requestedDestination?: string,
 ): Promise<AuthActionResult & { destination?: string }> {
-  const parsed = credentialsSchema.safeParse(raw);
+  const parsed = credentialsSchema
+    .extend({ turnstileToken: z.string().max(2048).optional() })
+    .strict()
+    .safeParse(raw);
   const invalidMessage =
     audience === "ADMIN" ? INVALID_ADMIN_CREDENTIALS : INVALID_CREDENTIALS;
   if (!parsed.success) return { kind: "error", message: invalidMessage };
 
   const ip = await requestIp();
+  const humanVerification = await verifyHuman(parsed.data.turnstileToken);
+  if (humanVerification) return humanVerification;
   const limits = loginLimits(parsed.data.email, ip);
   if (await rateLimitsExceeded("login_failure", limits)) {
-    return { kind: "limited", message: LOGIN_LIMITED };
+    return {
+      kind: "limited",
+      message: LOGIN_LIMITED,
+      cooldownSeconds: 15 * 60,
+    };
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email: parsed.data.email,
+    password: parsed.data.password,
+  });
   if (error || !data.user || !data.session) {
     if (error?.code === "email_not_confirmed") {
       return {
@@ -241,11 +276,18 @@ export async function adminLoginAction(
   return loginForAudience("ADMIN", raw);
 }
 
-export async function resendConfirmationAction(rawEmail: unknown): Promise<AuthActionResult> {
+export async function resendConfirmationAction(
+  rawEmail: unknown,
+  rawTurnstileToken?: unknown,
+): Promise<AuthActionResult> {
   const parsed = credentialsSchema.shape.email.safeParse(rawEmail);
   if (!parsed.success) return { kind: "success", message: GENERIC_RESEND };
 
   const ip = await requestIp();
+  const token = z.string().max(2048).optional().safeParse(rawTurnstileToken);
+  if (!token.success) return { kind: "success", message: GENERIC_RESEND };
+  const humanVerification = await verifyHuman(token.data);
+  if (humanVerification) return humanVerification;
   const allowed = await consumeRateLimits(
     "confirmation_resend",
     resendLimits(parsed.data, ip),
@@ -302,11 +344,16 @@ export async function confirmAuthToken(tokenHash: string, type: string): Promise
 
 export async function requestPasswordResetAction(
   rawEmail: unknown,
+  rawTurnstileToken?: unknown,
 ): Promise<AuthActionResult> {
   const parsed = credentialsSchema.shape.email.safeParse(rawEmail);
   if (!parsed.success) return { kind: "success", message: GENERIC_RESET };
 
   const ip = await requestIp();
+  const token = z.string().max(2048).optional().safeParse(rawTurnstileToken);
+  if (!token.success) return { kind: "success", message: GENERIC_RESET };
+  const humanVerification = await verifyHuman(token.data);
+  if (humanVerification) return humanVerification;
   const allowed = await consumeRateLimits(
     "password_reset",
     resendLimits(parsed.data, ip),

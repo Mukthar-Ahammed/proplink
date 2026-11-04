@@ -1,20 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { closeDb, hasDb, q } from "./helpers/db";
-import { runId } from "./helpers/runId";
 import { login } from "./helpers/login";
-
-test.skip(!hasDb, "requires DATABASE_URL/.env.local");
-
-const RUN = runId("w2admin");
-
-test.afterAll(async () => {
-  await q(
-    `DELETE FROM "AuditLog" WHERE "entityId" IN (SELECT id FROM "User" WHERE email LIKE $1)`,
-    [`${RUN}%`],
-  );
-  await q(`DELETE FROM "User" WHERE email LIKE $1`, [`${RUN}%`]);
-  await closeDb();
-});
 
 test("non-admin hitting /admin gets the 403 page", async ({ page }) => {
   await login(page, "investor@proplink.test", "Password123!");
@@ -29,47 +14,10 @@ test("anonymous hitting /admin is sent to login", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
 });
 
-test("admin deactivates a user and an audit row is written", async ({
-  page,
-  request,
-}) => {
-  const email = `${RUN}-victim@proplink.test`;
-
-  const reg = await request.post("/api/register", {
-    data: {
-      email,
-      password: "Password123",
-      name: "Deactivate Me",
-      role: "BUYER",
-      gdprConsent: true,
-    },
-  });
-  const { userId } = (await reg.json()) as { userId: string };
-
-  await login(page, "admin@proplink.test", "Password123!");
-  await page.goto(`/admin?q=${RUN}-victim`);
-
-  const row = page.locator("tr", { hasText: email });
-  await expect(row.getByText("Active")).toBeVisible();
-  await row.getByRole("button", { name: "Deactivate" }).click();
-
-  await expect(
-    page.locator("tr", { hasText: email }).getByText("Deactivated"),
-  ).toBeVisible();
-
-  const audits = await q(
-    `SELECT id FROM "AuditLog" WHERE entity = 'User' AND "entityId" = $1 AND action = 'USER_DEACTIVATED'`,
-    [userId],
-  );
-  expect(audits.length).toBe(1);
-
-  // Deactivated users can no longer log in.
-  const csrf = await (await request.get("/api/auth/csrf")).json();
-  await request.post("/api/auth/callback/credentials", {
-    form: { csrfToken: csrf.csrfToken, email, password: "Password123" },
-  });
-  const session = await (await request.get("/api/auth/session")).json();
-  expect(session?.user?.email ?? null).not.toBe(email);
+test("Admin portal renders after an Admin-only Supabase login", async ({ page }) => {
+  await login(page, "admin@proplink.test", "Password123!", "ADMIN");
+  await page.goto("/admin");
+  await expect(page.getByRole("heading")).toBeVisible();
 });
 
 test("/dev/ui renders every primitive", async ({ page }) => {

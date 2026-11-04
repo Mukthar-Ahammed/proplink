@@ -5,20 +5,25 @@ import { useState } from "react";
 
 import { requestPasswordResetAction } from "@/app/(auth)/actions";
 import { AUTH_BUTTON, AUTH_INPUT, AUTH_LABEL, AuthShell } from "@/components/auth/AuthShell";
+import { TurnstileWidget } from "@/components/security/TurnstileWidget";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>();
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
     setSubmitting(true);
     try {
-      const result = await requestPasswordResetAction(email);
+      const result = await requestPasswordResetAction(email, turnstileToken);
       setMessage(result.message ?? "If an account exists, a reset email will be sent.");
     } finally {
       setSubmitting(false);
+      setTurnstileToken(undefined);
+      setTurnstileResetKey((key) => key + 1);
     }
   }
 
@@ -43,6 +48,10 @@ export default function ForgotPasswordPage() {
             <label htmlFor="email" className={AUTH_LABEL}>Email</label>
             <input id="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} className={AUTH_INPUT} />
           </div>
+          <TurnstileWidget
+            onToken={setTurnstileToken}
+            resetKey={turnstileResetKey}
+          />
           <button type="submit" disabled={submitting} className={AUTH_BUTTON}>
             {submitting ? "Sending…" : "Send reset link"}
           </button>
@@ -54,4 +63,3 @@ export default function ForgotPasswordPage() {
     </AuthShell>
   );
 }
-

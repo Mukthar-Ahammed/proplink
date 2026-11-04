@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 import {
-  signupAgent,
   signupBuyer,
   signupInvestor,
   type AuthActionResult,
@@ -16,11 +15,11 @@ import {
   AUTH_LABEL,
   AuthShell,
 } from "@/components/auth/AuthShell";
+import { TurnstileWidget } from "@/components/security/TurnstileWidget";
 
 const roles = [
   { value: "BUYER", label: "Buyer", hint: "Search and purchase property" },
   { value: "INVESTOR", label: "Investor", hint: "Flipping & syndicate investments" },
-  { value: "AGENT", label: "Agent", hint: "List distressed stock" },
 ] as const;
 
 const investorSubtypes = [
@@ -47,12 +46,14 @@ export default function RegisterPage() {
     name: "",
     email: "",
     password: "",
-    role: "BUYER" as "BUYER" | "INVESTOR" | "AGENT",
+    role: "BUYER" as "BUYER" | "INVESTOR",
     investorType: "FLIPPER" as "FLIPPER" | "SYNDICATE" | "BOTH",
     gdprConsent: false,
   });
   const [result, setResult] = useState<AuthActionResult>({ kind: "idle" });
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>();
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   async function onSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -67,13 +68,7 @@ export default function RegisterPage() {
           password: form.password,
           investorType: form.investorType,
           gdprConsent: form.gdprConsent,
-        });
-      } else if (form.role === "AGENT") {
-        response = await signupAgent({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          gdprConsent: form.gdprConsent,
+          turnstileToken,
         });
       } else {
         response = await signupBuyer({
@@ -81,6 +76,7 @@ export default function RegisterPage() {
           email: form.email,
           password: form.password,
           gdprConsent: form.gdprConsent,
+          turnstileToken,
         });
       }
 
@@ -91,13 +87,15 @@ export default function RegisterPage() {
       setResult(response);
     } finally {
       setSubmitting(false);
+      setTurnstileToken(undefined);
+      setTurnstileResetKey((key) => key + 1);
     }
   }
 
   return (
     <AuthShell
       title="Create your account"
-      subtitle="Join PropLink UK as a buyer, investor or agent."
+      subtitle="Join PropLink UK as a buyer or investor."
       aside={{
         headline: (
           <>
@@ -108,7 +106,7 @@ export default function RegisterPage() {
         points: [
           "Buyers and investors: search, enquire, book viewings and make offers",
           "Agents: list stock with disclosed defects and build a verified record",
-          "Every listing carries its EPC rating and target refurbishment ROI",
+          "Listings include EPC ratings and disclosed material defects",
         ],
       }}
     >
@@ -163,7 +161,7 @@ export default function RegisterPage() {
 
         <fieldset>
           <legend className={AUTH_LABEL}>I am a…</legend>
-          <div className="mt-2 grid grid-cols-3 gap-2.5">
+          <div className="mt-2 grid grid-cols-2 gap-2.5">
             {roles.map((role) => (
               <label
                 key={role.value}
@@ -245,6 +243,11 @@ export default function RegisterPage() {
             and <Link href="/terms" className="text-accent underline">terms of service</Link>.
           </span>
         </label>
+
+        <TurnstileWidget
+          onToken={setTurnstileToken}
+          resetKey={turnstileResetKey}
+        />
 
         {result.message && (
           <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">

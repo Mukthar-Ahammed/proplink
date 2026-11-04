@@ -4,8 +4,8 @@ import { db } from "@/lib/db";
 import { Role } from "@/generated/prisma/enums";
 import { requestEmailVerification } from "@/services/users/emailVerification";
 
-// Admin accounts are created via seed/admin tooling only — never self-serve.
-export const SELF_SERVE_ROLES = [Role.AGENT, Role.INVESTOR, Role.BUYER] as const;
+// Agent accounts are invite-only; Admin accounts are created via seed tooling.
+export const SELF_SERVE_ROLES = [Role.INVESTOR, Role.BUYER] as const;
 
 export const registrationSchema = z.object({
   email: z.email("Enter a valid email address").transform((v) => v.toLowerCase()),

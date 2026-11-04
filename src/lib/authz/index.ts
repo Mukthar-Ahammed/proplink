@@ -8,11 +8,11 @@ import { auth, type AppSession } from "@/lib/auth";
 import { getInvestorCapabilities } from "@/services/syndicates/investorType";
 
 export type AuthzResult =
-  | { ok: true; session: AppSession }
-  | { ok: false; response: NextResponse };
+  { ok: true; session: AppSession } | { ok: false; response: NextResponse };
 
 export type InvestorCapability = "FLIPPER" | "SYNDICATE";
 export type AuthenticationAudience = "USER" | "ADMIN";
+export type VerificationKind = "KYC";
 
 type RoleSubject = Pick<AppSession["user"], "role">;
 type InvestorSubject = Pick<AppSession["user"], "role" | "investorType">;
@@ -29,10 +29,7 @@ export function isAuthenticationAudienceAllowed(
   return audience === "ADMIN" ? user.role === Role.ADMIN : user.role !== Role.ADMIN;
 }
 
-export function hasAllowedRole(
-  user: RoleSubject,
-  roles: readonly Role[],
-): boolean {
+export function hasAllowedRole(user: RoleSubject, roles: readonly Role[]): boolean {
   return roles.length === 0 || roles.includes(user.role);
 }
 
@@ -72,16 +69,51 @@ function forbidden(): AuthzResult {
   };
 }
 
+export class NotImplementedError extends Error {
+  constructor(guard: string) {
+    super(`${guard} authorization is not implemented`);
+    this.name = "NotImplementedError";
+  }
+}
+
+export async function requireUser(): Promise<AuthzResult> {
+  const session = await auth();
+  if (!session?.user) return authenticationRequired();
+  return { ok: true, session };
+}
+
 /**
  * Route-handler authorization. `auth()` has already verified Supabase Auth,
  * active Profile/User state and the compatibility mapping before this role
  * check runs.
  */
 export async function requireRole(...roles: Role[]): Promise<AuthzResult> {
-  const session = await auth();
-  if (!session?.user) return authenticationRequired();
-  if (!hasAllowedRole(session.user, roles)) return forbidden();
-  return { ok: true, session };
+  const result = await requireUser();
+  if (!result.ok) return result;
+  if (!hasAllowedRole(result.session.user, roles)) return forbidden();
+  return result;
+}
+
+/** Call only with an owner ID loaded from an authorized server-side query. */
+export async function requireOwnership(ownerUserId: string): Promise<AuthzResult> {
+  const result = await requireUser();
+  if (!result.ok) return result;
+  if (
+    ownerUserId !== result.session.user.id &&
+    ownerUserId !== result.session.user.authUserId
+  ) {
+    return forbidden();
+  }
+  return result;
+}
+
+export async function requireVerified(kind: VerificationKind): Promise<AuthzResult> {
+  const result = await requireUser();
+  if (!result.ok) return result;
+  if (kind === "KYC" && result.session.user.kycStatus !== KycStatus.APPROVED) {
+    return forbidden();
+  }
+  return result;
 }
 
 /** Page-level gate. Layout and Proxy checks are deliberately not relied upon. */
@@ -116,8 +148,17 @@ export async function requireInvestorFinancialEligibility(
 
 /** Existing generic KYC gate, retained for compatibility and made non-leaky. */
 export async function requireKyc(): Promise<AuthzResult> {
-  const session = await auth();
-  if (!session?.user) return authenticationRequired();
-  if (session.user.kycStatus !== KycStatus.APPROVED) return forbidden();
-  return { ok: true, session };
+  return requireVerified("KYC");
+}
+
+export async function requireSubscription(): Promise<never> {
+  throw new NotImplementedError("Subscription");
+}
+
+export async function requireChatAuthorization(): Promise<never> {
+  throw new NotImplementedError("Chat");
+}
+
+export async function requireProjectAccess(): Promise<never> {
+  throw new NotImplementedError("Project");
 }
