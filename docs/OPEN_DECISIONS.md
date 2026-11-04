@@ -1,0 +1,25 @@
+# Open product and compliance decisions
+
+These items are unresolved in the Technical Requirements Document or
+Clarification Answers. Implementations use the stated safe default; do not
+silently convert these assumptions into permanent policy. Record the owner's
+decision and legal review before enabling affected flows.
+
+| ID    | Decision needed                                                                             | Safe default until decided                                                                                                             | Affected work                   |
+| ----- | ------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| OD-01 | Subscription prices, billing cadence, lapse/grace behavior and entitlements                 | No production billing or entitlement assumption                                                                                        | Agent and Investor access       |
+| OD-02 | Treatment and migration of existing Agent accounts under invite-only onboarding             | No new public Agent signup; do not deactivate or rewrite existing accounts without an approved plan                                    | Auth, invitation workflow       |
+| OD-03 | Listing withdrawal and access after mandate termination                                     | No new access beyond the current server-authorized listing state; preserve audit history                                               | Landlord/Agent pipeline         |
+| OD-04 | Permitted document categories, retention and KYC evidence details                           | Keep uploads disabled until quarantine, malware scanning, private storage, access checks and retention rules are implemented           | KYC, project documents          |
+| OD-05 | Whether co-investment is legally permitted and the final Lead/Co-Investor workflow          | EOI only, no investment money, no public projected returns; `FINANCIAL_PROMOTIONS_REVIEWED=false`                                      | Syndication and ROI             |
+| OD-06 | Loss allocation, cancellation and treatment of external fund-status updates                 | The app does not custody or move funds; Solicitor/Admin updates are not payment instructions                                           | Solicitor and project workflows |
+| OD-07 | ROI formula, assumptions and whether any return metric may be shown                         | Hide public ROI and ROI-based filters until written legal review; do not label agent estimates as verified                             | Marketplace and investor tools  |
+| OD-08 | Listing review eligibility, moderation criteria and privacy boundaries                      | Landlord-supplied listings stay private until required Admin and Agent review                                                          | Marketplace publication         |
+| OD-09 | Admin permission tiers and mandatory MFA enforcement                                        | Deny sensitive mutations unless current server-side role/relationship checks pass; production Admin access remains blocked pending MFA | Admin and Solicitor             |
+| OD-10 | Legal review status for promotions, subscriptions and co-investment                         | Q43 does not establish that counsel review occurred; keep financial-promotion and Flipper flags false                                  | Compliance release gate         |
+| OD-11 | Advertiser placement pricing and approved formats                                           | Admin approval, clearly labelled sponsored placements, designated areas only; no ads in search, chat, offers or pledge steps           | Advertising                     |
+| OD-12 | Data-retention schedule and legal-hold behavior across KYC, financial and solicitor records | Minimise collection; do not delete records under legal hold; obtain counsel-approved retention periods before production               | Privacy / GDPR                  |
+
+**Owner action:** resolve decisions with product/legal owners, then update this
+file and the relevant architecture/context/phase documentation in the same
+change. No decision here enables real investment payments.

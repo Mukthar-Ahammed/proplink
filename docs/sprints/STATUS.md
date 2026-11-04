@@ -5,15 +5,18 @@
 > `docs/PropLink_Sprint_Plan_Claude_Code.md`. Per-sprint detail: `SPRINT-NN.md`.
 > Sprint-level progress sheet (status/remarks/comments): `SPRINT-TRACKER.md`.
 
-**We are here → Sprint 3 (Search, Map & Commute). Tasks 3.1 and 3.2 done, the
-Week 5 checkpoint passed 2026-08-07.** Sprint 2 completed and DoD-passed the
-same day — full criteria table in `SPRINT-02.md`. Suite now at **466 unit +
-integration tests and 43 Playwright tests green**; Lighthouse on `/marketplace`
-at SEO 100 / accessibility 100 / best practices 100. ⚠️ **Week 6 is blocked:**
-Tasks 3.3 and 3.4 need H3.1 (Google Maps browser key + Places/Routes APIs +
-quotas), the only provider in this build the plan says is required even locally
-— Google Maps JS will not render without a real key. Task 3.5 (saved searches &
-alerts) is not blocked and can be brought forward.
+**Current focus → Phase 0 — Stabilise, Security Foundation and Shared
+Infrastructure**, on `phase-0-stabilise`. Its exit gate is not yet passed;
+Phase 1 has not started. No commit, migration, staging inspection, or deployment
+has occurred.
+
+The original sprint baseline remains Sprint 3: Tasks 3.1 and 3.2 were completed
+at the Week 5 checkpoint on 2026-08-07; Sprint 2 was DoD-passed the same day.
+The **466 unit/integration tests, 43 Playwright tests, and Lighthouse scores**
+below are historical results from that checkpoint, not a current full-suite
+claim. Sprint 3 Tasks 3.3 and 3.4 still need H3.1 (Google Maps browser key +
+Places/Routes APIs + quotas); Task 3.5 (saved searches and alerts) remains
+outstanding.
 
 Landing page `/` redesigned 2026-08-25 (unplanned, requested directly). Two
 passes: the global metrics strip moved into the hero with zero-valued metrics

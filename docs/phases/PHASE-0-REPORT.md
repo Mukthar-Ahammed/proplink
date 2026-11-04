@@ -1,0 +1,791 @@
+# Phase 0 — Stabilise, Security Foundation and Shared Infrastructure
+
+| Status                                                                       | Snapshot   | Branch                                   | Staging dashboard credentials |
+| ---------------------------------------------------------------------------- | ---------- | ---------------------------------------- | ----------------------------- |
+| Exit gate **NOT PASSED**                                                     | 2026-11-04 | `phase-0-stabilise` (based on `e3d9f39`) | Not available                 |
+| **Implementation commits:** Six feature groups committed locally; see the    |
+| commit record below. The final documentation group includes this report.     |
+| **Migrations:** Applied only to the owner-confirmed disposable local test DB |
+
+## Summary
+
+Phase 0 security and shared-infrastructure changes were implemented after
+approval of [the inventory](./PHASE-0-INVENTORY.md), and six feature groups
+have been committed on `phase-0-stabilise`. No staging or production data was
+touched, nothing was deployed, and Phase 1 has not started. After owner
+confirmation, migrations and seed data were applied only to a disposable
+Docker database bound to `127.0.0.1`, named
+`proplink_test`, with ephemeral storage.
+
+The application now uses Supabase Auth as its only runtime authentication
+system. Focused Supabase auth and authorization tests pass, and the unused
+Auth.js packages and type augmentation have been removed. The global proxy
+applies request security controls and route-aware rate limits; public ROI and
+Flipper flows remain disabled by default. Audit-log immutability and Agent
+invite-only migrations are additive and include rollback SQL; they were applied
+only to the disposable local test database and remain unapplied on staging and
+production.
+
+The Phase 3 fixture TypeScript errors are fixed; repository-wide lint is clean;
+and the production build passes with process-only, nonfunctional provider
+placeholders. All 1,000 tests pass against the disposable local database. The
+original Gitleaks baseline found 35 findings; its documentation false positives
+are now covered by the narrowly scoped allowlist described below.
+Staging security evidence and hands-on authentication testing remain pending,
+so this report does not imply staging or production readiness.
+
+### Commit record
+
+| Group                       | Commit    | Message                                                                |
+| --------------------------- | --------- | ---------------------------------------------------------------------- |
+| Security baseline           | `602386b` | `feat(security): establish security baseline and developer safeguards` |
+| Test database               | `f2a0411` | `test(db): isolate integration tests to disposable local postgres`     |
+| Authentication              | `b3e9b06` | `feat(auth): centralize Supabase authentication and authorization`     |
+| Marketplace and search      | `83e9ce5` | `feat(marketplace): add search and buyer enquiry flows`                |
+| Admin/KYC/Flipper           | `a5a5591` | `feat(admin): add KYC review and Flipper workspaces`                   |
+| Phase 3 fixtures/migrations | `a947cad` | `feat(fixtures): add Phase 3 provisioning and additive migrations`     |
+
+The documentation group is part of the final authorized commit. No commits
+were pushed; the two new migrations remain unapplied outside the disposable
+local test database.
+
+## Delivered
+
+- **Authentication and authorization:** Supabase Auth login, email confirmation,
+  recovery, logout, server-verified roles, audience separation for Admin login,
+  shared guards under `src/lib/authz/`, and explicit `NotImplementedError`
+  stubs for subscription, chat, and project authorization. Auth.js runtime
+  references, dependencies, and type augmentation are removed.
+- **Rate limiting and request security:** Upstash sliding-window support with a
+  local in-memory adapter, global proxy enforcement, route-specific rules,
+  progressive blocks, `429`/`Retry-After` responses, friendly client countdowns,
+  origin/CSRF checks, CSP nonce, security headers, private-page cache/index
+  controls, and request IDs.
+- **Environment and providers:** Zod environment validation, safe feature-flag
+  defaults, mock Turnstile and email behavior, credential setup guides,
+  `docs/EXTERNAL_SERVICES.md`, `scripts/check-env.mjs`, and a client-secret
+  reference check. Production rate limiting fails closed if Upstash is
+  unavailable; uploads remain disabled until private quarantine and scanning
+  are complete.
+- **Compliance and marketplace safety:** Agent self-registration is blocked;
+  public ROI projections and ROI filters are withheld until financial-promotion
+  review; Flipper paths require both configured approvals; syndicate payments
+  remain prohibited.
+- **Audit and developer controls:** additive AuditLog append-only triggers,
+  Gitleaks CI action and fail-closed pre-commit hook, updated CI dependency
+  audit, and a staging audit script that requires an explicit staging project
+  and a read-only transaction.
+- **Dependency security:** removed unused Auth.js packages; upgraded Next.js
+  and its ESLint config to 16.4.5; applied non-breaking dependency updates.
+- **Living documentation:** updated architecture, project status, sprint
+  trackers, blockers, RLS notes, external-service/credential docs, and open
+  decisions.
+
+## Files and migrations
+
+### Database migrations — disposable local DB only
+
+| Migration                                                    | Change                                                             | Rollback                                                    |
+| ------------------------------------------------------------ | ------------------------------------------------------------------ | ----------------------------------------------------------- |
+| `prisma/migrations/20261104000000_phase0_agent_invite_only/` | Adds a `NOT VALID` constraint preventing new Agent signup intents. | Drops only the constraint; no application rows are changed. |
+| `prisma/migrations/20261104010000_phase0_append_only_audit/` | Adds triggers preventing AuditLog row mutation and truncation.     | Drops the two triggers and trigger function.                |
+
+### Main code and test areas
+
+- `src/env.ts`, `src/proxy.ts`, `src/lib/security/`,
+  `src/components/security/`, and `src/services/security/`.
+- `src/lib/authz/index.ts`, `src/app/(auth)/actions.ts`,
+  `src/app/admin/login/AdminLoginForm.tsx`, and `src/services/auth/`.
+- Public search, enquiry and Buyer action routes/components, including
+  ROI-suppression behavior and rate-limit feedback.
+- `tests/unit/rate-limit-coverage.test.ts`,
+  `tests/unit/authz-guards.test.ts`, updated auth/search tests, and auth E2E
+  helpers/specs.
+- `.github/workflows/ci.yml`, `.gitignore`, `package.json`,
+  `package-lock.json`, the secret-check scripts and `.githooks/`.
+
+### Environment keys documented
+
+`AUTH_SECURITY_SECRET`, `APP_ORIGIN`, `RATE_LIMIT_PROVIDER`,
+`UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `EMAIL_PROVIDER`,
+`EMAIL_FROM`, `TURNSTILE_PROVIDER`, `TURNSTILE_ENABLED`,
+`TURNSTILE_SECRET_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`,
+`FINANCIAL_PROMOTIONS_REVIEWED`, `FLIPPER_FLOWS_ENABLED`,
+`UPLOADS_ENABLED`, `STORAGE_PROVIDER`, and malware-scanner configuration.
+`SENTRY_DSN`, and `NEXT_PUBLIC_SENTRY_DSN` are also documented. Only
+placeholders and mock defaults are committed; no credential values were added.
+
+### Services and interfaces
+
+- Route-aware rate limiting: `src/lib/security/rate-limit.ts`.
+- Turnstile verification: `src/services/security/turnstile.ts`.
+- Transactional email adapter and local fallback:
+  `src/services/email/mailer.ts`.
+- Sentry event scrubbing and shared response/error handling:
+  `src/lib/security/`.
+- External provider configuration and credential guides:
+  `docs/EXTERNAL_SERVICES.md` and `docs/credentials/`.
+
+## Validation results
+
+| Check                                                         | Result                                                                                                                                                            |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run test`                                                | **PASS** — 79 files, 1,000 tests against the isolated disposable database (output below).                                                                         |
+| `npm run test -- tests/unit`                                  | **PASS** — 78 files, 971 tests.                                                                                                                                   |
+| `npm run typecheck`                                           | **PASS** — all TypeScript errors resolved.                                                                                                                        |
+| `npm run lint`                                                | **PASS** — 0 errors, 0 warnings across the repository.                                                                                                            |
+| `npm run build`                                               | **PASS** — production build using process-only dummy provider values and a loopback-only database URL; no real providers or database were contacted by the build. |
+| Gitleaks 8.30.1 initial working-tree scan                     | **REVIEWED** — historical scan reported findings; see the follow-up scan and exact-path allowlist below.                                                          |
+| Gitleaks allowlist safety fixture                             | **PASS** — empty examples are allowed; the non-empty test key-shaped value remains flagged.                                                                       |
+| `npm run check:client-secrets`                                | **PASS** — no service-role references or server-secret reads under `src/`.                                                                                        |
+| `git diff --check`                                            | **PASS** — no whitespace errors (Git emitted only line-ending conversion warnings).                                                                               |
+| `npm audit --audit-level=high`                                | **PASS** — previous result: no high/critical findings; 21 moderate advisories.                                                                                    |
+| `npm run check-env -- --phase=0`                              | **BLOCKED** — local configuration lacks the required `AUTH_SECURITY_SECRET` and `APP_ORIGIN`.                                                                     |
+| Fresh Supabase Security Advisor, staging RLS, staging headers | **NOT RUN** — owner dashboard/deployment access is required; steps are below.                                                                                     |
+| Manual sign-up/login/logout/reset/session-expiry flow         | **NOT RUN** — hand-test plan is below; use a dedicated non-production identity.                                                                                   |
+| Disposable local DB migration and seed                        | **PASS** — only the confirmed localhost `proplink_test` database was used.                                                                                        |
+| Staging/production migration, commit, deployment              | **NOT RUN** — none was authorized or performed.                                                                                                                   |
+
+### Actual command output — full test command
+
+The test setup loaded `.env.local`; the selected database was not independently
+verified. The integration tests issue reads only. No database writes were
+performed. Because the target is unknown, no more database-backed commands
+were run.
+
+```text
+> proplink-uk@0.1.0 test
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set "type": "module" in the closest package.json
+Set VITE_CONFIG_NATIVE_IGNORE_WARNING=true to suppress this warning.
+
+ RUN  v4.1.12 D:/ppl/proplink
+
+stdout | tests/integration/search-service.test.ts
+◇ injected env (42) from .env.local // tip: ◈ secrets for agents [www.dotenvx.com]
+
+ ❯ tests/integration/search-service.test.ts (29 tests | 2 failed)
+     × hydrates each card with its first image and its distress tags
+       × centre + radius finds nearby listings and excludes distant ones
+
+ FAIL  tests/integration/search-service.test.ts > PostgresSearchService against the seeded database > hydrates each card with its first image and its distress tags
+AssertionError: expected '/uploads/dev/images/123881fb-9b82-4ad…' to match /^\/uploads\/seed\/plate-\d{2}…/uploads\
+
+- Expected:
+/^\/uploads\/seed\/plate-\d{2}\.jpg$/
+
++ Received:
+"/uploads/dev/images/123881fb-9b82-4ad9-9d72-d23a6b43283f.jpg"
+
+ ❯ tests/integration/search-service.test.ts:48:29
+     46|     expect(items.length).toBeGreaterThan(0);
+     47|     for (const item of items) {
+     48|       expect(item.imageUrl).toMatch(/^\/uploads\/seed\/plate-\d{2}\.jp…
+
+ FAIL  tests/integration/search-service.test.ts > PostgresSearchService against the seeded database > geospatial > centre + radius finds nearby listings and excludes distant ones
+AssertionError: expected 'brixton' to be 'Manchester' // Object.is equality
+
+Expected: "Manchester"
+Received: "brixton"
+
+ ❯ tests/integration/search-service.test.ts:162:56
+    160|
+    161|       expect(near.total).toBeGreaterThan(0);
+    162|       for (const item of near.items) expect(item.city).toBe("Manchester");
+
+ Test Files  1 failed | 77 passed (78)
+      Tests  2 failed | 992 passed (994)
+   Duration  17.26s
+```
+
+### Actual command output — confirmed disposable local database
+
+The owner confirmed the Compose database was healthy. Before schema setup, the
+container was verified as `postgis/postgis:16-3.5`, healthy, and bound only to
+`127.0.0.1:55432`; `current_database()` returned `proplink_test`, with both
+`postgis` and `pg_trgm` installed. A compatibility bootstrap in
+`scripts/docker-init-test-db.sql` provides only the local `auth`/`storage`
+schemas and roles needed by the repository migrations and seed. It is not a
+Supabase service and does not connect to any external provider.
+
+The first local migration attempt stopped at the expected missing `auth`
+schema. A second attempt identified the missing `storage.objects.owner_id`
+compatibility column. Both failed attempts were confined to this disposable
+database; the failed migration records were resolved as rolled back locally,
+the compatibility schema was completed, and all repository migrations then
+applied successfully. The seed then completed on the same local DB:
+
+```text
+21 migrations found in prisma/migrations
+Applying migration `20261007000000_phase3_rls_storage`
+...
+Applying migration `20261104010000_phase0_append_only_audit`
+All migrations have been successfully applied.
+
+Seeded 8 users, 3 agent profiles, 40 listings, 3 case studies, 5 appraisals,
+9 enquiries, 12 saved listings, 216 SAMPLE comparable sales (not Land Registry
+data — ADR-017), 1 viewing, 1 offer, 2 messages.
+The seed command has been executed.
+```
+
+The full suite was run with process-only `DATABASE_URL` and `DIRECT_URL` values
+pointing at `127.0.0.1:55432/proplink_test`; those values were removed from the
+process afterward and were not written to any file:
+
+```text
+> proplink-uk@0.1.0 test
+> vitest run
+
+(!) Your Vite config uses features that are unsupported by `configLoader: 'native'`, which is planned to become the default in a future major version of Vite:
+  - ESM syntax in a file loaded as CommonJS (vitest.config.ts:1:1). Use a `.mjs` extension or set "type": "module" in the closest package.json
+Set VITE_CONFIG_NATIVE_IGNORE_WARNING=true to suppress this warning.
+
+ RUN  v4.1.12 D:/ppl/proplink
+
+ Test Files  79 passed (79)
+      Tests  1000 passed (1000)
+   Start at  18:35:10
+   Duration  14.34s (transform 11.07s, setup 4.53s, import 59.93s, tests 9.99s, environment 36ms)
+
+Exit code: 0
+```
+
+After verification, only the `postgres-test` service container was stopped
+and removed; its database used `tmpfs`, so its seeded data was discarded.
+
+### Actual command output — database-mocked unit suite
+
+```text
+> proplink-uk@0.1.0 test
+> vitest run tests/unit
+
+ RUN  v4.1.12 D:/ppl/proplink
+
+ Test Files  77 passed (77)
+      Tests  965 passed (965)
+   Duration  12.12s
+```
+
+### Actual command output — typecheck and lint
+
+```text
+> proplink-uk@0.1.0 typecheck
+> tsc --noEmit
+```
+
+Exit code: 0.
+
+```text
+> proplink-uk@0.1.0 lint
+> eslint
+```
+
+Exit code: 0; ESLint reported no errors or warnings.
+
+### Actual command output — production build
+
+`npm run build` was run with temporary, nonfunctional provider placeholders and
+`DATABASE_URL`/`DIRECT_URL` pointing only to `127.0.0.1:1`. These values were
+not written to files. This verified compilation without using staging/production
+providers or databases.
+
+```text
+> proplink-uk@0.1.0 build
+> next build
+
+▲ Next.js 16.4.5 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.ts took 44ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 3.5s
+  Running TypeScript ...
+  Finished TypeScript in 8.2s ...
+  Collecting page data using 11 workers ...
+  Generating static pages using 11 workers (0/55) ...
+  Generating static pages using 11 workers (13/55)
+  Generating static pages using 11 workers (27/55)
+  Generating static pages using 11 workers (41/55)
+✓ Generating static pages using 11 workers (55/55) in 882ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /403
+├ ƒ /admin
+├ ƒ /admin-login
+├ ƒ /admin/ads
+├ ƒ /admin/agents
+├ ƒ /admin/agents/[agentId]
+├ ƒ /admin/fees
+├ ƒ /admin/kyc
+├ ƒ /admin/kyc/[submissionId]
+├ ƒ /admin/login
+├ ƒ /admin/moderation
+├ ƒ /admin/moderation/[propertyId]
+├ ƒ /admin/resales
+├ ƒ /admin/resales/[resaleId]
+├ ƒ /admin/users
+├ ƒ /admin/users/[userId]
+├ ƒ /agent
+├ ƒ /agent/leads
+├ ƒ /agent/listings
+├ ƒ /agent/listings/[id]/edit
+├ ƒ /agent/listings/new
+├ ƒ /agent/profile
+├ ƒ /agents/[id]
+├ ƒ /api/admin/kyc
+├ ƒ /api/admin/kyc/[id]
+├ ƒ /api/admin/kyc/[id]/approve
+├ ƒ /api/admin/kyc/[id]/reject
+├ ƒ /api/admin/kyc/documents/[docId]
+├ ƒ /api/admin/kyc/summary
+├ ƒ /api/admin/listings
+├ ƒ /api/admin/listings/[id]
+├ ƒ /api/admin/listings/[id]/approve
+├ ƒ /api/admin/listings/[id]/reject
+├ ƒ /api/admin/listings/summary
+├ ƒ /api/admin/resales
+├ ƒ /api/admin/resales/[id]
+├ ƒ /api/admin/resales/[id]/approve
+├ ƒ /api/admin/resales/[id]/reject
+├ ƒ /api/admin/resales/summary
+├ ƒ /api/agent/flipper-acquisitions/[id]/cancel
+├ ƒ /api/agent/flipper-acquisitions/[id]/confirm
+├ ƒ /api/agent/flipper-offers
+├ ƒ /api/agent/flipper-offers/[id]/accept
+├ ƒ /api/agent/flipper-offers/[id]/reject
+├ ƒ /api/agents/[id]/appraisals
+├ ƒ /api/case-studies
+├ ƒ /api/case-studies/[id]
+├ ƒ /api/chat
+├ ƒ /api/enquiries
+├ ƒ /api/enquiries/[id]
+├ ƒ /api/investor/flip/offers
+├ ƒ /api/investor/flip/offers/[id]/withdraw
+├ ƒ /api/investor/flip/opportunities
+├ ƒ /api/investor/flip/projects
+├ ƒ /api/investor/flip/projects/[id]
+├ ƒ /api/investor/flip/projects/[id]/costs
+├ ƒ /api/investor/flip/projects/[id]/milestones
+├ ƒ /api/investor/flip/resales
+├ ƒ /api/investor/flip/resales/[id]
+├ ƒ /api/investor/flip/resales/[id]/resubmit
+├ ƒ /api/investor/flip/resales/[id]/submit
+├ ƒ /api/investor/flip/workspace
+├ ƒ /api/kyc/documents
+├ ƒ /api/kyc/documents/presign
+├ ƒ /api/kyc/status
+├ ƒ /api/kyc/submit
+├ ƒ /api/listings
+├ ƒ /api/listings/[id]
+├ ƒ /api/listings/[id]/save
+├ ƒ /api/listings/[id]/submit
+├ ƒ /api/listings/[id]/view
+├ ƒ /api/me
+├ ƒ /api/offers
+├ ƒ /api/search
+├ ƒ /api/search/count
+├ ƒ /api/uploads/dev
+├ ƒ /api/uploads/presign
+├ ƒ /api/viewings
+├ ƒ /auth/confirm
+├ ƒ /buy
+├ ƒ /buy/enquiries
+├ ƒ /buy/messages
+├ ƒ /buy/offers
+├ ƒ /buy/saved
+├ ƒ /buy/viewings
+├ ƒ /check-email
+├ ƒ /dev/ui
+├ ƒ /forgot-password
+├ ƒ /investor
+├ ƒ /investor/flip
+├ ƒ /investor/flip/projects/[id]
+├ ƒ /investor/kyc
+├ ƒ /investor/syndicates
+├ ƒ /login
+├ ƒ /marketplace
+├ ƒ /marketplace/[id]
+├ ƒ /portal
+├ ƒ /privacy
+├ ƒ /register
+├ ƒ /reset-password
+└ ƒ /terms
+
+ƒ Proxy (Middleware)
+
+ƒ  (Dynamic)  server-rendered on demand
+```
+
+### Gitleaks — actual result
+
+#### Follow-up disk scan — 2026-11-04
+
+Ran the requested scan with the repository config and redacted JSON output:
+
+```text
+gitleaks dir --redact --config .gitleaks.toml -f json -r gitleaks-dir.json .
+gitleaks 8.30.1
+scanned ~2949522016 bytes (2.95 GB) in 1m5.2s
+leaks found: 38
+exit code: 1
+```
+
+The JSON report was read programmatically for `File`, `RuleID`, and finding
+counts only. Secret-bearing fields were not displayed. Flagged environment
+files were not opened. Each path was classified using both `git ls-files
+--error-unmatch -- <path>` (tracked status) and `git check-ignore -q -- <path>`
+(ignore status):
+
+| Group                    | File                                                                                                 | RuleID               | Findings | Git classification   |
+| ------------------------ | ---------------------------------------------------------------------------------------------------- | -------------------- | -------: | -------------------- |
+| a) Ignored local files   | `.env.local`                                                                                         | `generic-api-key`    |        2 | Not tracked; ignored |
+| a) Ignored local files   | `.env.staging.local`                                                                                 | `generic-api-key`    |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/cache/.previewinfo`                                                                           | `generic-api-key`    |        2 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/cache/.rscinfo`                                                                           | `generic-api-key`    |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/prerender-manifest.json`                                                                  | `generic-api-key`    |        2 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/server/chunks/node_modules_@sentry_conventions_dist_0mfx7rv._.js`                         | `cloudflare-api-key` |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/server/chunks/ssr/[root-of-the-server]__0egawcy._.js`                                     | `generic-api-key`    |        3 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/server/chunks/ssr/[root-of-the-server]__0fct1u7._.js`                                     | `generic-api-key`    |        3 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/server/chunks/ssr/[root-of-the-server]__0o-iwp_._.js`                                     | `generic-api-key`    |        3 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/server/chunks/ssr/[root-of-the-server]__18vsgf4._.js`                                     | `generic-api-key`    |        3 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/server/chunks/ssr/[root-of-the-server]__1-ff5_9._.js`                                     | `generic-api-key`    |        3 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/server/edge/chunks/node_modules_@sentry_conventions_dist_attributes_mjs_0v_070v._.js.map` | `cloudflare-api-key` |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/server/server-reference-manifest.json`                                                    | `generic-api-key`    |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/static/chunks/node_modules_@sentry_conventions_dist_attributes_mjs_020jwf7._.js.map`      | `cloudflare-api-key` |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/dev/static/chunks/node_modules_@sentry_conventions_dist_attributes_mjs_0h46aay._.js.map`      | `cloudflare-api-key` |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/prerender-manifest.json`                                                                      | `generic-api-key`    |        2 | Not tracked; ignored |
+| b) Generated files       | `.next/server/chunks/[root-of-the-server]__05oqb11q40npf._.js`                                       | `generic-api-key`    |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/server/chunks/_0bl8vu4i2x1_b._.js`                                                            | `generic-api-key`    |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/server/chunks/ssr/_12lfwj9ccu4h_._.js`                                                        | `generic-api-key`    |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/server/edge/chunks/_1lwkpjbd_g79k._.js.map`                                                   | `cloudflare-api-key` |        1 | Not tracked; ignored |
+| b) Generated files       | `.next/server/preview-props.json`                                                                    | `generic-api-key`    |        2 | Not tracked; ignored |
+| c) Tracked documentation | `docs/PROPLINK_PHASE_PROMPTS.md`                                                                     | `generic-api-key`    |        1 | Tracked; not ignored |
+| c) Tracked documentation | `docs/PropLink_Sprint_Plan_Claude_Code.md`                                                           | `generic-api-key`    |        1 | Tracked; not ignored |
+
+Group totals: **a)** 2 paths / 3 findings; **b)** 19 paths / 33 findings;
+**c)** 2 paths / 2 findings. No other paths were reported. The previous scan's
+tracked `.phase3-test-ledger.json` finding is absent from this on-disk scan
+because that file is staged for deletion and no longer exists on disk.
+
+The two documentation hits are **false positives on empty environment-variable
+declarations**, not credentials, placeholders, or random IDs. The flagged
+range in `docs/PROPLINK_PHASE_PROMPTS.md` contains token-budget variable names
+with empty values; the range in `docs/PropLink_Sprint_Plan_Claude_Code.md`
+contains empty Upstash and Anthropic variable declarations. The generic rule
+matched the variable names (including `TOKEN`/`API_KEY`), not assigned values.
+No service credential was found, so no rotation is indicated. Keep the
+documented variable names intact; if these repeat, add an exact, documented
+allowlist for the confirmed declaration pattern, never a blanket documentation
+allowlist. The two environment-file hits remain unclassified because those
+files were not opened; review them locally and rotate any genuine credential
+found.
+
+`/gitleaks-dir.json` was added to `.gitignore`; `/gitleaks-report.json` was
+already ignored and is now root-anchored. Both generated report files are
+deleted after recording results below.
+
+#### Staged scan
+
+```text
+gitleaks git --pre-commit --staged --redact -v
+3:52PM INF 0 commits scanned.
+3:52PM INF scanned ~0 bytes (0) in 216ms
+3:52PM INF no leaks found
+exit code: 0
+```
+
+The only staged change at scan time was deletion of
+`.phase3-test-ledger.json`; therefore the staged scan examined zero bytes and
+found no staged secret content. The new `.gitignore` and report edits are
+unstaged and were not part of this scan.
+
+#### Narrow allowlist and isolated integration database — 2026-11-04
+
+- Updated `.gitleaks.toml` to use `[[allowlists]]` consistently and added an
+  exact-path, line-targeted regex for empty environment declarations, with an
+  optional trailing comment. It applies only to
+  `docs/PROPLINK_PHASE_PROMPTS.md`,
+  `docs/PropLink_Sprint_Plan_Claude_Code.md`, and `.env.example`; it does not
+  allowlist whole files or folders.
+- Proved the rule against temporary fixture copies: empty assignments in all
+  three allowed paths were ignored, while the requested non-empty
+  `TEST_API_KEY`-shaped line was still detected as `generic-api-key` on line 3.
+  Exactly one finding was returned. The fixture and JSON report were deleted;
+  no secret fields were printed.
+- Added `assertSafeIntegrationDatabase` to the integration search test. It
+  skips when `DATABASE_URL` is unset and otherwise refuses malformed,
+  non-PostgreSQL, non-localhost, or database names without `test`, before any
+  query. The Prisma client used by this test reads `DATABASE_URL`; it does not
+  select `DIRECT_URL`.
+- Validation after this change: `npm run typecheck` and repository-wide
+  `npm run lint` passed; the focused guard test passed (1 file, 6 tests), and
+  `npm test -- tests/unit` passed (78 files, 971 tests). After owner
+  confirmation, the full suite passed against the disposable database (79
+  files, 1,000 tests); the container was then removed.
+- Runtime refusal was verified by invoking the integration test with a
+  deliberately non-local test URL: Vitest failed before collecting/running
+  tests with “No database connection was attempted.” The test URL was synthetic;
+  no database was contacted.
+- Docker CLI 29.7.2 and Docker Desktop are installed. At the initial check,
+  Desktop was stopped (daemon pipe unavailable); it was subsequently started
+  for the owner-confirmed local database run. `docker compose ... config --quiet`
+  passed without starting a container during the initial check. Added
+  `docker-compose.test.yml` and
+  `scripts/docker-init-test-db.sql`: the database uses `postgis/postgis:16-3.5`,
+  creates PostGIS and `pg_trgm`, binds only to `127.0.0.1:55432`, and stores
+  data in ephemeral `tmpfs`.
+
+To start Docker Desktop and the disposable database in PowerShell, generate a
+fresh password in the current process (it is not written to a file), then run:
+
+```powershell
+Start-Process "$env:LOCALAPPDATA\Programs\DockerDesktop\Docker Desktop.exe"
+docker info
+
+$bytes = New-Object byte[] 32
+$rng = [System.Security.Cryptography.RandomNumberGenerator]::Create()
+$rng.GetBytes($bytes)
+$env:TEST_POSTGRES_PASSWORD = ([BitConverter]::ToString($bytes) -replace '-', '').ToLowerInvariant()
+$env:DATABASE_URL = "postgresql://proplink_test:$($env:TEST_POSTGRES_PASSWORD)@127.0.0.1:55432/proplink_test"
+docker compose -f docker-compose.test.yml up -d --wait
+```
+
+The integration test's connection variable is `DATABASE_URL`, and the
+localhost-only `proplink_test` name satisfies the guard. The container starts
+with extensions but no application schema or seeded catalogue; do not run the
+suite until the disposable test database has been initialized and confirmed.
+After testing, stop and remove only this Compose project and clear the session
+variables:
+
+```powershell
+docker compose -f docker-compose.test.yml down --volumes --remove-orphans
+Remove-Item Env:TEST_POSTGRES_PASSWORD, Env:DATABASE_URL -ErrorAction SilentlyContinue
+```
+
+#### Earlier scan record
+
+Gitleaks version and scan output (redacted), exit code 1:
+
+```text
+gitleaks version
+8.30.1
+
+gitleaks dir . --redact --no-banner
+2:18PM INF scanned ~2940094156 bytes (2.94 GB) in 1m24.8s
+2:18PM WRN leaks found: 35
+
+gitleaks dir . --redact --no-banner --report-format json --report-path "$env:TEMP\proplink-gitleaks.json"
+2:19PM INF scanned ~2940094156 bytes (2.94 GB) in 1m16.9s
+2:19PM WRN leaks found: 35
+```
+
+The report contains 35 findings in 22 unique paths. Findings include rules
+`generic-api-key` and `cloudflare-api-key`. **No secret values are included
+here.** Paths reported (line numbers omitted):
+
+- `.env.local` and `.env.staging.local` (both ignored by Git; present locally)
+- `.phase3-test-ledger.json` (**tracked in Git despite the ignore pattern**)
+- `docs/PropLink_Sprint_Plan_Claude_Code.md`
+- `docs/PROPLINK_PHASE_PROMPTS.md`
+- `.next/cache/.previewinfo`
+- `.next/dev/cache/.rscinfo`
+- `.next/dev/prerender-manifest.json`
+- `.next/dev/server-reference-manifest.json`
+- `.next/dev/server/chunks/node_modules_@sentry_conventions_dist_0mfx7rv._.js`
+- `.next/dev/server/chunks/ssr/[root-of-the-server]__0o-iwp1._.js`
+- `.next/dev/server/chunks/ssr/[root-of-the-server]__0fct1u7._.js`
+- `.next/dev/server/chunks/ssr/[root-of-the-server]__0egawcy._.js`
+- `.next/dev/server/chunks/ssr/[root-of-the-server]__18vsgf4._.js`
+- `.next/dev/server/chunks/ssr/[root-of-the-server]__1-ff5_9._.js`
+- `.next/dev/server/edge/chunks/node_modules_@sentry_conventions_dist_attributes_mjs_0v_070v._.js.map`
+- `.next/dev/static/chunks/node_modules_@sentry_conventions_dist_attributes_mjs_0h46aay._.js`
+- `.next/dev/static/chunks/node_modules_@sentry_conventions_dist_attributes_mjs_020jwf7._.js`
+- `.next/server/chunks/_0bl8vu4i2x1_b._.js`
+- `.next/server/chunks/ssr/_12lfwj9ccu4h_._.js`
+- `.next/server/chunks/[root-of-the-server]__05oqb11q40npf._.js`
+- `.next/server/edge/chunks/_1lwkpjbd_g79k._.js.map`
+
+The generated `.next` findings are not tracked. The two environment files are
+ignored. The prior broad scan's ledger match was reviewed as synthetic
+test-user IDs; the exact generated-ledger path is allowlisted. The two
+documentation matches were confirmed empty environment declarations, not
+credentials, and are now covered by a narrowly scoped assignment-line
+allowlist for the named files. The synthetic non-empty key probe remains
+detectable. Staged Gitleaks scans for the implementation commits reported no
+leaks. The ignored local environment files were not opened, so their contents
+are not classified here. The report did not print any secret values.
+
+## Staging-only checks — owner access required
+
+No Supabase dashboard, staging database, or deployed staging response was
+accessed by these checks. Do not run these commands against production.
+
+### 1. Supabase Security Advisor
+
+1. Sign in to the Supabase Dashboard and select the explicitly approved staging
+   project. Confirm its project reference matches
+   `PROPLINK_STAGING_PROJECT_REF` from your local `.env.staging.local`.
+2. Open **Security Advisor** (Dashboard → **Advisors** → **Security Advisor**)
+   and run a fresh scan.
+3. Record the project reference, scan time, severity, finding name, affected
+   schema/table, and remediation/accepted-exception status. The previously
+   documented PostGIS/`pg_trgm` staging exception passed its 2026-10-21 review
+   date; keep the Data API disabled until the new review is recorded.
+4. Paste the findings summary here. Do not paste credentials, tokens, or user
+   records.
+
+### 2. Staging RLS catalog and role checks
+
+**Read-only catalog audit**
+
+1. On your machine, confirm `.env.staging.local` contains the staging-only
+   `DIRECT_URL` and `PROPLINK_STAGING_PROJECT_REF`. The URL must use the matching
+   `postgres.<project-ref>` database username and `/postgres` database path.
+   Never paste the URL.
+2. In a clean PowerShell session from the repository root, make sure inherited
+   `DIRECT_URL` and `PROPLINK_STAGING_PROJECT_REF` variables are unset so
+   dotenv loads the values from `.env.staging.local`. Set the explicit
+   confirmation and run the catalog audit:
+
+   ```powershell
+   Remove-Item Env:DIRECT_URL -ErrorAction SilentlyContinue
+   Remove-Item Env:PROPLINK_STAGING_PROJECT_REF -ErrorAction SilentlyContinue
+   $env:CONFIRM_STAGING_AUDIT = "yes"
+   node scripts/audit-phase3-db.mjs
+   ```
+
+   The script checks the project binding and starts a `READ ONLY` transaction.
+   It reports RLS flags/policies, grants, functions, triggers, extensions, and
+   storage protections. Stop if the configured project reference or database
+   role is unexpected.
+
+3. Paste the result sections, redacting connection details and any account
+   information. Do not run the migration/deployment scripts.
+
+**Runtime role isolation (requires existing disposable accounts)**
+
+1. Confirm `.env.staging.local` has the staging URL, publishable key, project
+   reference, and `PHASE3_FIXTURES_JSON` for dedicated `phase3-test-*` users in
+   the `AGENT`, `INVESTOR`, `BUYER`, and `ADMIN` roles. Do not provision users
+   or resources for this check; that would write staging data and requires
+   separate approval.
+2. Run:
+
+   ```powershell
+   Remove-Item Env:PROPLINK_STAGING_PROJECT_REF -ErrorAction SilentlyContinue
+   Remove-Item Env:NEXT_PUBLIC_SUPABASE_URL -ErrorAction SilentlyContinue
+   Remove-Item Env:NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY -ErrorAction SilentlyContinue
+   Remove-Item Env:PHASE3_FIXTURES_JSON -ErrorAction SilentlyContinue
+   node scripts/test-phase3-rls.mjs
+   ```
+
+   The harness signs in those test users and tests profile ownership and
+   protected columns. Policy areas without supplied, existing disposable
+   records are reported as `BLOCKED`, not as a pass. Paste the JSON results
+   without passwords, access tokens, or personal account data.
+
+### 3. Security headers on staging
+
+1. If an already-deployed staging site exists, open it over HTTPS in a private
+   browser window. Sign in using a dedicated Buyer test account and visit
+   `/buy`; do not deploy anything for this check.
+2. Open browser Developer Tools → **Network**, reload `/buy`, select its
+   document request, and inspect **Response Headers**.
+3. Confirm `Strict-Transport-Security`,
+   `Content-Security-Policy`, `X-Content-Type-Options: nosniff`,
+   `Referrer-Policy`, `Permissions-Policy`,
+   `Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`,
+   `X-Frame-Options: DENY`, `Cache-Control: private, no-store...`, and
+   `X-Robots-Tag: noindex, nofollow`. In CSP, verify `frame-ancestors 'none'`,
+   nonce-based scripts, and no `unsafe-inline` in `script-src`.
+4. Paste the response status and those header values, omitting `Set-Cookie`,
+   cookies, authorization headers, and the CSP nonce. If no staging deployment
+   exists, report that; do not deploy one for this task.
+
+## Manual authentication test plan
+
+Use an existing, dedicated non-production test inbox and account. Do not use
+production users. Record pass/fail and the observed destination/message for
+each step; never share passwords, confirmation links, recovery links, cookies,
+or tokens.
+
+1. **Buyer sign-up:** Visit `/register`, create a Buyer with valid test details,
+   consent, and complete Turnstile. Expect the generic success response and
+   `/check-email?purpose=signup` when confirmation is required.
+2. **Email verification:** Open the confirmation email and visit its link.
+   Confirm the explicit **Confirm email** action. Expect `/login?confirmed=1`;
+   reusing the same link should show a reused/expired error and must not create
+   another session.
+3. **Investor sign-up:** Repeat with Investor and a selected investor subtype.
+   Verify email and ensure the account enters the Investor portal; do not create
+   or fund a syndicate pledge.
+4. **Login:** Sign in at `/login` with the verified test account. Expect the
+   authorized portal. Try a wrong password and confirm the response is generic.
+   Attempt an unverified account and confirm it is rejected with a resend option.
+   An Admin test identity must use `/admin/login`; it must not enter via the
+   public login audience.
+5. **Logout:** Use the portal's sign-out action. Confirm the session is cleared;
+   directly revisit `/buy` and verify redirect to `/login`.
+6. **Password reset:** At `/forgot-password`, request a reset and confirm the
+   response does not reveal whether the email exists. Open the recovery link,
+   press **Continue to reset password**, set a new password at
+   `/reset-password`, then verify the old password fails and the new one works.
+   The recovery grant expires after 15 minutes; test an expired or reused link
+   and expect rejection.
+7. **Session expiry:** Use only the dedicated test account. Confirm the
+   configured Supabase session lifetime in that staging project's Auth
+   settings, keep `/buy` open until expiry (or revoke that test session in the
+   staging dashboard), then make a new request. Expect unauthenticated access
+   to redirect to `/login`; confirm no privileged page remains available after
+   refresh.
+
+## Known gaps and exit gate
+
+- The earlier full-suite failures came from the unverified database configured
+  in `.env.local`. They were not reproduced against the owner-confirmed
+  disposable database with the project seed; all integration tests now pass.
+  The new guard rejects non-local or non-test database URLs before queries.
+- The documentation false positives are narrowly allowlisted and the synthetic
+  non-empty key probe remains detectable. The earlier full disk scan also
+  flagged ignored local environment and generated `.next` files. Those env
+  files were deliberately not opened, so this report does not claim that every
+  disk-scan finding is a clean scan.
+- The expired Supabase PostGIS/`pg_trgm` Security Advisor exception has not
+  been re-reviewed. The Data API must remain disabled until fresh evidence is
+  recorded; no exception is approved for production.
+- The expired Supabase PostGIS/`pg_trgm` Security Advisor exception has not
+  been re-reviewed. The Data API must remain disabled until fresh evidence is
+  recorded; no exception is approved for production.
+- The historical RLS evidence is not a fresh staging catalog/runtime report.
+  Admin/Solicitor MFA enforcement and the `/admin/system/integrations` surface
+  are not verified/complete. Subscription, chat, and project authorization
+  guards intentionally throw until their policies are implemented.
+- Upload quarantine, malware scanning, private promotion, and access-checked
+  downloads are not complete; production uploads remain disabled.
+- Auth unit tests pass, but browser parity and live session-expiry verification
+  remain outstanding. Use the hand-test plan above.
+
+| Exit gate                                      | Status                         | Evidence                                                                                                  |
+| ---------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------- |
+| Phase 3 fixture typecheck errors fixed         | **PASS**                       | `npm run typecheck` exits 0.                                                                              |
+| Repository lint clean                          | **PASS**                       | `npm run lint` exits 0 with no warnings.                                                                  |
+| Production build                               | **PASS — isolated validation** | `npm run build` passes with process-only dummy provider values and loopback DB URL.                       |
+| Full test suite against disposable local DB    | **PASS**                       | 79 files, 1,000 tests.                                                                                    |
+| Database-mocked unit suite                     | **PASS**                       | 78 files, 971 tests.                                                                                      |
+| Gitleaks empty-example allowlist               | **PASS**                       | Empty declarations no longer trigger; synthetic non-empty key remains flagged.                            |
+| Full disk Gitleaks clean                       | **NOT CLAIMED**                | Prior scan flagged ignored local/generated files; env files were not opened.                              |
+| Zero high/critical `npm audit` findings        | **PASS**                       | Prior full audit: 21 moderate advisories; zero high/critical.                                             |
+| Fresh staging Security Advisor and RLS reports | **NOT VERIFIED**               | Owner must run the steps above.                                                                           |
+| Security headers on staging response           | **NOT VERIFIED**               | Requires an existing staging deployment and test login.                                                   |
+| Manual authentication flow                     | **NOT VERIFIED**               | Owner hand-test plan provided above.                                                                      |
+| Staging/production migration or deployment     | **PASS**                       | None was run. Commits are local to `phase-0-stabilise`; local disposable test DB use is documented above. |
+
+**Decision:** Phase 0 remains open. Do not start Phase 1 or deploy until the
+owner-only staging checks and manual authentication test plan are complete.
+The earlier disk scan included ignored local/generated files that were not
+opened; this report does not claim a clean full-disk scan.

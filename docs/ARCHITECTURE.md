@@ -6,25 +6,51 @@
 
 ## Stack (as installed)
 
-| Layer       | Choice                                                                                                                                                   | Notes                                                                                                                                                                                                                                                                                                          |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Framework   | Next.js 16.2 (App Router) + TypeScript strict                                                                                                            | One repo, one deployable. Server Actions + Route Handlers — no separate API server. See ADR-003                                                                                                                                                                                                                |
-| Styling     | Tailwind CSS v4 (`@theme` tokens in `src/app/globals.css`)                                                                                               | shadcn/ui permitted for primitives                                                                                                                                                                                                                                                                             |
-| State       | Zustand (client) + TanStack Query (server state)                                                                                                         |                                                                                                                                                                                                                                                                                                                |
-| ORM / DB    | **Prisma 7** → PostgreSQL + PostGIS on Supabase                                                                                                          | Prisma remains the trusted server business-data client. Supabase Data API access is opt-in through grants plus RLS; 29/29 application-owned public tables have operation-specific policies. See ADR-001 and ADR-018. |
-| Search      | Postgres FTS (`tsvector` trigger) + `pg_trgm` + PostGIS                                                                                                  | Behind a `SearchService` interface; Elastic/Meilisearch can replace later. NO Elasticsearch in this build                                                                                                                                                                                                      |
-| Cache/queue | Upstash Redis                                                                                                                                            | Commute-matrix cache, AI response cache, rate limiting                                                                                                                                                                                                                                                         |
-| Auth        | Supabase Auth migration in progress; Auth.js remains active until cutover                                                                                | `@supabase/ssr` browser/server/proxy clients and `profiles` are installed. Authoritative role/KYC fields are server-written, never `user_metadata`. Server Supabase checks use `auth.getUser()`. See ADR-018. |
-| Storage     | Existing `StorageService` remains active; Supabase Storage security foundation added                                                                     | `kyc-documents` is private; `property-images` is public-delivery but not anonymously listable. Application upload wiring remains a later migration phase. |
-| AI          | Anthropic API — Sonnet (Advisor/AVM/Planning), Haiku (Enhancer/tagging)                                                                                  | Arrives Sprint 5; Redis-cached, budget-capped                                                                                                                                                                                                                                                                  |
-| Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active  | Distance Matrix API is Legacy — do not use. Two distinct keys: `GOOGLE_MAPS_SERVER_KEY` (geocoding) and `GOOGLE_MAPS_API_KEY` (browser-restricted: static maps, and the Sprint 3 interactive map) — see `docs/BLOCKERS.md`                                                                                     |
-| KYC         | Sumsub (sandbox) behind `KycService` + mock                                                                                                              | Arrives Sprint 4                                                                                                                                                                                                                                                                                               |
-| Payments    | Stripe (test mode) — subscriptions/boosts/ads ONLY                                                                                                       | Syndicate charges forbidden while `SYNDICATE_PAYMENTS_ENABLED=false`                                                                                                                                                                                                                                           |
-| Realtime    | Pusher Channels                                                                                                                                          | Arrives Sprint 4                                                                                                                                                                                                                                                                                               |
-| Email       | `Mailer` interface — Resend (auto when `RESEND_API_KEY` set) + console fallback                                                                          | `src/services/email/mailer.ts`; verification + reset emails live, console-logged in dev                                                                                                                                                                                                                        |
-| Hosting/CI  | Vercel + GitHub Actions (`.github/workflows/ci.yml`)                                                                                                     | typecheck, lint, format, unit, E2E on PR                                                                                                                                                                                                                                                                       |
-| Monitoring  | Sentry via `instrumentation.ts` / `instrumentation-client.ts`                                                                                            | No-op until `SENTRY_DSN` set                                                                                                                                                                                                                                                                                   |
-| Testing     | Vitest (`tests/unit`) + Playwright (`tests/e2e`, prod build on port 3100 in CI)                                                                          |                                                                                                                                                                                                                                                                                                                |
+| Layer       | Choice                                                                                                                                                  | Notes                                                                                                                                                                                                                                           |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Framework   | Next.js 16.4.5 (App Router) + TypeScript strict                                                                                                         | One repo, one deployable. Server Actions + Route Handlers — no separate API server. See ADR-003                                                                                                                                                 |
+| Styling     | Tailwind CSS v4 (`@theme` tokens in `src/app/globals.css`)                                                                                              | shadcn/ui permitted for primitives                                                                                                                                                                                                              |
+| State       | Zustand (client) + TanStack Query (server state)                                                                                                        |                                                                                                                                                                                                                                                 |
+| ORM / DB    | **Prisma 7** → PostgreSQL + PostGIS on Supabase                                                                                                         | Prisma remains the trusted server business-data client. Supabase Data API access is opt-in through grants plus RLS; 29/29 application-owned public tables have operation-specific policies. See ADR-001 and ADR-018.                            |
+| Search      | Postgres FTS (`tsvector` trigger) + `pg_trgm` + PostGIS                                                                                                 | Behind a `SearchService` interface; Elastic/Meilisearch can replace later. NO Elasticsearch in this build                                                                                                                                       |
+| Cache/queue | Upstash Redis                                                                                                                                           | Commute-matrix cache, AI response cache, rate limiting                                                                                                                                                                                          |
+| Auth        | Supabase Auth (active)                                                                                                                                  | `@supabase/ssr` clients and the `profiles` identity bridge are active. Roles/KYC come from server-controlled profile/database fields, never client-writable metadata. Auth.js runtime has been removed; legacy identity records remain bridged. |
+| Storage     | Existing `StorageService` remains active; Supabase Storage security foundation added                                                                    | `kyc-documents` is private; `property-images` is public-delivery but not anonymously listable. Application upload wiring remains a later migration phase.                                                                                       |
+| AI          | Anthropic API — Sonnet (Advisor/AVM/Planning), Haiku (Enhancer/tagging)                                                                                 | Arrives Sprint 5; Redis-cached, budget-capped                                                                                                                                                                                                   |
+| Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active | Distance Matrix API is Legacy — do not use. Two distinct keys: `GOOGLE_MAPS_SERVER_KEY` (geocoding) and `GOOGLE_MAPS_API_KEY` (browser-restricted: static maps, and the Sprint 3 interactive map) — see `docs/BLOCKERS.md`                      |
+| KYC         | Sumsub (sandbox) behind `KycService` + mock                                                                                                             | Arrives Sprint 4                                                                                                                                                                                                                                |
+| Payments    | Stripe (test mode) — subscriptions/boosts/ads ONLY                                                                                                      | Syndicate charges forbidden while `SYNDICATE_PAYMENTS_ENABLED=false`                                                                                                                                                                            |
+| Realtime    | Pusher Channels                                                                                                                                         | Arrives Sprint 4                                                                                                                                                                                                                                |
+| Email       | `Mailer` interface — Resend (auto when `RESEND_API_KEY` set) + console fallback                                                                         | `src/services/email/mailer.ts`; verification + reset emails live, console-logged in dev                                                                                                                                                         |
+| Hosting/CI  | Vercel + GitHub Actions (`.github/workflows/ci.yml`)                                                                                                    | typecheck, lint, format, unit, E2E on PR                                                                                                                                                                                                        |
+| Monitoring  | Sentry via `instrumentation.ts` / `instrumentation-client.ts`                                                                                           | No-op until `SENTRY_DSN` set                                                                                                                                                                                                                    |
+| Testing     | Vitest (`tests/unit`) + Playwright (`tests/e2e`, prod build on port 3100 in CI)                                                                         |                                                                                                                                                                                                                                                 |
+
+## Phase 0 security foundation
+
+- `src/env.ts` validates server configuration with Zod and keeps compliance
+  flags fail-closed. Production requires distributed Upstash limiting,
+  configured transactional email, Supabase Auth settings, an application
+  origin, and Turnstile. Investment payments cannot be enabled.
+- `src/proxy.ts` is the global request boundary: it validates mutation origins,
+  assigns a request ID and CSP nonce, applies route-aware limits, gates disabled
+  Flipper paths, and marks private routes `no-store`/`noindex`. Route handlers
+  and server actions still perform their own authorization.
+- `src/lib/security/` contains CSRF, headers, rate-limit and Sentry-scrubbing
+  helpers. The proxy covers every matched API route; public API mutations
+  default to a rate-limit class, while production refuses the in-memory store.
+- Turnstile and email use provider interfaces with local mock behavior.
+  Production uploads remain disabled until quarantine storage and malware
+  scanning are configured.
+- The `AuditLog` table is readable only by Admin through the Data API. Phase 0
+  adds a database trigger blocking row updates, deletes and truncation. This
+  migration is additive and has not been run.
+- Public ROI is withheld unless `FINANCIAL_PROMOTIONS_REVIEWED=true`; Flipper
+  routes require both that review and `FLIPPER_FLOWS_ENABLED=true`. Both flags
+  default to false. Syndicate payments remain prohibited.
+- CI runs typecheck, lint, formatting, unit/integration tests, full dependency
+  audit, Gitleaks and Playwright. Staging security-exception review
+  and live headers/auth checks remain release gates, not locally claimed passes.
 
 ## Repo structure
 
@@ -32,11 +58,11 @@
 /src
   /app                 # App Router: (auth)/login+register, api/, portals arrive per sprint
   /components          # ui/ primitives, then listings/, syndicates/, agents/, charts/, layout/
-  /lib                 # db.ts (Prisma), auth.ts (NextAuth) — later: redis, s3, stripe, pusher, resend
+  /lib                 # db.ts (Prisma), auth.ts (Supabase), authz/ (shared guards), security/
   /services            # ALL business logic (users/, later: search/, kyc/, maps/, ai/, marketdata/, fees/)
   /generated/prisma    # generated client (gitignored; `npm run db:generate` / postinstall)
   /assets              # imagery imported through `next/image` (hero photograph)
-  /types               # ambient types (next-auth session augmentation)
+  /types               # shared ambient application types
   /jobs                # data ingestion scripts (Sprint 5+)
 /prisma                # schema.prisma, migrations/ (raw SQL for PostGIS/FTS), seed.ts
 /public
@@ -96,43 +122,38 @@ Full schema: `prisma/schema.prisma` (implements the sprint plan's core schema).
 
 ## Auth architecture
 
-**Supabase migration boundary (Phases 2–3).** `src/lib/supabase/` now provides
-separate browser, server and proxy clients through `@supabase/ssr`. The
-`public.profiles` UUID primary key references `auth.users.id`; its `role`,
-`kycStatus`, `legacyUserId`, compliance and active fields are server-written.
-Public signup can provision only AGENT/INVESTOR/BUYER from protected
-`app_metadata`; client-writable `user_metadata` is never an authorization
-source. The legacy `public."User"` CUID is bridged by nullable
-`profiles.legacyUserId` while IDs are migrated deliberately.
+**Supabase Auth is the active authentication system.** The server, browser and
+proxy clients use `@supabase/ssr`. `src/lib/auth.ts` calls `auth.getUser()` and
+joins the verified Auth UUID to `public.profiles` and its legacy `User` mapping;
+missing, inactive or conflicting mappings fail closed. Role, KYC and investor
+subtype are loaded from those server-controlled database rows, never from
+`user_metadata`.
 
-The existing Auth.js routes below remain active until the later authentication
-cutover phase. This phase did not replace login, registration, KYC or pledge
-service logic. Any new server-side Supabase authorization must verify the caller
-with `supabase.auth.getUser()`, not a locally read session.
-
-- `src/lib/auth.ts` — NextAuth v5: Credentials (bcrypt) always; Google provider
-  registered only when H1.6 credentials exist.
-- **JWT strategy**; token carries `uid`, `role`, `kycStatus` → exposed on
-  `session.user` (typed in `src/types/next-auth.d.ts`). OAuth users get role/kyc
-  loaded from DB in the `jwt` callback.
-- Registration: `POST /api/register` (thin) → `src/services/users/registration.ts`
-  (Zod schema + bcrypt + create). Self-serve roles: AGENT/INVESTOR/BUYER.
-  **ADMIN is seed-only.** First Google sign-in provisions a BUYER.
-- **Route gating** (`src/middleware.ts`): `/admin` (ADMIN), `/agent/**`
-  (AGENT/ADMIN), `/investor/**` (INVESTOR/ADMIN) via edge-safe `getToken` on the
-  JWT cookie — anonymous → login redirect, wrong role → 403 page. Middleware is
-  UX-level only; every mutation ALSO checks `requireRole()` / `requireKyc()`
-  (`src/lib/authz.ts`) server-side.
-- **Single-use tokens** (`services/users/verificationTokens.ts`): sha256-hashed at
-  rest, raw only in the emailed link; email verify 24 h TTL, password reset 1 h.
-  A successful reset also marks the email verified.
-- **GDPR**: cookie banner (localStorage consent), `/privacy` + `/terms`
-  placeholders (final text = H6.3), `DELETE /api/me` anonymises in place and
-  preserves `KycRecord` (AML 5-year retention).
-- **Admin rule**: every admin mutation writes an `AuditLog` row via
-  `services/admin/audit.ts` — no exceptions.
-- **Metrics**: `services/metrics/globalMetrics.ts`, Redis `cached()` 60 s
-  (`src/lib/redis.ts` — degrades to direct compute without Upstash keys).
+- `public.profiles.id` references `auth.users.id`; `legacyUserId` bridges
+  existing CUID-based business records while their foreign keys remain in use.
+- Signup is server-action based. Only Buyer and Investor self-registration are
+  available; Agent accounts are invite-only and Admin accounts use a separate
+  sign-in surface. Signup role and investor subtype are validated server-side.
+- Login, email confirmation, reset and logout are Supabase Auth flows. Password
+  reset completion additionally requires a short-lived, HTTP-only recovery
+  grant. User and Admin login actions are separated and clear sessions whose
+  database role does not match the requested audience.
+- `src/proxy.ts` refreshes Supabase cookies and performs an optimistic portal
+  gate; each private page, route handler and server action still runs server
+  authorization. `src/lib/authz/` is the shared authorization surface:
+  `requireUser`, `requireRole`, `requireOwnership`, and `requireVerified` are
+  active guards. Subscription, chat, and project guards fail explicitly with
+  `NotImplementedError` until their policy exists.
+- Supabase cookies request HttpOnly, SameSite=Lax and Secure in production.
+  Supabase Auth sessions remain authoritative; local logout clears the current
+  browser session.
+- Auth.js has no active runtime routes, and its packages and type augmentation
+  have been removed after Supabase login/logout/role and auth-flow unit coverage
+  passed. Existing `VerificationToken`/legacy password utilities are not part
+  of the active Supabase flow.
+- Supabase Auth MFA enforcement for Admin/Solicitor and session-expiry
+  integration verification remain release gaps; do not treat local/unit test
+  coverage as production parity.
 
 ### Data API and RLS
 
@@ -142,6 +163,9 @@ The complete one-line policy rationale is in
 - All 29 application-owned tables in `public` have RLS enabled and separate
   SELECT/INSERT/UPDATE/DELETE policies. Every table starts with explicit deny;
   only documented marketplace reads and owner/participant operations are opened.
+- AuditLog is select-only for Admin through the Data API; the Phase 0 append-only
+  trigger additionally rejects UPDATE, DELETE and TRUNCATE. Its migration has
+  not been applied.
 - RLS resolves roles and legacy IDs through `private` SECURITY DEFINER helpers
   with `search_path = ''`. The schema is not exposed through the Data API.
 - `profiles.role`, `profiles.kycStatus`, `profiles.legacyUserId`, verification,
@@ -864,7 +888,7 @@ of the boundary.
 | ------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | [ADR-001](adr/ADR-001-prisma-7-driver-adapter.md)                   | Prisma 7 with `@prisma/adapter-pg` driver adapter (deviation: plan predates Prisma 7)    |
 | [ADR-002](adr/ADR-002-border-token-renamed-to-line.md)              | Brand token `border` exposed as `line` to avoid Tailwind utility clash                   |
-| [ADR-003](adr/ADR-003-nextjs-16.md)                                 | Next.js 16.2 — current stable; the brief's "Next.js 15" predates it                      |
+| [ADR-003](adr/ADR-003-nextjs-16.md)                                 | Next.js 16 — current stable; the brief's "Next.js 15" predates it                        |
 | [ADR-004](adr/ADR-004-local-only-dev-phase.md)                      | Local-only dev phase — online/launch tasks deferred with revive triggers                 |
 | [ADR-005](adr/ADR-005-metrics-strip-moved-into-landing-hero.md)     | Global metrics strip moved into the landing page; zero-valued metrics omitted            |
 | [ADR-006](adr/ADR-006-display-serif-for-marketing-surfaces.md)      | _(superseded by ADR-012)_ Playfair Display for marketing surfaces                        |
@@ -879,4 +903,4 @@ of the boundary.
 | [ADR-015](adr/ADR-015-marketplace-masthead.md)                      | Marketplace takes the reference's shell at tool scale; EPC band ink fixed                |
 | [ADR-016](adr/ADR-016-role-portals.md)                              | Three strictly separate role portals; `/portal` role router; read-side only              |
 | [ADR-017](adr/ADR-017-buyer-portal.md)                              | Buyer portal is a marketplace; real viewing/offer/chat writes; sample price data flagged |
-| [ADR-018](adr/ADR-018-supabase-auth-and-rls-foundation.md)          | Supabase Auth UUID/CUID bridge, least-privilege RLS and Storage foundation                |
+| [ADR-018](adr/ADR-018-supabase-auth-and-rls-foundation.md)          | Supabase Auth UUID/CUID bridge, least-privilege RLS and Storage foundation               |

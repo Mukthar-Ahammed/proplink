@@ -30,6 +30,6 @@ npm run test:e2e   # playwright (run `npm run build` first, or have `npm run dev
 ## Stack
 
 Next.js 16 (App Router, strict TS) · Tailwind v4 · Prisma 7 + PostgreSQL/PostGIS
-(Supabase) · Auth.js v5 · Upstash Redis · S3/CloudFront · Anthropic API · Google
+(Supabase) · Supabase Auth · Upstash Redis · S3/CloudFront · Anthropic API · Google
 Maps Routes API · Sumsub · Stripe · Pusher · Resend · Vercel. Full rationale:
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

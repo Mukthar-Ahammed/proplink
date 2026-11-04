@@ -8,16 +8,21 @@
 
 **Status legend:** ✅ Complete · 🔵 In progress · 🟡 Code-complete / verification blocked · ⬜ Not started · ⏭ Deferred
 
+**Current phase:** Phase 0 is in progress on `phase-0-stabilise`; its exit gate
+has not passed, and Phase 1 has not started. Sprint rows below describe the
+original roadmap. Later implementation in the worktree is not equivalent to a
+verified sprint exit.
+
 ## Overview
 
-| Sprint   | Focus                                   |     Status     | Remarks                                                                                                                                         | Comments                                                                               |
-| -------- | --------------------------------------- | :------------: | ----------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Sprint 1 | Foundation & Core Infrastructure        |  ✅ Complete   | All 6 tasks done and verified (23 unit + 12 E2E tests green). DB live on Supabase. Vercel/CI deploy criteria deferred per ADR-004.              | Google OAuth deferred until H1.6.                                                      |
-| Sprint 2 | Agent Portal & Listing Engine           | 🔵 In progress | Build underway on branch `sprint-2`. Tasks 2.1–2.2 code-complete; S3 + geocoding consumed via mockable service interfaces until H1.4/H2.1/H2.2. | Demo target: full agent journey.                                                       |
-| Sprint 3 | Search, Map & Commute                   | ⬜ Not started | SearchService, search UI, map & density grid, commute engine, saved searches & alerts.                                                          | Needs H3.1 (Maps keys + quotas); cache all Maps calls via Redis.                       |
-| Sprint 4 | Investor Portal, KYC & Syndicates (EOI) | ⬜ Not started | KYC (Sumsub + mock), pledge flow, refurb console, investor dashboard, lifecycle.                                                                | EOI only — no real money; KYC gate server-side. Needs H4.1, H4.2.                      |
-| Sprint 5 | AI, Stripe & Buyer Portal               | ⬜ Not started | AiService, Advisor, AVM, Listing Enhancer, planning tool, Stripe billing, buyer portal.                                                         | Stripe for agent subs/boosts only; RICS disclaimer on all AI output. Needs H5.1, H5.3. |
-| Sprint 6 | Intelligence, Hardening & Launch        | ⬜ Not started | Market intel, planning feed, ecosystem & ads, performance, security/GDPR closeout, QA/UAT, launch.                                              | H6.2 pen test has long lead time — book early. Never cut security/KYC/GDPR.            |
+| Sprint   | Focus                                   |     Status     | Remarks                                                                                                                            | Comments                                                                               |
+| -------- | --------------------------------------- | :------------: | ---------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Sprint 1 | Foundation & Core Infrastructure        |  ✅ Complete   | All 6 tasks done and verified (23 unit + 12 E2E tests green). DB live on Supabase. Vercel/CI deploy criteria deferred per ADR-004. | Google OAuth deferred until H1.6.                                                      |
+| Sprint 2 | Agent Portal & Listing Engine           |  ✅ Complete   | Sprint 2 was DoD-passed on 2026-08-07; see `STATUS.md` and `SPRINT-02.md`.                                                         | Real S3/geocoding provider verification remains subject to credentials.                |
+| Sprint 3 | Search, Map & Commute                   | 🔵 In progress | Tasks 3.1–3.2 complete; map/commute work remains blocked on H3.1, and saved searches/alerts remain outstanding.                    | Current feature work is gated by Phase 0 exit.                                         |
+| Sprint 4 | Investor Portal, KYC & Syndicates (EOI) | ⬜ Not started | KYC (Sumsub + mock), pledge flow, refurb console, investor dashboard, lifecycle.                                                   | EOI only — no real money; KYC gate server-side. Needs H4.1, H4.2.                      |
+| Sprint 5 | AI, Stripe & Buyer Portal               | ⬜ Not started | AiService, Advisor, AVM, Listing Enhancer, planning tool, Stripe billing, buyer portal.                                            | Stripe for agent subs/boosts only; RICS disclaimer on all AI output. Needs H5.1, H5.3. |
+| Sprint 6 | Intelligence, Hardening & Launch        | ⬜ Not started | Market intel, planning feed, ecosystem & ads, performance, security/GDPR closeout, QA/UAT, launch.                                 | H6.2 pen test has long lead time — book early. Never cut security/KYC/GDPR.            |
 
 ---
 

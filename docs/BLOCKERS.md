@@ -23,11 +23,27 @@
 | 2026-10-07 | **Supabase-managed PostGIS/pg_trgm ownership — PASS WITH ACCEPTED EXCEPTION (staging only)** | Three accepted Security Advisor findings remain: `0013_rls_disabled_in_public` on `public.spatial_ref_sys`, plus `0014_extension_in_public` for PostGIS and pg_trgm. | **Owner:** product owner. **Review:** 2026-10-21 or immediately when Supabase Support replies, whichever is earlier, and always before production. Cause: the relations/extensions are owned by `supabase_admin`; the project role cannot alter them. `anon` and `authenticated` retain `INSERT`, `UPDATE`, `DELETE`, `TRUNCATE`, `REFERENCES`, and `TRIGGER` on `spatial_ref_sys`, `geography_columns`, and `geometry_columns`. A single transactional revoke attempt returned PostgreSQL notice `01006` (`no privileges could be revoked`) and was rolled back after proving no effect. Compensating control: staging Data API disabled; anonymous REST reads and a PATCH returned HTTP 503, GraphQL returned HTTP 503, and the REST root returned HTTP 401. The validator fails if the grants remain while the relation endpoint is not disabled. Support remediation remains open; no ownership change, extension disable/drop, or PostGIS troubleshooting SQL is permitted. **No exception carries to production.** |
 
 Resolved blockers move to the bottom with a ✅ and the resolution date.
+| 2026-11-04 | **Expired staging Security Advisor exception review** | The recorded review date (2026-10-21) has passed; Phase 0 cannot claim the staging RLS/security gate is current. | Product owner must re-run Supabase Security Advisor against the explicitly identified staging project and record findings/date. Keep the staging Data API disabled until reviewed. No staging or production migration has been run; the two additive Phase 0 migrations remain unapplied outside the disposable local test database. |
+| 2026-11-04 | **Phase 0 staging RLS and security-header evidence** | No fresh staging catalog/runtime RLS audit or authenticated security-header response has been reviewed. | Product owner runs the read-only commands and browser checks in `docs/phases/PHASE-0-REPORT.md`; do not provision fixtures, migrate, or deploy as part of this check. |
+| 2026-11-04 | **Supabase auth parity / disposable E2E environment** | Browser verification of login, logout, email confirmation, reset and session expiry cannot be completed without a disposable non-production Supabase Auth project and seeded identities. | Unit coverage verifies server identity mapping and login audience separation; updated E2E specs are opt-in through the configured DB/Supabase test environment. Do not use production accounts or credentials for E2E. |
+| 2026-11-04 | **Upload quarantine and malware scanning** | Production uploads cannot meet quarantine, scan, private promotion and checked-download requirements while these providers are not configured. | `UPLOADS_ENABLED=false`; local mock uploads remain development-only. Configure separate quarantine/private buckets, scanner, size limits and access checks before enabling. |
+
 Deferred-by-decision (not blocking local work — see ADR-004): H1.1 GitHub/Vercel
 (CI runs only in-repo for now), H1.3 domains, H1.4 AWS, H1.8 Sentry, H1.10
 applications.
 
 ## Resolved
+
+- ✅ 2026-11-04 — **Disposable integration-test database**: the owner-confirmed
+  PostGIS database was bound to `127.0.0.1:55432`, named `proplink_test`, and
+  used only for the full integration suite. Its ephemeral container was removed
+  after testing; no staging or production database was touched.
+- ✅ 2026-11-04 — **Gitleaks documentation findings**: the two tracked matches
+  were empty environment-variable declarations, not credentials. A narrowly
+  scoped line-pattern allowlist was added for the named documentation and
+  example files; a synthetic non-empty key remains detectable. Staged scans
+  for the implementation commits were clean. Ignored local environment files
+  were not opened, so a clean full-disk scan is not claimed.
 
 - ✅ 2026-10-05 — **H1.2 Supabase RESTORE**: the hosted project is restored and
   reachable through the transaction and session poolers. All four committed
