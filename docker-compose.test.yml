@@ -1,0 +1,18 @@
+services:
+  postgres-test:
+    image: postgis/postgis:16-3.5
+    environment:
+      POSTGRES_DB: proplink_test
+      POSTGRES_USER: proplink_test
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:?Set a throwaway TEST_POSTGRES_PASSWORD in this PowerShell session}
+    ports:
+      - "127.0.0.1:55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ./scripts/docker-init-test-db.sql:/docker-entrypoint-initdb.d/10-test-extensions.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 3s
+      timeout: 3s
+      retries: 20

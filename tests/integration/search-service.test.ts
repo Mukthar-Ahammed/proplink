@@ -4,6 +4,7 @@ import { DistressTag, EpcRating, PropertyType } from "@/generated/prisma/enums";
 import { buildSearchCountQuery } from "@/services/search/queryBuilder";
 import { PostgresSearchService } from "@/services/search/postgresSearchService";
 import type { SearchParams } from "@/services/search/types";
+import { assertSafeIntegrationDatabase } from "../helpers/test-database-safety";
 
 /**
  * Task 3.1's SQL is PostGIS + FTS + pg_trgm — none of which a mock can verify.
@@ -22,9 +23,9 @@ import type { SearchParams } from "@/services/search/types";
  * test, which does assume the catalogue is stable for its duration; run the
  * suites sequentially, not concurrently.
  */
-const hasDb = !!(process.env.DATABASE_URL ?? process.env.DIRECT_URL);
+const hasDb = assertSafeIntegrationDatabase(process.env.DATABASE_URL);
 
-const service = new PostgresSearchService();
+const service = new PostgresSearchService(true);
 
 afterAll(async () => {
   if (hasDb) await db.$disconnect();
@@ -345,11 +346,7 @@ describe.skipIf(!hasDb)("PostgresSearchService against the seeded database", () 
       timings.sort((a, b) => a - b);
       const p95 = timings[Math.floor(timings.length * 0.95) - 1];
 
-      // Remote Supabase Cloud DBs add roundtrip WAN latency (~200-300ms ping).
-      const isRemoteDb = (process.env.DATABASE_URL ?? "").includes("supabase.co");
-      const threshold = isRemoteDb ? 500 : 150;
-
-      expect(p95, `p95 was ${p95.toFixed(1)}ms`).toBeLessThan(threshold);
+      expect(p95, `p95 was ${p95.toFixed(1)}ms`).toBeLessThan(150);
     });
 
     it("EXPLAIN ANALYZE reports an execution time well inside the budget", async () => {
