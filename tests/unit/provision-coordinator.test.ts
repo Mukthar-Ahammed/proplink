@@ -12,5 +12,5 @@ describe("provision coordinator",()=>{
  it("rejects production ownership",async()=>{const d=deps();await expect(provisionOne({fixture,...d,projectRef:"onhdlxxbdcfwujhtphaj"})).rejects.toThrow();});
  it("recovers a discovered Auth identity",async()=>{const d=deps();d.auth.discover=vi.fn().mockResolvedValue([{id:"auth-existing",email:fixture.email}]);await provisionOne({fixture,...d});expect(d.auth.createUser).not.toHaveBeenCalled();});
  it("rejects ambiguous discovery",async()=>{const d=deps();d.auth.discover=vi.fn().mockResolvedValue([{id:"a"},{id:"b"}]);await expect(provisionOne({fixture,...d})).rejects.toThrow(/Ambiguous/);});
- it("marks uncertain Auth failure for reconciliation",async()=>{const d=deps();const e:any=new Error("timeout");e.uncertain=true;d.auth.createUser=vi.fn().mockRejectedValue(e);await expect(provisionOne({fixture,...d})).rejects.toThrow();expect((await d.ledger.get("AGENT")).state).toBe(STATES.NEEDS_RECONCILIATION);});
+ it("marks uncertain Auth failure for reconciliation",async()=>{const d=deps();const error=Object.assign(new Error("timeout"),{uncertain:true});d.auth.createUser=vi.fn().mockRejectedValue(error);await expect(provisionOne({fixture,...d})).rejects.toThrow();expect((await d.ledger.get("AGENT")).state).toBe(STATES.NEEDS_RECONCILIATION);});
 });

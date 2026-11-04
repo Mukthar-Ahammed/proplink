@@ -1,7 +1,6 @@
 ﻿import fs from "node:fs";
-import { spawnSync } from "node:child_process";
 import dotenv from "dotenv";
-import { createAuthAdapter, createDatabaseAdapter, createFixtureDatabaseAdapter } from "./phase3-service-adapters.mjs";
+import { createAuthAdapter, createDatabaseAdapter } from "./phase3-service-adapters.mjs";
 import { provisionLegacyIdentity } from "./provision-db-helper.mjs";
 import { provisionOne } from "./provision-coordinator.mjs";
 import { readLedger, writeLedger } from "./phase3-ledger.mjs";

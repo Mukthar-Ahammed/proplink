@@ -10,7 +10,6 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const env = dotenv.parse(fs.readFileSync(path.join(root, ".env.staging.local")));
 const guard = spawnSync(process.execPath, [path.join(root, "scripts/assert-staging-db.mjs")], { cwd: root, env: { ...process.env, ...env }, stdio: "inherit", shell: false });
 if (guard.status !== 0) process.exit(guard.status ?? 1);
-const phase3 = "20261007000000_phase3_rls_storage";
 const firstFive = ["20260709000000_init", "20260801190000_property_pricing_safeguard", "20260801200000_property_moderation_fields", "20260807120000_property_view_count", "20261006000000_supabase_auth_profiles"];
 const c = new pg.Client({ connectionString: env.DIRECT_URL, ssl: { rejectUnauthorized: false }, connectionTimeoutMillis: 15000 });
 const q = async (sql) => (await c.query(sql)).rows;

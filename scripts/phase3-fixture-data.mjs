@@ -22,7 +22,7 @@ export function validateFixtureManifest(manifest, projectRef) {
   return manifest;
 }
 
-export async function provisionFixtureData({ projectRef, manifest, identities, db, storage, ledger }) {
+export async function provisionFixtureData({ projectRef, manifest, identities, db, storage, ledger = undefined }) {
   const next = validateFixtureManifest(manifest, projectRef);
   for (const role of ["AGENT", "INVESTOR", "BUYER", "ADMIN"]) if (!identities?.[role]?.authUserId) throw new Error(`Missing verified identity ${role}`);
   const created = [];

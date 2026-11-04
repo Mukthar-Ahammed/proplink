@@ -1,7 +1,21 @@
 import pg from "pg";
 
+/**
+ * @typedef {{ query: (sql: string, values?: unknown[]) => Promise<{ rows: Record<string, unknown>[] }>, connect: () => Promise<unknown>, end: () => Promise<void> }} RegistryClient
+ */
+
+/**
+ * @param {{ connectionString?: string, clientFactory?: () => RegistryClient }} [options]
+ */
 export function createOwnershipRegistryAdapter({ connectionString, clientFactory } = {}) {
-  const make = clientFactory ?? (() => new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } }));
+  const make = clientFactory ?? (() => {
+    const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
+    return {
+      connect: () => client.connect(),
+      end: () => client.end(),
+      query: (sql, values) => client.query(sql, values),
+    };
+  });
   return {
     async recordPlanned(tx, entry) {
       if (!entry?.projectRef || !entry.runId || !entry.resourceType || !entry.resourceKey) throw new Error("Incomplete registry intent");

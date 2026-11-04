@@ -1,14 +1,31 @@
 import { config } from "dotenv";
+import fs from "node:fs";
 import pg from "pg";
 
-config({ path: ".env.local", quiet: true });
-config({ quiet: true });
+const envPath = ".env.staging.local";
+if (!fs.existsSync(envPath)) throw new Error(`Missing ${envPath}`);
+config({ path: envPath, quiet: true });
 
-const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
-if (!connectionString) throw new Error("DIRECT_URL or DATABASE_URL is required");
+const projectRef = process.env.PROPLINK_STAGING_PROJECT_REF;
+if (!projectRef || process.env.CONFIRM_STAGING_AUDIT !== "yes") {
+  throw new Error("Set the staging project reference and CONFIRM_STAGING_AUDIT=yes");
+}
+const connectionString = process.env.DIRECT_URL;
+if (!connectionString) throw new Error("DIRECT_URL is required for the staging audit");
+const parsedConnection = new URL(connectionString);
+const expectedDatabaseUser = `postgres.${projectRef}`;
+if (
+  !parsedConnection.hostname.includes(projectRef) &&
+  decodeURIComponent(parsedConnection.username) !== expectedDatabaseUser
+) {
+  throw new Error("Database connection does not identify the configured staging project");
+}
 
-const client = new pg.Client({ connectionString });
-await client.connect();
+const client = new pg.Client({
+  connectionString,
+  options: "-c default_transaction_read_only=on",
+});
+let connected = false;
 
 function printSection(name, rows) {
   console.log(`\n[${name}]`);
@@ -20,6 +37,18 @@ function printSection(name, rows) {
 }
 
 try {
+  await client.connect();
+  connected = true;
+  await client.query("BEGIN READ ONLY");
+  const identity = await client.query(
+    "SELECT current_database() AS database, current_user AS role",
+  );
+  const role = identity.rows[0]?.role;
+  if (role !== "postgres" && role !== expectedDatabaseUser) {
+    throw new Error("Connected database role is not the configured staging role");
+  }
+  printSection("connection_identity", identity.rows);
+
   const namespaceState = await client.query(`
     SELECT EXISTS (
       SELECT 1 FROM pg_namespace WHERE nspname = 'private'
@@ -247,5 +276,5 @@ try {
   `);
   printSection("phase3_storage_object_counts", storageObjectCounts.rows);
 } finally {
-  await client.end();
+  if (connected) await client.end();
 }

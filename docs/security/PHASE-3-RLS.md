@@ -54,7 +54,13 @@ Prisma server operations are unchanged.
 this project. The application migration therefore does not alter these extension
 members; the remaining advisor findings are tracked in `docs/BLOCKERS.md`.
 
-### Exit status: PASS WITH ACCEPTED EXCEPTION (staging only)
+### Exit status: PASS WITH EXPIRED ACCEPTED EXCEPTION (staging only)
+
+The Phase 0 additive migration `20261104010000_phase0_append_only_audit`
+adds database triggers to reject `UPDATE`, `DELETE` and `TRUNCATE` on
+`AuditLog`. The migration and its rollback have not been executed. Until
+applied, the existing table grants/policies alone do not provide the required
+database-level append-only guarantee.
 
 The product owner accepted a time-limited staging exception for these exact
 Security Advisor findings:
@@ -83,6 +89,10 @@ security review and explicit product-owner approval.
 **Exception owner:** product owner. **Review date:** 2026-10-21 or immediately
 when Supabase Support replies, whichever is earlier, and always before any
 production cutover.
+
+That review date has passed. This is historical evidence, not a current Phase 0
+security pass; re-run the Security Advisor on a positively identified staging
+project and record the fresh decision before reopening the staging Data API.
 
 ## Production gate
 

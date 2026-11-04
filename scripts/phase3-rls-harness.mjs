@@ -64,7 +64,7 @@ export async function runPolicyMatrix({ sessions, fixtures, operations }) {
   return results;
 }
 
-export async function assertProfilePolicy({ sessions, fixtures }) {
+export async function assertProfilePolicy({ sessions }) {
   const results = [];
   const ids = Object.values(sessions).map((s) => s.userId);
   for (const [role, session] of Object.entries(sessions)) {
