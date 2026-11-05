@@ -32,9 +32,9 @@ agents the supply side, investors the capital side, buyers the demand side, and 
 governance role ([`docs/CONTEXT.md:17-23`](CONTEXT.md#L17-L23)).
 
 The three public signup choices are Buyer, Investor, and Agent; Admin is not offered
-([`src/app/(auth)/register/page.tsx:20-30`](../src/app/(auth)/register/page.tsx#L20-L30)).
+([`src/app/(auth)/register/page.tsx:20-30`](<../src/app/(auth)/register/page.tsx#L20-L30>)).
 The signup page selects one of three server-authored actions and deliberately omits the role
-from the submitted object ([`src/app/(auth)/register/page.tsx:44-58`](../src/app/(auth)/register/page.tsx#L44-L58)).
+from the submitted object ([`src/app/(auth)/register/page.tsx:44-58`](<../src/app/(auth)/register/page.tsx#L44-L58>)).
 The server creates a short-lived signup intent containing only one of those three roles
 ([`src/services/auth/supabaseAuthService.ts:66-90`](../src/services/auth/supabaseAuthService.ts#L66-L90));
 the database trigger uses that private intent, defaults an unrecognised/direct signup to
@@ -220,7 +220,7 @@ EOI-only: no funds are collected and a pledge is not a payment or binding commit
 
 - **Built:** Investor is a public signup choice with the same confirmation, password, consent,
   active-account, and legacy-bridge rules as the other self-serve roles
-  ([`src/app/(auth)/actions.ts:58-105`](../src/app/(auth)/actions.ts#L58-L105),
+  ([`src/app/(auth)/actions.ts:58-105`](<../src/app/(auth)/actions.ts#L58-L105>),
   [`src/lib/auth.ts:28-50`](../src/lib/auth.ts#L28-L50)).
 - **Partly built:** The account stores and displays KYC status, and `requireKyc()` rejects a
   server action unless status is `APPROVED`
@@ -280,7 +280,9 @@ EOI-only: no funds are collected and a pledge is not a payment or binding commit
   [`src/services/syndicates/investorDashboard.ts:66-101`](../src/services/syndicates/investorDashboard.ts#L66-L101)).
 - Create/withdraw a pledge: **Not implemented in an application route or UI.** RLS already
   describes the future rule—Investor only, own ID, approved KYC, positive amount, open project,
-  and `PLEDGED` to `WITHDRAWN` only—but the Data API is disabled and no app endpoint invokes it
+  and `PLEDGED` to `WITHDRAWN` only—but no app endpoint invokes it. The owner
+  disabled the staging Data API on 2026-11-05 and verified HTTP 503. Keep the
+  Data API disabled unless a specific need is justified and approved
   ([`prisma/migrations/20261007000000_phase3_rls_storage/migration.sql:239-271`](../prisma/migrations/20261007000000_phase3_rls_storage/migration.sql#L239-L271),
   [`src/services/syndicates/investorDashboard.ts:9-14`](../src/services/syndicates/investorDashboard.ts#L9-L14)).
 - Project creation, discovery, funding transition, milestones, ledger writes, and completion:
@@ -327,7 +329,7 @@ Buyer is not a seller role and cannot create property listings
 
 - **Built:** Buyer is the default selected public signup role, with email confirmation, GDPR
   consent, password, and active-account requirements
-  ([`src/app/(auth)/register/page.tsx:20-40`](../src/app/(auth)/register/page.tsx#L20-L40),
+  ([`src/app/(auth)/register/page.tsx:20-40`](<../src/app/(auth)/register/page.tsx#L20-L40>),
   [`src/lib/auth.ts:28-40`](../src/lib/auth.ts#L28-L40)).
 - **KYC:** Not required for Buyer enquiries, viewings, offers, saves, messages, or appraisals;
   KYC is scoped to syndicate pledges
@@ -415,7 +417,9 @@ Buyer is not a seller role and cannot create property listings
 **Profile/billing/listing sales**
 
 - Buyer profile editing UI/API: **Not implemented**. RLS permits only own `name`, `avatarUrl`,
-  and `gdprConsentAt` updates if the Data API is enabled, but it is currently disabled
+  and `gdprConsentAt` updates if the Data API is enabled. The owner disabled the staging Data API
+  on 2026-11-05 and verified HTTP 503; this is not an application feature and should remain
+  disabled unless a specific need is justified and approved
   ([`prisma/migrations/20261007000000_phase3_rls_storage/migration.sql:185-193`](../prisma/migrations/20261007000000_phase3_rls_storage/migration.sql#L185-L193)).
 - Buyer subscription/billing: **Not implemented and not planned as a Buyer feature**; the
   subscription relation is Agent-specific
@@ -522,46 +526,46 @@ whose operation is KYC-gated; **Denied** = an implemented guard rejects the role
 implemented** = no usable application flow, even if a model, service helper, or future RLS
 policy exists.
 
-| Feature / action | Agent | Investor | Buyer | Admin | Anonymous |
-|---|---|---|---|---|---|
-| View public marketplace/search | Allowed | Allowed | Allowed | Allowed | Allowed |
-| View public listing detail (`LIVE`/`UNDER_OFFER`/`SOLD`) | Allowed | Allowed | Allowed | Allowed | Allowed |
-| View `DRAFT`/`PENDING_REVIEW` listing | Allowed (own records only) | Denied | Denied | Allowed | Denied |
-| Create listing draft | Allowed (own records only) | Denied | Denied | Denied through listing API | Denied |
-| Edit listing | Allowed (own `DRAFT` only) | Denied | Denied | Denied through listing API | Denied |
-| Delete listing | Not implemented | Not implemented | Not implemented | Not implemented | Denied |
-| Submit listing for review | Allowed (own records only) | Denied | Denied | Denied through submit API | Denied |
-| Approve/reject listing | Denied | Denied | Denied | Allowed | Denied |
-| Mark listing under offer/sold | Not implemented | Denied | Denied | Not implemented | Denied |
-| Upload property image through current app route | Allowed | Denied | Denied | Allowed | Denied |
-| Save/unsave property | Denied | Allowed (own records only) | Allowed (own records only) | Denied | Denied |
-| Saved searches/alerts | Not implemented | Not implemented | Not implemented | Not implemented | Denied |
-| Create enquiry | Allowed | Allowed | Allowed | Allowed | Denied |
-| Read enquiry | Allowed (own listings only) | No own-enquiry page | Allowed (own records only) | No cross-user page | Denied |
-| Change enquiry status | Allowed (own listings only) | Denied | Denied | Denied by route | Denied |
-| Request viewing | Denied | Denied | Allowed (own records only) | Allowed (own records only; inconsistent) | Denied |
-| Confirm/decline/cancel viewing | Not implemented | Not implemented | Not implemented | Not implemented | Denied |
-| Submit offer | Denied | Denied | Allowed (own records only) | Allowed (own records only; inconsistent) | Denied |
-| Withdraw offer | Not implemented | Denied | Not implemented | Not implemented | Denied |
-| Accept/reject offer or create/update Deal | Not implemented | Not implemented | Not implemented | Not implemented | Denied |
-| Send chat message to listing Agent | Allowed on another Agent’s listing | Allowed | Allowed | Allowed | Denied |
-| Agent reply / realtime chat | Not implemented | Not implemented | Not implemented | Not implemented | Denied |
-| Read own chat rows | Service/RLS only; no Agent page | Service/RLS only; no Investor page | Allowed (own records only) | Service/RLS only; no cross-user page | Denied |
-| Post Agent appraisal | Denied | Allowed (own, after prior enquiry/deal) | Allowed (own, after prior enquiry/deal) | Denied | Denied |
-| Manage own Agent case studies | Allowed (own records only) | Denied | Denied | Denied by route | Denied |
-| View public Agent profile/appraisals | Allowed | Allowed | Allowed | Allowed | Allowed |
-| Start/complete KYC | Not implemented | Not implemented | Not implemented | Not implemented | Denied |
-| Read own KYC status | Not applicable | Allowed (own records only) | Not exposed in Buyer UI | Allowed for own portal context | Denied |
-| Create syndicate pledge | Denied | Not implemented (future rule requires approved KYC) | Denied | Denied by RLS insert rule | Denied |
-| Read existing pledge dashboard | Denied | Allowed (own records only) | Denied | Own-ID portal view only; RLS allows all | Denied |
-| Withdraw pledge | Denied | Not implemented | Denied | Not implemented | Denied |
-| Read/write milestones and ledger | Not implemented | Not implemented | Denied | Not implemented | Denied |
-| Manage subscription / Stripe billing | Not implemented | Not applicable | Not applicable | Not implemented | Denied |
-| User search + activate/deactivate | Denied | Denied | Denied | Allowed | Denied |
-| Moderate KYC / fees / ads | Denied | Denied | Denied | Not implemented | Denied |
-| Edit basic account profile | Not implemented | Not implemented | Not implemented | Not implemented | Denied |
-| Erase own legacy account | Allowed (own records only) | Allowed (own records only) | Allowed (own records only) | Allowed (own records only) | Denied |
-| Sell/list a property as a normal homeowner | Denied unless using Agent role/profile | Denied | Denied | Denied through listing API | Denied |
+| Feature / action                                         | Agent                                  | Investor                                            | Buyer                                   | Admin                                    | Anonymous |
+| -------------------------------------------------------- | -------------------------------------- | --------------------------------------------------- | --------------------------------------- | ---------------------------------------- | --------- |
+| View public marketplace/search                           | Allowed                                | Allowed                                             | Allowed                                 | Allowed                                  | Allowed   |
+| View public listing detail (`LIVE`/`UNDER_OFFER`/`SOLD`) | Allowed                                | Allowed                                             | Allowed                                 | Allowed                                  | Allowed   |
+| View `DRAFT`/`PENDING_REVIEW` listing                    | Allowed (own records only)             | Denied                                              | Denied                                  | Allowed                                  | Denied    |
+| Create listing draft                                     | Allowed (own records only)             | Denied                                              | Denied                                  | Denied through listing API               | Denied    |
+| Edit listing                                             | Allowed (own `DRAFT` only)             | Denied                                              | Denied                                  | Denied through listing API               | Denied    |
+| Delete listing                                           | Not implemented                        | Not implemented                                     | Not implemented                         | Not implemented                          | Denied    |
+| Submit listing for review                                | Allowed (own records only)             | Denied                                              | Denied                                  | Denied through submit API                | Denied    |
+| Approve/reject listing                                   | Denied                                 | Denied                                              | Denied                                  | Allowed                                  | Denied    |
+| Mark listing under offer/sold                            | Not implemented                        | Denied                                              | Denied                                  | Not implemented                          | Denied    |
+| Upload property image through current app route          | Allowed                                | Denied                                              | Denied                                  | Allowed                                  | Denied    |
+| Save/unsave property                                     | Denied                                 | Allowed (own records only)                          | Allowed (own records only)              | Denied                                   | Denied    |
+| Saved searches/alerts                                    | Not implemented                        | Not implemented                                     | Not implemented                         | Not implemented                          | Denied    |
+| Create enquiry                                           | Allowed                                | Allowed                                             | Allowed                                 | Allowed                                  | Denied    |
+| Read enquiry                                             | Allowed (own listings only)            | No own-enquiry page                                 | Allowed (own records only)              | No cross-user page                       | Denied    |
+| Change enquiry status                                    | Allowed (own listings only)            | Denied                                              | Denied                                  | Denied by route                          | Denied    |
+| Request viewing                                          | Denied                                 | Denied                                              | Allowed (own records only)              | Allowed (own records only; inconsistent) | Denied    |
+| Confirm/decline/cancel viewing                           | Not implemented                        | Not implemented                                     | Not implemented                         | Not implemented                          | Denied    |
+| Submit offer                                             | Denied                                 | Denied                                              | Allowed (own records only)              | Allowed (own records only; inconsistent) | Denied    |
+| Withdraw offer                                           | Not implemented                        | Denied                                              | Not implemented                         | Not implemented                          | Denied    |
+| Accept/reject offer or create/update Deal                | Not implemented                        | Not implemented                                     | Not implemented                         | Not implemented                          | Denied    |
+| Send chat message to listing Agent                       | Allowed on another Agent’s listing     | Allowed                                             | Allowed                                 | Allowed                                  | Denied    |
+| Agent reply / realtime chat                              | Not implemented                        | Not implemented                                     | Not implemented                         | Not implemented                          | Denied    |
+| Read own chat rows                                       | Service/RLS only; no Agent page        | Service/RLS only; no Investor page                  | Allowed (own records only)              | Service/RLS only; no cross-user page     | Denied    |
+| Post Agent appraisal                                     | Denied                                 | Allowed (own, after prior enquiry/deal)             | Allowed (own, after prior enquiry/deal) | Denied                                   | Denied    |
+| Manage own Agent case studies                            | Allowed (own records only)             | Denied                                              | Denied                                  | Denied by route                          | Denied    |
+| View public Agent profile/appraisals                     | Allowed                                | Allowed                                             | Allowed                                 | Allowed                                  | Allowed   |
+| Start/complete KYC                                       | Not implemented                        | Not implemented                                     | Not implemented                         | Not implemented                          | Denied    |
+| Read own KYC status                                      | Not applicable                         | Allowed (own records only)                          | Not exposed in Buyer UI                 | Allowed for own portal context           | Denied    |
+| Create syndicate pledge                                  | Denied                                 | Not implemented (future rule requires approved KYC) | Denied                                  | Denied by RLS insert rule                | Denied    |
+| Read existing pledge dashboard                           | Denied                                 | Allowed (own records only)                          | Denied                                  | Own-ID portal view only; RLS allows all  | Denied    |
+| Withdraw pledge                                          | Denied                                 | Not implemented                                     | Denied                                  | Not implemented                          | Denied    |
+| Read/write milestones and ledger                         | Not implemented                        | Not implemented                                     | Denied                                  | Not implemented                          | Denied    |
+| Manage subscription / Stripe billing                     | Not implemented                        | Not applicable                                      | Not applicable                          | Not implemented                          | Denied    |
+| User search + activate/deactivate                        | Denied                                 | Denied                                              | Denied                                  | Allowed                                  | Denied    |
+| Moderate KYC / fees / ads                                | Denied                                 | Denied                                              | Denied                                  | Not implemented                          | Denied    |
+| Edit basic account profile                               | Not implemented                        | Not implemented                                     | Not implemented                         | Not implemented                          | Denied    |
+| Erase own legacy account                                 | Allowed (own records only)             | Allowed (own records only)                          | Allowed (own records only)              | Allowed (own records only)               | Denied    |
+| Sell/list a property as a normal homeowner               | Denied unless using Agent role/profile | Denied                                              | Denied                                  | Denied through listing API               | Denied    |
 
 Matrix evidence: route-level roles are enforced by `requireRole()`
 ([`src/lib/authz.ts:9-27`](../src/lib/authz.ts#L9-L27)); listing roles and ownership are in the
@@ -620,7 +624,7 @@ and unimplemented syndicate/KYC/billing work is recorded in the sprint tracker
 ### Agent
 
 1. Register as Agent, confirm email, and log in
-   ([`src/app/(auth)/actions.ts:58-105`](../src/app/(auth)/actions.ts#L58-L105)).
+   ([`src/app/(auth)/actions.ts:58-105`](<../src/app/(auth)/actions.ts#L58-L105>)).
 2. Obtain an AgentProfile—currently via seed/manual/admin-side database work because profile
    creation UI is **Not implemented**
    ([`prisma/seed.ts:69-91`](../prisma/seed.ts#L69-L91),
@@ -638,7 +642,7 @@ and unimplemented syndicate/KYC/billing work is recorded in the sprint tracker
 ### Investor
 
 1. Register as Investor, confirm email, and enter `/investor`
-   ([`src/app/(auth)/actions.ts:99-101`](../src/app/(auth)/actions.ts#L99-L101),
+   ([`src/app/(auth)/actions.ts:99-101`](<../src/app/(auth)/actions.ts#L99-L101>),
    [`src/lib/portalHome.ts:10-15`](../src/lib/portalHome.ts#L10-L15)).
 2. See KYC status and existing EOI pledge summary
    ([`src/app/investor/page.tsx:54-72`](../src/app/investor/page.tsx#L54-L72)).
@@ -652,7 +656,7 @@ and unimplemented syndicate/KYC/billing work is recorded in the sprint tracker
 ### Buyer
 
 1. Register as Buyer, confirm email, and enter `/buy`
-   ([`src/app/(auth)/register/page.tsx:20-30`](../src/app/(auth)/register/page.tsx#L20-L30),
+   ([`src/app/(auth)/register/page.tsx:20-30`](<../src/app/(auth)/register/page.tsx#L20-L30>),
    [`src/lib/portalHome.ts:10-15`](../src/lib/portalHome.ts#L10-L15)).
 2. Calculate affordability, search/filter public listings, and save favourites
    ([`src/app/buy/page.tsx:16-27`](../src/app/buy/page.tsx#L16-L27),
@@ -689,7 +693,7 @@ and unimplemented syndicate/KYC/billing work is recorded in the sprint tracker
    ([`src/components/marketplace/EnquiryForm.tsx:40-49`](../src/components/marketplace/EnquiryForm.tsx#L40-L49),
    [`src/lib/authz.ts:13-20`](../src/lib/authz.ts#L13-L20)).
 3. Register as Buyer, Investor, or Agent; Admin is unavailable
-   ([`src/app/(auth)/register/page.tsx:20-30`](../src/app/(auth)/register/page.tsx#L20-L30)).
+   ([`src/app/(auth)/register/page.tsx:20-30`](<../src/app/(auth)/register/page.tsx#L20-L30>)).
 
 ## Where permissions are enforced
 

@@ -128,23 +128,25 @@ placeholders and mock defaults are committed; no credential values were added.
 
 ## Validation results
 
-| Check                                                         | Result                                                                                                                                                            |
-| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `npm run test`                                                | **PASS** — 79 files, 1,000 tests against the isolated disposable database (output below).                                                                         |
-| `npm run test -- tests/unit`                                  | **PASS** — 78 files, 971 tests.                                                                                                                                   |
-| `npm run typecheck`                                           | **PASS** — all TypeScript errors resolved.                                                                                                                        |
-| `npm run lint`                                                | **PASS** — 0 errors, 0 warnings across the repository.                                                                                                            |
-| `npm run build`                                               | **PASS** — production build using process-only dummy provider values and a loopback-only database URL; no real providers or database were contacted by the build. |
-| Gitleaks 8.30.1 initial working-tree scan                     | **REVIEWED** — historical scan reported findings; see the follow-up scan and exact-path allowlist below.                                                          |
-| Gitleaks allowlist safety fixture                             | **PASS** — empty examples are allowed; the non-empty test key-shaped value remains flagged.                                                                       |
-| `npm run check:client-secrets`                                | **PASS** — no service-role references or server-secret reads under `src/`.                                                                                        |
-| `git diff --check`                                            | **PASS** — no whitespace errors (Git emitted only line-ending conversion warnings).                                                                               |
-| `npm audit --audit-level=high`                                | **PASS** — previous result: no high/critical findings; 21 moderate advisories.                                                                                    |
-| `npm run check-env -- --phase=0`                              | **BLOCKED** — local configuration lacks the required `AUTH_SECURITY_SECRET` and `APP_ORIGIN`.                                                                     |
-| Fresh Supabase Security Advisor, staging RLS, staging headers | **NOT RUN** — owner dashboard/deployment access is required; steps are below.                                                                                     |
-| Manual sign-up/login/logout/reset/session-expiry flow         | **NOT RUN** — hand-test plan is below; use a dedicated non-production identity.                                                                                   |
-| Disposable local DB migration and seed                        | **PASS** — only the confirmed localhost `proplink_test` database was used.                                                                                        |
-| Staging/production migration, commit, deployment              | **NOT RUN** — none was authorized or performed.                                                                                                                   |
+| Check                                                 | Result                                                                                                                                                            |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run test`                                        | **PASS** — 79 files, 1,000 tests against the isolated disposable database (output below).                                                                         |
+| `npm run test -- tests/unit`                          | **PASS** — 78 files, 971 tests.                                                                                                                                   |
+| `npm run typecheck`                                   | **PASS** — all TypeScript errors resolved.                                                                                                                        |
+| `npm run lint`                                        | **PASS** — 0 errors, 0 warnings across the repository.                                                                                                            |
+| `npm run build`                                       | **PASS** — production build using process-only dummy provider values and a loopback-only database URL; no real providers or database were contacted by the build. |
+| Gitleaks 8.30.1 initial working-tree scan             | **REVIEWED** — historical scan reported findings; see the follow-up scan and exact-path allowlist below.                                                          |
+| Gitleaks allowlist safety fixture                     | **PASS** — empty examples are allowed; the non-empty test key-shaped value remains flagged.                                                                       |
+| `npm run check:client-secrets`                        | **PASS** — no service-role references or server-secret reads under `src/`.                                                                                        |
+| `git diff --check`                                    | **PASS** — no whitespace errors (Git emitted only line-ending conversion warnings).                                                                               |
+| `npm audit --audit-level=high`                        | **PASS** — previous result: no high/critical findings; 21 moderate advisories.                                                                                    |
+| `npm run check-env -- --phase=0`                      | **BLOCKED** — local configuration lacks the required `AUTH_SECURITY_SECRET` and `APP_ORIGIN`.                                                                     |
+| Owner-reported staging RLS catalog audit              | **PASS WITH EXCEPTION** — application tables RLS-enabled; the staging Data API was disabled and verified HTTP 503 on 2026-11-05.                                  |
+| Fresh Supabase Security Advisor scan                  | **NOT RUN** — owner dashboard access is required; steps are below.                                                                                                |
+| Authenticated staging security headers                | **NOT RUN** — owner deployment access is required; steps are below.                                                                                               |
+| Manual sign-up/login/logout/reset/session-expiry flow | **NOT RUN** — hand-test plan is below; use a dedicated non-production identity.                                                                                   |
+| Disposable local DB migration and seed                | **PASS** — only the confirmed localhost `proplink_test` database was used.                                                                                        |
+| Staging/production migration, commit, deployment      | **NOT RUN** — none was authorized or performed.                                                                                                                   |
 
 ### Actual command output — full test command
 
@@ -622,8 +624,9 @@ are not classified here. The report did not print any secret values.
 
 ## Staging-only checks — owner access required
 
-No Supabase dashboard, staging database, or deployed staging response was
-accessed by these checks. Do not run these commands against production.
+The owner has supplied staging RLS catalog audit results below. No Supabase
+dashboard, staging database, or deployed staging response was accessed directly
+by the assistant. Do not run these checks against production.
 
 ### 1. Supabase Security Advisor
 
@@ -633,15 +636,121 @@ accessed by these checks. Do not run these commands against production.
 2. Open **Security Advisor** (Dashboard → **Advisors** → **Security Advisor**)
    and run a fresh scan.
 3. Record the project reference, scan time, severity, finding name, affected
-   schema/table, and remediation/accepted-exception status. The previously
-   documented PostGIS/`pg_trgm` staging exception passed its 2026-10-21 review
-   date; keep the Data API disabled until the new review is recorded.
+   schema/table, and remediation/accepted-exception status. The owner-reported
+   RLS audit below renews the exception review through 2026-12-04. The staging
+   Data API was disabled and verified on 2026-11-05; keep it off unless a
+   specific need is documented and approved. Obtain the Security Advisor scan
+   before the review date.
 4. Paste the findings summary here. Do not paste credentials, tokens, or user
    records.
 
 ### 2. Staging RLS catalog and role checks
 
 **Read-only catalog audit**
+
+**Owner-reported staging result (2026-11-04): PASS, with documented exception**
+
+- All application tables have RLS enabled and four policies. Grants for the
+  `authenticated` role are SELECT-only or absent; no write privileges were
+  reported.
+- Exception: `public.spatial_ref_sys` has RLS disabled and `anon` and
+  `authenticated` retain all privileges; `geography_columns` and
+  `geometry_columns` are not `security_invoker`; PostGIS and `pg_trgm` are
+  installed in `public`. These objects are owned by `supabase_admin` and
+  cannot be changed using the `postgres` role.
+- **Control status correction:** the owner confirmed the Data API on
+  `proplink-staging` was enabled through 2026-11-04, so the compensating
+  control was not in place until the owner disabled it on 2026-11-05. The
+  owner reports the toggle is now OFF. The read-only check in
+  `scripts/check-data-api.ps1 -EnvFile .env.staging.local` returned HTTP 503
+  for `GET /rest/v1/Property?select=id&limit=1`, with no table data returned.
+  The compensating control is now in place in staging. No setting was changed
+  by the assistant. Keep the Data API disabled in staging and production
+  unless a specific need is justified, documented, reviewed, and approved.
+  Production setting was not checked or changed.
+- **Review due: 2026-12-04**, or earlier if Supabase Support responds. Recheck
+  the exception and the Data API control by that date.
+- The two Phase 0 migrations
+  (`20261104000000_phase0_agent_invite_only` and
+  `20261104010000_phase0_append_only_audit`) have **not** been applied to
+  staging. No database changes were made as part of recording this result.
+- On 2026-11-05, the guarded read-only staging query
+  `SELECT count(*) FROM public.spatial_ref_sys` returned **8500**. It ran in a
+  read-only transaction after project/role verification; no database state was
+  changed.
+
+**Prerequisites for Phase 1 and Phase 2**
+
+1. Update `proplink_create_auth_profile` so signup can never assign the
+   `AGENT` role and supports `LANDLORD`.
+2. Add `LANDLORD` to the `kyc-documents` storage insert policy.
+3. Plan a separate private storage bucket for landlord listing documents.
+   Keep landlord documents separate from investor KYC documents and do not
+   enable landlord uploads until the bucket and access policy are reviewed.
+
+These are phase prerequisites, not changes made by this audit. No database
+objects or policies were altered.
+
+**Data API dependency search (application code, scripts, tests)**
+
+The application source has no Supabase PostgREST table (`.from(...)`), RPC
+(`.rpc(...)`), or `/rest/v1` calls. Application Prisma access uses PostgreSQL
+directly; Supabase Auth calls use the Auth API and do not require the Data API.
+The repository search found these script dependencies:
+
+| File                                        | Data API use                                                                                                                                                   | Effect if Data API is off                                                                                                                                                          |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/phase3-rls-harness.mjs`            | Authenticated `.from(...)` reads/updates for `profiles` and fixture tables. It also uses `storage.from(...).download(...)`, which is the separate Storage API. | Profile/table policy assertions fail as infrastructure errors; Storage API checks are not inherently blocked by disabling the Data API.                                            |
+| `scripts/validate-phase1-investor-type.mjs` | Authenticated `.from("profiles").update(...).select(...)` attempts to verify subtype writes are denied.                                                        | Does not validate the database policy reliably: a Data API-disabled error can be mistaken for an expected denial. Do not count this assertion as an RLS pass while the API is off. |
+| `scripts/validate-phase2-auth.mjs`          | Authenticated `.from("profiles").update(...).select(...)` attempts, requiring a policy-denial response.                                                        | The API-disabled response is not the expected policy-denial status, so the check fails rather than testing the policy.                                                             |
+| `scripts/validate-phase3-db.mjs`            | Direct `fetch` to `/rest/v1/spatial_ref_sys` for `postgis_grants_data_api_tripwire`.                                                                           | Disabling the Data API is the expected result when prohibited PostGIS grants exist. While it is enabled, this tripwire fails when those grants are present.                        |
+| `scripts/check-data-api.ps1`                | Sends a GET to `/rest/v1/Property?select=id&limit=1` using the publishable key read from a caller-selected env file.                                           | This is the intended off-state smoke check: HTTP 503 passes, HTTP 200 fails, other statuses are inconclusive/fail. It does not read or print response data.                        |
+
+No Supabase `.from(...)`, `.rpc(...)`, or `/rest/v1` calls were found in
+`tests/`. The `scripts/audit-phase3-db.mjs` RLS catalog audit and
+`scripts/provision-phase3-fixtures.mjs` fixture provisioning use direct
+PostgreSQL connections and Supabase Auth endpoints, respectively; neither
+requires the Data API. The application has no active Supabase Realtime channel
+usage. Realtime is a separate Supabase service from PostgREST and would not by
+itself require the Data API.
+
+**Plan only — not implemented or run:** make the three policy-validation
+scripts work while the staging Data API remains off:
+
+1. For `scripts/phase3-rls-harness.mjs`, replace profile and table `.from(...)`
+   policy checks with direct SQL executed in a disposable local PostgreSQL
+   database under `SET LOCAL ROLE authenticated`, with transaction-local
+   `auth.uid()`/JWT claims for each synthetic role. Assert owner reads,
+   cross-user isolation, protected-column writes, and fixture ownership.
+   Keep Storage API checks separate; either test `storage.objects` policies
+   directly under the same local role/claims model or exercise a local Storage
+   mock. Never point this policy harness at staging.
+2. For `scripts/validate-phase1-investor-type.mjs` and
+   `scripts/validate-phase2-auth.mjs`, move profile mutation-denial assertions
+   to direct SQL under the disposable database's `authenticated` role and
+   assert SQLSTATE/row effects. Keep Auth API sign-in checks separate where
+   needed; do not treat a Data API unavailable response as policy evidence.
+3. Use only a disposable local test database with the project migrations and
+   synthetic fixtures, add tests for allowed and denied outcomes, and document
+   any behavior that cannot be faithfully represented outside PostgREST.
+   Do not enable staging or production Data API to run these checks.
+
+The read-only catalog audit and fixture provisioning can use their direct
+PostgreSQL/Auth paths while the Data API is off.
+
+The reusable Data API toggle check is:
+
+```powershell
+.\scripts\check-data-api.ps1 -EnvFile .env.staging.local
+```
+
+It reads the project reference, URL, and publishable key from the named env
+file without printing the key. It sends a GET only to
+`/rest/v1/Property?select=id&limit=1`: HTTP 503 passes, HTTP 200 fails, and any
+other status is inconclusive and exits non-zero. The owner-run result on
+2026-11-05 was HTTP 503 with no table data.
+
+**Audit procedure (read-only; do not run migrations)**
 
 1. On your machine, confirm `.env.staging.local` contains the staging-only
    `DIRECT_URL` and `PROPLINK_STAGING_PROJECT_REF`. The URL must use the matching
@@ -755,13 +864,16 @@ or tokens.
   flagged ignored local environment and generated `.next` files. Those env
   files were deliberately not opened, so this report does not claim that every
   disk-scan finding is a clean scan.
-- The expired Supabase PostGIS/`pg_trgm` Security Advisor exception has not
-  been re-reviewed. The Data API must remain disabled until fresh evidence is
-  recorded; no exception is approved for production.
-- The expired Supabase PostGIS/`pg_trgm` Security Advisor exception has not
-  been re-reviewed. The Data API must remain disabled until fresh evidence is
-  recorded; no exception is approved for production.
-- The historical RLS evidence is not a fresh staging catalog/runtime report.
+- The owner-reported staging RLS catalog audit passed on 2026-11-04 with the
+  documented `supabase_admin`-owned PostGIS/`pg_trgm` exception. The owner confirmed it was enabled through 2026-11-04, then disabled it on
+  2026-11-05. `scripts/check-data-api.ps1` verified HTTP 503 with no table data,
+  so the compensating control is now in place in staging. Keep the Data API
+  disabled in staging and production absent a specific, justified, documented,
+  and approved need. The exception review is due 2026-12-04 and does not carry
+  to production. The fresh Supabase Security Advisor scan and authenticated
+  staging header check remain outstanding.
+- The runtime role-isolation harness has not been reported; its historical
+  RLS evidence is not a substitute for that runtime check.
   Admin/Solicitor MFA enforcement and the `/admin/system/integrations` surface
   are not verified/complete. Subscription, chat, and project authorization
   guards intentionally throw until their policies are implemented.
@@ -770,20 +882,23 @@ or tokens.
 - Auth unit tests pass, but browser parity and live session-expiry verification
   remain outstanding. Use the hand-test plan above.
 
-| Exit gate                                      | Status                         | Evidence                                                                                                  |
-| ---------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------- |
-| Phase 3 fixture typecheck errors fixed         | **PASS**                       | `npm run typecheck` exits 0.                                                                              |
-| Repository lint clean                          | **PASS**                       | `npm run lint` exits 0 with no warnings.                                                                  |
-| Production build                               | **PASS — isolated validation** | `npm run build` passes with process-only dummy provider values and loopback DB URL.                       |
-| Full test suite against disposable local DB    | **PASS**                       | 79 files, 1,000 tests.                                                                                    |
-| Database-mocked unit suite                     | **PASS**                       | 78 files, 971 tests.                                                                                      |
-| Gitleaks empty-example allowlist               | **PASS**                       | Empty declarations no longer trigger; synthetic non-empty key remains flagged.                            |
-| Full disk Gitleaks clean                       | **NOT CLAIMED**                | Prior scan flagged ignored local/generated files; env files were not opened.                              |
-| Zero high/critical `npm audit` findings        | **PASS**                       | Prior full audit: 21 moderate advisories; zero high/critical.                                             |
-| Fresh staging Security Advisor and RLS reports | **NOT VERIFIED**               | Owner must run the steps above.                                                                           |
-| Security headers on staging response           | **NOT VERIFIED**               | Requires an existing staging deployment and test login.                                                   |
-| Manual authentication flow                     | **NOT VERIFIED**               | Owner hand-test plan provided above.                                                                      |
-| Staging/production migration or deployment     | **PASS**                       | None was run. Commits are local to `phase-0-stabilise`; local disposable test DB use is documented above. |
+| Exit gate                                   | Status                         | Evidence                                                                                                                                                                      |
+| ------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 3 fixture typecheck errors fixed      | **PASS**                       | `npm run typecheck` exits 0.                                                                                                                                                  |
+| Repository lint clean                       | **PASS**                       | `npm run lint` exits 0 with no warnings.                                                                                                                                      |
+| Production build                            | **PASS — isolated validation** | `npm run build` passes with process-only dummy provider values and loopback DB URL.                                                                                           |
+| Full test suite against disposable local DB | **PASS**                       | 79 files, 1,000 tests.                                                                                                                                                        |
+| Owner-reported staging RLS catalog audit    | **PASS WITH EXCEPTION**        | Application tables RLS-enabled; managed PostGIS exception documented. Data API was disabled by owner and verified HTTP 503 on 2026-11-05.                                     |
+| Fresh staging Security Advisor scan         | **NOT VERIFIED**               | Owner must run the dashboard scan; review the reported exception by 2026-12-04.                                                                                               |
+| Database-mocked unit suite                  | **PASS**                       | 78 files, 971 tests.                                                                                                                                                          |
+| Gitleaks empty-example allowlist            | **PASS**                       | Empty declarations no longer trigger; synthetic non-empty key remains flagged.                                                                                                |
+| Full disk Gitleaks clean                    | **NOT CLAIMED**                | Prior scan flagged ignored local/generated files; env files were not opened.                                                                                                  |
+| Zero high/critical `npm audit` findings     | **PASS**                       | Prior full audit: 21 moderate advisories; zero high/critical.                                                                                                                 |
+| Staging Data API compensating control       | **PASS — VERIFIED OFF**        | Owner disabled the toggle; `scripts/check-data-api.ps1` returned HTTP 503 with no table data on 2026-11-05.                                                                   |
+| Data API-off RLS validation parity          | **PLANNED — NOT IMPLEMENTED**  | Three validation scripts still rely on PostgREST for policy assertions; migrate those checks to disposable local SQL/role tests before relying on them with the Data API off. |
+| Security headers on staging response        | **NOT VERIFIED**               | Requires an existing staging deployment and test login.                                                                                                                       |
+| Manual authentication flow                  | **NOT VERIFIED**               | Owner hand-test plan provided above.                                                                                                                                          |
+| Staging/production migration or deployment  | **PASS**                       | None was run. Commits are local to `phase-0-stabilise`; local disposable test DB use is documented above.                                                                     |
 
 **Decision:** Phase 0 remains open. Do not start Phase 1 or deploy until the
 owner-only staging checks and manual authentication test plan are complete.
