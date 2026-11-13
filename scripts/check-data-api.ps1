@@ -30,11 +30,17 @@ function Read-DotEnvFile {
 $resolvedEnvFile = (Resolve-Path -LiteralPath $EnvFile).Path
 $envValues = Read-DotEnvFile -Path $resolvedEnvFile
 $projectRef = $envValues["PROPLINK_STAGING_PROJECT_REF"]
+$projectConfigPath = Join-Path $PSScriptRoot "..\config\supabase-projects.json"
+$approvedStagingProjectRef = (Get-Content -Raw -LiteralPath $projectConfigPath | ConvertFrom-Json).staging
 $supabaseUrl = $envValues["NEXT_PUBLIC_SUPABASE_URL"]
 $publishableKey = $envValues["NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"]
 
 if (-not $projectRef -or -not $supabaseUrl -or -not $publishableKey) {
   throw "Env file must define PROPLINK_STAGING_PROJECT_REF, NEXT_PUBLIC_SUPABASE_URL, and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY."
+}
+Write-Output "Supabase project ref: $projectRef (staging)"
+if ($projectRef -ne $approvedStagingProjectRef) {
+  throw "Refusing Data API check: project reference is not the approved staging project."
 }
 
 $baseUri = [Uri]$supabaseUrl

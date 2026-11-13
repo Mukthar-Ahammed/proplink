@@ -1,6 +1,8 @@
 import { config } from "dotenv";
+import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 config({ path: ".env.local" });
+if (process.env.NEXT_PUBLIC_SUPABASE_URL) assertConfiguredSupabaseProject();
 
 const phaseRequirements = {
   0: [

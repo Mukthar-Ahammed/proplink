@@ -1,5 +1,6 @@
 import { config } from "dotenv";
 import pg from "pg";
+import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 config({ path: ".env.local", quiet: true });
 config({ quiet: true });
@@ -13,6 +14,10 @@ const connectionString = process.env.DIRECT_URL ?? process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error("DIRECT_URL or DATABASE_URL is required");
 }
+assertConfiguredSupabaseProject({
+  ...process.env,
+  DIRECT_URL: connectionString,
+});
 
 const client = new pg.Client({ connectionString });
 

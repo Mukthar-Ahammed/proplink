@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
+import { assertExpectedSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 export class AuthCreationUncertainError extends Error {
   constructor(cause) { super("Supabase Auth creation outcome is uncertain", { cause }); this.name = "AuthCreationUncertainError"; this.uncertain = true; this.code = "AUTH_CREATE_UNCERTAIN"; }
@@ -7,7 +8,11 @@ export class AuthCreationUncertainError extends Error {
 
 export function createAuthAdapter(env, adminClient) {
   const ref = env.PROPLINK_STAGING_PROJECT_REF;
-  if (!ref || env.NEXT_PUBLIC_SUPABASE_URL !== `https://${ref}.supabase.co` || !env.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Invalid staging Auth configuration");
+  const verifiedRef = assertExpectedSupabaseProject({
+    url: env.NEXT_PUBLIC_SUPABASE_URL,
+    environment: "staging",
+  });
+  if (ref !== verifiedRef || !env.SUPABASE_SERVICE_ROLE_KEY) throw new Error("Invalid staging Auth configuration");
   const admin = adminClient ?? createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
   const verify = (u, marker, email) => u?.email === email && u?.app_metadata?.proplink_fixture_marker === marker && u?.app_metadata?.phase3_disposable === true;
   return {
@@ -24,7 +29,79 @@ export function createAuthAdapter(env, adminClient) {
   };
 }
 
-export function createDatabaseAdapter(env, helper) { const make=()=>new pg.Client({connectionString:env.DIRECT_URL,ssl:{rejectUnauthorized:false}}); return { async provision(input){const client=make();await client.connect();try{return await helper({transaction:async(fn)=>{await client.query("BEGIN");let result;try{result=await fn({query:(s,v)=>client.query(s,v)});}catch(e){await client.query("ROLLBACK");throw e;}try{await client.query("COMMIT");}catch(e){const x=new Error("Database commit outcome uncertain",{cause:e});x.uncertain=true;x.code="DB_COMMIT_UNCERTAIN";throw x;}return result;}},input);}finally{await client.end();}}, async verify(authId,legacyId,role){const c=make();await c.connect();try{const r=await c.query(`SELECT p.role::text AS role,p.active,p."kycStatus"::text AS kyc,u.role::text AS user_role,u.active AS user_active,u."kycStatus"::text AS user_kyc FROM public.profiles p JOIN public."User" u ON u.id=p."legacyUserId" WHERE p.id=$1::uuid AND u.id=$2 AND p.role=$3::public."Role"`,[authId,legacyId,role]);return r.rows.length===1&&r.rows[0].role===r.rows[0].user_role&&r.rows[0].active===r.rows[0].user_active&&r.rows[0].kyc===r.rows[0].user_kyc;}finally{await c.end();}}}; }
+export function createDatabaseAdapter(env, helper) {
+  const projectRef = assertExpectedSupabaseProject({
+    url: env.NEXT_PUBLIC_SUPABASE_URL,
+    environment: "staging",
+    databaseUrl: env.DIRECT_URL,
+  });
+  if (env.PROPLINK_STAGING_PROJECT_REF !== projectRef) {
+    throw new Error("Invalid staging database configuration");
+  }
+  const make = () =>
+    new pg.Client({
+      connectionString: env.DIRECT_URL,
+      ssl: { rejectUnauthorized: false },
+    });
+
+  return {
+    async provision(input) {
+      const client = make();
+      await client.connect();
+      try {
+        return await helper({
+          transaction: async (fn) => {
+            await client.query("BEGIN");
+            let result;
+            try {
+              result = await fn({ query: (sql, values) => client.query(sql, values) });
+            } catch (error) {
+              await client.query("ROLLBACK");
+              throw error;
+            }
+            try {
+              await client.query("COMMIT");
+            } catch (error) {
+              const uncertain = new Error("Database commit outcome uncertain", {
+                cause: error,
+              });
+              uncertain.uncertain = true;
+              uncertain.code = "DB_COMMIT_UNCERTAIN";
+              throw uncertain;
+            }
+            return result;
+          },
+          input,
+        });
+      } finally {
+        await client.end();
+      }
+    },
+    async verify(authId, legacyId, role) {
+      const client = make();
+      await client.connect();
+      try {
+        const result = await client.query(
+          `SELECT p.role::text AS role,p.active,p."kycStatus"::text AS kyc,
+                  u.role::text AS user_role,u.active AS user_active,
+                  u."kycStatus"::text AS user_kyc
+             FROM public.profiles p
+             JOIN public."User" u ON u.id=p."legacyUserId"
+            WHERE p.id=$1::uuid AND u.id=$2 AND p.role=$3::public."Role"`,
+          [authId, legacyId, role],
+        );
+        return (
+          result.rows.length === 1 &&
+          result.rows[0].role === result.rows[0].user_role &&
+          result.rows[0].active === result.rows[0].user_active &&
+          result.rows[0].kyc === result.rows[0].user_kyc
+        );
+      } finally {
+        await client.end();
+      }
+    },
+  };
+}
 
 export function createFixtureDatabaseAdapter(env, payloads, clientFactory, registryOptions = {}) {
   const make = () => clientFactory ? clientFactory() : new pg.Client({ connectionString: env.DIRECT_URL, ssl: { rejectUnauthorized: false } });

@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import fs from "node:fs";
 import pg from "pg";
+import { assertExpectedSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 const envPath = ".env.staging.local";
 if (!fs.existsSync(envPath)) throw new Error(`Missing ${envPath}`);
@@ -12,6 +13,12 @@ if (!projectRef || process.env.CONFIRM_STAGING_AUDIT !== "yes") {
 }
 const connectionString = process.env.DIRECT_URL;
 if (!connectionString) throw new Error("DIRECT_URL is required for the staging audit");
+const verifiedRef = assertExpectedSupabaseProject({
+  url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  environment: "staging",
+  databaseUrl: connectionString,
+});
+if (verifiedRef !== projectRef) throw new Error("Configured staging project reference is not approved.");
 const parsedConnection = new URL(connectionString);
 const expectedDatabaseUser = `postgres.${projectRef}`;
 if (

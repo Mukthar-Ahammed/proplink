@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { config } from "dotenv";
 import pg from "pg";
+import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 config({ path: ".env.local", quiet: true });
 config({ quiet: true });
@@ -23,6 +24,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 if (!connectionString || !supabaseUrl) {
   throw new Error("DIRECT_URL/DATABASE_URL and NEXT_PUBLIC_SUPABASE_URL are required");
 }
+assertConfiguredSupabaseProject({
+  ...process.env,
+  DIRECT_URL: connectionString,
+});
 
 const apiUrl = new URL(supabaseUrl);
 const databaseUrl = new URL(connectionString);

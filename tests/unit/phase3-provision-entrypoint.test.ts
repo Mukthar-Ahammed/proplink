@@ -1,5 +1,16 @@
 import { describe, expect, it, vi } from "vitest";
-import { runPhase3Provisioning } from "../../scripts/provision-phase3-fixtures.mjs";
+import { runPhase3Provisioning as provisionPhase3Fixtures } from "../../scripts/provision-phase3-fixtures.mjs";
+
+function runPhase3Provisioning(options: {
+  env: Record<string, string>;
+  ledgerWriter?: (data: FixtureLedger, file: string) => void | Promise<void>;
+  [key: string]: unknown;
+}) {
+  return provisionPhase3Fixtures({
+    ...options,
+    ledgerWriter: options.ledgerWriter ?? (() => {}),
+  });
+}
 
 type FixtureIdentity = {
   email: string;
@@ -18,9 +29,10 @@ const fixtures: Record<string, FixtureIdentity> = Object.fromEntries(
     },
   ]),
 );
+const stagingProjectRef = "jqmgfdjbfvcyivtquufn";
 const base = {
-  PROPLINK_STAGING_PROJECT_REF: "staging",
-  NEXT_PUBLIC_SUPABASE_URL: "https://staging.supabase.co",
+  PROPLINK_STAGING_PROJECT_REF: stagingProjectRef,
+  NEXT_PUBLIC_SUPABASE_URL: `https://${stagingProjectRef}.supabase.co`,
   CONFIRM_PHASE3_PROVISION: "yes",
   PHASE3_FIXTURES_JSON: JSON.stringify(fixtures),
 };
@@ -91,7 +103,7 @@ describe("real phase3 provisioning entry point", () => {
     ).toBeGreaterThanOrEqual(0);
   });
   it("runs identity and dependent orchestration with injected services", async () => {
-    process.env.PROPLINK_STAGING_PROJECT_REF = "staging";
+    process.env.PROPLINK_STAGING_PROJECT_REF = stagingProjectRef;
     const calls: string[] = [];
     const auth = {
       discover: vi.fn(async () => {
@@ -154,7 +166,7 @@ describe("real phase3 provisioning entry point", () => {
     resources: ["AGENT", "INVESTOR", "BUYER", "ADMIN"].map((role) => ({
       role,
       email: fixtures[role].email,
-      projectRef: "staging",
+      projectRef: stagingProjectRef,
       authUserId: role,
       legacyUserId: `${role}-legacy`,
       state: "READY",
@@ -164,7 +176,7 @@ describe("real phase3 provisioning entry point", () => {
     key: `db:${kind}`,
     kind,
     model: kind,
-    projectRef: "staging",
+    projectRef: stagingProjectRef,
     ownerId: "AGENT-legacy",
     disposableMarker: "phase3-test-agent",
     state,

@@ -4,6 +4,7 @@ import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 import pg from "pg";
+import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 config({ path: ".env.local", quiet: true });
 
@@ -15,6 +16,7 @@ const required = [
 for (const name of required) {
   if (!process.env[name]) throw new Error(`Missing required environment variable: ${name}`);
 }
+assertConfiguredSupabaseProject();
 
 const appOrigin = process.env.PHASE4_TEST_ORIGIN ?? "http://localhost:3100";
 const projectUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);

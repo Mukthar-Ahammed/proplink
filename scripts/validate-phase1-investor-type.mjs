@@ -1,6 +1,7 @@
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
+import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 config({ path: ".env.local", quiet: true });
 
@@ -14,6 +15,7 @@ for (const name of [
   if (!process.env[name])
     throw new Error(`Missing required environment variable: ${name}`);
 }
+assertConfiguredSupabaseProject();
 
 const projectUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const databaseUrl = new URL(process.env.DIRECT_URL);

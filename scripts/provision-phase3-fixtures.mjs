@@ -5,11 +5,16 @@ import { provisionLegacyIdentity } from "./provision-db-helper.mjs";
 import { provisionOne } from "./provision-coordinator.mjs";
 import { readLedger, writeLedger } from "./phase3-ledger.mjs";
 import { buildPrismaFixturePayloads, provisionDependentWithLedger } from "./phase3-fixture-data.mjs";
+import { assertExpectedSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 export async function runPhase3Provisioning(options = {}) {
   const env = options.env ?? dotenv.parse(fs.readFileSync(options.envFile ?? ".env.staging.local"));
-  const ref = env.PROPLINK_STAGING_PROJECT_REF;
-  if (!ref || ref === "onhdlxxbdcfwujhtphaj" || !env.NEXT_PUBLIC_SUPABASE_URL?.includes(ref)) throw new Error("Staging project rejected");
+  const ref = assertExpectedSupabaseProject({
+    url: env.NEXT_PUBLIC_SUPABASE_URL,
+    environment: "staging",
+    databaseUrl: env.DIRECT_URL,
+  });
+  if (env.PROPLINK_STAGING_PROJECT_REF !== ref) throw new Error("Staging project rejected");
   if (env.CONFIRM_PHASE3_PROVISION !== "yes") throw new Error("Set CONFIRM_PHASE3_PROVISION=yes to authorize provisioning");
   if (!env.PHASE3_FIXTURES_JSON) throw new Error("PHASE3_FIXTURES_JSON is required");
   let fixtures; try { fixtures = JSON.parse(env.PHASE3_FIXTURES_JSON); } catch { throw new Error("Invalid fixture configuration"); }
