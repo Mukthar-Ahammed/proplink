@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { parseServerEnv } from "@/env";
+import { parseServerEnv, validateRuntimeEnv } from "@/env";
 
 vi.mock("server-only", () => ({}));
 
@@ -46,5 +46,26 @@ describe("server environment validation", () => {
         APP_ORIGIN: "https://proplink.example/path",
       }),
     ).toThrow(/APP_ORIGIN must be an origin/);
+  });
+
+  it("refuses runtime startup when development points at production", () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("NEXT_PHASE", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://jqmgfdjbfvcyivtquufn.supabase.co");
+    vi.stubEnv("PROPLINK_ENV", "development");
+    vi.stubEnv("PROPLINK_LOCAL_SUPABASE_PROJECT_REF", "jqmgfdjbfvcyivtquufn");
+    const projectLog = vi.spyOn(console, "info").mockImplementation(() => {});
+
+    try {
+      expect(() => validateRuntimeEnv()).toThrow(
+        /must match the approved development project/,
+      );
+      expect(projectLog).toHaveBeenCalledWith(
+        "Supabase project ref: jqmgfdjbfvcyivtquufn (development)",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+      projectLog.mockRestore();
+    }
   });
 });
