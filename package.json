@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "dev:staging": "node -e \"require('dotenv').config({ path: '.env.staging.local' }); process.env.NODE_ENV='development'; require('child_process').spawnSync('next', ['dev'], { stdio: 'inherit', shell: true, env: process.env })\"",
+    "dev:staging": "node -e \"require('dotenv').config({ path: '.env.staging.local' }); process.env.NODE_ENV='development'; process.env.PROPLINK_ENV='staging'; require('child_process').spawnSync('next', ['dev'], { stdio: 'inherit', shell: true, env: process.env })\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

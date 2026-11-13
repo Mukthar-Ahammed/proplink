@@ -34,35 +34,7 @@ const PLATE_COUNT = 6;
 const plateUrl = (n: number) =>
   `/uploads/seed/plate-${String((n % PLATE_COUNT) + 1).padStart(2, "0")}.jpg`;
 
-async function ensureSchema() {
-  try {
-    await db.$executeRawUnsafe(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ListingSource') THEN
-          CREATE TYPE public."ListingSource" AS ENUM ('AGENT', 'FLIPPER_RESALE');
-        END IF;
-      END $$;
-    `);
-
-    await db.$executeRawUnsafe(`
-      ALTER TABLE public."Property"
-      ALTER COLUMN "agentProfileId" DROP NOT NULL,
-      ADD COLUMN IF NOT EXISTS "listingSource" public."ListingSource" NOT NULL DEFAULT 'AGENT';
-    `);
-
-    await db.$executeRawUnsafe(`
-      ALTER TABLE private.auth_signup_intents
-      ADD COLUMN IF NOT EXISTS "investorType" public."InvestorType";
-    `);
-  } catch (err) {
-    console.warn("Schema initialization check in seed:", err);
-  }
-}
-
 async function seedUsers(passwordHash: string) {
-  await ensureSchema();
-
   const users = [
     { email: "admin@proplink.test", name: "Platform Admin", role: Role.ADMIN, investorType: null },
     { email: "agent@proplink.test", name: "Alice Agent", role: Role.AGENT, investorType: null },
