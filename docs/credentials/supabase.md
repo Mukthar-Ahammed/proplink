@@ -16,11 +16,33 @@ server-only adapter is reviewed and approved.
    connection into `DIRECT_URL`; keep both server-only.
 4. Copy the project URL and publishable key into
    `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
+   Set `PROPLINK_ENV` to `development`, `staging`, or `production`. The approved
+   development project is `onhdlxxbdcfwujhtphaj`; local development must set
+   `PROPLINK_LOCAL_SUPABASE_PROJECT_REF` to that value. Staging is
+   `jqmgfdjbfvcyivtquufn`. Production is deliberately unset until the owner
+   provides a separate production project reference, so production startup
+   fails closed and cannot use the development or staging project. Startup
+   prints the project reference and refuses to start if the URL or database
+   connection points at another environment.
 5. Configure Auth email confirmation and the exact callback URL
    `https://<environment-host>/auth/confirm`; use the matching local origin for
    development.
 6. Store deployed credentials in the environment's secret manager, never in
    GitHub variables, documentation, or application logs.
+
+The checked-in project-reference map records `onhdlxxbdcfwujhtphaj` as the
+owner-designated development project and `jqmgfdjbfvcyivtquufn` as staging.
+Configure production only after a separate production project has been
+confirmed.
+
+Environment-file defaults: `npm run dev`, Vitest integration setup, the
+Phase 0.5/1/2/4 validation scripts, and `manage-phase3-migration.mjs` use
+`.env.local`; `npm run dev:staging`, staging migration/audit/fixture scripts,
+and `validate-staging-checkpoint1.mjs` use `.env.staging.local`.
+`check-data-api.ps1` requires an explicit `-EnvFile` argument. Prisma CLI
+commands use `.env.staging.local` only when `PROPLINK_ENV=staging`, and
+otherwise use `.env.local` plus dotenv's `.env` fallback. The project guard
+runs before the app starts or scripts perform database/Auth writes.
 
 ## Permissions, rotation, and testing
 

@@ -7,8 +7,12 @@
 
 **Current focus → Phase 0 — Stabilise, Security Foundation and Shared
 Infrastructure**, on `phase-0-stabilise`. Its exit gate is not yet passed;
-Phase 1 has not started. No commit, migration, staging inspection, or deployment
-has occurred.
+Phase 1 has not started. On 2026-11-05, the owner-applied development
+catch-up's four schema checks passed and its failed Prisma history row was
+reconciled with `migrate resolve --applied` on the approved development
+project only. The nine later migrations remain pending; `db:deploy` is blocked
+by pre-existing seed-created `ListingSource`/`Property` changes. No staging or
+production migration or deployment occurred.
 
 The original sprint baseline remains Sprint 3: Tasks 3.1 and 3.2 were completed
 at the Week 5 checkpoint on 2026-08-07; Sprint 2 was DoD-passed the same day.

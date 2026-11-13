@@ -31,7 +31,22 @@
 - `src/env.ts` validates server configuration with Zod and keeps compliance
   flags fail-closed. Production requires distributed Upstash limiting,
   configured transactional email, Supabase Auth settings, an application
-  origin, and Turnstile. Investment payments cannot be enabled.
+  origin, and Turnstile. Investment payments cannot be enabled. Production
+  project reference remains unset until a separate project is owner-confirmed,
+  so production startup fails closed.
+- At Node.js startup, the runtime prints the Supabase project reference
+  (never a key) and fails closed unless the Supabase URL and any configured
+  database URLs match the approved environment. Development and staging
+  references live in `config/supabase-projects.json`; local development must
+  set `PROPLINK_LOCAL_SUPABASE_PROJECT_REF` to the approved development ref.
+  Prisma
+  migration/seed commands and database-writing scripts use the same project
+  guard before connecting.
+- Prisma migrations are the only supported mechanism for changing database
+  schema. `prisma/seed.ts` must create or update seed data only; it must not
+  create enums, alter tables, or swallow schema initialization errors. Existing
+  development schema drift from the former seed-time DDL must be reconciled
+  against the immutable migration history before `migrate deploy`.
 - `src/proxy.ts` is the global request boundary: it validates mutation origins,
   assigns a request ID and CSP nonce, applies route-aware limits, gates disabled
   Flipper paths, and marks private routes `no-store`/`noindex`. Route handlers
