@@ -1,6 +1,10 @@
 import "server-only";
 
 import { z } from "zod";
+import {
+  assertExpectedSupabaseProject,
+  resolvePropLinkEnvironment,
+} from "@/lib/supabase/project-guard";
 
 const optionalString = z.preprocess(
   (value) => (value === "" ? undefined : value),
@@ -15,10 +19,7 @@ const optionalSecret = z.preprocess(
   z.string().min(32).optional(),
 );
 const optionalEnum = <const T extends readonly [string, ...string[]]>(values: T) =>
-  z.preprocess(
-    (value) => (value === "" ? undefined : value),
-    z.enum(values).optional(),
-  );
+  z.preprocess((value) => (value === "" ? undefined : value), z.enum(values).optional());
 
 const booleanEnv = z.preprocess((value) => {
   if (value === undefined || value === "") return undefined;
@@ -30,6 +31,8 @@ const booleanEnv = z.preprocess((value) => {
 const serverEnvSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    PROPLINK_ENV: optionalEnum(["development", "staging", "production"]),
+    PROPLINK_LOCAL_SUPABASE_PROJECT_REF: optionalString,
     DATABASE_URL: optionalString,
     DIRECT_URL: optionalString,
     AUTH_SECURITY_SECRET: optionalSecret,
@@ -68,8 +71,7 @@ const serverEnvSchema = z
       env.EMAIL_PROVIDER ?? (env.NODE_ENV === "production" ? "resend" : "mock");
     const storageProvider =
       env.STORAGE_PROVIDER ?? (env.NODE_ENV === "production" ? "s3" : "mock");
-    const turnstileEnabled =
-      env.TURNSTILE_ENABLED ?? env.NODE_ENV === "production";
+    const turnstileEnabled = env.TURNSTILE_ENABLED ?? env.NODE_ENV === "production";
     const turnstileProvider =
       env.TURNSTILE_PROVIDER ?? (env.NODE_ENV === "production" ? "cloudflare" : "mock");
 
@@ -240,11 +242,9 @@ export function parseServerEnv(source: NodeJS.ProcessEnv) {
       (parsed.NODE_ENV === "production" ? "cloudflare" : "mock"),
     STORAGE_PROVIDER:
       parsed.STORAGE_PROVIDER ?? (parsed.NODE_ENV === "production" ? "s3" : "mock"),
-    TURNSTILE_ENABLED:
-      parsed.TURNSTILE_ENABLED ?? parsed.NODE_ENV === "production",
+    TURNSTILE_ENABLED: parsed.TURNSTILE_ENABLED ?? parsed.NODE_ENV === "production",
     UPLOADS_ENABLED: parsed.UPLOADS_ENABLED ?? false,
-    FINANCIAL_PROMOTIONS_REVIEWED:
-      parsed.FINANCIAL_PROMOTIONS_REVIEWED ?? false,
+    FINANCIAL_PROMOTIONS_REVIEWED: parsed.FINANCIAL_PROMOTIONS_REVIEWED ?? false,
     FLIPPER_FLOWS_ENABLED: parsed.FLIPPER_FLOWS_ENABLED ?? false,
     SYNDICATE_PAYMENTS_ENABLED: parsed.SYNDICATE_PAYMENTS_ENABLED ?? false,
   };
@@ -256,6 +256,20 @@ export function getServerEnv() {
 
 export function validateRuntimeEnv() {
   if (process.env.NEXT_PHASE === "phase-production-build") return;
+  if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    assertExpectedSupabaseProject({
+      url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      environment: resolvePropLinkEnvironment(
+        process.env.NODE_ENV,
+        process.env.PROPLINK_ENV,
+      ),
+      localProjectRef: process.env.PROPLINK_LOCAL_SUPABASE_PROJECT_REF,
+      databaseUrls: [
+        ["DATABASE_URL", process.env.DATABASE_URL],
+        ["DIRECT_URL", process.env.DIRECT_URL],
+      ],
+    });
+  }
   getServerEnv();
 }
 
@@ -265,8 +279,5 @@ export function isFinancialPromotionsReviewed(): boolean {
 
 export function areFlipperFlowsEnabled(): boolean {
   const env = getServerEnv();
-  return (
-    env.FLIPPER_FLOWS_ENABLED === true &&
-    env.FINANCIAL_PROMOTIONS_REVIEWED === true
-  );
+  return env.FLIPPER_FLOWS_ENABLED === true && env.FINANCIAL_PROMOTIONS_REVIEWED === true;
 }
