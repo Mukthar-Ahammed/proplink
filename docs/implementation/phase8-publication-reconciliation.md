@@ -124,9 +124,17 @@ The rehearsal applies the catch-up SQL with `psql` rather than
 run until the reviewed SQL's SHA-256 is pinned. The development run uses the
 guarded script.
 
-This rehearsal has not been run; it is for the owner to run.
+**Run 2026-11-16: passed** after the script fixes in `780500b` (psql input on
+stdin; PostgreSQL constraint-name truncation in the inspector).
 
-## Development execution order (not run)
+## Development execution order (run 2026-11-16)
+
+**Completed on development only, 2026-11-16.** Every step below succeeded; the
+final inspector run was 221 PASS / 0 FAIL and Prisma reports the schema up to
+date (21 migrations). The owner approved step 5 before it ran. Results are in
+`docs/phases/PHASE-0-REPORT.md` § "Development reconciliation completed". Staging
+and production were not touched; this order must be re-planned against their
+own read-only inspection before it is used there.
 
 Preflight: **stop `npm run dev` before touching development.** The dev server
 holds database connections and can hold locks; stop it, then run these steps
@@ -165,4 +173,3 @@ these steps run.
    and migration copy.
 
 Stop if any precondition, catch-up check, migration, or inspector check fails.
-No database operation in this plan has been run.

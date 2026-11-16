@@ -80,10 +80,11 @@ movement · multi-language.
 
 ## Current phase
 
-**Phase 0 — Stabilise, Security Foundation and Shared Infrastructure: in
-progress** on `phase-0-stabilise`. The feature-rich marketplace and portals are
-not production-ready; Supabase Auth/RLS and the new business model are still
-being reconciled. Phase 1 has not started. The roadmap is Phases 0–7 in
+**Phase 1 — Roles, Access Control, Invites, Verification and Profiles: in
+progress** on `phase-1-roles-access` (started 2026-11-16). **Phase 0 is still
+open**: only the owner's manual authentication test remains, and Phase 1 cannot
+exit before it passes (ADR-020). The feature-rich marketplace and portals are
+not production-ready. The roadmap is Phases 0–7 in
 [`PROPLINK_PHASE_PROMPTS.md`](./PROPLINK_PHASE_PROMPTS.md); the original 12-week
 sprint plan stopped at Sprint 3 and is superseded (ADR-019). See
 [`PROJECT-STATUS.md`](./PROJECT-STATUS.md) and [`BLOCKERS.md`](./BLOCKERS.md).

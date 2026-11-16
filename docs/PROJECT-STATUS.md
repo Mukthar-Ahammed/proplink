@@ -1,11 +1,24 @@
 # PropLink UK — Project Status
 
-**Status snapshot:** 2026-11-04
+**Status snapshot:** 2026-11-16
 
-**Repository branch:** `phase-0-stabilise`
+**Repository branches:** `phase-0-stabilise` (pushed; Phase 0 open on one owner
+step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 
-**Last implementation commit:** `a947cad` (`2026-11-04`); the final documentation group is being recorded in the current authorized commit.
-**Development mode:** Local-first; production deployment remains deferred.
+**Last Phase 0 implementation commit:** `67ad6c5` (2026-11-16).
+
+## 2026-11-16 update
+
+- **Phase 0:** every exit-gate item has passed or been carried to a named later
+  phase (ADR-019) except the owner's manual authentication test (steps 1–3,
+  part of 4, 6 and 7). The development project is fully reconciled: inspector
+  221 PASS / 0 FAIL and the Prisma schema is up to date. Automated login,
+  logout, generic-error and rate-limit checks pass after fixes in `67ad6c5`.
+- **Phase 1** started in parallel (ADR-020) on `phase-1-roles-access`, beginning
+  with Task 1 (roles and schema). It cannot exit, and nothing is merged to
+  `main` or deployed, until Phase 0 passes.
+- The sections below are the 2026-11-04 snapshot and are kept for history.
+  **Development mode:** Local-first; production deployment remains deferred.
 
 > This report separates the sprint-tracker baseline from newer work in the
 > working tree. A feature appearing in source code or a phase report does not

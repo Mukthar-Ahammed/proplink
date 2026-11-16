@@ -6,9 +6,34 @@
 > `docs/phases/PHASE-N-REPORT.md`. The 12-week sprint plan and the sprint
 > sections below are the historical baseline (superseded, ADR-019).
 
-**Current focus → Phase 0 — Stabilise, Security Foundation and Shared
-Infrastructure**, on `phase-0-stabilise`. Its exit gate is not yet passed;
-Phase 1 has not started. On 2026-11-05, the owner-applied development
+**Current focus → Phase 1 — Roles, Access Control, Invites, Verification and
+Profiles**, on `phase-1-roles-access`, started 2026-11-16 in parallel with the
+last Phase 0 item (ADR-020). **Phase 0 stays open** until the owner reports the
+manual authentication test (steps 1–3, part of 4, 6 and 7); Phase 1 cannot exit
+before then.
+
+| Phase 1 task                           | State       |
+| -------------------------------------- | ----------- |
+| 1. Roles and schema                    | In progress |
+| 2. Public registration rules           | Not started |
+| 3. Agent invitations and announcements | Not started |
+| 4. Companies House check               | Not started |
+| 5. Existing agents migration           | Not started |
+| 6. KYC/AML provider                    | Not started |
+| 7. Blue tick                           | Not started |
+| 8. Profiles                            | Not started |
+| 9. Suspend/reinstate                   | Not started |
+| 10. Notification preferences           | Not started |
+| 11. MFA                                | Not started |
+| 12. Secure upload pipeline             | Not started |
+| 13. Permission-matrix harness          | Not started |
+
+**2026-11-16 Phase 0 progress:** development reconciliation completed
+(inspector 221/0, schema up to date); automated auth checks passed after three
+fixes (missing local `AUTH_SECURITY_SECRET`, silent rate-limited forms,
+passwords in development logs — `67ad6c5`). Details in the Phase 0 report.
+
+**Earlier Phase 0 history.** On 2026-11-05, the owner-applied development
 catch-up's four schema checks passed and its failed Prisma history row was
 reconciled with `migrate resolve --applied` on the approved development
 project only. The nine later migrations remain pending; `db:deploy` is blocked
@@ -18,7 +43,7 @@ production migration or deployment occurred.
 **2026-11-13 closeout review:** the only Phase 0 exit-gate item still open is
 the manual authentication hand test. The other unmet gate items were carried to
 named later phases (ADR-019). The development migration reconciliation has an
-approved order and a rehearsal script that has not been run yet.
+approved order and a rehearsal script (both run successfully on 2026-11-16).
 
 **2026-11-16 Task 11 alignment:** the phase prompts were aligned with the three
 business PDFs (permission matrix, chat pairs, Landlord lifecycle, Lead Investor

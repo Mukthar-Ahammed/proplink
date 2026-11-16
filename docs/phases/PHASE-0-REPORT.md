@@ -2,7 +2,7 @@
 
 | Status                                                                       | Snapshot   | Branch                                   | Staging dashboard credentials |
 | ---------------------------------------------------------------------------- | ---------- | ---------------------------------------- | ----------------------------- |
-| Exit gate **NOT PASSED**                                                     | 2026-11-04 | `phase-0-stabilise` (based on `e3d9f39`) | Not available                 |
+| Exit gate **NOT PASSED** — only the owner's manual auth steps remain (ADR-020) | 2026-11-16 | `phase-0-stabilise` (based on `e3d9f39`) | Not available                 |
 | **Implementation commits:** Six feature groups committed locally; see the    |
 | commit record below. The final documentation group includes this report.     |
 | **Migrations:** Applied only to the owner-confirmed disposable local test DB |
@@ -905,6 +905,71 @@ for validating every constraint definition or policy expression.
 
 No staging or production database was accessed or changed.
 
+## Development reconciliation completed (2026-11-16)
+
+The approved order in
+`docs/implementation/phase8-publication-reconciliation.md` was run on the
+development project `onhdlxxbdcfwujhtphaj` only, with the owner's approval at
+the irreversible step. No staging or production database was touched.
+
+1. **Rehearsal** on the disposable Docker database
+   (`scripts/rehearse-dev-reconciliation.ps1`): passed after two script-only
+   fixes committed in `780500b`. Windows PowerShell 5.1 strips embedded double
+   quotes from native-command arguments, so the rehearsal now feeds SQL to
+   `psql` on stdin; and the inspector now derives inline `UNIQUE`/`CHECK`
+   constraint names with PostgreSQL's own 63-character truncation rule and
+   checks every inline `UNIQUE`, not just the first. Neither fix touched a
+   migration.
+2. **Deploy through `20261007100000`**: applied. The inspector then showed only
+   the expected publication gaps (column, unique constraint, foreign key).
+3. **Catch-up** (`scripts/apply-dev-catchup-20261007110000.mjs`): the SQL hash
+   matched the reviewed file and the transaction committed.
+4. **Precheck before resolve**: all objects of `20261007110000` present and
+   matching; zero history rows; no failed rows.
+5. **`migrate resolve --applied 20261007110000_phase8_publication_remediation`**:
+   run after the owner's explicit go-ahead. There was no backup (owner
+   decision), so this step has no undo.
+6. **`npm run db:deploy`**: applied `20261009120000`, `20261104000000` and
+   `20261104010000`.
+7. **Final check**: inspector **221 PASS / 0 FAIL**; `npx prisma migrate
+   status` reports 21 migrations and "Database schema is up to date!". The
+   temporary Prisma config and migration copy were deleted.
+
+## Automated authentication checks and fixes (2026-11-16)
+
+With the development server running against the reconciled project, the agent
+checked routes and ran the parts of the manual plan that need no inbox, using
+the seeded test accounts only:
+
+| Check | Result |
+| ----- | ------ |
+| Auth pages (`/register`, `/login`, `/forgot-password`, `/reset-password`, `/check-email`, `/admin/login`) | HTTP 200 |
+| Portals (`/buy`, `/investor`, `/agent`, `/admin`) signed out | 307 to the right login page |
+| `/register` role options | Buyer and Investor only; no Agent |
+| Buyer login, then sign-out, then `/buy` | Login reached `/buy`; sign-out returned to `/`; `/buy` redirected to `/login` |
+| Unknown email, five attempts | Each showed the generic "Invalid email or password" |
+| Sixth attempt | Blocked by the rate limit with a visible message and 60-second countdown |
+
+Three defects were found and fixed:
+
+- **Every login returned HTTP 500** because `AUTH_SECURITY_SECRET` was missing
+  from the local `.env.local`. A random 32-byte value was generated into that
+  file (not committed, never displayed). Staging and production each need their
+  own value when provisioned.
+- **Rate-limited auth forms showed nothing** (`67ad6c5`). The proxy answers a
+  blocked Server Action with JSON (429/503/403), which React cannot read, so the
+  call rejected silently. `src/lib/security/auth-action-client.ts` now turns a
+  rejected call into a generic "limited" result on the login, Admin login,
+  resend, sign-up, forgot-password and reset-password forms.
+- **Development logs printed passwords** (`67ad6c5`). Next.js logs each Server
+  Function call with its arguments in development; `logging.serverFunctions`
+  is now `false`. Production never logged them.
+
+The existing `tests/e2e/week2-auth.spec.ts` login helper waits only 5 seconds
+for navigation, and logins against the remote development database take 4–6
+seconds, so that spec fails locally for timing reasons. It passes the same
+flow when given longer.
+
 ## Known gaps and exit gate
 
 - The earlier full-suite failures came from the unverified database configured
@@ -953,12 +1018,14 @@ No staging or production database was accessed or changed.
 | Staging Data API compensating control       | **PASS — VERIFIED OFF**        | Owner disabled the toggle; `scripts/check-data-api.ps1` returned HTTP 503 with no table data on 2026-11-05.                                                                   |
 | Data API-off RLS validation parity          | **CARRIED TO PHASE 7**         | PostgREST-dependent policy checks are a planned Phase 7 task, not a Phase 0 blocker. Keep staging and production Data API disabled; never re-enable it to run validation. |
 | Security headers verified locally           | **PASS — EXCEPT HSTS**         | Development build only, 2026-11-13: `curl.exe -I http://localhost:3000/marketplace` returned CSP with nonce, nosniff, referrer, permissions, COOP/CORP, `frame-ancestors 'none'`; `/agent` added `private, no-store` + `noindex`. HSTS is production-only (`src/proxy.ts:237`) and is verified at the first real staging deployment. |
-| Manual authentication flow                  | **NOT VERIFIED — PHASE 0 GATE** | Owner hand-test plan above. Requires a working development project; see the dev-project note at the end of this report. |
+| Manual authentication flow                  | **PARTLY VERIFIED — PHASE 0 GATE** | 2026-11-16: login, logout, generic errors and rate limiting checked against development (see "Automated authentication checks"). Owner steps 1–3, the Admin and unverified-account checks in step 4, 6 and 7 remain. |
 | Staging/production migration or deployment  | **PASS**                       | None was run. Commits are local to `phase-0-stabilise`; local disposable test DB use is documented above.                                                                     |
 
 **Decision:** Phase 0 remains open. The only outstanding exit-gate item is the
-manual authentication test, which needs a working development project. Do not
-start Phase 1 or deploy until it is complete.
+owner's part of the manual authentication test. The development project is
+reconciled and working. On 2026-11-16 the owner chose to start Phase 1 in
+parallel (ADR-020); Phase 1 cannot exit, and nothing is merged to `main` or
+deployed, until this gate passes.
 The earlier disk scan included ignored local/generated files that were not
 opened; this report does not claim a clean full-disk scan.
 
