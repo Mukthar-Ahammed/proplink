@@ -45,6 +45,18 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Agent invitation (ADR-023): the token is in the URL fragment, but
+        // keep the page uncached and referrer-free as defence in depth.
+        source: "/invite/agent",
+        headers: [
+          { key: "Referrer-Policy", value: "no-referrer" },
+          {
+            key: "Cache-Control",
+            value: "private, no-store, max-age=0, must-revalidate",
+          },
+        ],
+      },
+      {
         source: "/reset-password",
         headers: [
           { key: "Referrer-Policy", value: "no-referrer" },
