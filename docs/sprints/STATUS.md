@@ -1,9 +1,10 @@
 # Sprint Status — Live Tracker
 
 > Living document. Update task states as work happens; update the phase line in
-> `docs/CONTEXT.md` at sprint boundaries. Task definitions and acceptance criteria:
-> `docs/PropLink_Sprint_Plan_Claude_Code.md`. Per-sprint detail: `SPRINT-NN.md`.
-> Sprint-level progress sheet (status/remarks/comments): `SPRINT-TRACKER.md`.
+> `docs/CONTEXT.md` at phase boundaries. Roadmap, task definitions and exit
+> gates: `docs/PROPLINK_PHASE_PROMPTS.md` (Phases 0–7). Per-phase detail:
+> `docs/phases/PHASE-N-REPORT.md`. The 12-week sprint plan and the sprint
+> sections below are the historical baseline (superseded, ADR-019).
 
 **Current focus → Phase 0 — Stabilise, Security Foundation and Shared
 Infrastructure**, on `phase-0-stabilise`. Its exit gate is not yet passed;
@@ -13,6 +14,18 @@ reconciled with `migrate resolve --applied` on the approved development
 project only. The nine later migrations remain pending; `db:deploy` is blocked
 by pre-existing seed-created `ListingSource`/`Property` changes. No staging or
 production migration or deployment occurred.
+
+**2026-11-13 closeout review:** the only Phase 0 exit-gate item still open is
+the manual authentication hand test. The other unmet gate items were carried to
+named later phases (ADR-019). The development migration reconciliation has an
+approved order and a rehearsal script that has not been run yet.
+
+**2026-11-16 Task 11 alignment:** the phase prompts were aligned with the three
+business PDFs (permission matrix, chat pairs, Landlord lifecycle, Lead Investor
+assignment, sale-to-ledger handoff, PDF → phase traceability); `AGENTS.md`,
+`CONTEXT.md` and `ARCHITECTURE.md` now reflect the subscriptions-only Stripe rule
+and the current roadmap; the older plans are marked superseded; OD-13 to OD-17
+were logged in `OPEN_DECISIONS.md`.
 
 The original sprint baseline remains Sprint 3: Tasks 3.1 and 3.2 were completed
 at the Week 5 checkpoint on 2026-08-07; Sprint 2 was DoD-passed the same day.

@@ -1,5 +1,7 @@
 # PropLink UK — Master Project Document
 
+> **SUPERSEDED (2026-11-16, ADR-019).** This document describes the earlier business model (agent self-signup, boosts and success fees, market-intelligence and ecosystem portals, Pusher realtime). The business source of truth is now the three PDFs in `docs/business/`, implemented by `docs/PROPLINK_PHASE_PROMPTS.md`. Keep this file for historical reference only; where it disagrees with those, it is wrong.
+
 **Project Definition · Workflows · Technology Stack · Full A-to-Z Cost Analysis**
 
 *Consolidated from: Property Portal Workflow Analysis · PropLink UK Development Plan · PropLink Full Project Plan v1.0 · PropLink Investor Workflow v1.0*

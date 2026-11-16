@@ -1,5 +1,7 @@
 # PropLink UK — 12-Week Sprint Plan (Claude Code Build Brief)
 
+> **SUPERSEDED (2026-11-16, ADR-019).** The build stopped at Sprint 3 and the roadmap is now Phases 0–7 in `docs/PROPLINK_PHASE_PROMPTS.md`, aligned with the three business PDFs in `docs/business/`. Sprints 1–3 acceptance criteria still describe code that exists; Sprints 4–6 must not be built as written here. Do not follow the "how to use" instructions below.
+
 > **How to use this file:** Give this entire file to Claude Code as the project brief (keep it in the repo root, or reference it from `CLAUDE.md`). The build is **12 weeks = 6 two-week sprints**. Work strictly **one week at a time, in order** — each week has its own tasks and an end-of-week checkpoint. Do not start a task until its dependencies (listed) are done. Every task has acceptance criteria — a task is only "done" when all criteria pass and the code is committed with tests green.
 >
 > **Each sprint has two parts:** 🤖 **Build tasks** (Claude Code does these) and 👤 **Human tasks** (account creation, API keys, legal, purchases — Claude Code CANNOT do these; the human must). Human tasks are listed at the start of each sprint with step-by-step instructions, because the build tasks depend on their outputs (keys, credentials, decisions). **Claude Code: if a required credential from a human task is missing, use the mock implementation, log it in `/docs/BLOCKERS.md`, and keep building — never stall.**

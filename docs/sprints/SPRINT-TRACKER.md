@@ -10,8 +10,10 @@
 
 **Current phase:** Phase 0 is in progress on `phase-0-stabilise`; its exit gate
 has not passed, and Phase 1 has not started. Sprint rows below describe the
-original roadmap. Later implementation in the worktree is not equivalent to a
-verified sprint exit.
+original roadmap, which is **superseded** by `docs/PROPLINK_PHASE_PROMPTS.md`
+(ADR-019): Sprints 4–6 will not run as planned, and their remarks (for example
+"Stripe for agent subs/boosts") reflect the earlier business model. Later
+implementation in the worktree is not equivalent to a verified sprint exit.
 
 ## Overview
 

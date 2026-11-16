@@ -1,7 +1,9 @@
 # PropLink UK — Product Context
 
 > Living document. Update whenever product scope, constraints or phase change
-> (see AGENTS.md § living-docs rule). Full detail: `PropLink_UK_Master_Document.md`.
+> (see AGENTS.md § living-docs rule). Business source of truth: the three PDFs in
+> `docs/business/`; roadmap and rules: `PROPLINK_PHASE_PROMPTS.md`. The older
+> `PropLink_UK_Master_Document.md` is superseded (ADR-019).
 
 ## What we are building
 
@@ -29,18 +31,27 @@ business model.
 | `ADMIN`     | Governance           | Invite Agents, review listings, moderate users/KYC and authorise sensitive project access         |
 | Advertiser  | Promotion            | Admin-approved, clearly labelled sponsored placements in designated areas only                    |
 
-## Five portals
+## Portals
 
-Marketplace · Investor Portal · Agent Portal · Market Intelligence · Ecosystem
-Marketplace. The four global metrics — Total Distress Inventory · Completed
-Syndicate Deals · Accrued Success Fees · Vetted Referrals Routed — are on the
-landing page rather than a strip above the header (ADR-005).
-
-**Not one shared nav bar.** Role-specific portals remain distinct. The live
+One portal per role, each with its own navigation: **Landlord** (private listings,
+agent proposals, mandate, project view), **Agent** (private-listing marketplace,
+mandates, investor projects, retail listings, buyer pipeline), **Investor**
+(projects, pledges as EOI, agreements, ledger), **Buyer** (Rightmove-style public
+marketplace, saved properties, viewings, offers), **Solicitor** (one assigned
+project), **Admin** (governance), plus Advertiser self-service. The live
 implementation currently includes Agent, Investor, Buyer and Admin surfaces;
-Landlord, Solicitor and advertiser workflows are future implementation work.
+Landlord, Solicitor and Advertiser workflows are future work (Phases 1–6).
 Server-side ownership and relationship checks are required on every private
-surface.
+surface. Who may do what is defined by the permission matrix in
+`PROPLINK_PHASE_PROMPTS.md` §5.
+
+**Legacy surfaces not in the business PDFs.** The original plan's Market
+Intelligence and Ecosystem Marketplace portals, the landing-page metrics
+(Total Distress Inventory · Completed Syndicate Deals · Accrued Success Fees ·
+Vetted Referrals Routed, ADR-005) and the `SuccessFee` model come from the
+superseded plan. They are not part of the current business model: do not extend
+them, and decide their removal or replacement when the affected phase touches
+them (ADR-019).
 
 ## The 8 distress tags
 
@@ -62,7 +73,7 @@ WATER_DAMAGE · FIRE_DAMAGE
 5. **EPC rating** displayed on every listing (UK legal requirement); all material
    information (defects, probate status) disclosed.
 
-## Deferred by design (do NOT build in the 12 weeks)
+## Deferred by design (not in Phases 0–7)
 
 Native mobile apps · Elasticsearch · premium AVM data (Hometrack) · real capital
 movement · multi-language.
@@ -72,7 +83,9 @@ movement · multi-language.
 **Phase 0 — Stabilise, Security Foundation and Shared Infrastructure: in
 progress** on `phase-0-stabilise`. The feature-rich marketplace and portals are
 not production-ready; Supabase Auth/RLS and the new business model are still
-being reconciled. Phase 1 has not started. See
+being reconciled. Phase 1 has not started. The roadmap is Phases 0–7 in
+[`PROPLINK_PHASE_PROMPTS.md`](./PROPLINK_PHASE_PROMPTS.md); the original 12-week
+sprint plan stopped at Sprint 3 and is superseded (ADR-019). See
 [`PROJECT-STATUS.md`](./PROJECT-STATUS.md) and [`BLOCKERS.md`](./BLOCKERS.md).
 
 **Mode: LOCAL-ONLY development** (2026-07-23, ADR-004) — no GitHub/Vercel/domains/
