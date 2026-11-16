@@ -2,9 +2,13 @@
 
 ## Purpose and status
 
-PostgreSQL/PostGIS and Supabase Auth support the application. No service-role
-key is required by the current application path; do not add one unless a narrow
-server-only adapter is reviewed and approved.
+PostgreSQL/PostGIS and Supabase Auth support the application. The only
+application use proposed for a service-role key is
+`src/services/auth/agentAccountProvisioner.ts`, which creates an invited
+Agent's confirmed account (Phase 1 Task 3, ADR-023). It is **awaiting owner
+approval (OD-18)**: until `SUPABASE_SERVICE_ROLE_KEY` is set, that adapter
+fails closed and nothing else in the app reads the key. Do not add other
+service-role uses without the same review.
 
 ## Create and configure
 

@@ -125,3 +125,24 @@ export async function sendNewEnquiryEmail(params: {
     }\n\nMessage:\n${params.message}\n\nReply directly to this email, or view the enquiry in your PropLink UK agent portal.`,
   });
 }
+
+// Phase 1 Task 3 — Agent invitation (ADR-023). The token is in the URL
+// fragment, which browsers never send to the server or in a Referer header.
+
+export async function sendAgentInviteEmail(params: {
+  to: string;
+  inviteUrl: string;
+  expiresAt: Date;
+}) {
+  const expires = params.expiresAt.toUTCString();
+  await mailer.send({
+    to: params.to,
+    subject: "You're invited to join PropLink UK as an agent",
+    text: `PropLink UK has invited you to create an agent account.\n\nAccept the invitation and set your password here:\n${params.inviteUrl}\n\nThis link works once, only for this email address, and expires on ${expires}.\n\nIf you were not expecting this invitation, ignore this email.`,
+  });
+}
+
+/** True when emails are only logged (development): nothing is actually sent. */
+export function isMockMailer(): boolean {
+  return env.EMAIL_PROVIDER !== "resend";
+}

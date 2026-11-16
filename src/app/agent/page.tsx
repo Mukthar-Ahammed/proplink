@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requirePageRole } from "@/lib/authz";
 import { getAgentDashboard } from "@/services/agents/agentDashboard";
 import { PortalEmpty, PortalSection, StatCard } from "@/components/portal/PortalShell";
+import { PortalAnnouncements } from "@/components/portal/Announcements";
+import { listActiveAnnouncements } from "@/services/announcements/announcements";
 
 // Middleware-gated, always per-request — never statically prerendered.
 export const dynamic = "force-dynamic";
@@ -20,10 +22,15 @@ export default async function AgentHomePage() {
   // server-side check AGENTS.md requires before reading a user's own data, and
   // it is what narrows `session.user` for the query below.
   const { user } = await requirePageRole("AGENT");
-  const data = await getAgentDashboard(user.id);
+  const [data, announcements] = await Promise.all([
+    getAgentDashboard(user.id),
+    listActiveAnnouncements("AGENT"),
+  ]);
 
   return (
     <>
+      <PortalAnnouncements items={announcements} />
+
       <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard value={data.liveListings} label="Live listings" />
         <StatCard

@@ -15,7 +15,7 @@ development Supabase project (see the Phase 0 report).
 | -------------------------------------- | ----------- | ---------------------------------------- |
 | 1. Roles and schema                    | **Done**    | ADR-021; details below                   |
 | 2. Public registration rules           | **Done**    | ADR-022; details below                   |
-| 3. Agent invitations and announcements | Not started |                                          |
+| 3. Agent invitations and announcements | **Done**    | ADR-023; acceptance needs OD-18 key      |
 | 4. Companies House check               | Not started | Needs `COMPANIES_HOUSE_API_KEY` for live |
 | 5. Existing agents migration           | Not started |                                          |
 | 6. KYC/AML provider                    | Not started | Provider choice is an owner decision     |
@@ -123,3 +123,48 @@ migrations are applied there.
 **Follow-up:** the login rate limit (5 per 15 minutes per IP, counting
 successful logins) makes the full browser suite hard to run locally and could
 lock out users sharing a connection. Review before launch.
+
+## Task 3 — Agent invitations and announcements (2026-11-16)
+
+**Delivered** (ADR-023)
+
+- Migration `20261116020000_phase1_agent_invites_announcements` (with
+  `rollback.sql`): `agent_invites`, `private.agent_invite_claims`,
+  `announcements`, and the profile trigger extended with an invite-claim branch
+  (the sign-up intent branch is unchanged).
+- `src/services/agents/agentInvites.ts`: create (supersedes any pending invite),
+  resend, revoke, list, inspect and accept, all audited. Tokens are 256-bit,
+  stored only as SHA-256 hashes, compared in constant time, single-use
+  (atomic claim), bound to the invited email, expiring after 7 days, and
+  rate-limited on acceptance. Expired, used, revoked and superseded links each
+  get a clear message.
+- `src/services/auth/agentAccountProvisioner.ts`: Supabase Admin adapter and a
+  fail-closed adapter used while `SUPABASE_SERVICE_ROLE_KEY` is unset.
+- Admin UI: `/admin/agents/invites` (invite, resend, revoke; in development the
+  link is shown once because emails are mocked) and `/admin/announcements`.
+- Invitee UI: `/invite/agent` reads the token from the URL fragment, shows the
+  invited email, asks for name, password and terms, then signs the Agent in and
+  opens `/agent`. MFA is added by Task 11.
+- Agent dashboard shows live banners and platform updates labelled "From
+  PropLink".
+
+**Verification**
+
+- Unit tests: `agent-invites.test.ts` (token format and transport, create,
+  supersede, revoke, inspect states, rate limit, terms, single use, release on
+  failure, invited email only, fail closed on a non-Agent profile) and
+  `announcements.test.ts` (sanitiser, link and markup rejection, audience,
+  dates, audit, active filter). Writing them found and fixed one bug: an email
+  pasted with surrounding spaces was rejected.
+- Database tests (`agent-invites-db.test.ts`): a valid claim for the invited
+  email creates an `AGENT` and links the invite; a different email, an invite
+  not yet accepted, or an expired claim all give `BUYER`; one pending invite
+  per email; normalised email, hash format and state checks; announcements
+  reject links and markup; no Data API access.
+- Full suite against a fresh disposable database: **87 files, 1,094 tests
+  pass**. Typecheck, lint and `check:client-secrets` clean.
+- `tests/e2e/agent-invites.spec.ts` is written but **not yet run**: it needs the
+  Phase 1 migrations on the development database.
+
+**Open:** OD-18 (owner approval of the service-role key for account
+creation). Until then invites can be sent but not accepted.

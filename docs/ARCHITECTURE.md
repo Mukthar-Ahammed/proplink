@@ -200,6 +200,20 @@ The complete one-line policy rationale is in
   postcode and the map need a signed-in (always email-verified) viewer.
   `src/services/listings/locationVisibility.ts` holds the rule, applied in
   `/marketplace`, `GET /api/search` and `/marketplace/[id]`.
+- **Agent invitations (Phase 1, ADR-023):** `public.agent_invites` (server-only)
+  stores the SHA-256 hash of a 256-bit token, never the token; one pending invite
+  per email. Links carry the token in the URL fragment (`/invite/agent#token=`).
+  Acceptance atomically marks the invite used, writes a five-minute
+  `private.agent_invite_claims` row, and creates the account through
+  `AgentAccountProvisioner` (`src/services/auth/agentAccountProvisioner.ts`;
+  Supabase Admin API adapter, fail-closed without `SUPABASE_SERVICE_ROLE_KEY`,
+  owner approval pending as OD-18). `proplink_create_auth_profile()` grants
+  `AGENT` only for a matching claim on the invited email. Service:
+  `src/services/agents/agentInvites.ts`; Admin UI `/admin/agents/invites`.
+- **Announcements (Phase 1, ADR-023):** `public.announcements` (server-only),
+  plain text only (service sanitiser plus database checks reject markup and
+  links), audience by role, start/end dates; shown on the Agent dashboard via
+  `PortalAnnouncements`. Admin UI `/admin/announcements`. Separate from paid ads.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

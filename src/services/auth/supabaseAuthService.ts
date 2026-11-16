@@ -193,7 +193,7 @@ export async function bridgeVerifiedUser(user: SupabaseUser): Promise<void> {
   });
 }
 
-type LimitSpec = {
+export type LimitSpec = {
   kind: "email" | "ip";
   identifier: string;
   windowSeconds: number;

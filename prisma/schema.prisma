@@ -236,6 +236,9 @@ model Profile {
 
   legacyUser User? @relation(fields: [legacyUserId], references: [id], onDelete: SetNull)
   investorCapabilities InvestorCapabilityGrant[]
+  agentInvitesCreated  AgentInvite[]             @relation("AgentInviteCreator")
+  agentInvitesAccepted AgentInvite[]             @relation("AgentInviteAccepted")
+  announcements        Announcement[]
 
   @@map("profiles")
 }
@@ -958,4 +961,64 @@ model FlipperResale {
   @@index([investorUserId, status])
   @@index([status, submittedAt])
   @@index([propertyId])
+}
+
+/// Phase 1 Task 3 (ADR-023). Agent accounts are invitation-only.
+enum AgentInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  /// Replaced by a newer invite to the same email (resend).
+  SUPERSEDED
+}
+
+/// One Admin invitation for one email. The token itself is never stored, only
+/// its SHA-256 hash. Server-only: RLS on, all Data API privileges revoked. At
+/// most one PENDING invite per email (partial unique index in SQL).
+model AgentInvite {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email             String
+  tokenHash         String            @unique
+  status            AgentInviteStatus @default(PENDING)
+  expiresAt         DateTime
+  usedAt            DateTime?
+  createdBy         String            @db.Uuid
+  createdAt         DateTime          @default(now())
+  revokedAt         DateTime?
+  acceptedProfileId String?           @db.Uuid
+  termsAcceptedAt   DateTime?
+
+  creator         Profile  @relation("AgentInviteCreator", fields: [createdBy], references: [id])
+  acceptedProfile Profile? @relation("AgentInviteAccepted", fields: [acceptedProfileId], references: [id], onDelete: SetNull)
+
+  @@index([email])
+  @@map("agent_invites")
+}
+
+/// Phase 1 Task 3 (Q1). Admin-authored platform messages shown inside portals.
+/// Plain text only, no links or third-party content; separate from paid
+/// advertising (Phase 6).
+enum AnnouncementKind {
+  /// Promotional banner at the top of the dashboard.
+  BANNER
+  /// Platform update in the dashboard's updates list.
+  UPDATE
+}
+
+model Announcement {
+  id            String           @id @default(cuid())
+  kind          AnnouncementKind
+  title         String
+  body          String
+  audienceRoles Role[]
+  startsAt      DateTime
+  endsAt        DateTime?
+  createdBy     String           @db.Uuid
+  createdAt     DateTime         @default(now())
+  archivedAt    DateTime?
+
+  creator Profile @relation(fields: [createdBy], references: [id])
+
+  @@index([startsAt])
+  @@map("announcements")
 }
