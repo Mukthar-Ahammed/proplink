@@ -12,11 +12,25 @@ datasource db {
   provider = "postgresql"
 }
 
+/// Authoritative application role, server-written only (never from the client).
+/// LANDLORD: public sign-up (Phase 1 Task 2). SOLICITOR: Admin-created, one per
+/// project (Phase 4). ADVERTISER: Admin-approved advertiser account (Phase 6).
+/// ADMIN, AGENT, SOLICITOR and ADVERTISER can never be chosen at sign-up.
 enum Role {
   AGENT
   INVESTOR
   BUYER
   ADMIN
+  LANDLORD
+  SOLICITOR
+  ADVERTISER
+}
+
+/// What an INVESTOR may do on projects. One investor may hold both; the role on
+/// a specific project (Lead or Co-Investor) is decided per project in Phase 4.
+enum InvestorCapability {
+  LEAD_INVESTOR
+  CO_INVESTOR
 }
 
 enum KycStatus {
@@ -221,8 +235,25 @@ model Profile {
   updatedAt      DateTime  @updatedAt
 
   legacyUser User? @relation(fields: [legacyUserId], references: [id], onDelete: SetNull)
+  investorCapabilities InvestorCapabilityGrant[]
 
   @@map("profiles")
+}
+
+/// Server-granted investor capabilities (Phase 1 Task 1). Rows are allowed only
+/// for INVESTOR profiles (enforced by a trigger). Written by the server only;
+/// all Data API privileges are revoked.
+model InvestorCapabilityGrant {
+  profileId  String             @db.Uuid
+  capability InvestorCapability
+  grantedAt  DateTime           @default(now())
+  /// Admin profile that granted it; null for the migration backfill.
+  grantedBy  String?            @db.Uuid
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, capability])
+  @@map("investor_capabilities")
 }
 
 model VerificationToken {

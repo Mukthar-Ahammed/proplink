@@ -14,7 +14,7 @@ before then.
 
 | Phase 1 task                           | State       |
 | -------------------------------------- | ----------- |
-| 1. Roles and schema                    | In progress |
+| 1. Roles and schema                    | Done        |
 | 2. Public registration rules           | Not started |
 | 3. Agent invitations and announcements | Not started |
 | 4. Companies House check               | Not started |

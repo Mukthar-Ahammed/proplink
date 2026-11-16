@@ -186,6 +186,19 @@ The complete one-line policy rationale is in
 - `profiles.role`, `profiles.kycStatus`, `profiles.legacyUserId`, verification,
   compliance and active fields have no client INSERT/UPDATE grant. Safe profile
   edits use column-level grants.
+- **Roles (Phase 1, ADR-021):** `Role` is `AGENT`, `INVESTOR`, `BUYER`,
+  `ADMIN`, `LANDLORD`, `SOLICITOR`, `ADVERTISER`. Sign-up intents accept only
+  self-serve roles (`auth_signup_intents_self_serve_role`; Agent additionally
+  blocked by `auth_signup_intents_agent_invite_only`), so Solicitor, Advertiser
+  and Admin can never be self-assigned. Landlord, Solicitor and Advertiser land
+  on the gated `/account-pending` page until their portals ship (Phases 2, 4, 6).
+- **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
+  (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
+  on, all Data API privileges revoked). Triggers allow rows only for INVESTOR
+  profiles, grant `CO_INVESTOR` when a profile becomes INVESTOR, and remove all
+  rows when it stops being one. Lead Investor is granted by Admin through
+  `src/services/investors/investorCapabilities.ts` (audited). This is separate
+  from the legacy Flipper/Syndicate `investorType`.
 - `KycRecord`, `VerificationToken` and Prisma migration history are server-only.
   Pledge inserts require role INVESTOR, authoritative KYC APPROVED, ownership,
   positive pence amount and an OPEN project. No pledge DELETE policy exists.
