@@ -8,14 +8,21 @@ vi.mock("@/services/search", async (importOriginal) => ({
   searchService: { search: vi.fn(), count: vi.fn() },
 }));
 
+vi.mock("@/lib/auth", () => ({ auth: vi.fn() }));
+
+import { auth } from "@/lib/auth";
 import { searchService } from "@/services/search";
 import { GET as SEARCH } from "@/app/api/search/route";
 import { GET as COUNT } from "@/app/api/search/count/route";
 
 const mockSearch = vi.mocked(searchService.search);
 const mockCount = vi.mocked(searchService.count);
+const mockAuth = vi.mocked(auth);
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockAuth.mockResolvedValue(null);
+});
 
 const request = (qs: string) => new Request(`http://localhost/api/search?${qs}`);
 
@@ -73,6 +80,45 @@ describe("GET /api/search", () => {
 
     expect(res.status).toBe(200);
     expect(mockSearch).toHaveBeenCalledWith({});
+  });
+});
+
+describe("GET /api/search location visibility (ADR-022)", () => {
+  const item = {
+    id: "p1",
+    title: "Test",
+    city: "Manchester",
+    region: "North West",
+    postcode: "M1 1AE",
+    propertyType: "RESIDENTIAL",
+    bedrooms: 3,
+    askingPriceGBP: 18_500_000,
+    targetRoiPct: null,
+    epcRating: "E",
+    status: "LIVE",
+    publishedAt: null,
+    imageUrl: null,
+    distressTags: [],
+    lat: 53.480759,
+    lng: -2.242631,
+  };
+  const withItem = { ...emptyResult, items: [item], total: 1, totalPages: 1 };
+
+  it("gives signed-out callers the postcode district and ~1 km coordinates", async () => {
+    mockSearch.mockResolvedValue(withItem as never);
+    const body = await (await SEARCH(request(""))).json();
+    expect(body.items[0]).toMatchObject({ postcode: "M1", lat: 53.48, lng: -2.24 });
+  });
+
+  it("gives signed-in callers the full postcode and exact coordinates", async () => {
+    mockSearch.mockResolvedValue(withItem as never);
+    mockAuth.mockResolvedValue({ user: { id: "u1" } } as never);
+    const body = await (await SEARCH(request(""))).json();
+    expect(body.items[0]).toMatchObject({
+      postcode: "M1 1AE",
+      lat: 53.480759,
+      lng: -2.242631,
+    });
   });
 });
 

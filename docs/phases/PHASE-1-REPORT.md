@@ -14,7 +14,7 @@ development Supabase project (see the Phase 0 report).
 | Task                                   | State       | Notes                                    |
 | -------------------------------------- | ----------- | ---------------------------------------- |
 | 1. Roles and schema                    | **Done**    | ADR-021; details below                   |
-| 2. Public registration rules           | Not started |                                          |
+| 2. Public registration rules           | **Done**    | ADR-022; details below                   |
 | 3. Agent invitations and announcements | Not started |                                          |
 | 4. Companies House check               | Not started | Needs `COMPANIES_HOUSE_API_KEY` for live |
 | 5. Existing agents migration           | Not started |                                          |
@@ -70,3 +70,56 @@ No route spreads request input into a role write.
   the committed code before this task.
 
 **Not yet applied** to the development project, staging or production.
+
+## Task 2 — Public registration rules (2026-11-16)
+
+**Delivered** (ADR-022)
+
+- `/register` offers exactly Landlord, Investor and Buyer; new `signupLandlord`
+  action. Landlords land on `/account-pending` until Phase 2.
+- `SELF_SERVE_ROLES` is Landlord, Investor, Buyer (live and legacy lists).
+- Migration `20261116010000_phase1_landlord_self_registration` (with
+  `rollback.sql`): the sign-up intent check admits only `LANDLORD`, `INVESTOR`,
+  `BUYER`; the Phase 0 Agent check stays.
+- Verified-email policy documented in ADR-022. Every signed-in session is
+  email-verified (`auth()` refuses unconfirmed users), so save, enquiry, viewing
+  and offer endpoints, which all require a role, need a verified email.
+- Exact location for signed-in viewers only
+  (`src/services/listings/locationVisibility.ts`): signed-out search results
+  (`/marketplace`, `GET /api/search`) carry the postcode district and ~1 km
+  coordinates; the listing page hides the street address, full postcode and map
+  behind a sign-in prompt; public metadata uses the district.
+
+**Agent self-registration rejected at every layer (direct API tests)**
+
+- UI: the register spec requires exactly three role options and none for
+  Agent, Admin, Solicitor or Advertiser.
+- Server actions: a unit test fails if any `signup*` action other than Buyer,
+  Investor and Landlord exists; none accepts a role.
+- Service: `createSignupIntent` refuses Agent, Admin, Solicitor, Advertiser.
+- Database: sign-up intents for those roles are rejected (`23514`); a sign-up
+  sent straight to Supabase Auth claiming `AGENT`, `ADMIN`, `LANDLORD` or
+  `INVESTOR` in its metadata becomes `BUYER`.
+
+**Verification**
+
+- Full suite against a fresh disposable database (all migrations, seeded):
+  **84 files, 1,053 tests pass**. Typecheck and lint clean.
+- Browser specs against the development server: register page and login page
+  pass; listing page passes for the signed-out view (no street, full postcode
+  or map), the signed-in view (full address and map), SEO metadata (district
+  only), anonymous enquiry refusal and Draft preview. In the final run two specs
+  that sign in hit the login rate limit (5 per 15 minutes per IP); both passed
+  in the run before with the same code.
+- Two pre-existing failures fixed in `marketplace-detail.spec.ts`: it expected
+  target ROI, which is correctly hidden while `FINANCIAL_PROMOTIONS_REVIEWED`
+  is false; and its anonymous enquiry request lacked the Phase 0 CSRF headers,
+  so it got 403 before reaching the 401 login check.
+
+**Not yet applied** to development, staging or production. On the development
+server, Landlord sign-up fails at the database until the two Phase 1
+migrations are applied there.
+
+**Follow-up:** the login rate limit (5 per 15 minutes per IP, counting
+successful logins) makes the full browser suite hard to run locally and could
+lock out users sharing a connection. Review before launch.

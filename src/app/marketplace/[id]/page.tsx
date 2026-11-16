@@ -27,6 +27,7 @@ import { getComparables } from "@/services/intel/comparables";
 import { postcodeDistrict } from "@/lib/postcode";
 import { isListingSavedBy } from "@/services/listings/savedProperties";
 import { isFinancialPromotionsReviewed } from "@/env";
+import { canSeeExactLocation } from "@/services/listings/locationVisibility";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -49,7 +50,8 @@ function buildMetaDescription(listing: {
     listing.description.length > 140
       ? `${listing.description.slice(0, 137)}...`
       : listing.description;
-  return `${price} — ${listing.propertyType} in ${listing.city}, ${listing.postcode}. ${excerpt}`;
+  // Metadata is public and crawled: postcode district only, never the full postcode.
+  return `${price} — ${listing.propertyType} in ${listing.city}, ${postcodeDistrict(listing.postcode)}. ${excerpt}`;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -98,8 +100,12 @@ export default async function PropertyDetailPage({ params }: PageProps) {
   const listing = await getListingForPublicView({ propertyId: id, viewer });
   if (!listing) notFound();
 
+  // Exact address, full postcode and map pin need a signed-in (email-verified)
+  // viewer; everyone else sees town, region and postcode district (ADR-022).
+  const exactLocation = canSeeExactLocation(viewer);
+
   const [coordinates, agentProfile] = await Promise.all([
-    getListingCoordinates(id),
+    exactLocation ? getListingCoordinates(id) : Promise.resolve(null),
     listing.agentProfileId
       ? getAgentProfilePublic(listing.agentProfileId)
       : Promise.resolve(null),
@@ -158,9 +164,24 @@ export default async function PropertyDetailPage({ params }: PageProps) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-primary">{listing.title}</h1>
-          <address className="mt-1 text-sm not-italic text-muted">
-            {listing.addressLine1}, {listing.city}, {listing.region}, {listing.postcode}
-          </address>
+          {exactLocation ? (
+            <address className="mt-1 text-sm not-italic text-muted">
+              {listing.addressLine1}, {listing.city}, {listing.region}, {listing.postcode}
+            </address>
+          ) : (
+            <p className="mt-1 text-sm text-muted">
+              {listing.city}, {listing.region}, {postcodeDistrict(listing.postcode)}
+              <span className="mt-0.5 block text-xs" data-testid="address-hidden">
+                <Link
+                  href={`/login?callbackUrl=${encodeURIComponent(`/marketplace/${listing.id}`)}`}
+                  className="font-medium text-accent hover:underline"
+                >
+                  Sign in
+                </Link>{" "}
+                to see the full address and map.
+              </span>
+            </p>
+          )}
         </div>
         {canSave && <SaveButton propertyId={listing.id} initialSaved={alreadySaved} />}
       </div>

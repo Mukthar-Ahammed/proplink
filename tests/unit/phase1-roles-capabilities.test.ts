@@ -197,3 +197,28 @@ describe("Phase 1 Task 1: investor capabilities", () => {
     });
   });
 });
+
+describe("Phase 1 Task 2: public registration roles", () => {
+  it.each([Role.LANDLORD, Role.INVESTOR, Role.BUYER])(
+    "legacy registration schema accepts %s",
+    (role) => {
+      const result = registrationSchema.safeParse({
+        email: "x@example.com",
+        password: "password123",
+        name: "Test User",
+        role,
+        gdprConsent: true,
+      });
+      expect(result.success).toBe(true);
+    },
+  );
+
+  it("exposes Landlord, Investor and Buyer sign-up actions and no others", async () => {
+    vi.doMock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+    const actions = await import("@/app/(auth)/actions");
+    const signups = Object.keys(actions)
+      .filter((name) => /^signup/i.test(name))
+      .sort();
+    expect(signups).toEqual(["signupBuyer", "signupInvestor", "signupLandlord"]);
+  });
+});

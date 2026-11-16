@@ -7,6 +7,7 @@ import { useState } from "react";
 import {
   signupBuyer,
   signupInvestor,
+  signupLandlord,
   type AuthActionResult,
 } from "@/app/(auth)/actions";
 import {
@@ -18,10 +19,15 @@ import {
 import { TurnstileWidget } from "@/components/security/TurnstileWidget";
 import { runAuthAction } from "@/lib/security/auth-action-client";
 
+// Public sign-up is limited to these three roles (Phase 1 Task 2). Agents join
+// by Admin invitation only; there is no Agent option here or in the API.
 const roles = [
+  { value: "LANDLORD", label: "Landlord", hint: "List a property privately" },
+  { value: "INVESTOR", label: "Investor", hint: "Invest in property projects" },
   { value: "BUYER", label: "Buyer", hint: "Search and purchase property" },
-  { value: "INVESTOR", label: "Investor", hint: "Flipping & syndicate investments" },
 ] as const;
+
+type PublicRole = (typeof roles)[number]["value"];
 
 const investorSubtypes = [
   {
@@ -47,7 +53,7 @@ export default function RegisterPage() {
     name: "",
     email: "",
     password: "",
-    role: "BUYER" as "BUYER" | "INVESTOR",
+    role: "BUYER" as PublicRole,
     investorType: "FLIPPER" as "FLIPPER" | "SYNDICATE" | "BOTH",
     gdprConsent: false,
   });
@@ -61,24 +67,20 @@ export default function RegisterPage() {
     setResult({ kind: "idle" });
     setSubmitting(true);
     try {
-      const response: AuthActionResult = await runAuthAction(() =>
-        form.role === "INVESTOR"
-          ? signupInvestor({
-              name: form.name,
-              email: form.email,
-              password: form.password,
-              investorType: form.investorType,
-              gdprConsent: form.gdprConsent,
-              turnstileToken,
-            })
-          : signupBuyer({
-              name: form.name,
-              email: form.email,
-              password: form.password,
-              gdprConsent: form.gdprConsent,
-              turnstileToken,
-            }),
-      );
+      const base = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        gdprConsent: form.gdprConsent,
+        turnstileToken,
+      };
+      const response: AuthActionResult = await runAuthAction(() => {
+        if (form.role === "INVESTOR") {
+          return signupInvestor({ ...base, investorType: form.investorType });
+        }
+        if (form.role === "LANDLORD") return signupLandlord(base);
+        return signupBuyer(base);
+      });
 
       if (response.kind === "success") {
         router.push(response.destination ?? "/check-email?purpose=signup");
@@ -95,7 +97,7 @@ export default function RegisterPage() {
   return (
     <AuthShell
       title="Create your account"
-      subtitle="Join PropLink UK as a buyer or investor."
+      subtitle="Join PropLink UK as a landlord, investor or buyer."
       aside={{
         headline: (
           <>
@@ -104,9 +106,9 @@ export default function RegisterPage() {
           </>
         ),
         points: [
-          "Buyers and investors: search, enquire, book viewings and make offers",
-          "Agents: list stock with disclosed defects and build a verified record",
-          "Listings include EPC ratings and disclosed material defects",
+          "Landlords: list a distressed property privately for verified agents",
+          "Investors and buyers: find opportunities with disclosed defects",
+          "Agents join by invitation from PropLink",
         ],
       }}
     >
@@ -161,7 +163,7 @@ export default function RegisterPage() {
 
         <fieldset>
           <legend className={AUTH_LABEL}>I am a…</legend>
-          <div className="mt-2 grid grid-cols-2 gap-2.5">
+          <div className="mt-2 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
             {roles.map((role) => (
               <label
                 key={role.value}

@@ -7,7 +7,12 @@ import { z } from "zod";
 import { InvestorType, Role, type Role as AppRole } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 
-export const SELF_SERVE_ROLES = [Role.INVESTOR, Role.BUYER] as const;
+/**
+ * Roles anyone may choose at public sign-up (Phase 1 Task 2). Agent is
+ * invite-only; Admin, Solicitor and Advertiser are created by Admin. The
+ * database enforces the same list on sign-up intents.
+ */
+export const SELF_SERVE_ROLES = [Role.LANDLORD, Role.INVESTOR, Role.BUYER] as const;
 
 export const signupSchema = z.object({
   email: z

@@ -8,11 +8,15 @@ test.describe("auth pages", () => {
       page.getByRole("heading", { name: /create your account/i }),
     ).toBeVisible();
 
-    // Buyer and Investor registration are self-serve; Agent signup is invite-only.
+    // Public sign-up is Landlord, Investor and Buyer only (Phase 1 Task 2).
+    // Agent is invite-only; Admin, Solicitor and Advertiser are Admin-created.
+    await expect(page.getByRole("radio")).toHaveCount(3);
+    await expect(page.getByRole("radio", { name: /landlord/i })).toBeAttached();
     await expect(page.getByRole("radio", { name: /investor/i })).toBeAttached();
     await expect(page.getByRole("radio", { name: /buyer/i })).toBeAttached();
-    await expect(page.getByRole("radio", { name: /agent/i })).toHaveCount(0);
-    await expect(page.getByRole("radio", { name: /admin/i })).toHaveCount(0);
+    for (const hidden of [/agent/i, /admin/i, /solicitor/i, /advertiser/i]) {
+      await expect(page.getByRole("radio", { name: hidden })).toHaveCount(0);
+    }
 
     await expect(page.getByRole("checkbox")).toBeAttached();
     // Scoped to the form — the global cookie banner also mentions the policy.

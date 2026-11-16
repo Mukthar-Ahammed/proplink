@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+import { auth } from "@/lib/auth";
 import { parseSearchParams, searchService } from "@/services/search";
+import { searchResultForViewer } from "@/services/listings/locationVisibility";
 import { PropertyCard } from "@/components/marketplace/PropertyCard";
 import { SearchFilters } from "@/components/marketplace/SearchFilters";
 import { SearchPagination } from "@/components/marketplace/SearchPagination";
@@ -39,7 +41,12 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
   }
 
   const params = parseSearchParams(sp);
-  const results = await searchService.search(params);
+  const [rawResults, session] = await Promise.all([searchService.search(params), auth()]);
+  // Signed-out visitors see the postcode district, not the full postcode (ADR-022).
+  const results = searchResultForViewer(
+    rawResults,
+    session?.user ? { userId: session.user.id } : null,
+  );
   const financialPromotionsReviewed = isFinancialPromotionsReviewed();
 
   return (

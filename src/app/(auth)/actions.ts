@@ -157,6 +157,15 @@ export async function signupInvestor(raw: unknown) {
   return signupAs(Role.INVESTOR, raw);
 }
 
+/**
+ * Landlord public sign-up (Phase 1 Task 2). Same fields as Buyer; Landlord
+ * identity checks (KYC) come later through the KYC provider (Task 6).
+ * There is deliberately no Agent, Admin, Solicitor or Advertiser sign-up action.
+ */
+export async function signupLandlord(raw: unknown) {
+  return signupAs(Role.LANDLORD, raw);
+}
+
 export async function completeInvestorOnboardingAction(rawType: unknown) {
   const authz = await requireRole(Role.INVESTOR);
   if (!authz.ok) return { kind: "error" as const, message: "Forbidden" };

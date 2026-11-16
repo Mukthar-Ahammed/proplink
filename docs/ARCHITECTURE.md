@@ -192,6 +192,14 @@ The complete one-line policy rationale is in
   blocked by `auth_signup_intents_agent_invite_only`), so Solicitor, Advertiser
   and Admin can never be self-assigned. Landlord, Solicitor and Advertiser land
   on the gated `/account-pending` page until their portals ship (Phases 2, 4, 6).
+  Public sign-up (Task 2, ADR-022) is Landlord, Investor and Buyer only: the
+  self-serve check admits exactly those three, and a direct Supabase sign-up
+  without a server-written intent gets BUYER.
+- **Location visibility (ADR-022):** signed-out visitors see town, region and
+  postcode district; search data carries ~1 km coordinates. Street address, full
+  postcode and the map need a signed-in (always email-verified) viewer.
+  `src/services/listings/locationVisibility.ts` holds the rule, applied in
+  `/marketplace`, `GET /api/search` and `/marketplace/[id]`.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

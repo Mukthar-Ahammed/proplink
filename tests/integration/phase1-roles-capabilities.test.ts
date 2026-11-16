@@ -130,6 +130,64 @@ describe.skipIf(!hasDb)("Phase 1 roles and investor capabilities (database)", ()
     });
   });
 
+  it("turns a Landlord sign-up intent into a LANDLORD profile", async () => {
+    await inRollback(async () => {
+      const id = randomUUID();
+      const nonce = randomUUID();
+      const email = `phase1-landlord-${id}@proplink.test`;
+      await client.query(
+        `INSERT INTO private.auth_signup_intents
+           (nonce_digest, email_digest, role, name, "gdprConsentAt", "expiresAt")
+         VALUES (encode(extensions.digest($1, 'sha256'), 'hex'),
+                 encode(extensions.digest(lower($2), 'sha256'), 'hex'),
+                 'LANDLORD', 'Lena Landlord', now(), now() + interval '5 minutes')`,
+        [nonce, email],
+      );
+      await client.query(
+        `INSERT INTO auth.users (id, email, raw_user_meta_data)
+         VALUES ($1, $2, jsonb_build_object('proplink_signup_nonce', $3::text))`,
+        [id, email, nonce],
+      );
+      const { rows } = await client.query<{ role: string; name: string }>(
+        `SELECT role::text AS role, name FROM public.profiles WHERE id = $1`,
+        [id],
+      );
+      expect(rows).toEqual([{ role: "LANDLORD", name: "Lena Landlord" }]);
+      expect(await capabilities(id)).toEqual([]);
+    });
+  });
+
+  // A sign-up sent straight to Supabase Auth, bypassing the app, has no
+  // server-written intent; whatever role it claims, it gets BUYER.
+  it.each(["AGENT", "ADMIN", "LANDLORD", "INVESTOR"])(
+    "gives a direct Supabase sign-up claiming %s in metadata the BUYER role",
+    async (claimed) => {
+      await inRollback(async () => {
+        const id = randomUUID();
+        await client.query(
+          `INSERT INTO auth.users (id, email, raw_user_meta_data)
+           VALUES ($1, $2, jsonb_build_object('role', $3::text,
+                                              'proplink_signup_role', $3::text))`,
+          [id, `phase1-direct-${id}@proplink.test`, claimed],
+        );
+        const { rows } = await client.query<{ role: string }>(
+          `SELECT role::text AS role FROM public.profiles WHERE id = $1`,
+          [id],
+        );
+        expect(rows).toEqual([{ role: "BUYER" }]);
+      });
+    },
+  );
+
+  it("keeps Agent out of sign-up intents under the new rule", async () => {
+    const { rows } = await client.query<{ def: string }>(
+      `SELECT pg_get_constraintdef(oid) AS def FROM pg_constraint
+       WHERE conname = 'auth_signup_intents_self_serve_role'`,
+    );
+    expect(rows[0].def).toContain("LANDLORD");
+    expect(rows[0].def).not.toContain("AGENT");
+  });
+
   it("keeps investor_capabilities out of the Data API", async () => {
     const { rows } = await client.query<{ rls: boolean; anon: boolean; authed: boolean }>(
       `SELECT c.relrowsecurity AS rls,
