@@ -1,6 +1,10 @@
 import { describe, expect, it, vi } from "vitest";
 import { createAuthAdapter } from "../../scripts/phase3-service-adapters.mjs";
-const env={PROPLINK_STAGING_PROJECT_REF:"stage",NEXT_PUBLIC_SUPABASE_URL:"https://stage.supabase.co",SUPABASE_SERVICE_ROLE_KEY:"secret"};
+import projectRefs from "../../config/supabase-projects.json";
+// The project guard only accepts the approved staging ref; the admin client is
+// mocked, so no request reaches that project.
+const stagingRef=projectRefs.staging;
+const env={PROPLINK_STAGING_PROJECT_REF:stagingRef,NEXT_PUBLIC_SUPABASE_URL:`https://${stagingRef}.supabase.co`,SUPABASE_SERVICE_ROLE_KEY:"secret"};
 const input={email:"phase3-test-agent@example.test",password:"hidden",app_metadata:{phase3_disposable:true,proplink_fixture_marker:"m"}};
 function admin(){return {auth:{admin:{createUser:vi.fn(),getUserById:vi.fn(),listUsers:vi.fn()}}};}
 describe("Auth adapter uncertainty",()=>{
