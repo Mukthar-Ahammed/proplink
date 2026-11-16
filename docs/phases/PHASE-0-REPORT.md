@@ -853,6 +853,58 @@ or tokens.
    to redirect to `/login`; confirm no privileged page remains available after
    refresh.
 
+## Development migration reconciliation (2026-11-05)
+
+The owner reported that the reviewed catch-up SQL
+(`docs/implementation/dev-catchup-20261007050000.sql`) committed successfully
+on the approved development project. A guarded inspector run verified PASS for
+the `investorType` column, its check constraint and comment, and
+`public.proplink_create_auth_profile()`.
+
+After confirming those four checks and the exact single failed, zero-step
+history row, `prisma migrate resolve --applied
+20261007050000_phase3_investor_onboarding` was run against development only.
+Prisma marked the failed record rolled back and created a finished applied
+record; this command records migration history and does not execute migration
+SQL. A follow-up guarded, read-only query confirmed one rolled-back failed row
+and one finished applied row for that migration. The nine later migrations
+have no history rows and remain pending.
+
+`npx prisma migrate status` reports 21 migrations found and these nine pending:
+
+```text
+20261007060000_phase4_kyc_submission
+20261007070000_phase5_admin_kyc
+20261007080000_phase6_flipper_acquisition
+20261007090000_phase7_flipper_project
+20261007100000_phase8_flipper_resale
+20261007110000_phase8_publication_remediation
+20261009120000_phase3_fixture_ownership_registry
+20261104000000_phase0_agent_invite_only
+20261104010000_phase0_append_only_audit
+```
+
+No pending migration was applied and `db:deploy` was not run. The read-only
+inspector found the `ListingSource` enum and `Property.listingSource` /
+nullable `Property.agentProfileId` already present. The former seed
+`ensureSchema()` created those objects outside migration history. It has been
+removed from `prisma/seed.ts`; migrations are now the only schema-change path.
+The publication-remediation migration still contains non-idempotent statements
+for those pre-existing objects. **Do not run `db:deploy`** until a safe,
+checksum-preserving reconciliation for that migration has been approved. A
+guarded read-only history query on staging also found zero rows for
+`20261007110000_phase8_publication_remediation`. Production history was not
+queried; do not edit the historical migration until its deployment history is
+known or the owner explicitly accepts a checksum change.
+
+The inspector also emitted false `ON` column failures because its SQL parser
+mistook foreign-key `ON DELETE` / `ON UPDATE` clauses for column declarations;
+the parser now excludes that keyword. Its migration-object failures correspond
+to objects declared in pending migrations, but the inspector is not a substitute
+for validating every constraint definition or policy expression.
+
+No staging or production database was accessed or changed.
+
 ## Known gaps and exit gate
 
 - The earlier full-suite failures came from the unverified database configured
@@ -873,14 +925,18 @@ or tokens.
   to production. The fresh Supabase Security Advisor scan and authenticated
   staging header check remain outstanding.
 - The runtime role-isolation harness has not been reported; its historical
-  RLS evidence is not a substitute for that runtime check.
-  Admin/Solicitor MFA enforcement and the `/admin/system/integrations` surface
-  are not verified/complete. Subscription, chat, and project authorization
-  guards intentionally throw until their policies are implemented.
+  RLS evidence is not a substitute for that runtime check. Rebuilding the
+  PostgREST-dependent parity checks is carried to **Phase 7** (see closeout
+  decisions below), not treated as a Phase 0 blocker.
+  Admin/Solicitor MFA enforcement is carried to **Phase 1** and the
+  `/admin/system/integrations` surface to **Phase 6**; neither is verified here.
+  Subscription, chat, and project authorization guards intentionally throw
+  until their policies are implemented.
 - Upload quarantine, malware scanning, private promotion, and access-checked
-  downloads are not complete; production uploads remain disabled.
+  downloads are carried to **Phase 1** (moved from Phase 3 by ADR-019); production uploads remain disabled.
 - Auth unit tests pass, but browser parity and live session-expiry verification
-  remain outstanding. Use the hand-test plan above.
+  remain outstanding. Use the hand-test plan above. This stays a Phase 0 exit
+  gate and needs a working development project.
 
 | Exit gate                                   | Status                         | Evidence                                                                                                                                                                      |
 | ------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -889,18 +945,72 @@ or tokens.
 | Production build                            | **PASS — isolated validation** | `npm run build` passes with process-only dummy provider values and loopback DB URL.                                                                                           |
 | Full test suite against disposable local DB | **PASS**                       | 79 files, 1,000 tests.                                                                                                                                                        |
 | Owner-reported staging RLS catalog audit    | **PASS WITH EXCEPTION**        | Application tables RLS-enabled; managed PostGIS exception documented. Data API was disabled by owner and verified HTTP 503 on 2026-11-05.                                     |
-| Fresh staging Security Advisor scan         | **NOT VERIFIED**               | Owner must run the dashboard scan; review the reported exception by 2026-12-04.                                                                                               |
+| Fresh staging Security Advisor scan         | **PASS**                       | Scanned 2026-11-04. Only the known PostGIS findings (`spatial_ref_sys` RLS disabled, `postgis` and `pg_trgm` in `public`, `st_estimatedextent` overloads). Exception review due 2026-12-04; not carried to production. |
 | Database-mocked unit suite                  | **PASS**                       | 78 files, 971 tests.                                                                                                                                                          |
 | Gitleaks empty-example allowlist            | **PASS**                       | Empty declarations no longer trigger; synthetic non-empty key remains flagged.                                                                                                |
 | Full disk Gitleaks clean                    | **NOT CLAIMED**                | Prior scan flagged ignored local/generated files; env files were not opened.                                                                                                  |
 | Zero high/critical `npm audit` findings     | **PASS**                       | Prior full audit: 21 moderate advisories; zero high/critical.                                                                                                                 |
 | Staging Data API compensating control       | **PASS — VERIFIED OFF**        | Owner disabled the toggle; `scripts/check-data-api.ps1` returned HTTP 503 with no table data on 2026-11-05.                                                                   |
-| Data API-off RLS validation parity          | **PLANNED — NOT IMPLEMENTED**  | Three validation scripts still rely on PostgREST for policy assertions; migrate those checks to disposable local SQL/role tests before relying on them with the Data API off. |
-| Security headers on staging response        | **NOT VERIFIED**               | Requires an existing staging deployment and test login.                                                                                                                       |
-| Manual authentication flow                  | **NOT VERIFIED**               | Owner hand-test plan provided above.                                                                                                                                          |
+| Data API-off RLS validation parity          | **CARRIED TO PHASE 7**         | PostgREST-dependent policy checks are a planned Phase 7 task, not a Phase 0 blocker. Keep staging and production Data API disabled; never re-enable it to run validation. |
+| Security headers verified locally           | **PASS — EXCEPT HSTS**         | Development build only, 2026-11-13: `curl.exe -I http://localhost:3000/marketplace` returned CSP with nonce, nosniff, referrer, permissions, COOP/CORP, `frame-ancestors 'none'`; `/agent` added `private, no-store` + `noindex`. HSTS is production-only (`src/proxy.ts:237`) and is verified at the first real staging deployment. |
+| Manual authentication flow                  | **NOT VERIFIED — PHASE 0 GATE** | Owner hand-test plan above. Requires a working development project; see the dev-project note at the end of this report. |
 | Staging/production migration or deployment  | **PASS**                       | None was run. Commits are local to `phase-0-stabilise`; local disposable test DB use is documented above.                                                                     |
 
-**Decision:** Phase 0 remains open. Do not start Phase 1 or deploy until the
-owner-only staging checks and manual authentication test plan are complete.
+**Decision:** Phase 0 remains open. The only outstanding exit-gate item is the
+manual authentication test, which needs a working development project. Do not
+start Phase 1 or deploy until it is complete.
 The earlier disk scan included ignored local/generated files that were not
 opened; this report does not claim a clean full-disk scan.
+
+## Closeout decisions (2026-11-13)
+
+- **Security Advisor:** scanned 2026-11-04. The only findings are the known
+  PostGIS ones: `spatial_ref_sys` has RLS disabled, `postgis` and `pg_trgm`
+  are installed in `public`, and the `st_estimatedextent` overloads are
+  flagged. No new findings. Exception review date is **2026-12-04**; the
+  exception must not carry into production.
+- **Security headers:** verified on 2026-11-13 against a **development build
+  only** (the running local server), which serves the same `src/proxy.ts`
+  header code a deployment would. `/marketplace` returned `Content-Security-Policy` (nonce +
+  `strict-dynamic`, `object-src 'none'`, `frame-ancestors 'none'`),
+  `X-Content-Type-Options: nosniff`, `Referrer-Policy:
+  strict-origin-when-cross-origin`, `Permissions-Policy: camera=(),
+  microphone=(), geolocation=()`, `Cross-Origin-Opener-Policy: same-origin`,
+  `Cross-Origin-Resource-Policy: same-origin`, `X-Frame-Options: DENY` and a
+  per-request `X-Request-ID`. `/agent` added `Cache-Control: private,
+  no-store, max-age=0, must-revalidate` and `X-Robots-Tag: noindex,
+  nofollow`; `/auth/confirm` returned `Referrer-Policy: no-referrer`.
+  **HSTS is not covered by this check:** `src/proxy.ts` emits it only when
+  `NODE_ENV === "production"`, and a production-mode local start is
+  currently refused by the project guard (`PROPLINK_ENV` must agree with
+  `NODE_ENV`, and no production project reference is approved). HSTS is
+  therefore verified at the first real staging deployment.
+- **RLS parity scripts:** the checks that need PostgREST
+  (`phase3-rls-harness.mjs`, `validate-phase1-investor-type.mjs`,
+  `validate-phase2-auth.mjs`) are carried to **Phase 7** as a planned task,
+  not a Phase 0 blocker. The Data API stays disabled.
+- **Carry-overs with named owners:** Admin and Solicitor MFA to **Phase 1**;
+  upload quarantine and malware scanning to **Phase 1** (moved from Phase 3 by ADR-019);
+  `/admin/system/integrations` to **Phase 6**.
+- **Manual authentication test:** still a **Phase 0 exit gate**. It needs a
+  working development project and cannot be waived.
+- **Development project:** `onhdlxxbdcfwujhtphaj` exists and is reachable.
+  The owner confirmed it via `nslookup` (Cloudflare addresses) and in the
+  Supabase dashboard on 2026-11-13, and `/marketplace` served HTTP 200 during
+  the header check. An earlier `ENOTFOUND` seen from the agent environment on
+  2026-11-13 was environment-specific (that sandbox's DNS), not evidence about
+  the project. No restoration or replacement is required, and no reference,
+  file or script has been changed.
+- **Development migration reconciliation:** a read-only inspection on
+  2026-11-13 classified the nine pending migrations: `20261007060000` partly
+  applied (only the `kyc-documents` bucket), `20261007110000` partly applied
+  (enum and `Property.listingSource` from the old seed DDL; column and foreign
+  key missing), the other seven not applied, and none with a history row. The
+  approved order avoids the known `duplicate_object` failure: deploy only
+  through `20261007100000`, run the reviewed catch-up SQL, record
+  `20261007110000` with `migrate resolve --applied`, then deploy the last
+  three. `scripts/rehearse-dev-reconciliation.ps1` rehearses that exact order
+  on the disposable Docker database and must pass first. The owner has
+  **decided to skip a development backup** (the project holds only test
+  accounts), so `migrate resolve --applied` has no undo. Details:
+  `docs/implementation/phase8-publication-reconciliation.md`.

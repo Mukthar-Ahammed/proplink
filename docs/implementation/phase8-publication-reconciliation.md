@@ -54,86 +54,115 @@ Do not assume a multi-statement migration file rolls back as a whole if a later
 statement fails. The publication migration's first statement is the duplicate
 `CREATE TYPE public."ListingSource"` on development, so that specific conflict
 occurs before any statement in that migration can change the schema. The
-catch-up SQL itself has one explicit transaction.
+development order below therefore never deploys that migration: the missing
+objects are applied by the catch-up SQL and the migration is then recorded as
+applied. The catch-up SQL itself has one explicit transaction.
 
 ## Disposable Docker rehearsal
 
-Do not run this rehearsal against a hosted URL. The test Compose service binds
-only to `127.0.0.1:55432`, uses `proplink_test`, and stores its data in `tmpfs`.
-Use a throwaway password in the current PowerShell session:
+The whole rehearsal is one script: `scripts/rehearse-dev-reconciliation.ps1`.
+It refuses to run unless any database URL in the session points at
+`127.0.0.1:55432`, generates its own throwaway `TEST_POSTGRES_PASSWORD`, starts
+the test Compose service, waits for health, prints `PASS`/`FAIL` per step, stops
+at the first failure, and always tears down in a `finally` block.
 
 ```powershell
-$env:TEST_POSTGRES_PASSWORD = [guid]::NewGuid().ToString("N")
-docker compose -f docker-compose.test.yml up -d --wait
-$env:PROPLINK_ENV = "development"
-$env:DIRECT_URL = "postgresql://proplink_test:$($env:TEST_POSTGRES_PASSWORD)@127.0.0.1:55432/proplink_test?schema=public"
-$env:DATABASE_URL = $env:DIRECT_URL
+powershell -ExecutionPolicy Bypass -File .\scripts\rehearse-dev-reconciliation.ps1
 ```
 
-For a faithful rehearsal, first deploy migrations only through
-`20261007100000_phase8_flipper_resale` to this empty local database. Use a
-temporary Prisma config whose `migrations.path` points to a temporary copy of
-the migration directories through that version; leave `prisma.config.ts` and
-all migration files unchanged. The temporary config must load `.env.local` for
-the approved development project identity, retain the local `DIRECT_URL`
-override above, and call `assertConfiguredSupabaseProject()` before Prisma
-starts. Run:
+It mirrors the development order below on the disposable database:
 
-```powershell
-npx prisma migrate deploy --config .\prisma.phase8-rehearsal.config.ts
+1. preflight: repository, `.env.local`, guard module, Docker daemon, URL safety
+2. start `docker-compose.test.yml` (`proplink_test`, `127.0.0.1:55432`, `tmpfs`)
+3. stage migrations through `20261007100000_phase8_flipper_resale` in a
+   temporary directory and write a temporary Prisma config that still loads
+   `.env.local` for the approved project identity and calls
+   `assertConfiguredSupabaseProject()` before Prisma starts
+4. `migrate deploy` the staged range
+5. assert history ends at `20261007100000_phase8_flipper_resale` and
+   `20261007110000_phase8_publication_remediation` has no history row
+6. recreate the former seed-time shape (`ListingSource` enum and the two
+   `Property` changes) so the run reproduces development's drift. This step is
+   rehearsal-only and is not part of the development run
+7. apply `docs/implementation/dev-catchup-20261007110000.sql` through `psql`
+   and verify the column and foreign key
+8. `migrate resolve --applied 20261007110000_phase8_publication_remediation`
+   and assert `applied_steps_count = 0`
+9. `migrate deploy` the full migrations directory
+10. verify: every migration applied, none failed, then run
+    `scripts/inspect-phase3-onboarding.mjs` against the local database as the
+    authoritative object check, followed by 13 hand-picked objects as a summary
+11. teardown: `docker compose down`, delete the temporary Prisma config and
+    migration copy
+
+The temporary Prisma config the script writes — and deletes on teardown — is:
+
+```ts
+import { config } from "dotenv";
+import { defineConfig } from "prisma/config";
+import { assertConfiguredSupabaseProject } from "./scripts/lib/supabase-project-guard.mjs";
+
+config({ path: ".env.local" });
+config();
+
+assertConfiguredSupabaseProject();
+
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+  datasource: { url: process.env.DIRECT_URL ?? process.env.DATABASE_URL ?? "" },
+  migrations: {
+    path: process.env.REHEARSAL_MIGRATIONS_PATH ?? "prisma/migrations",
+    seed: "tsx prisma/seed.ts",
+  },
+});
 ```
 
-After confirming that the local migration history ends at
-`20261007100000_phase8_flipper_resale`, recreate the old seed-created schema
-shape on the local test database only:
+For the development run, recreate this file yourself and delete it afterwards.
 
-```sql
-CREATE TYPE public."ListingSource" AS ENUM ('AGENT', 'FLIPPER_RESALE');
-ALTER TABLE public."Property"
-  ALTER COLUMN "agentProfileId" DROP NOT NULL,
-  ADD COLUMN "listingSource" public."ListingSource" NOT NULL DEFAULT 'AGENT';
-```
+The rehearsal applies the catch-up SQL with `psql` rather than
+`scripts/apply-dev-catchup-20261007110000.mjs`, because that script refuses to
+run until the reviewed SQL's SHA-256 is pinned. The development run uses the
+guarded script.
 
-Point the temporary Prisma config back at the complete original migrations
-directory, then test the expected first-statement conflict:
-
-```powershell
-npx prisma migrate deploy --config .\prisma.phase8-rehearsal.config.ts
-```
-
-Stop when `20261007110000_phase8_publication_remediation` fails on the duplicate
-`ListingSource` type. Do not retry deploy yet. Run the reviewed catch-up SQL on
-the local database, then:
-
-```powershell
-npx prisma migrate resolve --applied 20261007110000_phase8_publication_remediation --config .\prisma.phase8-rehearsal.config.ts
-npx prisma migrate deploy --config .\prisma.phase8-rehearsal.config.ts
-```
-
-Finally run the inspector with `DIRECT_URL` still pointing at
-`127.0.0.1:55432`. Remove the temporary Prisma config and migration copy after
-the rehearsal. The Docker database is disposable; `docker compose down` stops
-the service, and its `tmpfs` data disappears when the container is removed.
-This rehearsal has not been run; these commands are for the owner to run.
+This rehearsal has not been run; it is for the owner to run.
 
 ## Development execution order (not run)
 
-1. Take a development database backup and confirm
-   `PROPLINK_ENV=development`, the approved development project ref, and
-   `DIRECT_URL` all identify the intended development target.
-2. Run `npm run db:deploy`. It should stop at the duplicate `ListingSource`
-   type in `20261007110000_phase8_publication_remediation`. Do not rerun it
-   before reconciliation.
-3. Review the catalog inspector output. Confirm the Flipper Resale migration
-   completed and the only publication objects missing are the column, unique
-   constraint, and foreign key above.
-4. Run the new guarded script:
+Preflight: **stop `npm run dev` before touching development.** The dev server
+holds database connections and can hold locks; stop it, then run these steps
+from a fresh PowerShell session.
+
+The owner has decided to skip a development database backup: the project holds
+only test accounts. There is therefore no restore path for the steps below, and
+step 5 in particular has no undo. The rehearsal above must pass before any of
+these steps run.
+
+1. Confirm `PROPLINK_ENV=development` and that `.env.local`'s `DIRECT_URL`
+   points at `onhdlxxbdcfwujhtphaj` (the guard prints the project ref). Leave
+   `DIRECT_URL`/`DATABASE_URL` unset in the shell: a shell value overrides
+   `.env.local`, and the development run must use the hosted connection.
+2. Deploy only through `20261007100000_phase8_flipper_resale`, using the same
+   temporary migration range and temporary Prisma config as the rehearsal:
+   `node node_modules/prisma/build/index.js migrate deploy --config .\prisma.rehearsal.config.ts`.
+   Do not deploy the full directory yet; `20261007110000` would fail on its
+   duplicate `ListingSource` type.
+3. Run `node scripts/inspect-phase3-onboarding.mjs`. Confirm `FlipperResale`
+   now exists, `20261007110000` is still unrecorded, and the only publication
+   gaps are the column, unique constraint, and foreign key.
+4. Run the guarded catch-up:
    `node scripts/apply-dev-catchup-20261007110000.mjs --confirm-onhdlxxbdcfwujhtphaj`.
-5. Re-run the inspector. Only if the publication checks all pass, mark the
+5. Re-run the inspector. Only if the publication checks pass, mark the
    immutable migration applied:
    `npx prisma migrate resolve --applied 20261007110000_phase8_publication_remediation`.
-6. Run `npm run db:deploy` once to apply the remaining migrations, then run the
-   inspector again and review every object result.
+   This records the migration without executing it and has no undo; everything
+   the catch-up SQL was meant to create must already be verified.
+6. Run `npm run db:deploy` once to apply
+   `20261009120000_phase3_fixture_ownership_registry`,
+   `20261104000000_phase0_agent_invite_only`, and
+   `20261104010000_phase0_append_only_audit`.
+7. Re-run the inspector and `npx prisma migrate status`; every object must pass
+   and the schema must be up to date. Then delete the temporary Prisma config
+   and migration copy.
 
 Stop if any precondition, catch-up check, migration, or inspector check fails.
 No database operation in this plan has been run.
