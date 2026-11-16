@@ -58,6 +58,36 @@ const migrationNames = [
 ];
 
 const unquote = (identifier) => identifier.replace(/^"|"$/g, "");
+
+// Mirrors PostgreSQL's ChooseIndexNameAddition (indexcmds.c): column names
+// joined with "_", capped at NAMEDATALEN - 1 (63) characters. ASCII names only.
+const indexNameAddition = (columns) => {
+  let addition = "";
+  for (const column of columns) {
+    if (addition.length > 0) addition += "_";
+    addition += column;
+    if (addition.length >= 63) return addition.slice(0, 63);
+  }
+  return addition;
+};
+
+// Mirrors PostgreSQL's makeObjectName: when "name1_name2_label" exceeds 63
+// characters, the longer of name1/name2 is shortened one character at a time,
+// so the label suffix (e.g. "_key", "_check") always survives.
+const postgresObjectName = (name1, name2, label) => {
+  const overhead = (name2 ? 1 : 0) + (label ? label.length + 1 : 0);
+  const available = 63 - overhead;
+  let name1Chars = name1.length;
+  let name2Chars = name2 ? name2.length : 0;
+  while (name1Chars + name2Chars > available) {
+    if (name1Chars > name2Chars) name1Chars -= 1;
+    else name2Chars -= 1;
+  }
+  let result = name1.slice(0, name1Chars);
+  if (name2) result += `_${name2.slice(0, name2Chars)}`;
+  if (label) result += `_${label}`;
+  return result;
+};
 const identifier = String.raw`(?:"[^"]+"|[A-Za-z_][\w$]*)`;
 const ignoredTableDefinitionWords = new Set([
   "CHECK",
@@ -138,10 +168,9 @@ for (const migrationName of migrationNames) {
         `constraint ${tableLabel(schema, table)}."${table}_pkey"`,
       );
     }
-    const inlineUnique = definition.match(/^\s*UNIQUE\s*\(([^)]+)\)/im);
-    if (inlineUnique) {
+    for (const inlineUnique of definition.matchAll(/^\s*UNIQUE\s*\(([^)]+)\)/gim)) {
       const columns = inlineUnique[1].split(",").map((column) => unquote(column.trim()));
-      const generatedName = `${table}_${columns.join("_")}_key`.slice(0, 63);
+      const generatedName = postgresObjectName(table, indexNameAddition(columns), "key");
       addObject(
         "constraint",
         schema,
@@ -155,7 +184,7 @@ for (const migrationName of migrationNames) {
     );
     if (inlineCheck) {
       const columnName = inlineCheck[1] ?? inlineCheck[2];
-      const generatedName = `${table}_${columnName}_check`.slice(0, 63);
+      const generatedName = postgresObjectName(table, columnName, "check");
       addObject(
         "constraint",
         schema,

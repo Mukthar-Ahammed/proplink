@@ -79,8 +79,11 @@ function Invoke-Native {
 
 function Invoke-Psql {
     param([string]$Sql)
-    $output = & docker compose -f $ComposeFile exec -T $Service `
-        psql -U $DatabaseUser -d $Database -t -A -v ON_ERROR_STOP=1 -c $Sql
+    # Send the SQL on stdin, not as a -c argument: Windows PowerShell 5.1 strips
+    # embedded double quotes from native-command arguments, which silently turns
+    # quoted identifiers such as public."FlipperResale" into public.flipperresale.
+    $output = $Sql | & docker compose -f $ComposeFile exec -T $Service `
+        psql -U $DatabaseUser -d $Database -t -A -v ON_ERROR_STOP=1 -f -
     if ($LASTEXITCODE -ne 0) {
         throw "psql query failed: $Sql"
     }
