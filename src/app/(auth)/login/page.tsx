@@ -16,6 +16,7 @@ import {
   AuthShell,
 } from "@/components/auth/AuthShell";
 import { TurnstileWidget } from "@/components/security/TurnstileWidget";
+import { runAuthAction } from "@/lib/security/auth-action-client";
 
 function requestedDestination(): string {
   if (typeof window === "undefined") return "/portal";
@@ -55,9 +56,8 @@ export default function LoginPage() {
     setResult({ kind: "idle" });
     setSubmitting(true);
     try {
-      const response = await loginAction(
-        { ...form, turnstileToken },
-        requestedDestination(),
+      const response = await runAuthAction(() =>
+        loginAction({ ...form, turnstileToken }, requestedDestination()),
       );
       if (response.kind === "success") {
         router.push(response.destination ?? "/portal");
@@ -77,7 +77,9 @@ export default function LoginPage() {
 
   async function resend() {
     if (resendSeconds > 0) return;
-    const response = await resendConfirmationAction(form.email, turnstileToken);
+    const response = await runAuthAction(() =>
+      resendConfirmationAction(form.email, turnstileToken),
+    );
     setResult(response);
     setResendSeconds(response.cooldownSeconds ?? 60);
     setTurnstileToken(undefined);

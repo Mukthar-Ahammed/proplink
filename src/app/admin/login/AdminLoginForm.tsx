@@ -12,6 +12,7 @@ import {
   AuthShell,
 } from "@/components/auth/AuthShell";
 import { TurnstileWidget } from "@/components/security/TurnstileWidget";
+import { runAuthAction } from "@/lib/security/auth-action-client";
 
 export function AdminLoginForm() {
   const router = useRouter();
@@ -36,7 +37,9 @@ export function AdminLoginForm() {
     setResult({ kind: "idle" });
     setSubmitting(true);
     try {
-      const response = await adminLoginAction({ ...form, turnstileToken });
+      const response = await runAuthAction(() =>
+        adminLoginAction({ ...form, turnstileToken }),
+      );
       if (response.kind === "success") {
         router.push("/admin");
         router.refresh();

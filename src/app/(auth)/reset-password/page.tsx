@@ -6,6 +6,7 @@ import { useState } from "react";
 
 import { resetPasswordAction } from "@/app/(auth)/actions";
 import { AUTH_BUTTON, AUTH_INPUT, AUTH_LABEL, AuthShell } from "@/components/auth/AuthShell";
+import { runAuthAction } from "@/lib/security/auth-action-client";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function ResetPasswordPage() {
     setError(null);
     setSubmitting(true);
     try {
-      const result = await resetPasswordAction(password);
+      const result = await runAuthAction(() => resetPasswordAction(password));
       if (result.kind === "success") {
         router.push("/login?reset=1");
         router.refresh();

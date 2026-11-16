@@ -5,6 +5,10 @@ const nextConfig: NextConfig = {
     // Confirmation URLs contain one-time token hashes. Keep those request
     // paths out of development logs; application code also never logs them.
     incomingRequests: { ignore: [/\/auth\/confirm/] },
+    // Development logs print every Server Function call with its arguments,
+    // which would put login, sign-up and reset passwords in plain text in the
+    // terminal and any captured log file. Production never logs these calls.
+    serverFunctions: false,
   },
   async headers() {
     const headers = [

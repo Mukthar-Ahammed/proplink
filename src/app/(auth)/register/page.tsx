@@ -16,6 +16,7 @@ import {
   AuthShell,
 } from "@/components/auth/AuthShell";
 import { TurnstileWidget } from "@/components/security/TurnstileWidget";
+import { runAuthAction } from "@/lib/security/auth-action-client";
 
 const roles = [
   { value: "BUYER", label: "Buyer", hint: "Search and purchase property" },
@@ -60,25 +61,24 @@ export default function RegisterPage() {
     setResult({ kind: "idle" });
     setSubmitting(true);
     try {
-      let response: AuthActionResult;
-      if (form.role === "INVESTOR") {
-        response = await signupInvestor({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          investorType: form.investorType,
-          gdprConsent: form.gdprConsent,
-          turnstileToken,
-        });
-      } else {
-        response = await signupBuyer({
-          name: form.name,
-          email: form.email,
-          password: form.password,
-          gdprConsent: form.gdprConsent,
-          turnstileToken,
-        });
-      }
+      const response: AuthActionResult = await runAuthAction(() =>
+        form.role === "INVESTOR"
+          ? signupInvestor({
+              name: form.name,
+              email: form.email,
+              password: form.password,
+              investorType: form.investorType,
+              gdprConsent: form.gdprConsent,
+              turnstileToken,
+            })
+          : signupBuyer({
+              name: form.name,
+              email: form.email,
+              password: form.password,
+              gdprConsent: form.gdprConsent,
+              turnstileToken,
+            }),
+      );
 
       if (response.kind === "success") {
         router.push(response.destination ?? "/check-email?purpose=signup");
