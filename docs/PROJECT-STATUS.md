@@ -12,8 +12,11 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 - **Phase 1 Task 4 (Companies House check) done** on `phase-1-roles-access`
   (ADR-024): Agents check their company at `/agent/company`; Admin reviews and
   overrides at `/admin/agents/companies`. Mock provider locally; the live key is
-  pending (BLOCKERS). Full suite 90 files / 1,156 tests pass. Phase 1 tasks
-  done: 1–4 of 13.
+  pending (BLOCKERS). OD-19 decided: invited Agents need a verified or
+  Admin-approved company before submitting listings.
+- **Task 5 (existing agents migration) done** (ADR-025, resolves OD-02):
+  notify → confirm → Admin authorise at `/admin/agents/migration`. Full suite
+  93 files / 1,196 tests pass. Phase 1 tasks done: 1–5 of 13.
 - Phase 0 is unchanged: only the owner's manual authentication test remains.
 
 ## 2026-11-16 update

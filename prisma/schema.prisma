@@ -241,6 +241,9 @@ model Profile {
   announcements        Announcement[]
   companyCheck         AgentCompanyCheck?        @relation("AgentCompanyCheckProfile")
   companyOverrides     AgentCompanyCheck[]       @relation("AgentCompanyCheckOverrider")
+  agentMigration       AgentMigration?           @relation("AgentMigrationProfile")
+  migrationsNotified   AgentMigration[]          @relation("AgentMigrationNotifier")
+  migrationsAuthorised AgentMigration[]          @relation("AgentMigrationAuthoriser")
 
   @@map("profiles")
 }
@@ -1062,4 +1065,36 @@ model AgentCompanyCheck {
 
   @@index([companyNumber])
   @@map("agent_company_checks")
+}
+
+/// Phase 1 Task 5 (ADR-025, business Q2). Agents who registered before
+/// invite-only onboarding: notified, then they confirm, then Admin authorises.
+enum AgentMigrationStatus {
+  /// Emailed by Admin; the Agent has not confirmed yet.
+  NOTIFIED
+  /// The Agent confirmed their account; waiting for Admin.
+  CONFIRMED
+  /// Admin authorised the Agent for new features.
+  AUTHORISED
+}
+
+/// One row per pre-invite Agent profile. Server-only; every step is audited.
+model AgentMigration {
+  profileId      String               @id @db.Uuid
+  status         AgentMigrationStatus
+  notifiedAt     DateTime?
+  notifyCount    Int                  @default(0)
+  lastNotifiedBy String?              @db.Uuid
+  confirmedAt    DateTime?
+  authorisedAt   DateTime?
+  authorisedBy   String?              @db.Uuid
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  profile    Profile  @relation("AgentMigrationProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  notifier   Profile? @relation("AgentMigrationNotifier", fields: [lastNotifiedBy], references: [id])
+  authoriser Profile? @relation("AgentMigrationAuthoriser", fields: [authorisedBy], references: [id])
+
+  @@index([status])
+  @@map("agent_migrations")
 }

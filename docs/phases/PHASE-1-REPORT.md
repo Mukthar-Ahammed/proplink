@@ -17,7 +17,7 @@ development Supabase project (see the Phase 0 report).
 | 2. Public registration rules           | **Done**    | ADR-022; details below               |
 | 3. Agent invitations and announcements | **Done**    | ADR-023; acceptance needs OD-18 key  |
 | 4. Companies House check               | **Done**    | ADR-024; live key pending (BLOCKERS) |
-| 5. Existing agents migration           | Not started |                                      |
+| 5. Existing agents migration           | **Done**    | ADR-025                              |
 | 6. KYC/AML provider                    | Not started | Provider choice is an owner decision |
 | 7. Blue tick                           | Not started |                                      |
 | 8. Profiles                            | Not started | Needs Task 12 for photo uploads      |
@@ -227,3 +227,42 @@ pre-invite Agents are left to Task 5 unless Admin rejected their company
 (`src/services/agents/companyGate.ts`, `tests/unit/company-gate.test.ts`, a new
 `submitForReview` test). `/admin/system/integrations` (master rules section 3) does not
 exist yet for any service; it is not built here.
+
+## Task 5 — Existing agents migration (2026-11-17)
+
+**Delivered** (ADR-025, business Q2; resolves OD-02)
+
+- Migration `20261117010000_phase1_agent_migrations` (with `rollback.sql`):
+  server-only `agent_migrations` (`NOTIFIED` → `CONFIRMED` → `AUTHORISED`),
+  status-field checks, and a trigger allowing rows only for pre-invite Agents,
+  notification/authorisation only by Admins, and no step back from
+  `AUTHORISED`.
+- `src/services/agents/agentMigration.ts`: queue, bulk notify (up to 50 per
+  batch, 5 batches per hour per Admin, 24-hour resend cooldown, only successful
+  sends recorded), confirm (terms; works before the email arrives), authorise
+  (confirmed only, atomic), access state and `hasNewFeatureAccess`. Every step
+  is audited.
+- Email `sendAgentMigrationNotice` (no token: sign in and confirm).
+- Agent UI `/agent/confirm` and a dashboard prompt; Admin UI
+  `/admin/agents/migration` (notify form, queue with company-check status,
+  Authorise).
+- Existing listings, leads and analytics are not restricted. The new-feature
+  gate is in place for Phase 3 onwards; no Phase 1 feature uses it yet.
+
+**Verification**
+
+- `tests/unit/agent-migration.test.ts` (23 tests): pre-invite targeting,
+  send/record/audit, cooldown and already-confirmed skips, re-send after the
+  cooldown, failed send / suspended / unknown IDs not recorded, Admin rate limit,
+  batch validation (empty, bad UUID, over 50, extra keys), confirm with and
+  without prior email, terms required, refusals (invited, no profile, already
+  confirmed or authorised), authorise only when confirmed, malformed ID, access
+  states and gate, queue order.
+- `tests/integration/agent-migrations-db.test.ts` (6 tests, rolled back): full
+  path, confirm without notification, invited/non-Agent rows refused, Admin-only
+  notify/authorise, status-field rules, authorisation final, no Data API access.
+- Rollback rehearsed on the disposable database (drop, then re-apply).
+- Full suite against a fresh disposable database: **93 files, 1,196 tests
+  pass**. Typecheck and lint clean.
+- `tests/e2e/agent-migration.spec.ts` written, **not yet run** (needs the
+  Phase 1 migrations on the development database).

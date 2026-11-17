@@ -224,6 +224,14 @@ The complete one-line policy rationale is in
   `AGENT` profiles and overrides only by `ADMIN`. Service
   `src/services/agents/companyCheck.ts`; Agent UI `/agent/company`, Admin UI
   `/admin/agents/companies`.
+- **Existing agents migration (Phase 1, ADR-025):** `public.agent_migrations`
+  (server-only; pre-invite Agents only, enforced by trigger) tracks `NOTIFIED` →
+  `CONFIRMED` → `AUTHORISED`. Admin bulk-notifies at `/admin/agents/migration`
+  (50 per batch, 5 batches/hour/Admin, 24-hour resend cooldown); the Agent
+  confirms at `/agent/confirm`; Admin authorises confirmed Agents.
+  `hasNewFeatureAccess()` in `src/services/agents/agentMigration.ts` gates Agent
+  features from Phase 3 onwards. Company-check gate for listing submission (OD-19):
+  `src/services/agents/companyGate.ts`.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

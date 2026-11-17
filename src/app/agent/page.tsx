@@ -5,6 +5,7 @@ import { PortalEmpty, PortalSection, StatCard } from "@/components/portal/Portal
 import { PortalAnnouncements } from "@/components/portal/Announcements";
 import { listActiveAnnouncements } from "@/services/announcements/announcements";
 import { getOwnCompanyCheck } from "@/services/agents/companyCheck";
+import { getAgentAccessState } from "@/services/agents/agentMigration";
 
 // Middleware-gated, always per-request — never statically prerendered.
 export const dynamic = "force-dynamic";
@@ -23,11 +24,18 @@ export default async function AgentHomePage() {
   // server-side check AGENTS.md requires before reading a user's own data, and
   // it is what narrows `session.user` for the query below.
   const { user } = await requirePageRole("AGENT");
-  const [data, announcements, company] = await Promise.all([
+  const [data, announcements, company, access] = await Promise.all([
     getAgentDashboard(user.id),
     listActiveAnnouncements("AGENT"),
     getOwnCompanyCheck(user.authUserId),
+    getAgentAccessState(user.authUserId),
   ]);
+  const migrationPrompt =
+    access.kind === "needs_confirmation"
+      ? "PropLink now admits agents by invitation. Confirm your account so it can be authorised for new features."
+      : access.kind === "awaiting_authorisation"
+        ? "Your account is confirmed and waiting for PropLink to authorise it."
+        : null;
   const companyPrompt =
     company.status === "NOT_SUBMITTED"
       ? "Check your company against the Companies House register before submitting listings."
@@ -38,6 +46,24 @@ export default async function AgentHomePage() {
   return (
     <>
       <PortalAnnouncements items={announcements} />
+
+      {migrationPrompt && (
+        <div
+          role="status"
+          data-testid="migration-prompt"
+          className="mb-4 flex flex-col gap-2 rounded-lg border border-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p className="text-sm text-primary">{migrationPrompt}</p>
+          {access.kind === "needs_confirmation" && (
+            <Link
+              href="/agent/confirm"
+              className="text-sm font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
+            >
+              Confirm account
+            </Link>
+          )}
+        </div>
+      )}
 
       {companyPrompt && (
         <div

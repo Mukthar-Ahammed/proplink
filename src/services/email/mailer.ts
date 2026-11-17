@@ -146,3 +146,13 @@ export async function sendAgentInviteEmail(params: {
 export function isMockMailer(): boolean {
   return env.EMAIL_PROVIDER !== "resend";
 }
+
+// Phase 1 Task 5 — existing (pre-invite) Agents are asked to sign in and
+// confirm their account. No token: the confirmation happens after sign-in.
+export async function sendAgentMigrationNotice(params: { to: string; name: string }) {
+  await mailer.send({
+    to: params.to,
+    subject: "Action needed: confirm your PropLink UK agent account",
+    text: `Hello ${params.name},\n\nPropLink UK now admits agents by invitation. Your existing account stays active, but you need to confirm it so PropLink can authorise it for new features.\n\nSign in and confirm your account here:\n${BASE_URL}/agent/confirm\n\nIt takes less than a minute. If you no longer use PropLink, you can ignore this email.`,
+  });
+}
