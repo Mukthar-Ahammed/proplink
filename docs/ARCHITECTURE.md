@@ -214,6 +214,16 @@ The complete one-line policy rationale is in
   plain text only (service sanitiser plus database checks reject markup and
   links), audience by role, start/end dates; shown on the Agent dashboard via
   `PortalAnnouncements`. Admin UI `/admin/announcements`. Separate from paid ads.
+- **Agent company check (Phase 1, ADR-024):** `CompaniesHouseProvider`
+  (`src/services/companiesHouse/`: real `CompaniesHouseApiProvider`, Basic auth,
+  fixed host; `MockCompaniesHouseProvider`; `COMPANIES_HOUSE_PROVIDER`). Lookups
+  are Redis-cached and spend a shared database-backed budget of 300 per 5 minutes
+  (provider limit 600); 20 lookups per minute per user. `public.agent_company_checks`
+  (server-only, one row per Agent profile) stores number, registered name, status,
+  result and an optional Admin override with reason; a trigger allows rows only for
+  `AGENT` profiles and overrides only by `ADMIN`. Service
+  `src/services/agents/companyCheck.ts`; Agent UI `/agent/company`, Admin UI
+  `/admin/agents/companies`.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

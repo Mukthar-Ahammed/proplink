@@ -31,6 +31,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
       { label: "Users Directory", href: "/admin/users", status: "active" },
       { label: "Agents & Agencies", href: "/admin/agents", exact: true, status: "soon" },
       { label: "Agent Invites", href: "/admin/agents/invites", status: "active" },
+      { label: "Company Checks", href: "/admin/agents/companies", status: "active" },
       { label: "Announcements", href: "/admin/announcements", status: "active" },
       { label: "Projects & Funding", href: "/admin/projects", status: "soon" },
     ],

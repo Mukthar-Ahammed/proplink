@@ -239,6 +239,8 @@ model Profile {
   agentInvitesCreated  AgentInvite[]             @relation("AgentInviteCreator")
   agentInvitesAccepted AgentInvite[]             @relation("AgentInviteAccepted")
   announcements        Announcement[]
+  companyCheck         AgentCompanyCheck?        @relation("AgentCompanyCheckProfile")
+  companyOverrides     AgentCompanyCheck[]       @relation("AgentCompanyCheckOverrider")
 
   @@map("profiles")
 }
@@ -1021,4 +1023,43 @@ model Announcement {
 
   @@index([startsAt])
   @@map("announcements")
+}
+
+/// Phase 1 Task 4 (ADR-024). Outcome of checking an Agent's company against
+/// the Companies House register.
+enum CompanyCheckResult {
+  /// Found and `active` on the register.
+  VERIFIED
+  /// Found, but any other register status (dissolved, liquidation, ...).
+  INACTIVE
+}
+
+/// Admin decision that replaces the automatic result.
+enum CompanyCheckOverride {
+  APPROVED
+  REJECTED
+}
+
+/// One current company check per Agent profile. Written by the server only;
+/// every check and override is also in the audit log.
+model AgentCompanyCheck {
+  profileId      String                @id @db.Uuid
+  companyNumber  String
+  /// Name and status exactly as the register returned them.
+  companyName    String
+  companyStatus  String
+  result         CompanyCheckResult
+  provider       String
+  checkedAt      DateTime
+  override       CompanyCheckOverride?
+  overrideReason String?
+  overriddenBy   String?               @db.Uuid
+  overriddenAt   DateTime?
+  updatedAt      DateTime              @updatedAt
+
+  profile   Profile  @relation("AgentCompanyCheckProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  overrider Profile? @relation("AgentCompanyCheckOverrider", fields: [overriddenBy], references: [id])
+
+  @@index([companyNumber])
+  @@map("agent_company_checks")
 }

@@ -4,6 +4,7 @@ import { getAgentDashboard } from "@/services/agents/agentDashboard";
 import { PortalEmpty, PortalSection, StatCard } from "@/components/portal/PortalShell";
 import { PortalAnnouncements } from "@/components/portal/Announcements";
 import { listActiveAnnouncements } from "@/services/announcements/announcements";
+import { getOwnCompanyCheck } from "@/services/agents/companyCheck";
 
 // Middleware-gated, always per-request — never statically prerendered.
 export const dynamic = "force-dynamic";
@@ -22,14 +23,37 @@ export default async function AgentHomePage() {
   // server-side check AGENTS.md requires before reading a user's own data, and
   // it is what narrows `session.user` for the query below.
   const { user } = await requirePageRole("AGENT");
-  const [data, announcements] = await Promise.all([
+  const [data, announcements, company] = await Promise.all([
     getAgentDashboard(user.id),
     listActiveAnnouncements("AGENT"),
+    getOwnCompanyCheck(user.authUserId),
   ]);
+  const companyPrompt =
+    company.status === "NOT_SUBMITTED"
+      ? "Check your company against the Companies House register."
+      : company.status === "NEEDS_REVIEW" || company.status === "REJECTED_BY_ADMIN"
+        ? "Your company check needs attention."
+        : null;
 
   return (
     <>
       <PortalAnnouncements items={announcements} />
+
+      {companyPrompt && (
+        <div
+          role="status"
+          data-testid="company-check-prompt"
+          className="mb-8 flex flex-col gap-2 rounded-lg border border-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p className="text-sm text-primary">{companyPrompt}</p>
+          <Link
+            href="/agent/company"
+            className="text-sm font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
+          >
+            Company check
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard value={data.liveListings} label="Live listings" />

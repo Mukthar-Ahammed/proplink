@@ -1,11 +1,20 @@
 # PropLink UK — Project Status
 
-**Status snapshot:** 2026-11-16
+**Status snapshot:** 2026-11-17
 
 **Repository branches:** `phase-0-stabilise` (pushed; Phase 0 open on one owner
 step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 
 **Last Phase 0 implementation commit:** `67ad6c5` (2026-11-16).
+
+## 2026-11-17 update
+
+- **Phase 1 Task 4 (Companies House check) done** on `phase-1-roles-access`
+  (ADR-024): Agents check their company at `/agent/company`; Admin reviews and
+  overrides at `/admin/agents/companies`. Mock provider locally; the live key is
+  pending (BLOCKERS). Full suite 90 files / 1,156 tests pass. Phase 1 tasks
+  done: 1–4 of 13.
+- Phase 0 is unchanged: only the owner's manual authentication test remains.
 
 ## 2026-11-16 update
 

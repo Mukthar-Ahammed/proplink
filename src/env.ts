@@ -58,6 +58,8 @@ const serverEnvSchema = z
     MALWARE_SCANNER_PROVIDER: optionalEnum(["mock", "clamav"]),
     MALWARE_SCANNER_URL: optionalUrl,
     MALWARE_SCANNER_TOKEN: optionalString,
+    COMPANIES_HOUSE_PROVIDER: optionalEnum(["mock", "companies_house"]),
+    COMPANIES_HOUSE_API_KEY: optionalString,
     SENTRY_DSN: optionalUrl,
     NEXT_PUBLIC_SENTRY_DSN: optionalUrl,
     FINANCIAL_PROMOTIONS_REVIEWED: booleanEnv,
@@ -74,6 +76,17 @@ const serverEnvSchema = z
     const turnstileEnabled = env.TURNSTILE_ENABLED ?? env.NODE_ENV === "production";
     const turnstileProvider =
       env.TURNSTILE_PROVIDER ?? (env.NODE_ENV === "production" ? "cloudflare" : "mock");
+    const companiesHouseProvider =
+      env.COMPANIES_HOUSE_PROVIDER ??
+      (env.NODE_ENV === "production" ? "companies_house" : "mock");
+
+    if (companiesHouseProvider === "companies_house" && !env.COMPANIES_HOUSE_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["COMPANIES_HOUSE_API_KEY"],
+        message: "Required when the Companies House provider is enabled",
+      });
+    }
 
     if (env.SYNDICATE_PAYMENTS_ENABLED === true) {
       ctx.addIssue({
@@ -216,6 +229,13 @@ const serverEnvSchema = z
           message: "Production requires the Cloudflare Turnstile provider",
         });
       }
+      if (companiesHouseProvider !== "companies_house") {
+        ctx.addIssue({
+          code: "custom",
+          path: ["COMPANIES_HOUSE_PROVIDER"],
+          message: "Production requires the Companies House provider",
+        });
+      }
       if (storageProvider === "mock" && env.UPLOADS_ENABLED === true) {
         ctx.addIssue({
           code: "custom",
@@ -242,6 +262,9 @@ export function parseServerEnv(source: NodeJS.ProcessEnv) {
       (parsed.NODE_ENV === "production" ? "cloudflare" : "mock"),
     STORAGE_PROVIDER:
       parsed.STORAGE_PROVIDER ?? (parsed.NODE_ENV === "production" ? "s3" : "mock"),
+    COMPANIES_HOUSE_PROVIDER:
+      parsed.COMPANIES_HOUSE_PROVIDER ??
+      (parsed.NODE_ENV === "production" ? "companies_house" : "mock"),
     TURNSTILE_ENABLED: parsed.TURNSTILE_ENABLED ?? parsed.NODE_ENV === "production",
     UPLOADS_ENABLED: parsed.UPLOADS_ENABLED ?? false,
     FINANCIAL_PROMOTIONS_REVIEWED: parsed.FINANCIAL_PROMOTIONS_REVIEWED ?? false,

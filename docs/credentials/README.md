@@ -12,6 +12,7 @@ belong in `.env.local`, which is ignored by Git.
 | [cloudflare-turnstile.md](./cloudflare-turnstile.md) | Bot protection                |
 | [resend.md](./resend.md)                             | Transactional email           |
 | [sentry.md](./sentry.md)                             | Error monitoring              |
+| [companies-house.md](./companies-house.md)           | Agent company check           |
 
 These are setup instructions only. A service is not considered configured for
 an environment until its credentials, access controls, smoke test, and rotation

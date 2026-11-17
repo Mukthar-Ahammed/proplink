@@ -17,7 +17,7 @@ before then.
 | 1. Roles and schema                    | Done        |
 | 2. Public registration rules           | Done        |
 | 3. Agent invitations and announcements | Done        |
-| 4. Companies House check               | Not started |
+| 4. Companies House check               | Done        |
 | 5. Existing agents migration           | Not started |
 | 6. KYC/AML provider                    | Not started |
 | 7. Blue tick                           | Not started |
