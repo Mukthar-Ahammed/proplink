@@ -1,6 +1,6 @@
 # ADR-024: Companies House check for Agents
 
-**Status:** Accepted. Whether an unverified company restricts anything is open (OD-19).
+**Status:** Accepted. OD-19 decided 2026-11-17 (see Consequences).
 **Date:** 2026-11-17
 
 ## Context
@@ -81,9 +81,12 @@ row (`AGENT_COMPANY_CHECKED`, `AGENT_COMPANY_NOT_FOUND`,
 
 ## Consequences
 
-- Agents are not blocked by an unverified company; the result is visible to
-  Admin and prompted on the dashboard. Whether it should restrict listing
-  submission is OD-19.
+- OD-19 (decided 2026-11-17): invited Agents keep dashboard access but cannot
+  submit a listing for review until their company is VERIFIED or Admin-APPROVED
+  (`agentCompanyGate`, error `COMPANY_UNVERIFIED`, HTTP 403). Pre-invite Agents
+  are governed by Task 5 instead, unless Admin rejected their company. The same
+  gate is to be reused for Landlord chat interest (Phase 3) and publishing to
+  investors.
 - `LimitSpec.kind` gains `user` and `global` so the database limiter can key on
   a profile or a single shared bucket.
 - Rollback: `rollback.sql` drops the table, trigger function and both enums;

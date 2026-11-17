@@ -16,6 +16,12 @@ import {
   searchCompanyRegister,
   type CompanySummary,
 } from "@/services/companiesHouse";
+import {
+  effectiveCompanyStatus,
+  type EffectiveCompanyStatus,
+} from "@/services/agents/companyGate";
+
+export { effectiveCompanyStatus, type EffectiveCompanyStatus };
 
 /**
  * Agent company check (Phase 1 Task 4, ADR-024). The Agent searches the
@@ -253,22 +259,6 @@ export async function overrideCompanyCheck(
     },
   });
   return { ok: true };
-}
-
-export type EffectiveCompanyStatus =
-  | "NOT_SUBMITTED"
-  | "VERIFIED"
-  | "NEEDS_REVIEW"
-  | "APPROVED_BY_ADMIN"
-  | "REJECTED_BY_ADMIN";
-
-export function effectiveCompanyStatus(
-  check: { result: CompanyCheckResult; override: CompanyCheckOverride | null } | null,
-): EffectiveCompanyStatus {
-  if (!check) return "NOT_SUBMITTED";
-  if (check.override === CompanyCheckOverride.APPROVED) return "APPROVED_BY_ADMIN";
-  if (check.override === CompanyCheckOverride.REJECTED) return "REJECTED_BY_ADMIN";
-  return check.result === CompanyCheckResult.VERIFIED ? "VERIFIED" : "NEEDS_REVIEW";
 }
 
 const checkSelect = {

@@ -17,7 +17,7 @@ const STATUS_COPY: Record<
   NOT_SUBMITTED: {
     label: "Not checked yet",
     tone: "text-muted",
-    body: "Find your company on the Companies House register so buyers, landlords and investors know your agency is real.",
+    body: "Find your company on the Companies House register so buyers, landlords and investors know your agency is real. You need this before you can submit listings for review.",
   },
   VERIFIED: {
     label: "Verified",

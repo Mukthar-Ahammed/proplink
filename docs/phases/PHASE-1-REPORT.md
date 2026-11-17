@@ -221,6 +221,9 @@ creation). Until then invites can be sent but not accepted.
   needs the Phase 1 migrations on the development database.
 - **Live smoke test not run**: no `COMPANIES_HOUSE_API_KEY` yet (BLOCKERS).
 
-**Open:** OD-19 (whether an unverified company restricts anything; default: no
-restriction). `/admin/system/integrations` (master rules section 3) does not
+**OD-19 decided (2026-11-17):** invited Agents must pass the company check
+(verified or Admin-approved) before submitting a listing for review;
+pre-invite Agents are left to Task 5 unless Admin rejected their company
+(`src/services/agents/companyGate.ts`, `tests/unit/company-gate.test.ts`, a new
+`submitForReview` test). `/admin/system/integrations` (master rules section 3) does not
 exist yet for any service; it is not built here.

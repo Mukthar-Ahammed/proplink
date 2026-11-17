@@ -20,6 +20,11 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
+vi.mock("@/services/agents/companyGate", () => ({
+  agentCompanyGate: vi.fn(async () => ({ allowed: true, reason: "verified" })),
+  COMPANY_GATE_MESSAGE: "company check required",
+}));
+
 vi.mock("@/services/maps", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/services/maps")>();
   return { ...actual, geocodePostcode: vi.fn() };
@@ -27,6 +32,7 @@ vi.mock("@/services/maps", async (importOriginal) => {
 
 import { db } from "@/lib/db";
 import { geocodePostcode } from "@/services/maps";
+import { agentCompanyGate } from "@/services/agents/companyGate";
 import { PropertyStatus, Role } from "@/generated/prisma/enums";
 import { ListingServiceError } from "@/services/listings/errors";
 import type { CreateListingInput } from "@/services/listings/validation";
@@ -285,6 +291,21 @@ describe("updateDraft", () => {
 });
 
 describe("submitForReview", () => {
+  it("blocks an invited Agent whose company check has not passed (OD-19)", async () => {
+    mockDb.property.findUnique.mockResolvedValue(propertyRow());
+    vi.mocked(agentCompanyGate).mockResolvedValueOnce({
+      allowed: false,
+      status: "NOT_SUBMITTED",
+    });
+
+    await expect(
+      submitForReview({ userId: AGENT_USER_ID, propertyId: PROPERTY_ID }),
+    ).rejects.toMatchObject({ code: "COMPANY_UNVERIFIED" });
+
+    expect(agentCompanyGate).toHaveBeenCalledWith(AGENT_USER_ID);
+    expect(mockDb.property.update).not.toHaveBeenCalled();
+  });
+
   it("blocks submission when the listing is not ready (e.g. no distress tags)", async () => {
     mockDb.property.findUnique.mockResolvedValue(propertyRow({ distressTags: [] }));
 

@@ -30,7 +30,7 @@ export default async function AgentHomePage() {
   ]);
   const companyPrompt =
     company.status === "NOT_SUBMITTED"
-      ? "Check your company against the Companies House register."
+      ? "Check your company against the Companies House register before submitting listings."
       : company.status === "NEEDS_REVIEW" || company.status === "REJECTED_BY_ADMIN"
         ? "Your company check needs attention."
         : null;
