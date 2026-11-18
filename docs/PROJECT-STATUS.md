@@ -31,6 +31,9 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   and changes (ADR-049), sale and append-only ledger (ADR-050), project
   decisions (ADR-051). Every exit-gate item is proven by tests; owner checks
   and the Dropbox Sign live smoke test are pending.
+- **Phase 7 started** (2026-11-19) on `phase-7-hardening`: hardening, compliance,
+  performance and release readiness (`docs/phases/PHASE-7-REPORT.md`). Production
+  rollout stays deferred.
 - **Phase 6 built** (2026-11-19) on `phase-6-admin-ads`: Admin permissions with
   maker-checker (ADR-058), cases and disputes with two-person GDPR exports
   (ADR-059), advertising in designated slots (ADR-060), KPIs, integrations

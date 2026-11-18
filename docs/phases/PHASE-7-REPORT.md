@@ -1,0 +1,50 @@
+# Phase 7 — Hardening, Compliance, Performance and Release Readiness
+
+| Status      | Started    | Branch              | Depends on                                         |
+| ----------- | ---------- | ------------------- | -------------------------------------------------- |
+| In progress | 2026-11-19 | `phase-7-hardening` | Phases 1-6 built; owner checks deferred (see note) |
+
+Started from `phase-6-admin-ads` after its build finished. By the owner's
+choice (2026-11-18), manual checks for every phase are done together after the
+last phase (`docs/MANUAL_CHECKS.md`); no phase is closed or merged to `main`
+until its checks pass. **Production rollout stays deferred** until the final
+launch checklist passes; nothing is deployed without the owner's approval.
+
+## What this phase can and cannot finish in the repository
+
+Built and evidenced here: threat model, local scans and fixes, the access
+audit as local database tests, rate-limit and fail-closed tests, retention and
+erasure in code, compliance drafts, rollback and performance checks, the full
+E2E and accessibility gates, CI and runbooks, final documents.
+
+Needs the owner or outside parties (recorded as human tasks, with the
+prepared material): scans against a live staging site (OWASP ZAP, Supabase
+Security Advisor), the independent penetration test, legal review (FCA
+handoff, DPIA sign-off, privacy policy and terms), production keys in a
+secret store, backups and restore on the real database, and every open
+**[OWNER]** decision. The launch checklist cannot be ticked until those exist.
+
+## Task progress
+
+| Task                           | State       | Notes |
+| ------------------------------ | ----------- | ----- |
+| 1. Security review             | In progress |       |
+| 2. RLS and authorisation audit | Not started |       |
+| 3. Rate-limit and abuse        | Not started |       |
+| 4. Privacy and compliance      | Not started |       |
+| 5. Resilience and performance  | Not started |       |
+| 6. Quality gates               | Not started |       |
+| 7. Deployment readiness        | Not started |       |
+| 8. Final documentation         | Not started |       |
+
+## Final exit gate (launch checklist)
+
+- [ ] All 7 phase reports complete; all exit gates passed with evidence
+- [ ] All nine TRD §10 acceptance criteria pass as E2E tests; every Appendix C row delivered or owner-deferred
+- [ ] Zero high/critical vulnerabilities; independent pen test scheduled or done
+- [ ] Every route rate-limited and tested; every table RLS-protected and tested
+- [ ] No investment funds can move through the app (tested); Stripe for subscriptions only
+- [ ] `FINANCIAL_PROMOTIONS_REVIEWED` is `true` only with written legal sign-off
+- [ ] All [OWNER] decisions recorded and confirmed
+- [ ] Every external service documented, keys only through the secret store
+- [ ] Backups, rollback, monitoring and incident runbooks tested
