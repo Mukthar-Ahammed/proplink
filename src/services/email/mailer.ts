@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getServerEnv } from "@/env";
+import { saveToOutbox } from "@/services/email/devOutbox";
 
 export interface Mail {
   to: string;
@@ -50,6 +51,9 @@ class MockMailer implements Mailer {
         hasHtml: Boolean(mail.html),
       }),
     );
+    // TEMPORARY until Resend is configured: keep the email readable at
+    // /dev/mail (development only; never in production).
+    await saveToOutbox(mail);
   }
 }
 

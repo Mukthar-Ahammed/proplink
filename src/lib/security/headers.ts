@@ -55,6 +55,7 @@ export function isPrivateResponsePath(pathname: string): boolean {
     pathname === "/account" ||
     pathname.startsWith("/account/") ||
     pathname === "/mfa" ||
+    pathname.startsWith("/dev/") ||
     pathname.startsWith("/u/") ||
     pathname === "/verify" ||
     pathname.startsWith("/verify/") ||
