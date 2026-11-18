@@ -1083,6 +1083,29 @@ of the boundary.
   Admin decision and mandate actions. Emails carry area and kind only.
 - Schema (migration `20261118150000`): `notification_deliveries`; server-only.
 
+## Subscriptions (Phase 3 Task 1, ADR-042)
+
+- `src/services/billing/`: `BillingProvider` with `MockBillingProvider` and
+  `StripeBillingProvider` (official `stripe` SDK, API `2026-10-28.endive`;
+  hosted Checkout and Customer Portal only; events normalised so the logic is
+  provider-neutral). `STRIPE_PROVIDER=mock|stripe`; live keys refused
+  outside production.
+- `subscriptions.ts`: Admin prices (immutable provider prices: a change
+  retires the old plan), grace period, `subscriptionState` (active, grace,
+  lapsed, none, not required), checkout and portal, and
+  `processBillingWebhook`: verified, recorded and applied in one transaction
+  (replays are no-ops; failures retry), older events never overwrite newer
+  state, failed payments start the grace period and send a mandatory email.
+- `requireSubscription` (`src/lib/authz`): passes non-paying roles and paid or
+  grace subscribers; otherwise 402.
+- Schema (migration `20261118160000`): `subscription_plans`, `billing_settings`,
+  `billing_customers`, `subscriptions` (model `BillingSubscription`; the legacy
+  `Subscription` model is the earlier business model), `billing_webhook_events`;
+  trigger: only Agents and Investors hold subscriptions; all server-only.
+- Pages: `/account/billing` (Agents and Investors only), mock checkout and
+  portal at `/account/billing/mock` (development), `/admin/billing`; webhook
+  `POST /api/webhooks/stripe`.
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers

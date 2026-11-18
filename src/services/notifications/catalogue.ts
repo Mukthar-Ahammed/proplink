@@ -70,6 +70,15 @@ export const NOTIFICATION_EVENTS: readonly NotificationEvent[] = [
     mandatory: false,
     deliveredInPhase: 1,
   },
+  {
+    key: "billing.payment",
+    label: "Subscription payments",
+    description: "A subscription payment failed and your access may become read-only.",
+    roles: [Role.AGENT, Role.INVESTOR],
+    defaults: { inApp: true, email: true },
+    mandatory: true,
+    deliveredInPhase: 3,
+  },
   // Landlord → Agent link of the chain (Phase 2).
   {
     key: "listing.review_decision",

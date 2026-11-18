@@ -79,6 +79,21 @@ and complete the mock identity check at `/verify`.
 - [ ] Earlier open decisions: `docs/OPEN_DECISIONS.md` (OD-18 service-role key,
       OD-20 KYC provider, and the rest).
 
+## Phase 3 — Subscriptions, chat authorisation, realtime messaging
+
+(Being built; more items are added as tasks finish.)
+
+- [ ] **Subscriptions with the mock provider.** As Admin at `/admin/billing`,
+      set Agent prices (monthly and yearly). As `agent@`, open Billing,
+      subscribe monthly, press "Pay (test)": status becomes Active. Use
+      "Manage billing" → "Renewal payment fails": the status shows the grace
+      date and an email arrives; "Renewal succeeds" restores it; "Cancel now"
+      makes it not active. As a Landlord or Buyer, `/account/billing` is a 404.
+- [ ] **Stripe test mode (needs keys, `docs/credentials/stripe.md`).** Set
+      `STRIPE_PROVIDER=stripe`, run `stripe listen --forward-to
+localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
+      card 4242 4242 4242 4242, then use the Customer Portal to cancel.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

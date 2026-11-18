@@ -265,6 +265,9 @@ model Profile {
   mandatesEnded        Mandate[]                 @relation("MandateTerminator")
   disclosuresSet       MandateDisclosure[]       @relation("MandateDisclosureEditor")
   notificationsSent    NotificationDelivery[]    @relation("NotificationDeliveryProfile")
+  plansCreated         SubscriptionPlan[]        @relation("SubscriptionPlanCreator")
+  billingCustomer      BillingCustomer?          @relation("BillingCustomerProfile")
+  billingSubscriptions BillingSubscription[]     @relation("SubscriptionProfile")
 
   @@map("profiles")
 }
@@ -1608,4 +1611,105 @@ model NotificationDelivery {
   @@unique([profileId, eventKey, dedupeKey, channel], map: "notification_deliveries_dedupe_key")
   @@index([createdAt])
   @@map("notification_deliveries")
+}
+
+/// Who pays (Clarification Answers §D): Agents, Lead Investors, Co-Investors.
+enum SubscriptionAudience {
+  AGENT
+  LEAD_INVESTOR
+  CO_INVESTOR
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+/// Mirrors the provider's subscription status (Stripe values, upper case).
+enum SubscriptionStatus {
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  PAUSED
+}
+
+/// Admin-managed price (Phase 3 Task 1, ADR-042; OD-01). Provider prices are
+/// immutable: a change retires this row and adds a new one.
+model SubscriptionPlan {
+  id              String               @id @db.Uuid
+  audience        SubscriptionAudience
+  interval        BillingInterval
+  /// Pence.
+  amountGBP       Int
+  provider        String
+  providerPriceId String               @unique
+  active          Boolean              @default(true)
+  createdBy       String               @db.Uuid
+  createdAt       DateTime             @default(now())
+  retiredAt       DateTime?
+
+  creator Profile @relation("SubscriptionPlanCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("subscription_plans")
+}
+
+/// Singleton (id = 1): grace period after a failed payment.
+model BillingSettings {
+  id        Int      @id @default(1)
+  graceDays Int      @default(7)
+  updatedAt DateTime @updatedAt
+  updatedBy String?  @db.Uuid
+
+  @@map("billing_settings")
+}
+
+model BillingCustomer {
+  profileId          String   @id @db.Uuid
+  provider           String
+  providerCustomerId String   @unique
+  createdAt          DateTime @default(now())
+
+  profile Profile @relation("BillingCustomerProfile", fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@map("billing_customers")
+}
+
+/// Written only by the verified webhook handler. (The legacy `Subscription`
+/// model above is the earlier business model's tiered Agent plan.)
+model BillingSubscription {
+  id                     String               @id @db.Uuid
+  profileId              String               @db.Uuid
+  audience               SubscriptionAudience
+  interval               BillingInterval
+  provider               String
+  providerSubscriptionId String               @unique
+  providerPriceId        String
+  status                 SubscriptionStatus
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean              @default(false)
+  pastDueSince           DateTime?
+  lastEventAt            DateTime
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  profile Profile @relation("SubscriptionProfile", fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@index([profileId, audience])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+/// Webhook idempotency: recorded in the same transaction that applies it.
+model BillingWebhookEvent {
+  eventId        String   @id
+  provider       String
+  type           String
+  eventCreatedAt DateTime
+  receivedAt     DateTime @default(now())
+
+  @@map("billing_webhook_events")
 }

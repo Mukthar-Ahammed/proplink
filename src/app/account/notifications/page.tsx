@@ -8,8 +8,12 @@ import { PreferencesForm } from "./PreferencesForm";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Notification preferences — PropLink UK" };
 
-/** The roadmap phase now live; later events show as "coming soon". */
-const CURRENT_PHASE = 1;
+/**
+ * The roadmap phase now live; later events show as "coming soon". Phase 2's
+ * chain events are delivered (ADR-041); move to 3 when Phase 3's chat events
+ * ship.
+ */
+const CURRENT_PHASE = 2;
 
 /**
  * Notification preferences for every signed-in role (Phase 1 Task 10,

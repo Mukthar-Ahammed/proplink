@@ -258,6 +258,16 @@ export async function sendPrivateListingEmail(params: {
   });
 }
 
+// Phase 3 Task 1 — subscription payment failed (mandatory notice).
+
+export async function sendPaymentFailedEmail(params: { to: string; graceDays: number }) {
+  await mailer.send({
+    to: params.to,
+    subject: "Your PropLink subscription payment failed",
+    text: `We could not take your latest subscription payment. Our payment provider will retry automatically.\n\nPlease update your payment details within ${params.graceDays} days to keep chatting without interruption. After that, your chats become read-only until the subscription is renewed.\n\nManage billing: ${BASE_URL}/account/billing`,
+  });
+}
+
 // Task 2.5 — public property detail page enquiry notification.
 
 export async function sendNewEnquiryEmail(params: {

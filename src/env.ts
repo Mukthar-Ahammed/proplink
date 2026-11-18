@@ -70,6 +70,10 @@ const serverEnvSchema = z
     SUMSUB_SECRET_KEY: optionalString,
     SUMSUB_WEBHOOK_SECRET: optionalString,
     SUMSUB_LEVEL_NAME: optionalString,
+    STRIPE_PROVIDER: optionalEnum(["mock", "stripe"]),
+    STRIPE_SECRET_KEY: optionalString,
+    STRIPE_WEBHOOK_SECRET: optionalString,
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: optionalString,
     AI_PROVIDER: optionalEnum(["mock", "anthropic", "disabled"]),
     ANTHROPIC_API_KEY: optionalString,
     AI_MODEL: optionalString,
@@ -117,6 +121,41 @@ const serverEnvSchema = z
         code: "custom",
         path: ["KYC_PROVIDER"],
         message: "Production requires a real KYC provider",
+      });
+    }
+
+    // Phase 3 Task 1 (ADR-042): subscriptions only; never live keys outside production.
+    const stripeProvider =
+      env.STRIPE_PROVIDER ?? (env.NODE_ENV === "production" ? "stripe" : "mock");
+    if (stripeProvider === "stripe") {
+      for (const key of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: "Required when the Stripe provider is enabled",
+          });
+        }
+      }
+    }
+    const productionDeployment =
+      env.NODE_ENV === "production" &&
+      (env.PROPLINK_ENV ?? "production") === "production";
+    const liveKey = [env.STRIPE_SECRET_KEY, env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY].some(
+      (key) => key !== undefined && /^(sk|rk|pk)_live_/.test(key),
+    );
+    if (liveKey && !productionDeployment) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["STRIPE_SECRET_KEY"],
+        message: "Live Stripe keys are refused outside production; use test-mode keys",
+      });
+    }
+    if (env.NODE_ENV === "production" && stripeProvider === "mock") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["STRIPE_PROVIDER"],
+        message: "Production cannot use the mock billing provider",
       });
     }
 
@@ -325,6 +364,8 @@ export function parseServerEnv(source: NodeJS.ProcessEnv) {
     KYC_PROVIDER:
       parsed.KYC_PROVIDER ?? (parsed.NODE_ENV === "production" ? "sumsub" : "mock"),
     SUMSUB_LEVEL_NAME: parsed.SUMSUB_LEVEL_NAME ?? "basic-kyc-level",
+    STRIPE_PROVIDER:
+      parsed.STRIPE_PROVIDER ?? (parsed.NODE_ENV === "production" ? "stripe" : "mock"),
     AI_PROVIDER:
       parsed.AI_PROVIDER ?? (parsed.NODE_ENV === "production" ? "anthropic" : "mock"),
     AI_MODEL: parsed.AI_MODEL ?? "claude-opus-5-5",

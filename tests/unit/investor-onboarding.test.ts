@@ -182,6 +182,8 @@ describe("PHASE 3 — Investor Subtype Onboarding & Entry UI", () => {
       expect(nav).toEqual([
         { href: "/investor", label: "Dashboard" },
         { href: "/investor/kyc", label: "Identity & Verification" },
+        // Phase 3 Task 1: Investors subscribe as Lead or Co-Investors.
+        { href: "/account/billing", label: "Billing" },
         { href: "/account/profile", label: "My profile" },
         { href: "/account/notifications", label: "Notifications" },
       ]);

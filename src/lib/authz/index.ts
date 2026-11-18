@@ -172,8 +172,31 @@ export async function requireKyc(): Promise<AuthzResult> {
   return requireVerified("KYC");
 }
 
-export async function requireSubscription(): Promise<never> {
-  throw new NotImplementedError("Subscription");
+/**
+ * Phase 3 Task 1 (ADR-042): paid features need an active subscription, or a
+ * failed payment still inside the grace period. Roles that never pay
+ * (Landlords, Buyers) pass. Refusals use 402 so clients can offer billing.
+ */
+export async function requireSubscription(): Promise<AuthzResult> {
+  const result = await requireUser();
+  if (!result.ok) return result;
+  // Imported lazily: the billing service depends on modules that import this one.
+  const { allowsPaidFeatures, subscriptionState } =
+    await import("@/services/billing/subscriptions");
+  const state = await subscriptionState({
+    profileId: result.session.user.authUserId,
+    role: result.session.user.role,
+  });
+  if (!allowsPaidFeatures(state)) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "An active subscription is required", billing: "/account/billing" },
+        { status: 402 },
+      ),
+    };
+  }
+  return result;
 }
 
 export async function requireChatAuthorization(): Promise<never> {
