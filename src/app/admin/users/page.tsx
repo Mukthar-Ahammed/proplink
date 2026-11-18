@@ -1,3 +1,4 @@
+import { isRecentlyAuthenticated, REAUTH_MESSAGE } from "@/services/auth/mfa";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { requirePageRole, requireRole } from "@/lib/authz";
@@ -27,7 +28,10 @@ async function toggleActive(formData: FormData) {
   "use server";
   const authz = await requireRole("ADMIN");
   if (!authz.ok) return;
-
+  // Phase 1 Task 11 (ADR-030): destructive Admin actions need a recent check.
+  if (!isRecentlyAuthenticated(authz.session.user)) {
+    throw new Error(`${REAUTH_MESSAGE} Go to /mfa?reauth=1`);
+  }
   const result = await setUserActive({
     actor: {
       profileId: authz.session.user.authUserId,

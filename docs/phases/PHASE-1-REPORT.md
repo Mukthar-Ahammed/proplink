@@ -23,7 +23,7 @@ development Supabase project (see the Phase 0 report).
 | 8. Profiles                            | Not started | Needs Task 12 for photo uploads      |
 | 9. Suspend/reinstate                   | **Done**    | ADR-028; fixed actor-ID defect       |
 | 10. Notification preferences           | **Done**    | ADR-029                              |
-| 11. MFA                                | Not started |                                      |
+| 11. MFA                                | **Done**    | ADR-030; Admin login needs TOTP      |
 | 12. Secure upload pipeline             | Not started |                                      |
 | 13. Permission-matrix harness          | Not started |                                      |
 
@@ -403,3 +403,43 @@ exist yet for any service; it is not built here.
   no Data API access. Investor nav test updated for the new link.
 - Rollback rehearsed. Full suite: **101 files, 1,291 tests pass**; typecheck and
   lint clean.
+
+## Task 11 — MFA (2026-11-18)
+
+**Delivered** (ADR-030)
+
+- Supabase TOTP enrolment, challenge and re-authentication on `/mfa` (QR code
+  and manual key, 6-digit verification, 5 checks per 15 minutes per user).
+- `auth()` exposes `mfa.aal`, `sessionId`, `lastAuthAt`; Admin/Solicitor claims
+  are signature-verified with `getClaims()`; a token for another user fails
+  closed.
+- Enforcement for Admin and Solicitor in `requireUser()` (every guard),
+  `requirePageRole()` and the Admin layout: **Admin cannot reach `/admin`
+  without MFA**.
+- Migration `20261118040000_phase1_mfa_recovery` (with `rollback.sql`): hashed
+  single-use recovery codes and per-session recovery grants (12 h max).
+- Re-authentication (15 minutes) for suspend/reinstate and badge revocation.
+- Optional MFA for all other roles.
+
+**Verification**
+
+- `tests/unit/mfa.test.ts` (14): role list, code format/uniqueness and
+  hash-only storage, normalisation, profile-bound hash, single-use redemption
+  bound to the session, refusals, rate limit, aal2/recovery-grant acceptance
+  (other profile and expired refused), 15-minute re-auth, guards: aal1 Admin and
+  Solicitor get 403, Admin page redirects to `/mfa`, aal2 Admin and Buyer pass.
+- `tests/unit/auth-identity-consistency.test.ts`: claims for ordinary roles,
+  verified claims and aal2 for Admin, unverifiable Admin claims treated as
+  aal1, token for another user refused.
+- `tests/unit/admin-a1-layout-shell.test.ts`: aal1 Admin redirected to `/mfa`.
+- `tests/integration/mfa-recovery-db.test.ts`: hash format and uniqueness, no
+  Data API access.
+- Rollback rehearsed. Full suite: **103 files, 1,311 tests pass**; typecheck,
+  lint and production build pass.
+
+**Impact and gaps**
+
+- The owner's Phase 0 manual Admin login (step 4) now includes setting up an
+  authenticator app.
+- Existing Admin Playwright specs need a TOTP helper before they can run.
+- Resetting another user's authenticator needs the Supabase Admin API (OD-18).

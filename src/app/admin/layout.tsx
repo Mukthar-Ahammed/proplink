@@ -2,6 +2,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { AdminShell } from "@/components/admin/AdminShell";
+import { isMfaSatisfied } from "@/services/auth/mfa";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const headerList = await headers();
@@ -20,6 +21,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session?.user || session.user.role !== "ADMIN" || !session.user.active) {
     redirect("/admin/login");
   }
+  // Phase 1 Task 11 (ADR-030): Admin never sees /admin without a second factor.
+  if (!(await isMfaSatisfied(session.user))) redirect("/mfa");
 
   return (
     <AdminShell

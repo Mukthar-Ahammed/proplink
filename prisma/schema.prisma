@@ -250,6 +250,8 @@ model Profile {
   verificationBadge    VerificationBadge?        @relation("VerificationBadgeProfile")
   badgesAwarded        VerificationBadge[]       @relation("VerificationBadgeAwarder")
   notificationPrefs    NotificationPreference[]  @relation("NotificationPreferenceProfile")
+  mfaRecoveryCodes     MfaRecoveryCode[]         @relation("MfaRecoveryCodeProfile")
+  mfaRecoverySessions  MfaRecoverySession[]      @relation("MfaRecoverySessionProfile")
 
   @@map("profiles")
 }
@@ -1169,4 +1171,33 @@ model NotificationPreference {
 
   @@id([profileId, eventKey])
   @@map("notification_preferences")
+}
+
+/// Phase 1 Task 11 (ADR-030). Single-use MFA recovery codes; only a SHA-256
+/// of the profile ID and the normalised code is stored.
+model MfaRecoveryCode {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId String    @db.Uuid
+  codeHash  String    @unique
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  profile Profile @relation("MfaRecoveryCodeProfile", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("mfa_recovery_codes")
+}
+
+/// Phase 1 Task 11 (ADR-030). A Supabase session that satisfied MFA with a
+/// recovery code instead of an authenticator. Bound to that session only.
+model MfaRecoverySession {
+  sessionId String   @id
+  profileId String   @db.Uuid
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  profile Profile @relation("MfaRecoverySessionProfile", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([profileId])
+  @@map("mfa_recovery_sessions")
 }

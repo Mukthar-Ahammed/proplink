@@ -24,7 +24,7 @@ before then.
 | 8. Profiles                            | Not started |
 | 9. Suspend/reinstate                   | Done        |
 | 10. Notification preferences           | Done        |
-| 11. MFA                                | Not started |
+| 11. MFA                                | Done        |
 | 12. Secure upload pipeline             | Not started |
 | 13. Permission-matrix harness          | Not started |
 

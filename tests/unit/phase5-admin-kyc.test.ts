@@ -220,7 +220,9 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
         },
       } as never);
 
-      const res = await approveKycSubmission(mockAdmin, { submissionId: "sub-already-approved" });
+      const res = await approveKycSubmission(mockAdmin, {
+        submissionId: "sub-already-approved",
+      });
       expect(res.ok).toBe(false);
       if (!res.ok) {
         expect(res.error).toMatch(/Submission is no longer pending review/);
@@ -322,7 +324,9 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
           "DOCUMENT_EXPIRED: Provided passport expired in 2024",
         );
         // Verify internalNotes is NOT exposed to the investor
-        expect((summary.data.latestSubmission as Record<string, unknown>)["internalNotes"]).toBeUndefined();
+        expect(
+          (summary.data.latestSubmission as Record<string, unknown>)["internalNotes"],
+        ).toBeUndefined();
       }
     });
   });
@@ -383,6 +387,7 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
   describe("7. Financial Eligibility Integration Matrix", () => {
     it("grants FLIPPER financial eligibility ONLY when investorType allows FLIPPER and kycStatus = APPROVED", () => {
       const flipperApproved: AppSession["user"] = {
+        mfa: { aal: "aal1", sessionId: null, lastAuthAt: null },
         id: "u1",
         authUserId: "auth-u1",
         email: "flipper@proplink.uk",
@@ -413,6 +418,7 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
 
     it("grants SYNDICATE financial eligibility ONLY when investorType allows SYNDICATE and kycStatus = APPROVED", () => {
       const syndicateApproved: AppSession["user"] = {
+        mfa: { aal: "aal1", sessionId: null, lastAuthAt: null },
         id: "u2",
         authUserId: "auth-u2",
         email: "syndicate@proplink.uk",
@@ -430,6 +436,7 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
 
     it("grants BOTH capabilities when investorType = BOTH and kycStatus = APPROVED", () => {
       const bothApproved: AppSession["user"] = {
+        mfa: { aal: "aal1", sessionId: null, lastAuthAt: null },
         id: "u3",
         authUserId: "auth-u3",
         email: "both@proplink.uk",

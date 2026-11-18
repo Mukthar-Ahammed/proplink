@@ -54,6 +54,7 @@ export function isPrivateResponsePath(pathname: string): boolean {
     pathname.startsWith("/buy/") ||
     pathname === "/account" ||
     pathname.startsWith("/account/") ||
+    pathname === "/mfa" ||
     pathname === "/verify" ||
     pathname.startsWith("/verify/") ||
     pathname.startsWith("/auth/") ||

@@ -31,7 +31,11 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   Phase 1 tasks done: 1–7 and 9 of 13.
 - **Task 10 (notification preferences) done** (ADR-029): catalogue keyed to the
   Q12 chain, `/account/notifications`, `shouldNotify()` for later phases. Full
-  suite 101 files / 1,291 tests pass. Phase 1 tasks done: 1–7, 9 and 10 of 13.
+  suite 101 files / 1,291 tests pass.
+- **Task 11 (MFA) done** (ADR-030): TOTP mandatory for Admin and Solicitor,
+  optional for others; hashed recovery codes; 15-minute re-authentication for
+  sensitive Admin actions. **Admin sign-in now needs an authenticator app.**
+  Full suite 103 files / 1,311 tests pass. Phase 1 tasks done: 1–7 and 9–11 of 13.
 - Phase 0 is unchanged: only the owner's manual authentication test remains.
 
 ## 2026-11-16 update

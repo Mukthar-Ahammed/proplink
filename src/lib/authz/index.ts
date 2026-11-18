@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { InvestorType, KycStatus, Role } from "@/generated/prisma/enums";
 import { auth, type AppSession } from "@/lib/auth";
 import { getInvestorCapabilities } from "@/services/syndicates/investorType";
+import { isMfaSatisfied, requiresMfa } from "@/services/auth/mfa";
 
 export type AuthzResult =
   { ok: true; session: AppSession } | { ok: false; response: NextResponse };
@@ -76,9 +77,26 @@ export class NotImplementedError extends Error {
   }
 }
 
+function mfaRequired(): AuthzResult {
+  return {
+    ok: false,
+    response: NextResponse.json(
+      { error: "Multi-factor authentication required", mfa: "/mfa" },
+      { status: 403 },
+    ),
+  };
+}
+
+/**
+ * Every guard below starts here. Admin and Solicitor sessions without a
+ * verified second factor are refused (Phase 1 Task 11, ADR-030).
+ */
 export async function requireUser(): Promise<AuthzResult> {
   const session = await auth();
   if (!session?.user) return authenticationRequired();
+  if (requiresMfa(session.user.role) && !(await isMfaSatisfied(session.user))) {
+    return mfaRequired();
+  }
   return { ok: true, session };
 }
 
@@ -123,6 +141,9 @@ export async function requirePageRole(...roles: Role[]): Promise<AppSession> {
     redirect(roles.includes(Role.ADMIN) ? "/admin/login" : "/login");
   }
   if (!hasAllowedRole(session.user, roles)) redirect("/403");
+  if (requiresMfa(session.user.role) && !(await isMfaSatisfied(session.user))) {
+    redirect("/mfa");
+  }
   return session;
 }
 

@@ -255,6 +255,12 @@ The complete one-line policy rationale is in
   (`src/services/notifications/catalogue.ts`), server-only `notification_preferences` storing
   only changes from defaults, `shouldNotify()` for later senders (mandatory events always on).
   UI `/account/notifications`.
+- **MFA (Phase 1, ADR-030):** Supabase TOTP; `auth()` exposes `mfa.aal`, `sessionId`,
+  `lastAuthAt` (Admin/Solicitor claims via signature-verified `getClaims()`). Admin and
+  Solicitor need `aal2` in `requireUser()`, `requirePageRole()` and the Admin layout (403 or
+  redirect to `/mfa`). Hashed single-use recovery codes grant MFA to one session for up to
+  12 h. Sensitive Admin actions need an authentication within 15 minutes
+  (`isRecentlyAuthenticated`). Service `src/services/auth/mfa.ts`; UI `/mfa`.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR
