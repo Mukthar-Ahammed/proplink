@@ -590,3 +590,19 @@ self → full), visibility choices per role, and the database rule that
 Investors can never be members-only. The KYC browser test passes against
 development; the three Admin flows are being checked by hand by the owner
 (no automated test Admin until OD-18).
+
+## Carried forward (owner agreement, 2026-11-18)
+
+As with Phase 0 (ADR-019), three exit-gate checks that need outside accounts
+are carried forward rather than holding Phase 2. Each is built, mock-tested
+and documented; they run when the credentials exist (BLOCKERS):
+
+1. Companies House live smoke test (`scripts/smoke-companies-house.mjs`).
+2. Real ClamAV EICAR / wrong-type upload test
+   (`docs/credentials/malware-scanning.md`).
+3. Sumsub sandbox verification and webhook (OD-20).
+
+Still to do before Phase 1 exits: the owner's hand check of the three Admin
+flows (invite with company step, company check and override, existing-agent
+confirmation). Phase 2 starts in parallel on `phase-2-landlord-pipeline`,
+branched from this branch, and cannot exit before Phase 1 does.
