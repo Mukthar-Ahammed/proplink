@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PortalSection } from "@/components/portal/PortalShell";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { day, penceToPoundsInput } from "@/components/projects/format";
+import { PledgeTable } from "@/components/projects/PledgeTable";
 import { ProjectSummary } from "@/components/projects/ProjectSummary";
 import { ProjectTermsForm } from "@/components/projects/ProjectTermsForm";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
 import { PROJECT_RESPONSIBILITY_NOTICE } from "@/services/projects/common";
+import { listProjectPledges } from "@/services/projects/pledges";
 import { getManagedProject } from "@/services/projects/projects";
 
 import { leadNominationAction, updateProjectAction } from "../actions";
@@ -37,15 +39,14 @@ export default async function AgentProjectPage({
 }) {
   const session = await requirePageRole(Role.AGENT);
   const { id } = await params;
-  const project = await getManagedProject(
-    {
-      profileId: session.user.authUserId,
-      legacyUserId: session.user.id,
-      role: session.user.role,
-    },
-    id,
-  );
+  const agent = {
+    profileId: session.user.authUserId,
+    legacyUserId: session.user.id,
+    role: session.user.role,
+  };
+  const project = await getManagedProject(agent, id);
   if (!project) notFound();
+  const pledges = (await listProjectPledges(agent, project.id)) ?? [];
   const published = project.status === InvestorProjectStatus.PUBLISHED;
   const live = project.nominations.find(
     (nomination) =>
@@ -133,6 +134,10 @@ export default async function AgentProjectPage({
             ))}
           </ul>
         )}
+      </PortalSection>
+
+      <PortalSection title="Pledges">
+        <PledgeTable pledges={pledges} />
       </PortalSection>
 
       {published && (

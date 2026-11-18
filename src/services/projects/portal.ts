@@ -14,6 +14,11 @@ import { buildInvestorView, disclosureFor } from "@/services/landlord/disclosure
 import { createGrantedDownloadLink } from "@/services/uploads/pipeline";
 import { VISIBLE_TO_INVESTORS, type Actor } from "@/services/projects/common";
 import { nominationFor } from "@/services/projects/lead";
+import {
+  fundingProgress,
+  myPledge,
+  projectionAllowed,
+} from "@/services/projects/pledges";
 
 /**
  * The Investor Portal's read side (Phase 4 Tasks 1 and 3, ADR-044). Investors
@@ -197,6 +202,10 @@ export async function getInvestorProject(investor: Actor, projectId: string) {
       }
     : null;
   const showExpected = isFinancialPromotionsReviewed();
+  const [progress, pledge] = await Promise.all([
+    fundingProgress(project.id, project.capitalRequiredGBP),
+    myPledge(investor.profileId, project.id, project.capitalRequiredGBP),
+  ]);
 
   return {
     id: project.id,
@@ -234,6 +243,13 @@ export async function getInvestorProject(investor: Actor, projectId: string) {
     interested: interest !== null && interest.withdrawnAt === null,
     nomination: await nominationFor(investor.profileId, project.id),
     lead,
+    progress,
+    pledge,
+    /** OD-16: deterministic projection, KYC-approved and promotions reviewed only. */
+    showProjection: projectionAllowed(kycApproved),
+    expectedProfitForCalculator: projectionAllowed(kycApproved)
+      ? project.expectedProfitGBP
+      : null,
   };
 }
 

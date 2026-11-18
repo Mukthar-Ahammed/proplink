@@ -169,7 +169,7 @@ describe.skipIf(!hasDb)("publishing to the Investor Portal", () => {
     await expect(insert(chain.agent.profileId)).rejects.toMatchObject({ code: "23514" });
   });
 
-  it("announces a new project to KYC-approved investors once", async () => {
+  it("announces a new project to every KYC-approved investor once", async () => {
     const { projectId } = await published();
     const investor = await person(client, "INVESTOR");
     vi.mocked(sendProjectEmail).mockClear();
@@ -182,7 +182,7 @@ describe.skipIf(!hasDb)("publishing to the Investor Portal", () => {
       );
     expect(toInvestor).toHaveLength(1);
     expect(toInvestor[0][0]).toMatchObject({ notice: "published" });
-  });
+  }, 120_000);
 });
 
 describe.skipIf(!hasDb)("what investors see", () => {

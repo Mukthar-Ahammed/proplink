@@ -281,6 +281,7 @@ model Profile {
   leadNominations      ProjectLeadNomination[]   @relation("LeadNominationInvestor")
   leadNominationsMade  ProjectLeadNomination[]   @relation("LeadNominationNominator")
   leadNominationsDecided ProjectLeadNomination[] @relation("LeadNominationDecider")
+  projectPledges       ProjectPledge[]           @relation("ProjectPledgeInvestor")
 
   @@map("profiles")
 }
@@ -1929,6 +1930,7 @@ model InvestorProject {
   publisher   Profile                 @relation("InvestorProjectPublisher", fields: [publishedBy], references: [id], onDelete: Restrict)
   interests   ProjectInterest[]
   nominations ProjectLeadNomination[]
+  pledges     ProjectPledge[]
 
   @@index([status, publishedAt])
   @@index([agentId])
@@ -1974,4 +1976,39 @@ model ProjectLeadNomination {
   @@index([investorId])
   @@index([status, nominatedAt])
   @@map("project_lead_nominations")
+}
+
+// ── Phase 4 Task 4: pledges (ADR-045) ──
+
+enum PledgeState {
+  PLEDGED
+  BINDING
+  CANCELLED
+  RELEASED
+}
+
+/// An expression of interest until the agreement is signed (BINDING). No money
+/// moves through the app. A trigger locks the project row on every write so
+/// live pledges never exceed the capital required; another keeps the project
+/// FUNDED exactly when they reach it.
+model ProjectPledge {
+  id             String      @id @db.Uuid
+  projectId      String      @db.Uuid
+  investorId     String      @db.Uuid
+  amountGBP      BigInt
+  status         PledgeState @default(PLEDGED)
+  idempotencyKey String
+  createdAt      DateTime    @default(now())
+  bindingAt      DateTime?
+  endedAt        DateTime?
+  endedReason    String?
+  updatedAt      DateTime    @updatedAt
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investor Profile         @relation("ProjectPledgeInvestor", fields: [investorId], references: [id], onDelete: Restrict)
+
+  @@unique([investorId, idempotencyKey])
+  @@index([projectId, status])
+  @@index([investorId])
+  @@map("project_pledges")
 }

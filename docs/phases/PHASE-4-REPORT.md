@@ -72,7 +72,7 @@ provider (default Dropbox Sign, alternative DocuSign).
 | 2. Lead / Co-Investor model   | Done        | ADR-044 |
 | 3. Investor portal            | Not started |         |
 | 3a. Landlord project view     | Not started |         |
-| 4. Pledge flow                | Not started |         |
+| 4. Pledge flow                | Done        | ADR-045 |
 | 5. Solicitor accounts         | Not started |         |
 | 6. Agreements and e-signature | Not started |         |
 | 7. Funds tracking             | Not started |         |
@@ -81,12 +81,12 @@ provider (default Dropbox Sign, alternative DocuSign).
 
 ## Exit gate
 
-- [ ] Acceptance criterion 8: a pledge auto-calculates the share; over-subscription blocked.
+- [x] Acceptance criterion 8: a pledge auto-calculates the share; over-subscription blocked.
 - [ ] Acceptance criterion 9: after a (mock) sale, per-party distributions match the agreement shares.
 - [x] Acceptance criterion 5 (publish half): an Agent with an active mandate publishes to the Investor Portal.
 - [x] Lead assignment yields exactly one Lead per project under concurrency.
 - [ ] The Landlord's project view leaks no investor data.
-- [ ] Over-subscription impossible under concurrency (50 parallel pledges).
+- [x] Over-subscription impossible under concurrency (50 parallel pledges).
 - [ ] Ledger immutability proven by tests (direct SQL as the app role fails).
 - [ ] Solicitor scope isolation proven by an RLS matrix.
 - [ ] E-sign flow works with the mock; live smoke test documented.
@@ -140,3 +140,40 @@ provider (default Dropbox Sign, alternative DocuSign).
   navigation (Flipper hidden while the flag is off); profile tests with
   project counts; boundary test lists the projects service as a deliberate
   reader of disclosed listing data.
+
+## Task 4 — Pledge flow (2026-11-18)
+
+**Delivered** (ADR-045; TRD INV-3, acceptance criterion 8; OD-16)
+
+- Migration `20261119010000_phase4_pledges` (with `rollback.sql`,
+  rehearsed): `project_pledges`; the guard trigger locks the project row and
+  refuses over-subscription, below-minimum pledges (except the final slice),
+  non-KYC investors, closed or past-deadline projects, edits and deletes;
+  the funding trigger keeps FUNDED exact.
+- Capital Contribution Calculator on the investor project page: live share
+  preview (ppm, four decimals), remaining amount, reasons; server
+  authoritative; idempotency key per form; risk and "no money through
+  PropLink" notice. Deterministic projection only with KYC and
+  `FINANCIAL_PROMOTIONS_REVIEWED`.
+- Funding progress for investors (aggregates only), own pledge with cancel
+  while unsigned; pledge tables for the project's Agent and Admin.
+- `assertNoInvestmentPayments` on every pledge write.
+
+**Verification**
+
+- `tests/integration/pledges-db.test.ts` (7, disposable database): criterion
+  8 (25% share; £6,000 refused with "Only £5,000 remains unfunded"; FUNDED
+  at exactly the capital); **50 parallel £3,000 pledges on £100,000 → 33
+  accepted, 17 refused, total £99,000; then 50 parallel pledges for the last
+  £1,000 → exactly one wins and the project is FUNDED**; double-submit with
+  one key → one pledge; KYC (403), subscription (402), minimum, bad input,
+  non-investors, unopened projects; database refuses non-KYC, over-capital,
+  below-minimum, edits (23514) and deletes (42501); cancel re-opens a
+  funded project; binding pledges cannot be cancelled (service or SQL);
+  past-deadline refused.
+- `tests/unit/project-shares.test.ts` (share rounding, largest-remainder
+  splits always exact over 500 random cases, losses, calculator rules) and
+  `tests/unit/no-investment-payments.test.ts` (flag enforced; no payment
+  provider in project code; Stripe only in billing).
+- Announcements now page through every eligible investor (the earlier
+  500-recipient cap could miss newer investors).

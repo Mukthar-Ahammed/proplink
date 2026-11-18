@@ -124,6 +124,13 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       an investor without approved KYC sees "Documents are available once…"
       and no links; after KYC approval the links appear.
 
+- [ ] **Pledge calculator.** On an open project, type amounts: the share and
+      the amount left update as you type; below the minimum or above what
+      remains shows the reason and disables the button. Pledge; the page
+      shows your pledge, share and "expression of interest". Cancel it and
+      the funding bar goes back. Pledge the exact remaining amount: the
+      project shows "Funded".
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

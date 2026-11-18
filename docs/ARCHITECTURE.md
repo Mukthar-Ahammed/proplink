@@ -1146,8 +1146,17 @@ of the boundary.
   `project_lead_nominations` (one in progress and one APPROVED per project),
   `proplink_refuse_change()` shared refusal trigger, mandate guard against
   ending with a live project. Server-only (RLS on, no grants).
+- `pledges.ts` (Task 4, ADR-045): `createPledge` (KYC, subscription,
+  idempotency key, friendly pre-check; the trigger is authoritative),
+  `cancelPledge` (unsigned only), funding progress, `assertNoInvestmentPayments`.
+  `shares.ts`: pure integer share maths (ppm, largest-remainder split) used
+  by the calculator (`PledgeCalculator`) and settlement.
+- Schema (migration `20261119010000`): `project_pledges`; a trigger locks the
+  project row and refuses over-subscription, below-minimum (except the final
+  slice), non-KYC investors, edits and deletes; another keeps the project
+  FUNDED exactly when fully pledged.
 - No money moves through the app; pledges are expressions of interest until
-  signed (later tasks).
+  signed.
 
 ## Testing & CI
 

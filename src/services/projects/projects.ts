@@ -243,8 +243,9 @@ export async function updateProjectTerms(
   return { ok: true };
 }
 
-export const MAX_ANNOUNCE = 500;
-const CONCURRENCY = 5;
+/** Investors are read in pages, so every eligible investor is reached. */
+export const ANNOUNCE_PAGE = 200;
+const CONCURRENCY = 10;
 
 /**
  * Agent → Investor link of the chain (Q12): KYC-approved, active Investors
@@ -256,31 +257,41 @@ export async function announceProject(projectId: string) {
     select: { id: true, title: true },
   });
   if (!project) return { sent: 0, skipped: 0, failed: 0, duplicate: 0 };
-  const investors = await db.profile.findMany({
-    where: { role: Role.INVESTOR, active: true, kycStatus: KycStatus.APPROVED },
-    select: { id: true },
-    take: MAX_ANNOUNCE,
-  });
   const result = { sent: 0, skipped: 0, failed: 0, duplicate: 0 };
-  const queue = investors.map((investor) => investor.id);
-  const worker = async () => {
-    for (let id = queue.shift(); id; id = queue.shift()) {
-      const outcome = await deliverOnce({
-        profileId: id,
-        eventKey: "project.published",
-        dedupeKey: `project:${project.id}:published`,
-        send: (to) =>
-          sendProjectEmail({
-            to,
-            notice: "published",
-            projectTitle: project.title,
-            path: PROJECT_PATH.investor(project.id),
-          }),
-      });
-      result[outcome] += 1;
-    }
+  const deliverPage = async (queue: string[]) => {
+    const worker = async () => {
+      for (let id = queue.shift(); id; id = queue.shift()) {
+        const outcome = await deliverOnce({
+          profileId: id,
+          eventKey: "project.published",
+          dedupeKey: `project:${project.id}:published`,
+          send: (to) =>
+            sendProjectEmail({
+              to,
+              notice: "published",
+              projectTitle: project.title,
+              path: PROJECT_PATH.investor(project.id),
+            }),
+        });
+        result[outcome] += 1;
+      }
+    };
+    await Promise.all(Array.from({ length: CONCURRENCY }, worker));
   };
-  await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await db.profile.findMany({
+      where: { role: Role.INVESTOR, active: true, kycStatus: KycStatus.APPROVED },
+      select: { id: true },
+      orderBy: { id: "asc" },
+      take: ANNOUNCE_PAGE,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+    });
+    if (page.length === 0) break;
+    cursor = page[page.length - 1].id;
+    await deliverPage(page.map((investor) => investor.id));
+    if (page.length < ANNOUNCE_PAGE) break;
+  }
   console.info(JSON.stringify({ event: "project.announced", ...result }));
   return result;
 }

@@ -69,7 +69,7 @@ export async function ensureUserProfile(profileId: string, role: Role) {
 
 /**
  * Whether `agentProfileId` is the Agent on a project this investor is part
- * of (Lead, nominee or interested; pledges from Phase 4 Task 4). Such an
+ * of (Lead, nominee, interested or pledged). Such an
  * Agent sees the investor's full profile (Q4).
  */
 export async function isProjectAgentFor(
@@ -83,6 +83,7 @@ export async function isProjectAgentFor(
         { leadInvestorId: investorProfileId },
         { interests: { some: { investorId: investorProfileId, withdrawnAt: null } } },
         { nominations: { some: { investorId: investorProfileId } } },
+        { pledges: { some: { investorId: investorProfileId } } },
       ],
     },
     select: { id: true },

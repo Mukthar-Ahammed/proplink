@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { PortalSection } from "@/components/portal/PortalShell";
 import { ActionButton } from "@/components/projects/ActionButton";
+import { PledgeCalculator } from "@/components/projects/PledgeCalculator";
 import { ProjectSummary } from "@/components/projects/ProjectSummary";
 import {
   InvestorProjectStatus,
@@ -10,9 +11,15 @@ import {
   Role,
 } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
+import { formatPence } from "@/services/projects/common";
 import { getInvestorProject } from "@/services/projects/portal";
 
-import { interestAction, nominationResponseAction } from "../actions";
+import {
+  cancelPledgeAction,
+  interestAction,
+  nominationResponseAction,
+  pledgeAction,
+} from "../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Investor — Project", robots: { index: false } };
@@ -141,6 +148,82 @@ export default async function InvestorProjectPage({
             )}
           </div>
         )}
+      </PortalSection>
+
+      <PortalSection title="Funding">
+        <div className="space-y-4">
+          <div>
+            <div
+              className="h-2 w-full overflow-hidden rounded-full bg-pale"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={project.progress.percent}
+              aria-label="Pledged so far"
+            >
+              <div
+                className="h-full bg-primary"
+                style={{ width: `${Math.min(100, project.progress.percent)}%` }}
+              />
+            </div>
+            <p className="mt-1 text-sm text-body" data-testid="funding-progress">
+              {formatPence(project.progress.pledgedGBP)} pledged of{" "}
+              {formatPence(project.capitalRequiredGBP)} ·{" "}
+              {formatPence(project.progress.remainingGBP)} remains ·{" "}
+              {project.progress.pledgeCount} pledge
+              {project.progress.pledgeCount === 1 ? "" : "s"}
+            </p>
+          </div>
+          {project.pledge ? (
+            <div
+              className="rounded-lg border border-line bg-white p-4"
+              data-testid="my-pledge"
+            >
+              <p className="text-sm text-body">
+                Your pledge: <strong>{formatPence(project.pledge.amountGBP)}</strong> ·
+                share {project.pledge.share} ·{" "}
+                {project.pledge.status === "BINDING"
+                  ? "binding (agreement signed)"
+                  : "expression of interest (not yet signed)"}
+              </p>
+              {project.pledge.status === "PLEDGED" && (
+                <div className="mt-3">
+                  <ActionButton
+                    action={cancelPledgeAction}
+                    hidden={{ pledgeId: project.pledge.id, projectId: project.id }}
+                    label="Cancel pledge"
+                    tone="secondary"
+                  />
+                </div>
+              )}
+            </div>
+          ) : project.status === InvestorProjectStatus.OPEN_FOR_INVESTMENT ? (
+            project.kycApproved ? (
+              <PledgeCalculator
+                projectId={project.id}
+                capital={project.capitalRequiredGBP.toString()}
+                minimum={project.minimumPledgeGBP.toString()}
+                pledgedSoFar={project.progress.pledgedGBP.toString()}
+                expectedProfit={project.expectedProfitForCalculator?.toString() ?? null}
+                showProjection={project.showProjection}
+                action={pledgeAction}
+              />
+            ) : (
+              <p className="text-sm text-muted">
+                Pledging needs approved identity verification (KYC).{" "}
+                <Link href="/investor/kyc" className="text-primary underline">
+                  Verify now
+                </Link>
+              </p>
+            )
+          ) : (
+            <p className="text-sm text-muted">
+              {project.status === InvestorProjectStatus.PUBLISHED
+                ? "Pledges open once the Lead Investor is confirmed."
+                : "This project is not taking pledges."}
+            </p>
+          )}
+        </div>
       </PortalSection>
 
       <PortalSection title="The property">

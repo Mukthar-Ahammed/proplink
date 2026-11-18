@@ -7,6 +7,8 @@ import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
 import type { Actor } from "@/services/projects/common";
 import { respondToNomination } from "@/services/projects/lead";
+import { cancelPledge, createPledge } from "@/services/projects/pledges";
+import { formatPounds } from "@/services/projects/shares";
 import { expressInterest, withdrawInterest } from "@/services/projects/projects";
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "");
@@ -61,4 +63,38 @@ export async function nominationResponseAction(
       ? "Accepted. PropLink will review and confirm you as Lead."
       : "Declined.",
   };
+}
+
+/** Phase 4 Task 4: pledge (expression of interest until signed). */
+export async function pledgeAction(
+  _previous: ProjectFormState,
+  formData: FormData,
+): Promise<ProjectFormState> {
+  const investor = await investorActor();
+  if (!investor) return { kind: "error", message: "Sign in as an Investor" };
+  const projectId = text(formData, "projectId");
+  const result = await createPledge(
+    investor,
+    projectId,
+    text(formData, "amount"),
+    text(formData, "idempotencyKey"),
+  );
+  if (!result.ok) return { kind: "error", message: result.error };
+  revalidatePath(`/investor/projects/${projectId}`);
+  return {
+    kind: "done",
+    message: `Pledged ${formatPounds(result.data.amountGBP)}: your share is ${result.data.share}.`,
+  };
+}
+
+export async function cancelPledgeAction(
+  _previous: ProjectFormState,
+  formData: FormData,
+): Promise<ProjectFormState> {
+  const investor = await investorActor();
+  if (!investor) return { kind: "error", message: "Sign in as an Investor" };
+  const result = await cancelPledge(investor, text(formData, "pledgeId"));
+  if (!result.ok) return { kind: "error", message: result.error };
+  revalidatePath(`/investor/projects/${text(formData, "projectId")}`);
+  return { kind: "done", message: "Pledge cancelled." };
 }
