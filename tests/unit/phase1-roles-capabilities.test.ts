@@ -63,7 +63,7 @@ describe("Phase 1 Task 1: roles cannot be self-assigned", () => {
     for (const role of Object.values(Role)) {
       expect(PORTAL_HOME[role]).toMatch(/^\/[a-z-]+$/);
     }
-    expect(PORTAL_HOME.LANDLORD).toBe("/account-pending");
+    expect(PORTAL_HOME.LANDLORD).toBe("/landlord");
     expect(PORTAL_HOME.SOLICITOR).toBe("/account-pending");
     expect(PORTAL_HOME.ADVERTISER).toBe("/account-pending");
   });

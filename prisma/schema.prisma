@@ -254,6 +254,8 @@ model Profile {
   mfaRecoverySessions  MfaRecoverySession[]      @relation("MfaRecoverySessionProfile")
   uploadedFiles        UploadedFile[]            @relation("UploadedFileOwner")
   userProfile          UserProfile?              @relation("UserProfileProfile")
+  landlordListings     LandlordListing[]         @relation("LandlordListingOwner")
+  landlordListingsMade LandlordListing[]         @relation("LandlordListingCreator")
 
   @@map("profiles")
 }
@@ -1282,4 +1284,89 @@ model UserProfile {
   profile Profile @relation("UserProfileProfile", fields: [profileId], references: [id], onDelete: Cascade)
 
   @@map("user_profiles")
+}
+
+/// Phase 2 Task 1 (ADR-034). Landlord listing lifecycle before mandates.
+enum LandlordListingStatus {
+  /// Being written by the Landlord (not visible to anyone else).
+  DRAFT
+  /// Created by an Admin on the Landlord's behalf; the Landlord must confirm.
+  AWAITING_LANDLORD_CONFIRMATION
+  /// In the Admin review queue (business Q6: 30-60 minutes).
+  SUBMITTED
+  /// Approved; visible to verified Agents only (TRD LL-3).
+  APPROVED
+  /// Sent back with a reason; the Landlord may edit and resubmit.
+  REJECTED
+  /// Withdrawn by the Landlord while no mandate existed (OD-22).
+  WITHDRAWN
+}
+
+/// TRD LL-1 "property type": a property or development land.
+enum LandlordPropertyKind {
+  PROPERTY
+  LAND
+}
+
+/// TRD LL-1 "desired outcome".
+enum LandlordDesiredOutcome {
+  REFURBISHMENT
+  DEVELOPMENT_JV
+}
+
+/// TRD LL-1..LL-5. 100% private: never public, never in search/sitemaps,
+/// never in investor or buyer views. Server-only table.
+model LandlordListing {
+  id              String                  @id @db.Uuid
+  ownerId         String                  @db.Uuid
+  createdBy       String                  @db.Uuid
+  status          LandlordListingStatus   @default(DRAFT)
+  title           String
+  addressLine1    String?
+  city            String?
+  postcode        String?
+  propertyKind    LandlordPropertyKind?
+  propertyType    String?
+  description     String?
+  defects         String?
+  requiredWork    String?
+  /// Land area in whole square metres.
+  landAreaSqm     Int?
+  desiredOutcome  LandlordDesiredOutcome?
+  rejectionReason String?
+  submittedAt     DateTime?
+  reviewedAt      DateTime?
+  reviewedBy      String?                 @db.Uuid
+  withdrawnAt     DateTime?
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+
+  owner   Profile               @relation("LandlordListingOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  creator Profile               @relation("LandlordListingCreator", fields: [createdBy], references: [id])
+  files   LandlordListingFile[]
+
+  @@index([ownerId, status])
+  @@index([status, submittedAt])
+  @@map("landlord_listings")
+}
+
+/// What an attached file is for. Ownership documents are required (Q5).
+enum LandlordListingFileKind {
+  PHOTO
+  DOCUMENT
+  OWNERSHIP_DOCUMENT
+}
+
+/// Files attached to a landlord listing; the bytes live in the secure upload
+/// pipeline (Phase 1 Task 12) and are served only via signed links.
+model LandlordListingFile {
+  listingId String                  @db.Uuid
+  fileId    String                  @db.Uuid
+  kind      LandlordListingFileKind
+  createdAt DateTime                @default(now())
+
+  listing LandlordListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@id([listingId, fileId])
+  @@map("landlord_listing_files")
 }

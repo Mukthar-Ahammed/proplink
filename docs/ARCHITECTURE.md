@@ -276,6 +276,12 @@ The complete one-line policy rationale is in
 - **Permission matrix (Phase 1, ADR-033):** `src/lib/authz/permissionMatrix.ts` is the section 5
   matrix as data; `tests/unit/permission-matrix.test.ts` checks every cell through the real
   routes/actions. Undelivered capabilities must deny everyone until their phase flips them.
+- **Landlord listings (Phase 2, ADR-034):** server-only `landlord_listings` and
+  `landlord_listing_files`, separate from retail `Property`. Owner-scoped service
+  `src/services/landlord/listings.ts`: draft/edit, files via the upload pipeline, submit
+  (approved KYC + ownership document), withdraw (OD-22), Admin-on-behalf creation that the
+  Landlord confirms. Database triggers fix owner/creator/reviewer roles and file ownership.
+  Portal `/landlord`; Admin `/admin/landlord-listings/new`.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

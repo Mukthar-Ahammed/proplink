@@ -33,6 +33,6 @@ export async function completeMockVerificationAction(formData: FormData): Promis
   const decision = formData.get("decision") === "APPROVED" ? "APPROVED" : "REJECTED";
   const result = await completeMockVerification(authz.session.user.authUserId, decision);
   const home =
-    authz.session.user.role === Role.INVESTOR ? "/investor/kyc" : "/account-pending";
+    authz.session.user.role === Role.INVESTOR ? "/investor/kyc" : "/landlord";
   redirect(result.status === 200 ? `${home}?verified=${decision.toLowerCase()}` : home);
 }

@@ -10,16 +10,16 @@ merge to `main`, before Phase 1 does.
 
 ## Business sources
 
-| Task                         | Business rule                                                                                                                                                                                                  |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Landlord module           | TRD LL-1; Q5 (draft, edit, AI help, genuine listings backed by ownership documents); journey "Complete KYC → create with AI help → draft → Admin review"; TRD matrix (Admin may create on a Landlord's behalf) |
-| 2. AI listing assistant      | Q5                                                                                                                                                                                                             |
-| 3. Admin review queue        | Q6 (confirmed): reviewed and approved within 30–60 minutes before verified Agents see it                                                                                                                       |
-| 4. Private-listing hardening | TRD LL-2 to LL-5; acceptance criterion 3                                                                                                                                                                       |
-| 5. Agent marketplace         | TRD AG-1, LL-3; Q7 (confirmed): Landlords compare offers and choose the best terms or valuation                                                                                                                |
-| 6. Exclusive mandate         | Q8, Q9 (confirmed); TRD AG-2, AG-5; acceptance criterion 5 (accept a mandate)                                                                                                                                  |
-| 7. Landlord data exposure    | TRD AG-7                                                                                                                                                                                                       |
-| 8. Notifications             | Q12 (customer chain), Phase 1 preferences                                                                                                                                                                      |
+| Task                         | Business rule                                                                                   |
+| ---------------------------- | ----------------------------------------------------------------------------------------------- |
+| 1. Landlord module           | **Done**                                                                                        | ADR-034 |
+| 2. AI listing assistant      | Q5                                                                                              |
+| 3. Admin review queue        | Q6 (confirmed): reviewed and approved within 30–60 minutes before verified Agents see it        |
+| 4. Private-listing hardening | TRD LL-2 to LL-5; acceptance criterion 3                                                        |
+| 5. Agent marketplace         | TRD AG-1, LL-3; Q7 (confirmed): Landlords compare offers and choose the best terms or valuation |
+| 6. Exclusive mandate         | Q8, Q9 (confirmed); TRD AG-2, AG-5; acceptance criterion 5 (accept a mandate)                   |
+| 7. Landlord data exposure    | TRD AG-7                                                                                        |
+| 8. Notifications             | Q12 (customer chain), Phase 1 preferences                                                       |
 
 Open point with a safe default: withdrawing or deleting a listing after
 submission is not stated (Q5). Default: the Landlord may withdraw while no
@@ -37,3 +37,43 @@ mandate exists (OD-22).
 | 6. Exclusive mandate         | Not started |       |
 | 7. Landlord data exposure    | Not started |       |
 | 8. Notifications             | Not started |       |
+
+## Task 1 — Landlord module (2026-11-18)
+
+**Delivered** (ADR-034)
+
+- Migration `20261118090000_phase2_landlord_listings` (with `rollback.sql`):
+  `landlord_listings`, `landlord_listing_files`, four enums; checks for field
+  lengths, UK land area and status evidence; triggers for owner (Landlord),
+  creator (owner or Admin), reviewer (Admin), immutable owner/creator, and file
+  attachment (clean uploads by owner or creating Admin; photos are images).
+  Server-only (RLS on, no Data API).
+- `src/services/landlord/listings.ts`: owner-scoped create, read, list, edit,
+  attach/detach files, submission checklist, submit (approved KYC, ownership
+  document, atomic, audited), withdraw (OD-22), delete unsubmitted drafts,
+  Admin creation on a Landlord's behalf (awaiting the Landlord's confirmation).
+- Landlord portal `/landlord` (now the Landlord home; the holding page
+  redirects): KYC banner, prepared-for-you notice, status counts, listings;
+  `/landlord/listings`, `/new`, `/[id]` editor with uploads through the
+  secure pipeline and in-page confirmation for withdraw/delete. Admin
+  `/admin/landlord-listings/new`. Proxy gate and private headers for
+  `/landlord`.
+- OD-22 recorded (withdraw while no mandate).
+
+**Verification**
+
+- `tests/unit/landlord-listings.test.ts` (41 with the updated roles test):
+  draft creation and audit, non-Landlord and bad-input refusals (including
+  mass-assigned owner/status), owner-scoped reads/writes, editable states,
+  file ownership/scan/photo rules, submission checklist, KYC required for
+  every non-approved status, incomplete refusal, atomic submit and audit,
+  Admin-created confirmation audit, double-submit refusal, withdraw states,
+  draft deletion scope, Admin on-behalf creation and refusals.
+- `tests/integration/landlord-listings-db.test.ts` (4): owner/creator roles,
+  immutable owner and status evidence including Admin-only review, file
+  attachment rules, no Data API access.
+- Rollback rehearsed. Full suite on a fresh disposable database: **111 files,
+  1,465 tests pass**; typecheck, lint and production build pass. Migration
+  applied to development.
+- The permission-matrix rows for private listings flip when Task 5 delivers
+  agent viewing (both Phase 2 rows together).
