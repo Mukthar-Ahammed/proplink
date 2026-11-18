@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check-env": "node scripts/check-env.mjs",
@@ -32,7 +32,9 @@
     "db:staging:deploy": "node scripts/assert-staging-db.mjs && node -e \"if (process.env.CONFIRM_STAGING_MIGRATION !== 'yes') { console.error('Set CONFIRM_STAGING_MIGRATION=yes to authorize staging migration deployment.'); process.exit(1) }\" && node scripts/assert-staging-db.mjs && node scripts/run-prisma-staging.mjs migrate deploy",
     "db:seed": "prisma db seed",
     "postinstall": "prisma generate",
-    "prepare": "node scripts/install-git-hooks.mjs"
+    "prepare": "node scripts/install-git-hooks.mjs",
+    "format:check:changed": "node scripts/format-check-changed.mjs",
+    "audit:check": "node scripts/audit-check.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1101.0",
