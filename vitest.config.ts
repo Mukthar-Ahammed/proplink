@@ -16,5 +16,8 @@ export default defineConfig({
     environment: "node",
     passWithNoTests: true,
     setupFiles: ["tests/setup/env.ts"],
+    // Database tests share one disposable Postgres with every other test file
+    // running in parallel; give them room under that load.
+    testTimeout: 30_000,
   },
 });

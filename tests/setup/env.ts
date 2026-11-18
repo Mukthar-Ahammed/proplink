@@ -16,3 +16,8 @@ config({ path: ".env.local", quiet: true });
 if (!process.env.DATABASE_URL) {
   process.env.DATABASE_URL = NO_DATABASE_PLACEHOLDER;
 }
+
+// Each test file is its own process with its own Prisma pool. A small pool
+// keeps a full parallel run (one worker per core) inside Postgres's
+// connection limit; concurrency tests still race through the database.
+process.env.DATABASE_POOL_MAX ??= "4";
