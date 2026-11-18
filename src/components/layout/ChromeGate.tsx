@@ -58,7 +58,9 @@ const OVERLAY_ROUTES = ["/", "/marketplace"];
  * from the exact list because `/marketplace` must invert while
  * `/marketplace/[id]` must not.
  */
-const OVERLAY_PREFIXES = ["/agent", "/investor", "/buy", "/admin"];
+// `/admin` removed (Phase 6): Admin pages open on a light shell, and the
+// inverted (white) header failed WCAG contrast there.
+const OVERLAY_PREFIXES = ["/agent", "/investor", "/buy"];
 
 export function ChromeGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

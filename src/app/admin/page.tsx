@@ -77,7 +77,7 @@ function KpiCard({
       </div>
       <Link
         href={href}
-        className="mt-auto inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline underline-offset-2 transition-colors"
+        className="mt-auto inline-flex items-center gap-1.5 text-xs font-semibold text-primary underline underline-offset-2 transition-colors hover:text-secondary hover:decoration-2"
       >
         {cta}
         <svg
@@ -154,7 +154,7 @@ function AttentionRow({ item, index }: { item: AttentionItem; index: number }) {
       </div>
 
       {/* Age */}
-      <span className="shrink-0 text-[11px] font-medium text-muted/70 tabular-nums">
+      <span className="shrink-0 text-[11px] font-medium text-muted tabular-nums">
         {age}
       </span>
 
@@ -205,7 +205,10 @@ function QuickNavCard({
 
   if (disabled) {
     return (
-      <div className="flex items-start gap-3 rounded-lg border border-line/50 bg-white/50 p-4 opacity-50 cursor-not-allowed select-none">
+      <div
+        className="flex items-start gap-3 rounded-lg border border-dashed border-line bg-surface/60 p-4 cursor-not-allowed select-none"
+        aria-disabled="true"
+      >
         <span className="text-xl" role="img" aria-label={label}>
           {icon}
         </span>

@@ -31,9 +31,12 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   and changes (ADR-049), sale and append-only ledger (ADR-050), project
   decisions (ADR-051). Every exit-gate item is proven by tests; owner checks
   and the Dropbox Sign live smoke test are pending.
-- **Phase 6 started** (2026-11-19) on `phase-6-admin-ads`: Admin permissions with
-  maker-checker, cases and disputes, advertising, Admin dashboards
-  (`docs/phases/PHASE-6-REPORT.md`).
+- **Phase 6 built** (2026-11-19) on `phase-6-admin-ads`: Admin permissions with
+  maker-checker (ADR-058), cases and disputes with two-person GDPR exports
+  (ADR-059), advertising in designated slots (ADR-060), KPIs, integrations
+  health and security events (ADR-061), agencies and the Admin A5
+  verification (ADR-062). Every exit-gate item is proven by tests; owner
+  checks pending (`docs/phases/PHASE-6-REPORT.md`).
 - **Phase 5 built** (2026-11-19) on `phase-5-sale-buyers` (re-listing completed projects,
   buyer experience, reviews, trust features). Built so far: re-listing and
   sale handoff (ADR-052), offers and viewings (ADR-053), reviews from
@@ -167,7 +170,7 @@ check:client-secrets` passed. The report records actual command output.
 | Maps and commute                 | Incomplete / blocked                                        | Interactive map and commute-time tasks require Google Maps browser key, APIs, and quotas. Saved-search alerts are also outstanding.                                                                                                                                                    |
 | Supabase Auth and authorization  | Supabase runtime active; release gates remain               | Supabase server/browser/proxy clients, `profiles` identity bridge, server-verified roles, shared authorization guards, and RLS changes are present. Auth.js dependencies have been removed after focused flow tests; Admin/Solicitor MFA and external parity verification remain open. |
 | Investor, KYC, and Flipper flows | New implementation present; release status not established  | Local work includes investor subtype onboarding, KYC submission and review, Flipper opportunities/offers/acquisitions, refurbishment project costs/milestones, and resale workflow. Syndicate payments remain prohibited.                                                              |
-| Admin operations                 | A1/A3/A4 documented verified; A5 implemented but incomplete | Admin shell, KYC studio, listing/resale moderation, users, and agents are documented. A5 still needs authenticated browser, responsive, and accessibility verification. Agency management is not implemented.                                                                          |
+| Admin operations                 | A1/A3/A4 documented verified; A5 implemented but incomplete | Admin shell, KYC studio, listing/resale moderation, users, and agents are documented. A5 browser, responsive and accessibility verification passed in Phase 6 (ADR-062); agencies are managed as company-level groups.                                                                 |
 | AI, Stripe, intelligence, launch | Not complete per sprint tracker                             | These planned capabilities have not reached their documented sprint exit gates. Production rollout is deferred.                                                                                                                                                                        |
 
 ## Verified baseline details

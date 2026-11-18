@@ -301,6 +301,7 @@ export function KycQueueClient() {
               Investor Subtype
             </label>
             <select
+              aria-label="Investor subtype"
               value={subtypeFilter}
               onChange={(e) => handleSubtypeChange(e.target.value)}
               className="w-full text-xs border border-line rounded-lg p-2 focus:ring-accent focus:border-accent"
@@ -317,6 +318,7 @@ export function KycQueueClient() {
               Sort Order
             </label>
             <select
+              aria-label="Sort order"
               value={sortOrder}
               onChange={(e) => handleSortChange(e.target.value as "oldest" | "newest")}
               className="w-full text-xs border border-line rounded-lg p-2 focus:ring-accent focus:border-accent"

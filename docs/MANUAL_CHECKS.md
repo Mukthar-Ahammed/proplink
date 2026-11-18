@@ -275,6 +275,13 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       anywhere on the page (view source). Sign in with a wrong password a
       few times: Security events shows the failed sign-ins.
 
+- [ ] **Agencies.** At Admin → Agencies: Agents of the same company appear
+      together. Suspend an agency with a reason: its listings leave search
+      and its profiles show suspended; reactivate it.
+- [ ] **Admin on a phone and with a screen reader.** Open a few Admin pages
+      on a phone (no sideways scrolling) and with NVDA or VoiceOver
+      (headings, dropdowns and buttons are announced).
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

@@ -41,7 +41,8 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     title: "PLATFORM",
     items: [
       { label: "Users Directory", href: "/admin/users", status: "active" },
-      { label: "Agents & Agencies", href: "/admin/agents", exact: true, status: "soon" },
+      { label: "Agents", href: "/admin/agents", exact: true, status: "active" },
+      { label: "Agencies", href: "/admin/agents/agencies", status: "active" },
       { label: "Agent Invites", href: "/admin/agents/invites", status: "active" },
       { label: "Company Checks", href: "/admin/agents/companies", status: "active" },
       { label: "Existing Agents", href: "/admin/agents/migration", status: "active" },
@@ -161,7 +162,7 @@ export function AdminSidebar({
                     return (
                       <li key={item.label}>
                         <div
-                          className="flex items-center justify-between rounded-md px-3 py-2 text-xs font-medium text-muted/60 bg-transparent opacity-60 cursor-not-allowed select-none"
+                          className="flex items-center justify-between rounded-md px-3 py-2 text-xs font-medium text-muted bg-transparent cursor-not-allowed select-none"
                           title="Operational surface under development (Phase A4-A8)"
                         >
                           <span>{item.label}</span>

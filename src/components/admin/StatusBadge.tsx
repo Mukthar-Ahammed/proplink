@@ -4,7 +4,9 @@ export type StatusTone = "success" | "warning" | "danger" | "neutral" | "brand";
 
 const TONE_CLASSES: Record<StatusTone, string> = {
   success: "bg-success/15 text-success border-success/30",
-  warning: "bg-warning/15 text-warning border-warning/30",
+  // White, not a warning tint: keeps the text above 4.5:1 contrast on any
+  // card background (Phase 6 A5 check).
+  warning: "bg-white text-warning border-warning/40",
   danger: "bg-danger/15 text-danger border-danger/30",
   neutral: "bg-surface text-secondary border-line",
   brand: "bg-brand/15 text-brand border-brand/30",

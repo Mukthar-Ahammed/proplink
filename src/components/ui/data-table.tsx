@@ -23,7 +23,11 @@ export function DataTable<T>({
   className,
 }: DataTableProps<T>) {
   return (
-    <div className={cn("overflow-x-auto rounded-lg border border-line", className)}>
+    // `relative`: absolutely positioned descendants (sr-only labels) stay inside
+    // the scroll box instead of widening the page on small screens (Phase 6).
+    <div
+      className={cn("relative overflow-x-auto rounded-lg border border-line", className)}
+    >
       <table className="w-full min-w-max text-left text-sm">
         <thead className="bg-surface text-xs uppercase tracking-wide text-muted">
           <tr>

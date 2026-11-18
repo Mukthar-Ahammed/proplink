@@ -1356,3 +1356,8 @@ of the boundary.
   never values), `/admin/system/security` (`security_event_counts`, migration
   `20261120030000`; `recordSecurityEvent` from the proxy, sign-in,
   webhooks and Admin permission refusals).
+- Agencies and Admin verification (Task 5, ADR-062):
+  `src/services/admin/agencies.ts` (agencies grouped by Companies House
+  company number; suspend or reactivate a whole agency);
+  `/admin/agents/agencies`; `tests/e2e/admin-a5.spec.ts` (19 Admin pages,
+  four widths, axe). Permission matrix `CURRENT_PHASE = 6`.

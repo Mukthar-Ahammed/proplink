@@ -1,8 +1,8 @@
 # Phase 6 — Advertising, Admin Roles and Permissions, Disputes and Reporting
 
-| Status      | Started    | Branch              | Depends on                                         |
-| ----------- | ---------- | ------------------- | -------------------------------------------------- |
-| In progress | 2026-11-19 | `phase-6-admin-ads` | Phases 1-5 built; owner checks deferred (see note) |
+| Status                          | Started    | Branch              | Depends on                                         |
+| ------------------------------- | ---------- | ------------------- | -------------------------------------------------- |
+| Built; waiting for owner checks | 2026-11-19 | `phase-6-admin-ads` | Phases 1-5 built; owner checks deferred (see note) |
 
 Started from `phase-5-sale-buyers` after its build finished. By the owner's
 choice (2026-11-18), manual checks for every phase are done together after the
@@ -49,13 +49,13 @@ None new. Advertising has no billing (OD-11).
 
 ## Task progress
 
-| Task                           | State       | Notes   |
-| ------------------------------ | ----------- | ------- |
-| 2. Admin roles and permissions | Done        | ADR-058 |
-| 3. Reporting and disputes      | Done        | ADR-059 |
-| 1. Advertising module          | Done        | ADR-060 |
-| 4. Admin dashboards            | Done        | ADR-061 |
-| 5. Admin A5 verification debt  | Not started |         |
+| Task                           | State | Notes   |
+| ------------------------------ | ----- | ------- |
+| 2. Admin roles and permissions | Done  | ADR-058 |
+| 3. Reporting and disputes      | Done  | ADR-059 |
+| 1. Advertising module          | Done  | ADR-060 |
+| 4. Admin dashboards            | Done  | ADR-061 |
+| 5. Admin A5 verification debt  | Done  | ADR-062 |
 
 ## Exit gate
 
@@ -63,7 +63,8 @@ None new. Advertising has no billing (OD-11).
 - [x] Maker-checker cannot be bypassed.
 - [x] Ads cannot appear on forbidden pages.
 - [x] Case workflow E2E passes.
-- [ ] Phase report written.
+- [x] Phase report written.
+- [ ] Owner checks (`docs/MANUAL_CHECKS.md`, Phase 6 section) — done together after the last phase.
 
 ## Task 2 — Admin roles and permissions (2026-11-19)
 
@@ -183,3 +184,36 @@ None new. Advertising has no billing (OD-11).
   repeated events add to one per-minute row per kind; summary totals and
   hourly series; recording never throws.
 - The Admin entry-point scan covers the new pages (SYSTEM_INTEGRATIONS).
+
+## Task 5 — Admin A5 verification debt (2026-11-19)
+
+**Delivered** (ADR-062)
+
+- Authenticated Admin E2E session (test-only MFA grant).
+- `tests/e2e/admin-a5.spec.ts`: 19 Admin pages × 1440, 1024, 768, 375 px —
+  load, heading, no sideways scrolling, axe WCAG 2 A/AA serious/critical.
+- Fixes it drove: header inverted to white on Admin pages; unnamed
+  dropdowns (KYC, moderation); `/admin/users` 516 px overflow on phones
+  (sr-only labels escaping the table's scroll box); low-contrast "Soon"
+  items, muted text, warning badges and card links.
+- `/admin/agents/agencies`: agencies grouped by company number; suspend or
+  reactivate a whole agency (SUSPENSION, audited).
+
+**Verification**
+
+- `tests/e2e/admin-a5.spec.ts`: 4 passed against the dev server.
+- `tests/integration/agencies-db.test.ts` (1, disposable database): grouping
+  by company; only SUSPENSION may act; reason required; suspends and
+  reactivates both profiles; audited; unknown agency refused.
+
+## Wrap-up (2026-11-19)
+
+- Permission matrix and notification preferences at Phase 6 (no section-5
+  capability is delivered by Phase 6; the per-permission Admin matrix is
+  `tests/unit/admin-permissions.test.ts`).
+- Migrations this phase (each additive, with a rehearsed `rollback.sql`,
+  applied to the development database): `20261120000000` permissions,
+  `20261120010000` cases, `20261120020000` advertising,
+  `20261120030000` security events.
+- Human task H6.1 (second super-admin) and OD-25 (no advertiser logins by
+  default) added.
