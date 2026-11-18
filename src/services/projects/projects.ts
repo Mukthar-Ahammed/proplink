@@ -461,7 +461,19 @@ export async function withdrawInterest(
     entity: "InvestorProject",
     entityId: projectId,
   });
+  await endProjectChats(projectId, investor.profileId);
   return { ok: true };
 }
 
 export { VISIBLE_TO_INVESTORS };
+
+/** An investor who is no longer part of a project loses its chats (ADR-046). */
+export async function endProjectChats(projectId: string, investorId: string) {
+  const { closeProjectThreads } = await import("@/services/chat/threads");
+  await closeProjectThreads(
+    projectId,
+    "No longer part of this project",
+    investorId,
+    investorId,
+  );
+}

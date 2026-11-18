@@ -1155,6 +1155,16 @@ of the boundary.
   project row and refuses over-subscription, below-minimum (except the final
   slice), non-KYC investors, edits and deletes; another keeps the project
   FUNDED exactly when fully pledged.
+- `community.ts` (Task 3, ADR-046): project membership (`isProjectMember`),
+  favourites, compare, the moderated Q&A, the Lead's anonymous co-investor
+  list. `landlordView.ts` (Task 3a): explicit-select Landlord view.
+- Chat: `ensureProjectThread` / `closeProjectThreads` / `counterpartLabel` in
+  `src/services/chat/threads.ts`; `threadAccess` re-checks project
+  membership. Pages: `/investor/projects/compare`, `/landlord/projects`
+  (+ `[id]`).
+- Schema (migration `20261119020000`): `proplink_project_member`,
+  `project_favourites`, `project_questions` (guard), chat guard admitting
+  PROJECT threads with membership checks.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

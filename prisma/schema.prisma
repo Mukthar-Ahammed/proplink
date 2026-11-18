@@ -282,6 +282,10 @@ model Profile {
   leadNominationsMade  ProjectLeadNomination[]   @relation("LeadNominationNominator")
   leadNominationsDecided ProjectLeadNomination[] @relation("LeadNominationDecider")
   projectPledges       ProjectPledge[]           @relation("ProjectPledgeInvestor")
+  projectFavourites    ProjectFavourite[]        @relation("ProjectFavouriteInvestor")
+  projectQuestions     ProjectQuestion[]         @relation("ProjectQuestionAsker")
+  projectAnswers       ProjectQuestion[]         @relation("ProjectQuestionAnswerer")
+  projectQuestionsHidden ProjectQuestion[]       @relation("ProjectQuestionModerator")
 
   @@map("profiles")
 }
@@ -1931,6 +1935,8 @@ model InvestorProject {
   interests   ProjectInterest[]
   nominations ProjectLeadNomination[]
   pledges     ProjectPledge[]
+  favourites  ProjectFavourite[]
+  questions   ProjectQuestion[]
 
   @@index([status, publishedAt])
   @@index([agentId])
@@ -2011,4 +2017,52 @@ model ProjectPledge {
   @@index([projectId, status])
   @@index([investorId])
   @@map("project_pledges")
+}
+
+// ── Phase 4 Task 3: Investor Portal (ADR-046) ──
+
+model ProjectFavourite {
+  investorId String   @db.Uuid
+  projectId  String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  investor Profile         @relation("ProjectFavouriteInvestor", fields: [investorId], references: [id], onDelete: Cascade)
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@id([investorId, projectId])
+  @@index([projectId])
+  @@map("project_favourites")
+}
+
+enum ProjectQuestionStatus {
+  OPEN
+  ANSWERED
+  HIDDEN
+}
+
+/// Project Q&A: asked by the project's investors, answered once by its Agent,
+/// visible to its investors (askers anonymous to each other); Admin may hide.
+model ProjectQuestion {
+  id           String                @id @db.Uuid
+  projectId    String                @db.Uuid
+  askerId      String                @db.Uuid
+  body         String
+  status       ProjectQuestionStatus @default(OPEN)
+  answer       String?
+  answeredBy   String?               @db.Uuid
+  answeredAt   DateTime?
+  hiddenBy     String?               @db.Uuid
+  hiddenAt     DateTime?
+  hiddenReason String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  project   InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  asker     Profile         @relation("ProjectQuestionAsker", fields: [askerId], references: [id], onDelete: Restrict)
+  answerer  Profile?        @relation("ProjectQuestionAnswerer", fields: [answeredBy], references: [id], onDelete: Restrict)
+  moderator Profile?        @relation("ProjectQuestionModerator", fields: [hiddenBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, status, createdAt])
+  @@index([askerId])
+  @@map("project_questions")
 }

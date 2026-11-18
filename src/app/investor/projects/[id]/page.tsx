@@ -11,14 +11,24 @@ import {
   Role,
 } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
+import { QuestionList } from "@/components/projects/QuestionList";
+import {
+  coInvestorsForLead,
+  favouriteIds,
+  isProjectMember,
+  listProjectQuestions,
+} from "@/services/projects/community";
 import { formatPence } from "@/services/projects/common";
 import { getInvestorProject } from "@/services/projects/portal";
 
 import {
+  askQuestionAction,
   cancelPledgeAction,
+  favouriteAction,
   interestAction,
   nominationResponseAction,
   pledgeAction,
+  projectChatAction,
 } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -44,15 +54,20 @@ export default async function InvestorProjectPage({
 }) {
   const session = await requirePageRole(Role.INVESTOR);
   const { id } = await params;
-  const project = await getInvestorProject(
-    {
-      profileId: session.user.authUserId,
-      legacyUserId: session.user.id,
-      role: session.user.role,
-    },
-    id,
-  );
+  const investor = {
+    profileId: session.user.authUserId,
+    legacyUserId: session.user.id,
+    role: session.user.role,
+  };
+  const project = await getInvestorProject(investor, id);
   if (!project) notFound();
+  const [member, favourites, questions, coInvestors] = await Promise.all([
+    isProjectMember(project.id, investor.profileId),
+    favouriteIds(investor.profileId),
+    listProjectQuestions(investor, project.id),
+    coInvestorsForLead(investor, project.id),
+  ]);
+  const favourite = favourites.has(project.id);
   const raising =
     project.status === InvestorProjectStatus.PUBLISHED ||
     project.status === InvestorProjectStatus.OPEN_FOR_INVESTMENT;
@@ -62,12 +77,20 @@ export default async function InvestorProjectPage({
       <PortalSection
         title={project.title}
         action={
-          <Link
-            href="/investor/projects"
-            className="text-sm font-semibold text-primary underline"
-          >
-            All projects
-          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <ActionButton
+              action={favouriteAction}
+              hidden={{ projectId: project.id }}
+              label={favourite ? "★ Saved" : "☆ Save"}
+              tone="secondary"
+            />
+            <Link
+              href="/investor/projects"
+              className="text-sm font-semibold text-primary underline"
+            >
+              All projects
+            </Link>
+          </div>
         }
       >
         <ProjectSummary project={project} showExpected={project.showExpected} />
@@ -225,6 +248,77 @@ export default async function InvestorProjectPage({
           )}
         </div>
       </PortalSection>
+
+      <PortalSection title="Questions and answers">
+        {member && questions ? (
+          <div className="space-y-4">
+            <ActionButton
+              action={askQuestionAction}
+              hidden={{ projectId: project.id }}
+              label="Ask the agent"
+            >
+              <textarea
+                name="body"
+                required
+                rows={3}
+                maxLength={1000}
+                aria-label="Your question"
+                placeholder="Your question (answers are shared with the project's investors; your name is not)"
+                className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body"
+              />
+            </ActionButton>
+            <QuestionList questions={questions} />
+          </div>
+        ) : (
+          <p className="text-sm text-muted">
+            Register your interest to read the Q&amp;A and ask questions.
+          </p>
+        )}
+      </PortalSection>
+
+      {member && (
+        <PortalSection title="Messages">
+          <p className="mb-3 text-sm text-muted">
+            Project chats open once PropLink authorises them, and need an active
+            subscription on both sides.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <ActionButton
+              action={projectChatAction}
+              hidden={{ projectId: project.id, with: "agent" }}
+              label="Message the agent"
+              tone="secondary"
+            />
+            {project.lead && !project.lead.isMe && (
+              <ActionButton
+                action={projectChatAction}
+                hidden={{ projectId: project.id, with: "lead" }}
+                label="Message the Lead Investor"
+                tone="secondary"
+              />
+            )}
+          </div>
+          {coInvestors.length > 0 && (
+            <ul className="mt-4 space-y-2 text-sm" data-testid="co-investors">
+              {coInvestors.map((co) => (
+                <li key={co.investorId} className="flex flex-wrap items-center gap-3">
+                  <span className="text-body">{co.label}</span>
+                  <ActionButton
+                    action={projectChatAction}
+                    hidden={{
+                      projectId: project.id,
+                      with: "investor",
+                      investorId: co.investorId,
+                    }}
+                    label="Message"
+                    tone="secondary"
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </PortalSection>
+      )}
 
       <PortalSection title="The property">
         <dl className="grid gap-4 sm:grid-cols-2" data-testid="investor-property">

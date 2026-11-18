@@ -66,18 +66,18 @@ provider (default Dropbox Sign, alternative DocuSign).
 
 ## Task progress
 
-| Task                          | State       | Notes   |
-| ----------------------------- | ----------- | ------- |
-| 1. Publish to investors       | Done        | ADR-044 |
-| 2. Lead / Co-Investor model   | Done        | ADR-044 |
-| 3. Investor portal            | Not started |         |
-| 3a. Landlord project view     | Not started |         |
-| 4. Pledge flow                | Done        | ADR-045 |
-| 5. Solicitor accounts         | Not started |         |
-| 6. Agreements and e-signature | Not started |         |
-| 7. Funds tracking             | Not started |         |
-| 8. Sale and ledger            | Not started |         |
-| 9. Edge cases                 | Not started |         |
+| Task                          | State                                            | Notes   |
+| ----------------------------- | ------------------------------------------------ | ------- |
+| 1. Publish to investors       | Done                                             | ADR-044 |
+| 2. Lead / Co-Investor model   | Done                                             | ADR-044 |
+| 3. Investor portal            | Done                                             | ADR-046 |
+| 3a. Landlord project view     | Done (costs, milestones, updates with Tasks 5/7) | ADR-046 |
+| 4. Pledge flow                | Done                                             | ADR-045 |
+| 5. Solicitor accounts         | Not started                                      |         |
+| 6. Agreements and e-signature | Not started                                      |         |
+| 7. Funds tracking             | Not started                                      |         |
+| 8. Sale and ledger            | Not started                                      |         |
+| 9. Edge cases                 | Not started                                      |         |
 
 ## Exit gate
 
@@ -85,12 +85,12 @@ provider (default Dropbox Sign, alternative DocuSign).
 - [ ] Acceptance criterion 9: after a (mock) sale, per-party distributions match the agreement shares.
 - [x] Acceptance criterion 5 (publish half): an Agent with an active mandate publishes to the Investor Portal.
 - [x] Lead assignment yields exactly one Lead per project under concurrency.
-- [ ] The Landlord's project view leaks no investor data.
+- [x] The Landlord's project view leaks no investor data.
 - [x] Over-subscription impossible under concurrency (50 parallel pledges).
 - [ ] Ledger immutability proven by tests (direct SQL as the app role fails).
 - [ ] Solicitor scope isolation proven by an RLS matrix.
 - [ ] E-sign flow works with the mock; live smoke test documented.
-- [ ] Sensitive documents inaccessible before KYC approval.
+- [x] Sensitive documents inaccessible before KYC approval.
 - [ ] No code path can create a payment for investments (grep + test).
 - [ ] Phase report and credential docs written.
 
@@ -177,3 +177,39 @@ provider (default Dropbox Sign, alternative DocuSign).
   provider in project code; Stripe only in billing).
 - Announcements now page through every eligible investor (the earlier
   500-recipient cap could miss newer investors).
+
+## Tasks 3 and 3a — Investor portal; Landlord project view (2026-11-18)
+
+**Delivered** (ADR-046; TRD INV-1, INV-5, INV-6; Q4, Q17, Q26; Answers §D)
+
+- Migration `20261119020000_phase4_portal` (with `rollback.sql`, rehearsed):
+  `proplink_project_member`, favourites, Q&A with guard, chat guard that
+  admits PROJECT threads only between the project's Agent or Lead and one
+  of its investors.
+- Investor Portal: save/unsave, "Saved only", compare up to four; Q&A for
+  the project's investors (askers anonymous, Agent answers once, Admin
+  hides with a reason); "Message the agent" / "Message the Lead Investor";
+  the Lead's numbered co-investor list with "Message".
+- PROJECT chats through the Phase 3 queue: pending → Admin authorises →
+  subscriptions on both sides; membership re-checked on every access;
+  leaving the project closes the investor's chats; Lead ↔ Co-Investor chats
+  show roles, not names.
+- Landlord: `/landlord/projects` with the lifecycle, type, Agent, capital
+  and whether funding is complete; explicit selects only.
+
+**Verification**
+
+- `tests/integration/portal-db.test.ts` (5, disposable database):
+  favourites and compare (order kept, invalid ids ignored, expected figures
+  hidden, non-investors get nothing); Q&A visibility, single answer by the
+  project's Agent only, anonymity, Admin hiding, database refusals (edits
+  23514, deletes 42501, non-member askers); project chats: non-members
+  refused, pending until authorised, messages both ways, outsiders 404,
+  withdrawing interest ends the investor's access while the Agent keeps
+  the history, database refuses non-member, wrong-Agent and reversed Lead
+  threads; Lead ↔ Co-Investor in both directions, co-investors cannot open
+  investor-to-investor chats, role labels; **Landlord view contains no
+  investor id, name, Lead id or pledge amount, and other Landlords,
+  investors and unknown ids get nothing**.
+- Phase 3 chat database test unchanged and passing (project threads with
+  unknown projects still refused).

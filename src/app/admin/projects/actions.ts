@@ -8,6 +8,7 @@ import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
 import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
 import { announceSafely, type Actor } from "@/services/projects/common";
+import { hideProjectQuestion } from "@/services/projects/community";
 import { announceProjectOpen, decideNomination } from "@/services/projects/lead";
 import { announceProject, publishProject } from "@/services/projects/projects";
 
@@ -75,4 +76,21 @@ export async function decideNominationAction(
     kind: "done",
     message: approve ? "Lead confirmed; the project is open for pledges." : "Rejected.",
   };
+}
+
+/** Task 3: moderate the project Q&A. */
+export async function hideQuestionAction(
+  _previous: ProjectFormState,
+  formData: FormData,
+): Promise<ProjectFormState> {
+  const admin = await adminActor();
+  if (!admin) return { kind: "error", message: "Admin access required" };
+  const result = await hideProjectQuestion(
+    admin,
+    text(formData, "questionId"),
+    text(formData, "reason"),
+  );
+  if (!result.ok) return { kind: "error", message: result.error };
+  revalidatePath(`/admin/projects/${text(formData, "projectId")}`);
+  return { kind: "done", message: "Hidden." };
 }

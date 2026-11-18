@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { listMessages } from "@/services/chat/messages";
-import { contextTitles } from "@/services/chat/threads";
+import { contextTitles, counterpartLabel } from "@/services/chat/threads";
 
 import { ChatWindow } from "./ChatWindow";
 
@@ -39,6 +39,11 @@ export default async function ConversationPage({
     select: { name: true },
   });
   const titles = await contextTitles([thread]);
+  const counterpartName = counterpartLabel(
+    thread,
+    viewer.profileId,
+    counterpart?.name ?? null,
+  );
 
   return (
     <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
@@ -48,14 +53,12 @@ export default async function ConversationPage({
       <h1 className="mt-3 text-xl font-bold text-primary">
         {titles.get(`${thread.contextType}:${thread.contextId}`) ?? "Conversation"}
       </h1>
-      <p className="text-sm text-muted">
-        With {counterpart?.name ?? "a PropLink member"}
-      </p>
+      <p className="text-sm text-muted">With {counterpartName}</p>
       <div className="mt-6">
         <ChatWindow
           threadId={thread.id}
           viewerId={viewer.profileId}
-          counterpart={counterpart?.name ?? "Them"}
+          counterpart={counterpartName}
           initialMessages={result.messages}
           initialCanSend={result.access.canSend}
           initialNotice={result.access.blocked ? NOTICE[result.access.blocked] : null}

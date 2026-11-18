@@ -279,6 +279,8 @@ export async function cancelPledge(
     entityId: pledge.projectId,
     meta: { pledgeId },
   });
+  const { endProjectChats } = await import("@/services/projects/projects");
+  await endProjectChats(pledge.projectId, investor.profileId);
   return { ok: true };
 }
 

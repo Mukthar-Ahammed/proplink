@@ -131,6 +131,17 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       the funding bar goes back. Pledge the exact remaining amount: the
       project shows "Funded".
 
+- [ ] **Portal extras.** Save a project (★), tick "Saved only"; tick two
+      projects and "Compare selected". As an interested investor ask a
+      question; as the Agent answer it; another interested investor sees it
+      as "An investor". As Admin hide it with a reason.
+- [ ] **Project chats.** As an interested investor press "Message the agent";
+      as Admin authorise it at `/admin/chats`; chat both ways. Withdraw
+      interest: the investor loses the chat, the Agent keeps the history. As
+      the Lead, message "Investor 1"; names show as roles.
+- [ ] **Landlord project view.** As the Landlord of a published listing open
+      Projects: lifecycle and status only, no investor names or amounts.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

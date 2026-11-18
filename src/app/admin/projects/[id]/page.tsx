@@ -6,7 +6,12 @@ import { PledgeTable } from "@/components/projects/PledgeTable";
 import { ProjectSummary } from "@/components/projects/ProjectSummary";
 import { requirePageRole } from "@/lib/authz";
 import { Role } from "@/generated/prisma/enums";
+import { ActionButton } from "@/components/projects/ActionButton";
+import { QuestionList } from "@/components/projects/QuestionList";
+import { listProjectQuestions } from "@/services/projects/community";
 import { listProjectPledges } from "@/services/projects/pledges";
+
+import { hideQuestionAction } from "../actions";
 import { getManagedProject } from "@/services/projects/projects";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +33,7 @@ export default async function AdminProjectPage({
   const project = await getManagedProject(admin, id);
   if (!project) notFound();
   const pledges = (await listProjectPledges(admin, project.id)) ?? [];
+  const questions = (await listProjectQuestions(admin, project.id)) ?? [];
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -60,6 +66,29 @@ export default async function AdminProjectPage({
             </li>
           ))}
         </ul>
+      </section>
+      <section>
+        <h2 className="text-lg font-semibold text-primary">Questions and answers</h2>
+        <QuestionList
+          questions={questions}
+          renderActions={(question) =>
+            question.status === "HIDDEN" ? null : (
+              <ActionButton
+                action={hideQuestionAction}
+                hidden={{ questionId: question.id, projectId: project.id }}
+                label="Hide"
+                tone="danger"
+              >
+                <input
+                  name="reason"
+                  required
+                  placeholder="Reason (shown to the agent)"
+                  className="w-64 rounded-lg border border-line px-2 py-1 text-sm"
+                />
+              </ActionButton>
+            )
+          }
+        />
       </section>
       <section>
         <h2 className="text-lg font-semibold text-primary">Pledges</h2>

@@ -5,6 +5,7 @@ import { PortalSection } from "@/components/portal/PortalShell";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { day, penceToPoundsInput } from "@/components/projects/format";
 import { PledgeTable } from "@/components/projects/PledgeTable";
+import { QuestionList } from "@/components/projects/QuestionList";
 import { ProjectSummary } from "@/components/projects/ProjectSummary";
 import { ProjectTermsForm } from "@/components/projects/ProjectTermsForm";
 import {
@@ -14,10 +15,16 @@ import {
 } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
 import { PROJECT_RESPONSIBILITY_NOTICE } from "@/services/projects/common";
+import { listProjectQuestions } from "@/services/projects/community";
 import { listProjectPledges } from "@/services/projects/pledges";
 import { getManagedProject } from "@/services/projects/projects";
 
-import { leadNominationAction, updateProjectAction } from "../actions";
+import {
+  agentProjectChatAction,
+  answerQuestionAction,
+  leadNominationAction,
+  updateProjectAction,
+} from "../actions";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Agent — Investor project", robots: { index: false } };
@@ -47,6 +54,7 @@ export default async function AgentProjectPage({
   const project = await getManagedProject(agent, id);
   if (!project) notFound();
   const pledges = (await listProjectPledges(agent, project.id)) ?? [];
+  const questions = (await listProjectQuestions(agent, project.id)) ?? [];
   const published = project.status === InvestorProjectStatus.PUBLISHED;
   const live = project.nominations.find(
     (nomination) =>
@@ -119,6 +127,12 @@ export default async function AgentProjectPage({
                 <span className="text-body">
                   {interest.investor.name ?? "Investor"} · since {day(interest.createdAt)}
                 </span>
+                <ActionButton
+                  action={agentProjectChatAction}
+                  hidden={{ projectId: project.id, investorId: interest.investorId }}
+                  label="Message"
+                  tone="secondary"
+                />
                 {canNominate && (
                   <ActionButton
                     action={leadNominationAction}
@@ -134,6 +148,30 @@ export default async function AgentProjectPage({
             ))}
           </ul>
         )}
+      </PortalSection>
+
+      <PortalSection title="Questions from investors">
+        <QuestionList
+          questions={questions}
+          renderActions={(question) =>
+            question.status === "OPEN" ? (
+              <ActionButton
+                action={answerQuestionAction}
+                hidden={{ questionId: question.id, projectId: project.id }}
+                label="Answer"
+              >
+                <textarea
+                  name="answer"
+                  required
+                  rows={2}
+                  maxLength={2000}
+                  aria-label="Your answer"
+                  className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body"
+                />
+              </ActionButton>
+            ) : null
+          }
+        />
       </PortalSection>
 
       <PortalSection title="Pledges">

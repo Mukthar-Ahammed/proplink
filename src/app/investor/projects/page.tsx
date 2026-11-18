@@ -5,6 +5,7 @@ import { day } from "@/components/projects/format";
 import { Role } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
 import { formatPence, statusLabel } from "@/services/projects/common";
+import { favouriteIds, MAX_COMPARE } from "@/services/projects/community";
 import { listInvestorProjects } from "@/services/projects/portal";
 
 export const dynamic = "force-dynamic";
@@ -18,9 +19,13 @@ export default async function InvestorProjectsPage({
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  await requirePageRole(Role.INVESTOR);
+  const session = await requirePageRole(Role.INVESTOR);
   const params = await searchParams;
-  const projects = await listInvestorProjects(params);
+  const [all, saved] = await Promise.all([
+    listInvestorProjects(params),
+    favouriteIds(session.user.authUserId),
+  ]);
+  const projects = params.saved === "1" ? all.filter((p) => saved.has(p.id)) : all;
   return (
     <PortalSection title="Investment projects">
       <form className="mb-5 flex flex-wrap items-end gap-3" role="search">
@@ -72,6 +77,15 @@ export default async function InvestorProjectsPage({
             className={`${input} mt-1 block w-32`}
           />
         </label>
+        <label className="flex items-center gap-2 text-sm text-primary">
+          <input
+            type="checkbox"
+            name="saved"
+            value="1"
+            defaultChecked={params.saved === "1"}
+          />
+          Saved only
+        </label>
         <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
           Filter
         </button>
@@ -79,24 +93,41 @@ export default async function InvestorProjectsPage({
       {projects.length === 0 ? (
         <p className="text-sm text-muted">No projects match.</p>
       ) : (
-        <ul className="space-y-3" data-testid="project-list">
-          {projects.map((project) => (
-            <li key={project.id} className="rounded-lg border border-line bg-white p-4">
-              <Link
-                href={`/investor/projects/${project.id}`}
-                className="font-semibold text-primary underline-offset-2 hover:underline"
-              >
-                {project.title}
-              </Link>
-              <p className="text-sm text-muted">
-                {project.listing.city ?? "UK"} · {statusLabel(project.status)} ·{" "}
-                {formatPence(project.capitalRequiredGBP)} required · minimum{" "}
-                {formatPence(project.minimumPledgeGBP)} · deadline{" "}
-                {day(project.fundingDeadline)}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <form action="/investor/projects/compare" className="space-y-3">
+          <p className="text-sm text-muted">
+            Tick up to {MAX_COMPARE} projects to compare them side by side.
+          </p>
+          <ul className="space-y-3" data-testid="project-list">
+            {projects.map((project) => (
+              <li key={project.id} className="rounded-lg border border-line bg-white p-4">
+                <label className="mr-3 inline-flex items-center gap-1 text-xs text-muted">
+                  <input type="checkbox" name="id" value={project.id} />
+                  Compare
+                </label>
+                {saved.has(project.id) && (
+                  <span className="mr-2 text-xs text-accent" aria-label="Saved">
+                    ★
+                  </span>
+                )}
+                <Link
+                  href={`/investor/projects/${project.id}`}
+                  className="font-semibold text-primary underline-offset-2 hover:underline"
+                >
+                  {project.title}
+                </Link>
+                <p className="text-sm text-muted">
+                  {project.listing.city ?? "UK"} · {statusLabel(project.status)} ·{" "}
+                  {formatPence(project.capitalRequiredGBP)} required · minimum{" "}
+                  {formatPence(project.minimumPledgeGBP)} · deadline{" "}
+                  {day(project.fundingDeadline)}
+                </p>
+              </li>
+            ))}
+          </ul>
+          <button className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary">
+            Compare selected
+          </button>
+        </form>
       )}
     </PortalSection>
   );

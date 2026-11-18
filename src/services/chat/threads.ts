@@ -21,6 +21,7 @@ import {
 } from "@/services/billing/subscriptions";
 import { sendChatAuthorisedEmail } from "@/services/email/mailer";
 import { notifyProfile } from "@/services/landlord/marketplace";
+import { isProjectMember } from "@/services/projects/community";
 
 /**
  * Chat threads and their authorisation (Phase 3 Task 2, ADR-043). A chat is
@@ -76,6 +77,25 @@ export async function threadAccess(
   // Same answer for "missing" and "not yours": no existence oracle.
   if (!isA && !isB) return { ok: false, status: 404 };
   const counterpartId = isA ? thread.participantB : thread.participantA;
+
+  // Phase 4 (ADR-046): a project chat lasts while participant B is one of the
+  // project's investors; after that B loses it and A keeps the history.
+  const lapsedMember =
+    thread.contextType === ChatContextType.PROJECT &&
+    thread.status !== ChatThreadStatus.CLOSED &&
+    !(await isProjectMember(thread.contextId, thread.participantB));
+  if (lapsedMember) {
+    if (isB) return { ok: false, status: 404 };
+    return {
+      ok: true,
+      thread,
+      state: "closed",
+      canRead: true,
+      canSend: false,
+      blocked: "closed",
+      counterpartId,
+    };
+  }
 
   if (thread.status === ChatThreadStatus.CLOSED) {
     if (isB) return { ok: false, status: 404 };
@@ -319,6 +339,178 @@ export async function ensureRetailThread(
   }
 }
 
+/**
+ * Phase 4 (ADR-046): PROJECT threads. Agent ↔ Investor (deal enquiries and
+ * updates) and Lead ↔ Co-Investor, each pending until Admin authorises and
+ * then open only while both sides' subscriptions are active. The investor
+ * side (participant B) must be one of the project's investors; the database
+ * checks the same. `with`: "agent" or "lead" when an investor asks, or the
+ * investor's profile id when the project's Agent or Lead asks.
+ */
+export async function ensureProjectThread(
+  viewer: Viewer,
+  projectId: string,
+  withWhom: "agent" | "lead" | { investorId: string },
+): Promise<
+  { ok: true; threadId: string } | { ok: false; error: string; status: number }
+> {
+  if (!z.uuid().safeParse(projectId).success) return bad("Project not found", 404);
+  const project = await db.investorProject.findFirst({
+    where: { id: projectId, status: { not: "CLOSED" } },
+    select: { agentId: true, leadInvestorId: true },
+  });
+  if (!project) return bad("Project not found", 404);
+
+  let pair: { pairType: ChatPairType; participantA: string; participantB: string };
+  if (withWhom === "agent" || withWhom === "lead") {
+    if (viewer.role !== Role.INVESTOR) return bad("Only investors start this chat", 403);
+    if (!(await isProjectMember(projectId, viewer.profileId))) {
+      return bad("Register your interest in this project first", 403);
+    }
+    if (withWhom === "agent") {
+      pair = {
+        pairType: ChatPairType.AGENT_INVESTOR,
+        participantA: project.agentId,
+        participantB: viewer.profileId,
+      };
+    } else {
+      if (!project.leadInvestorId || project.leadInvestorId === viewer.profileId) {
+        return bad("This project has no other Lead Investor to message", 409);
+      }
+      pair = {
+        pairType: ChatPairType.LEAD_CO_INVESTOR,
+        participantA: project.leadInvestorId,
+        participantB: viewer.profileId,
+      };
+    }
+  } else {
+    if (!z.uuid().safeParse(withWhom.investorId).success)
+      return bad("Investor not found", 404);
+    if (!(await isProjectMember(projectId, withWhom.investorId))) {
+      return bad("That investor is not part of this project", 404);
+    }
+    if (viewer.role === Role.AGENT && viewer.profileId === project.agentId) {
+      pair = {
+        pairType: ChatPairType.AGENT_INVESTOR,
+        participantA: viewer.profileId,
+        participantB: withWhom.investorId,
+      };
+    } else if (
+      viewer.role === Role.INVESTOR &&
+      viewer.profileId === project.leadInvestorId &&
+      withWhom.investorId !== viewer.profileId
+    ) {
+      pair = {
+        pairType: ChatPairType.LEAD_CO_INVESTOR,
+        participantA: viewer.profileId,
+        participantB: withWhom.investorId,
+      };
+    } else {
+      return bad("Only the project's Agent or Lead Investor can do this", 403);
+    }
+  }
+
+  const key = {
+    contextType: ChatContextType.PROJECT,
+    contextId: projectId,
+    participantA: pair.participantA,
+    participantB: pair.participantB,
+  };
+  const existing = await db.chatThread.findUnique({
+    where: { contextType_contextId_participantA_participantB: key },
+  });
+  if (existing) {
+    if (existing.status === ChatThreadStatus.CLOSED) {
+      await db.$transaction(async (tx) => {
+        await tx.chatThread.update({
+          where: { id: existing.id },
+          data: { status: ChatThreadStatus.PENDING, closedAt: null, closedReason: null },
+        });
+        await record(
+          tx,
+          existing.id,
+          ChatAuthorizationAction.REOPENED,
+          viewer.profileId,
+          "Asked again",
+        );
+      });
+    }
+    return { ok: true, threadId: existing.id };
+  }
+  const id = randomUUID();
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.chatThread.create({
+        data: { id, ...key, pairType: pair.pairType, requiresAuthorization: true },
+      });
+      await record(
+        tx,
+        id,
+        ChatAuthorizationAction.REQUESTED,
+        viewer.profileId,
+        "Project chat requested",
+      );
+    });
+    return { ok: true, threadId: id };
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const raced = await db.chatThread.findUnique({
+        where: { contextType_contextId_participantA_participantB: key },
+      });
+      if (raced) return { ok: true, threadId: raced.id };
+    }
+    throw error;
+  }
+}
+
+/** When a project closes, its chats close too (history stays with participant A). */
+export async function closeProjectThreads(
+  projectId: string,
+  reason: string,
+  actorId: string | null = null,
+  /** Only this investor's threads (they stopped being one of the project's investors). */
+  investorId?: string,
+) {
+  if (investorId && (await isProjectMember(projectId, investorId))) return;
+  const threads = await db.chatThread.findMany({
+    where: {
+      contextType: ChatContextType.PROJECT,
+      contextId: projectId,
+      status: { not: ChatThreadStatus.CLOSED },
+      ...(investorId ? { participantB: investorId } : {}),
+    },
+    select: { id: true },
+  });
+  for (const thread of threads) {
+    await db.$transaction(async (tx) => {
+      await tx.chatThread.update({
+        where: { id: thread.id },
+        data: {
+          status: ChatThreadStatus.CLOSED,
+          closedAt: new Date(),
+          closedReason: reason,
+        },
+      });
+      await record(tx, thread.id, ChatAuthorizationAction.CLOSED, actorId, reason);
+    });
+  }
+}
+
+/**
+ * What a participant sees as the other person's name. Lead ↔ Co-Investor
+ * chats show roles, not names: investors' profiles are private (Q4).
+ */
+export function counterpartLabel(
+  thread: { pairType: ChatPairType; participantA: string },
+  viewerId: string,
+  counterpartName: string | null,
+): string {
+  if (thread.pairType === ChatPairType.LEAD_CO_INVESTOR) {
+    return thread.participantA === viewerId ? "A co-investor" : "The Lead Investor";
+  }
+  return counterpartName ?? "PropLink member";
+}
+
 // ── Listing for participants ─────────────────────────────────────────────
 
 export async function listThreadsFor(viewer: Viewer) {
@@ -347,9 +539,11 @@ export async function listThreadsFor(viewer: Viewer) {
     pairType: thread.pairType,
     status: thread.status,
     title: titles.get(`${thread.contextType}:${thread.contextId}`) ?? "Conversation",
-    counterpart:
-      (thread.participantA === viewer.profileId ? thread.b.name : thread.a.name) ??
-      "PropLink member",
+    counterpart: counterpartLabel(
+      thread,
+      viewer.profileId,
+      thread.participantA === viewer.profileId ? thread.b.name : thread.a.name,
+    ),
     unread: thread._count.messages,
     lastMessageAt: thread.lastMessageAt,
   }));
@@ -370,6 +564,18 @@ export async function contextTitles(
     const { listingTitles } = await import("@/services/landlord/listings");
     for (const [id, title] of await listingTitles(listingIds)) {
       titles.set(`${ChatContextType.PRIVATE_LISTING}:${id}`, title);
+    }
+  }
+  const projectIds = threads
+    .filter((t) => t.contextType === ChatContextType.PROJECT)
+    .map((t) => t.contextId);
+  if (projectIds.length > 0) {
+    const projects = await db.investorProject.findMany({
+      where: { id: { in: projectIds } },
+      select: { id: true, title: true },
+    });
+    for (const project of projects) {
+      titles.set(`${ChatContextType.PROJECT}:${project.id}`, project.title);
     }
   }
   if (propertyIds.length > 0) {
