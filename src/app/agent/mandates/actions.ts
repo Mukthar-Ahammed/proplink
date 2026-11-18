@@ -10,6 +10,7 @@ import {
   terminateMandate,
 } from "@/services/landlord/mandates";
 import type { AgentActor } from "@/services/landlord/marketplace";
+import { updateDisclosure } from "@/services/landlord/disclosure";
 
 export type MandateState =
   | { kind: "idle" }
@@ -48,6 +49,23 @@ export async function agentMandateAction(
         ? "Mandate declined."
         : "Mandate terminated.";
   return { kind: "done", message };
+}
+
+/** AG-7: choose which Landlord data investors will see (Phase 2 Task 7). */
+export async function updateDisclosureAction(
+  _previous: MandateState,
+  formData: FormData,
+): Promise<MandateState> {
+  const agent = await agentActor();
+  if (!agent) return { kind: "error", message: "Sign in as an Agent" };
+  const mandateId = text(formData, "mandateId");
+  const raw = Object.fromEntries(
+    [...formData.entries()].filter(([key]) => key.startsWith("show")),
+  );
+  const result = await updateDisclosure(agent, mandateId, raw);
+  if (!result.ok) return { kind: "error", message: result.error };
+  revalidatePath(`/agent/mandates/${mandateId}`);
+  return { kind: "done", message: "Saved. Investors will see only what is ticked." };
 }
 
 export async function attachAgentContractAction(

@@ -16,6 +16,7 @@ import {
 } from "@/services/landlord/marketplace";
 
 import { ContractUploader } from "@/components/mandates/ContractUploader";
+import { DISCLOSURE_FIELDS } from "@/services/landlord/disclosure";
 import { mandatesForOwner } from "@/services/landlord/mandates";
 
 import { attachMandateContractAction } from "../../actions";
@@ -91,6 +92,15 @@ export default async function ListingProposalsPage({
               </p>
               {live.renewalTerms && (
                 <p className="text-body">Renewal: {live.renewalTerms}</p>
+              )}
+              {live.status === "ACTIVE" && mandates.disclosure && (
+                <p className="text-body" data-testid="landlord-disclosure">
+                  Your agent will show investors:{" "}
+                  {DISCLOSURE_FIELDS.filter((field) => mandates.disclosure![field.key])
+                    .map((field) => field.label.toLowerCase())
+                    .join(", ") || "only the town and postcode district"}
+                  . Your contact details and ownership documents are never shown.
+                </p>
               )}
               {live.status === "ACTIVE" && (
                 <>

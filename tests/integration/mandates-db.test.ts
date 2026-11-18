@@ -25,6 +25,7 @@ import {
   terminateMandate,
 } from "@/services/landlord/mandates";
 import { listMarketplace, submitProposal } from "@/services/landlord/marketplace";
+import { disclosureFor, updateDisclosure } from "@/services/landlord/disclosure";
 
 /**
  * Phase 2 Task 6 (migration 20261118130000) against the disposable local
@@ -353,5 +354,61 @@ describe.skipIf(!hasDb)("exclusive mandates", () => {
        FROM pg_class c WHERE c.oid = 'public.mandates'::regclass`,
     );
     expect(rows[0]).toEqual({ rls: true, anon: false, authed: false });
+  });
+
+  it("lets only the active mandate's Agent set what investors see (Task 7)", async () => {
+    const [admin, landlord, agent, other] = [
+      await person("ADMIN"),
+      await person("LANDLORD"),
+      await person("AGENT"),
+      await person("AGENT"),
+    ];
+    const listingId = await approvedListing(landlord, admin);
+    const chosen = await chooseAgent(
+      asLandlord(landlord),
+      await proposalFor(agent, listingId),
+    );
+    if (!chosen.ok) throw new Error(chosen.error);
+    const mandateId = chosen.data.mandateId;
+
+    // Not yet accepted: no disclosure changes.
+    expect(
+      await updateDisclosure(asAgent(agent), mandateId, { showLandlordName: "on" }),
+    ).toMatchObject({ ok: false, status: 409 });
+    await respondToOffer(asAgent(agent), mandateId, true);
+    expect(
+      await updateDisclosure(asAgent(other), mandateId, { showLandlordName: "on" }),
+    ).toMatchObject({ ok: false, status: 409 });
+    expect(
+      await updateDisclosure(asAgent(agent), mandateId, {
+        showLandlordName: "on",
+        showPhotos: "on",
+      }),
+    ).toEqual({ ok: true });
+    expect(await disclosureFor(mandateId)).toMatchObject({
+      showLandlordName: true,
+      showStreetAddress: false,
+      showPhotos: true,
+    });
+
+    // Database guard: another Agent, or any change after the mandate ends.
+    await expect(
+      client.query(
+        `UPDATE public.mandate_disclosures SET "updatedBy" = $2 WHERE "mandateId" = $1`,
+        [mandateId, other.profileId],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+    await terminateMandate(asAgent(agent), mandateId, "Ending it for this test.");
+    await expect(
+      client.query(
+        `UPDATE public.mandate_disclosures SET "showStreetAddress" = true WHERE "mandateId" = $1`,
+        [mandateId],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
+    const { rows } = await client.query(
+      `SELECT c.relrowsecurity AS rls, has_table_privilege('anon', 'public.mandate_disclosures', 'SELECT') AS anon
+       FROM pg_class c WHERE c.oid = 'public.mandate_disclosures'::regclass`,
+    );
+    expect(rows[0]).toEqual({ rls: true, anon: false });
   });
 });

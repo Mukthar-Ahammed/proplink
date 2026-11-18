@@ -10,6 +10,8 @@ import { formatFee, formatPence } from "@/services/landlord/marketplace";
 
 import { attachAgentContractAction } from "../actions";
 import { RespondToOffer, TerminateMandate } from "./AgentMandateControls";
+import { DisclosureForm } from "./DisclosureForm";
+import { DISCLOSURE_FIELDS } from "@/services/landlord/disclosure";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Agent — Mandate", robots: { index: false } };
@@ -150,6 +152,62 @@ export default async function AgentMandatePage({
               attach={attachAgentContractAction}
               hasContract={Boolean(mandate.contractUrl)}
             />
+          </div>
+        </PortalSection>
+      )}
+
+      {active && mandate.disclosure && mandate.investorPreview && (
+        <PortalSection title="What investors will see">
+          <p className="text-sm text-muted">
+            When you publish this property to investors (coming with the Investor Portal),
+            only the details you tick are shown.
+          </p>
+          <div className="mt-4 grid gap-6 lg:grid-cols-2">
+            <DisclosureForm
+              mandateId={mandate.id}
+              fields={DISCLOSURE_FIELDS.map((field) => ({
+                key: field.key,
+                label: field.label,
+                personal: field.personal,
+                checked: mandate.disclosure![field.key],
+              }))}
+            />
+            <dl
+              className="grid gap-3 rounded-lg border border-line bg-white p-4"
+              data-testid="investor-preview"
+            >
+              <Row
+                label="Landlord"
+                value={mandate.investorPreview.landlordName ?? "Hidden"}
+              />
+              <Row
+                label="Location"
+                value={[
+                  mandate.investorPreview.addressLine1,
+                  mandate.investorPreview.city,
+                  mandate.investorPreview.postcode ??
+                    mandate.investorPreview.postcodeDistrict,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+              />
+              <Row
+                label="Description"
+                value={mandate.investorPreview.description ?? "Hidden"}
+              />
+              <Row
+                label="Known defects"
+                value={mandate.investorPreview.defects ?? "Hidden"}
+              />
+              <Row
+                label="Work required"
+                value={mandate.investorPreview.requiredWork ?? "Hidden"}
+              />
+              <Row
+                label="Photos and documents"
+                value={`${mandate.investorPreview.photoFileIds.length} photos, ${mandate.investorPreview.documentFileIds.length} documents`}
+              />
+            </dl>
           </div>
         </PortalSection>
       )}

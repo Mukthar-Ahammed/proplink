@@ -1057,6 +1057,19 @@ of the boundary.
 - Pages: `/landlord/listings/[id]/proposals` (mandate panel),
   `/agent/mandates`, `/agent/mandates/[id]`.
 
+## Landlord data exposure (Phase 2 Task 7, ADR-040)
+
+- `src/services/landlord/disclosure.ts`: `DISCLOSURE_DEFAULTS` (Landlord's
+  name, street address, full postcode and other documents hidden),
+  `disclosureFor`, `updateDisclosure` (active mandate's Agent only, audited)
+  and the pure `buildInvestorView`, which never includes contact details,
+  ownership documents or the Landlord's own title. Phase 4 publishing must
+  use it.
+- Schema (migration `20261118140000`): `mandate_disclosures` with a trigger
+  allowing only the active mandate's Agent; server-only.
+- UI: "What investors will see" (choices and live preview) on
+  `/agent/mandates/[id]`; summary on the Landlord's mandate panel.
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers

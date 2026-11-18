@@ -35,7 +35,7 @@ mandate exists (OD-22).
 | 4. Private-listing hardening | Done                                              |         |
 | 5. Agent marketplace         | Done                                              | ADR-038 |
 | 6. Exclusive mandate         | Done                                              | ADR-039 |
-| 7. Landlord data exposure    | Not started                                       |         |
+| 7. Landlord data exposure    | Done (used by Phase 4 publishing)                 | ADR-040 |
 | 8. Notifications             | Not started                                       |         |
 
 ## Task 1 — Landlord module (2026-11-18)
@@ -291,3 +291,29 @@ mandate exists (OD-22).
   date. The leakage crawl still passes (5 of 5). No fixtures left behind.
 - Rollback rehearsed. Full suite on the disposable database: 120 files, 1559
   tests pass. Without a database: 103 files pass, 17 database-only skipped.
+
+## Task 7 — Landlord data exposure control (2026-11-18)
+
+**Delivered** (ADR-040; TRD AG-7)
+
+- Migration `20261118140000_phase2_mandate_disclosures` (with `rollback.sql`):
+  `mandate_disclosures`, trigger allowing only the active mandate's Agent;
+  server-only.
+- `src/services/landlord/disclosure.ts`: safe defaults, update (rate limited,
+  verified Agent, active mandate, audited with changed fields) and the pure
+  `buildInvestorView` for Phase 4.
+- Agent mandate page: tick what investors will see, with a live preview;
+  Landlord mandate panel: what the Agent will show.
+
+**Verification**
+
+- `tests/unit/mandate-disclosure.test.ts` (7): defaults hide the Landlord's
+  name, street address, full postcode and documents; ownership documents and
+  the Landlord's title never appear even with everything ticked; strict
+  checkbox parsing; safe defaults when nothing is stored; update refused at
+  the rate limit, for unverified Agents and without an active mandate; saved
+  and audited with the changed fields.
+- `tests/integration/mandates-db.test.ts` (now 5): only the active mandate's
+  Agent can set the disclosure (offered, other Agent and ended mandate
+  refused by service and trigger); RLS on.
+- Rollback rehearsed.

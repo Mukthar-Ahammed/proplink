@@ -11,6 +11,7 @@ vi.mock("@/lib/db", () => {
       updateMany: vi.fn(),
     },
     uploadedFile: { findFirst: vi.fn() },
+    mandateDisclosure: { findUnique: vi.fn(), upsert: vi.fn() },
     profile: { findUnique: vi.fn() },
     $transaction: vi.fn(),
   };

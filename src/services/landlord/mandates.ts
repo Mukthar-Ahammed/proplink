@@ -26,6 +26,7 @@ import {
   type AgentActor,
 } from "@/services/landlord/marketplace";
 import { createGrantedDownloadLink } from "@/services/uploads/pipeline";
+import { buildInvestorView, disclosureFor } from "@/services/landlord/disclosure";
 
 /**
  * Exclusive mandates (Phase 2 Task 6, ADR-039; TRD AG-2, AG-5; business Q7,
@@ -305,6 +306,9 @@ export async function mandatesForOwner(landlord: LandlordActor, listingId: strin
     history: mandates.filter((mandate) => mandate !== live),
     stage: listingStage(live),
     contractUrl: contract?.ok ? contract.url : null,
+    // Task 7: the Landlord sees what their Agent will show investors.
+    disclosure:
+      live?.status === MandateStatus.ACTIVE ? await disclosureFor(live.id) : null,
   };
 }
 
@@ -424,6 +428,11 @@ export async function getMandateForAgent(agent: AgentActor, mandateId: string) {
     active && mandate.termsFileId
       ? await createGrantedDownloadLink(agent.profileId, mandate.termsFileId)
       : null;
+  // Task 7 (AG-7): what investors would see with the current choices.
+  const disclosure = active ? await disclosureFor(mandate.id) : null;
+  const investorPreview = disclosure
+    ? buildInvestorView({ ...listing, landlordName: owner.name, files }, disclosure)
+    : null;
   return {
     ...mandate,
     listing: active
@@ -431,6 +440,8 @@ export async function getMandateForAgent(agent: AgentActor, mandateId: string) {
       : { id: listing.id, title: listing.title, city: listing.city, landlordName: null },
     documents,
     contractUrl: contract?.ok ? contract.url : null,
+    disclosure,
+    investorPreview,
   };
 }
 

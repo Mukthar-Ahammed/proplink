@@ -263,6 +263,7 @@ model Profile {
   proposalQuestions    AgentProposalQuestion[]   @relation("AgentProposalQuestionAsker")
   mandatesHeld         Mandate[]                 @relation("MandateAgent")
   mandatesEnded        Mandate[]                 @relation("MandateTerminator")
+  disclosuresSet       MandateDisclosure[]       @relation("MandateDisclosureEditor")
 
   @@map("profiles")
 }
@@ -1549,9 +1550,34 @@ model Mandate {
   proposal   AgentProposal   @relation(fields: [proposalId], references: [id], onDelete: Restrict)
   terminator Profile?        @relation("MandateTerminator", fields: [terminatedBy], references: [id], onDelete: Restrict)
   termsFile  UploadedFile?   @relation("MandateTermsFile", fields: [termsFileId], references: [id], onDelete: Restrict)
+  disclosure MandateDisclosure?
 
   @@index([listingId, status])
   @@index([agentId, status])
   @@index([proposalId])
   @@map("mandates")
+}
+
+/// What investors will see of the Landlord's data when the mandated Agent
+/// publishes (Phase 2 Task 7, ADR-040; TRD AG-7). Defaults hide the
+/// Landlord's personal details; contact details and ownership documents have
+/// no column because they are never exposable.
+model MandateDisclosure {
+  mandateId          String   @id @db.Uuid
+  showLandlordName   Boolean  @default(false)
+  showStreetAddress  Boolean  @default(false)
+  showFullPostcode   Boolean  @default(false)
+  showDescription    Boolean  @default(true)
+  showDefects        Boolean  @default(true)
+  showRequiredWork   Boolean  @default(true)
+  showPhotos         Boolean  @default(true)
+  showOtherDocuments Boolean  @default(false)
+  updatedBy          String   @db.Uuid
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  mandate Mandate @relation(fields: [mandateId], references: [id], onDelete: Restrict)
+  editor  Profile @relation("MandateDisclosureEditor", fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@map("mandate_disclosures")
 }
