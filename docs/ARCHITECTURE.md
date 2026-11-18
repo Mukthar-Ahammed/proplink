@@ -1205,6 +1205,11 @@ of the boundary.
   the sale, signed agreement, shares and actor; deferred balance check),
   `ledger_corrections` (Solicitor proposes, Admin decides once); Solicitor
   RLS read policies.
+- Decisions (Task 9, ADR-051): `decisions.ts` (`recordDecision` extend /
+  release / close, `listDecisions`, `shortfallProjects`, `isShortfall`);
+  `DecisionPanel`. Schema (migration `20261119070000`): `project_decisions`
+  (append-only; Agent or Admin only).
+- Permission matrix at `CURRENT_PHASE = 4` (ADR-051).
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

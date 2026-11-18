@@ -9,7 +9,9 @@ import { QuestionList } from "@/components/projects/QuestionList";
 import { signAgreementAction } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
 import { WorksPanel } from "@/components/projects/WorksPanel";
+import { DecisionPanel } from "@/components/projects/DecisionPanel";
 import { LedgerPanel } from "@/components/projects/LedgerPanel";
+import { isShortfall, listDecisions } from "@/services/projects/decisions";
 import { ledgerView } from "@/services/projects/settlement";
 import { worksView } from "@/services/projects/works";
 import { listAgreements } from "@/services/projects/agreements";
@@ -64,6 +66,10 @@ export default async function AgentProjectPage({
   const questions = (await listProjectQuestions(agent, project.id)) ?? [];
   const agreements = (await listAgreements(agent, project.id)) ?? [];
   const works = await worksView(agent, project.id);
+  const decisions = await listDecisions(project.id);
+  const closable = ["PUBLISHED", "OPEN_FOR_INVESTMENT", "FUNDED"].includes(
+    project.status,
+  );
   const [ledger, plan] = await Promise.all([
     ledgerView(agent, project.id),
     // Only the Solicitor sees the settlement plan (every party's amounts).
@@ -207,6 +213,18 @@ export default async function AgentProjectPage({
             projectId={project.id}
             projectStatus={project.status}
             path={`/agent/projects/${project.id}`}
+          />
+        </PortalSection>
+      )}
+
+      {(closable || decisions.length > 0) && (
+        <PortalSection title="Project decisions">
+          <DecisionPanel
+            projectId={project.id}
+            path={`/agent/projects/${project.id}`}
+            shortfall={isShortfall(project)}
+            canDecide={closable}
+            decisions={decisions}
           />
         </PortalSection>
       )}

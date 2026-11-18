@@ -304,6 +304,7 @@ model Profile {
   ledgerEntriesMade    DistributionLedgerEntry[] @relation("LedgerEntryActor")
   correctionsProposed  LedgerCorrection[]        @relation("LedgerCorrectionProposer")
   correctionsDecided   LedgerCorrection[]        @relation("LedgerCorrectionDecider")
+  projectDecisions     ProjectDecision[]         @relation("ProjectDecisionMaker")
 
   @@map("profiles")
 }
@@ -1967,6 +1968,7 @@ model InvestorProject {
   sale        ProjectSale?
   ledger      DistributionLedgerEntry[]
   corrections LedgerCorrection[]
+  decisions   ProjectDecision[]
 
   @@index([status, publishedAt])
   @@index([agentId])
@@ -2482,4 +2484,32 @@ model LedgerCorrection {
 
   @@index([projectId, proposedAt])
   @@map("ledger_corrections")
+}
+
+// ── Phase 4 Task 9: project decisions (ADR-051) ──
+
+enum ProjectDecisionKind {
+  EXTEND_DEADLINE
+  CLOSE_PROJECT
+  RELEASE_PLEDGES
+}
+
+/// Q44 edge cases: the project owner's recorded choice (append-only). Money
+/// (refunds, cancellation payments) is the Solicitor's, outside PropLink.
+model ProjectDecision {
+  id               String              @id @db.Uuid
+  projectId        String              @db.Uuid
+  kind             ProjectDecisionKind
+  reason           String
+  newDeadline      DateTime?
+  previousDeadline DateTime?
+  pledgesReleased  Int                 @default(0)
+  decidedBy        String              @db.Uuid
+  decidedAt        DateTime            @default(now())
+
+  project InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  decider Profile         @relation("ProjectDecisionMaker", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, decidedAt])
+  @@map("project_decisions")
 }

@@ -6,6 +6,7 @@ import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
 import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
 import type { Actor } from "@/services/projects/common";
+import { recordDecision } from "@/services/projects/decisions";
 import {
   addMilestone,
   advanceProject,
@@ -166,4 +167,19 @@ export async function advanceAction(
     await advanceProject(who, text(formData, "projectId"), text(formData, "to")),
     "Project moved on.",
   );
+}
+
+/** Task 9 (Q44): extend the deadline, close the project or release unsigned pledges. */
+export async function decisionAction(
+  _previous: ProjectFormState,
+  formData: FormData,
+): Promise<ProjectFormState> {
+  const who = await actor(Role.AGENT, Role.ADMIN);
+  if (!who) return { kind: "error", message: "Sign in again" };
+  const result = await recordDecision(who, text(formData, "projectId"), {
+    kind: text(formData, "kind"),
+    reason: text(formData, "reason"),
+    newDeadline: text(formData, "newDeadline"),
+  });
+  return finish(formData, result, "Decision recorded.");
 }

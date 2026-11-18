@@ -77,7 +77,7 @@ provider (default Dropbox Sign, alternative DocuSign).
 | 6. Agreements and e-signature | Done (live provider needs keys)       | ADR-048          |
 | 7. Funds tracking             | Done                                  | ADR-049          |
 | 8. Sale and ledger            | Done (Phase 5 calls recordSale)       | ADR-050          |
-| 9. Edge cases                 | Not started                           |                  |
+| 9. Edge cases                 | Done                                  | ADR-051          |
 
 ## Exit gate
 
@@ -365,3 +365,28 @@ provider (default Dropbox Sign, alternative DocuSign).
   parameter is ignored for non-staff), outsiders and other Landlords 404,
   no other party's name, pledge or the street address; Solicitor RLS on the
   ledger.
+
+## Task 9 — Edge cases (2026-11-18)
+
+**Delivered** (ADR-051; Q44 / Answers §C)
+
+- Migration `20261119070000_phase4_decisions` (with `rollback.sql`,
+  rehearsed): append-only project decisions by the Agent or Admin.
+- Extend the deadline, release unsigned pledges, or close the project (void
+  unsigned agreements, withdraw nominations, release every pledge with the
+  Solicitor handling any refund, close the chats). Shortfall banner for
+  Agents and Admin; Admin list of projects past their deadline.
+- The other Q44 cases are covered where they live: pledge races (Task 4),
+  expired links and failed signing (Task 6 re-send and re-issue).
+- Permission matrix moved to Phase 4 with real checkers for publishing,
+  pledging and Solicitor funds status; retail publishing moves to Phase 5.
+
+**Verification**
+
+- `tests/integration/decisions-db.test.ts` (3, disposable database): a
+  missed deadline blocks pledges; only the Agent or Admin decides; a
+  too-distant extension refused; extending resumes pledging; decisions are
+  append-only; releasing unsigned pledges keeps raising; closing releases
+  every pledge, ends the project's chats, cannot be undone (service or SQL)
+  and lets the mandate end.
+- `tests/unit/permission-matrix.test.ts`: 63 checks at Phase 4.

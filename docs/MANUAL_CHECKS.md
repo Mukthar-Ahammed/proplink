@@ -176,6 +176,11 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       original entry stays and the adjustment appears; the investor gets an
       email.
 
+- [ ] **Deadline shortfall.** On a project past its deadline (Admin's
+      "Past the funding deadline" list), as the Agent extend the deadline;
+      on another, close it: pledges show "released", the project "Closed",
+      its chats end.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

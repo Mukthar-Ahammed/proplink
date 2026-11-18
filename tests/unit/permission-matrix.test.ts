@@ -28,9 +28,28 @@ vi.mock("@/lib/db", () => ({
     agentCompanyCheck: { findUnique: vi.fn(async () => null) },
     landlordListing: { create: vi.fn(async () => ({})), findMany: vi.fn(async () => []) },
     chatThread: { findUnique: vi.fn(async () => null) },
+    // Phase 4 rows: the data is absent, so an allowed role gets past the role
+    // gate and stops at "not found / not open"; a refused role gets 403/404.
+    mandate: { findFirst: vi.fn(async () => null) },
+    investorProject: {
+      findFirst: vi.fn(async () => null),
+      findUnique: vi.fn(async () => null),
+    },
+    projectPledge: {
+      findUnique: vi.fn(async () => null),
+      findFirst: vi.fn(async () => null),
+      aggregate: vi.fn(async () => ({ _sum: { amountGBP: null } })),
+    },
+    projectSolicitor: { findFirst: vi.fn(async () => null) },
+    projectFundStatus: { create: vi.fn(async () => ({})) },
     chatThreadMessage: { findMany: vi.fn(async () => []) },
     auditLog: { create: vi.fn() },
   },
+}));
+// Rate limits are tested on their own; here every call is within the limit.
+vi.mock("@/services/auth/supabaseAuthService", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/services/auth/supabaseAuthService")>()),
+  consumeRateLimits: vi.fn(async () => true),
 }));
 // Phase 3: subscriptions are tested in billing tests; here they are active.
 vi.mock("@/services/billing/subscriptions", () => ({
@@ -67,6 +86,9 @@ import { db } from "@/lib/db";
 import { listMarketplace } from "@/services/landlord/marketplace";
 import { adminReadThread } from "@/services/chat/messages";
 import { threadAccess } from "@/services/chat/threads";
+import { createPledge } from "@/services/projects/pledges";
+import { publishProject } from "@/services/projects/projects";
+import { recordFundStatus } from "@/services/projects/works";
 
 function sessionAs(role: MatrixRole) {
   return {
@@ -202,6 +224,87 @@ const CHECKERS: Record<string, (role: MatrixRole) => Promise<Cell>> = {
     } finally {
       vi.mocked(db.chatThread.findUnique).mockResolvedValue(null);
       vi.mocked(db.profile.findUnique).mockImplementation((async () => null) as never);
+    }
+  },
+
+  /**
+   * Phase 4 (ADR-044): publishing needs the Agent of an ACTIVE mandate
+   * (database-checked) or Admin on their behalf. With no mandate in the
+   * mock, an allowed role reaches the mandate lookup (409); others get 403.
+   */
+  async publish_to_investor_portal(role) {
+    const session = sessionAs(role);
+    vi.mocked(db.profile.findUnique).mockImplementation((async () => ({
+      active: true,
+      role,
+      legacyUserId: session.user.id,
+    })) as never);
+    try {
+      const result = await publishProject(
+        { profileId: session.user.authUserId, legacyUserId: session.user.id, role },
+        "ffffffff-ffff-4fff-8fff-ffffffffffff",
+        {},
+      );
+      return result.ok || !denied(result.status) ? "allow" : "deny";
+    } finally {
+      vi.mocked(db.profile.findUnique).mockImplementation((async () => null) as never);
+    }
+  },
+
+  /**
+   * Phase 4 (ADR-045): only KYC-approved Investors pledge (database-checked
+   * too); no money moves. An Investor reaches "not open" (409) here.
+   */
+  async pledge_capital(role) {
+    const session = sessionAs(role);
+    vi.mocked(db.profile.findUnique).mockImplementation((async () => ({
+      kycStatus: "APPROVED",
+      active: true,
+    })) as never);
+    try {
+      const result = await createPledge(
+        { profileId: session.user.authUserId, legacyUserId: session.user.id, role },
+        "ffffffff-ffff-4fff-8fff-ffffffffffff",
+        "1000",
+        "matrix-key-0001",
+      );
+      return result.ok || !denied(result.status) ? "allow" : "deny";
+    } finally {
+      vi.mocked(db.profile.findUnique).mockImplementation((async () => null) as never);
+    }
+  },
+
+  /**
+   * Phase 4 (ADR-047, ADR-049): the project's ACTIVE Solicitor records funds
+   * status (and proposes ledger corrections, ADR-050). Everyone else,
+   * Admin included, gets "not found".
+   */
+  async post_fund_status_or_propose_ledger_correction(role) {
+    const session = sessionAs(role);
+    const projectId = "abababab-abab-4bab-8bab-abababababab";
+    vi.mocked(db.projectPledge.findUnique).mockResolvedValue({
+      projectId,
+      investorId: "cdcdcdcd-cdcd-4dcd-8dcd-cdcdcdcdcdcd",
+      project: { title: "Matrix project" },
+    } as never);
+    vi.mocked(db.investorProject.findUnique).mockResolvedValue({
+      agentId: "efefefef-efef-4fef-8fef-efefefefefef",
+      leadInvestorId: null,
+      listing: { ownerId: "12121212-1212-4212-8212-121212121212" },
+    } as never);
+    vi.mocked(db.projectSolicitor.findFirst).mockImplementation((async () =>
+      role === Role.SOLICITOR ? { projectId } : null) as never);
+    try {
+      const result = await recordFundStatus(
+        { profileId: session.user.authUserId, legacyUserId: session.user.id, role },
+        "34343434-3434-4434-8434-343434343434",
+        { status: "RECEIVED" },
+      );
+      return result.ok ? "allow" : "deny";
+    } finally {
+      vi.mocked(db.projectPledge.findUnique).mockResolvedValue(null);
+      vi.mocked(db.investorProject.findUnique).mockResolvedValue(null);
+      vi.mocked(db.projectSolicitor.findFirst).mockResolvedValue(null);
     }
   },
 

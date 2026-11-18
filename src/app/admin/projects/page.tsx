@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { day } from "@/components/projects/format";
 import { formatPence, statusLabel } from "@/services/projects/common";
+import { shortfallProjects } from "@/services/projects/decisions";
 import { listAcceptedNominations } from "@/services/projects/lead";
 import { allPublishableMandates, listAllProjects } from "@/services/projects/projects";
 
@@ -16,10 +17,11 @@ export const metadata = { title: "Admin — Investor projects", robots: { index:
  * (OD-13), every project, and mandates Admin may publish for their Agent.
  */
 export default async function AdminProjectsPage() {
-  const [nominations, projects, mandates] = await Promise.all([
+  const [nominations, projects, mandates, shortfall] = await Promise.all([
     listAcceptedNominations(),
     listAllProjects(),
     allPublishableMandates(),
+    shortfallProjects(),
   ]);
   return (
     <div className="space-y-8">
@@ -81,6 +83,27 @@ export default async function AdminProjectsPage() {
           </ul>
         )}
       </section>
+
+      {shortfall.length > 0 && (
+        <section>
+          <h2 className="text-lg font-semibold text-warning">
+            Past the funding deadline
+          </h2>
+          <ul className="mt-2 space-y-1 text-sm" data-testid="shortfall">
+            {shortfall.map((project) => (
+              <li key={project.id}>
+                <Link
+                  href={`/admin/projects/${project.id}`}
+                  className="text-primary underline"
+                >
+                  {project.title}
+                </Link>{" "}
+                · deadline {day(project.fundingDeadline)} · {statusLabel(project.status)}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg font-semibold text-primary">All projects</h2>

@@ -14,7 +14,9 @@ import {
 } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
 import { WorksPanel } from "@/components/projects/WorksPanel";
+import { DecisionPanel } from "@/components/projects/DecisionPanel";
 import { LedgerPanel } from "@/components/projects/LedgerPanel";
+import { isShortfall, listDecisions } from "@/services/projects/decisions";
 import { ledgerView, settlementPlan } from "@/services/projects/settlement";
 import { worksView } from "@/services/projects/works";
 import { listAgreements } from "@/services/projects/agreements";
@@ -48,6 +50,10 @@ export default async function AdminProjectPage({
   const solicitors = await listProjectSolicitors(project.id);
   const agreements = (await listAgreements(admin, project.id)) ?? [];
   const works = await worksView(admin, project.id);
+  const decisions = await listDecisions(project.id);
+  const closable = ["PUBLISHED", "OPEN_FOR_INVESTMENT", "FUNDED"].includes(
+    project.status,
+  );
   const [ledger, plan] = await Promise.all([
     ledgerView(admin, project.id),
     settlementPlan(project.id),
@@ -205,6 +211,16 @@ export default async function AdminProjectPage({
           />
         </section>
       )}
+      <section>
+        <h2 className="text-lg font-semibold text-primary">Project decisions</h2>
+        <DecisionPanel
+          projectId={project.id}
+          path={path}
+          shortfall={isShortfall(project)}
+          canDecide={closable}
+          decisions={decisions}
+        />
+      </section>
       <section>
         <h2 className="text-lg font-semibold text-primary">Agreements</h2>
         <AgreementList
