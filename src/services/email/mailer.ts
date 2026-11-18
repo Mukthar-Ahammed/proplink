@@ -139,6 +139,45 @@ export async function sendLandlordListingRejectedEmail(params: {
   });
 }
 
+// Phase 2 Task 5 — Agent proposals and their Q&A. No personal details or
+// figures in the email; the reader signs in to see them.
+
+export async function sendNewProposalEmail(params: {
+  to: string;
+  listingTitle: string;
+  listingId: string;
+}) {
+  await mailer.send({
+    to: params.to,
+    subject: `New agent proposal for "${params.listingTitle}"`,
+    text: `A verified agent sent a proposal for "${params.listingTitle}".\n\nCompare proposals side by side and ask questions: ${BASE_URL}/landlord/listings/${params.listingId}/proposals`,
+  });
+}
+
+export async function sendProposalQuestionEmail(params: {
+  to: string;
+  listingTitle: string;
+  listingId: string;
+}) {
+  await mailer.send({
+    to: params.to,
+    subject: `The landlord asked about your proposal for "${params.listingTitle}"`,
+    text: `The landlord has a question about your proposal for "${params.listingTitle}".\n\nAnswer it here: ${BASE_URL}/agent/marketplace/${params.listingId}`,
+  });
+}
+
+export async function sendProposalAnswerEmail(params: {
+  to: string;
+  listingTitle: string;
+  listingId: string;
+}) {
+  await mailer.send({
+    to: params.to,
+    subject: `An agent answered your question about "${params.listingTitle}"`,
+    text: `An agent answered your question about their proposal for "${params.listingTitle}".\n\nRead it: ${BASE_URL}/landlord/listings/${params.listingId}/proposals`,
+  });
+}
+
 // Task 2.5 — public property detail page enquiry notification.
 
 export async function sendNewEnquiryEmail(params: {

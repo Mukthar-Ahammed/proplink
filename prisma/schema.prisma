@@ -259,6 +259,8 @@ model Profile {
   aiUsage              AiUsage[]                 @relation("AiUsageProfile")
   landlordListingsHeld LandlordListing[]         @relation("LandlordListingClaimer")
   listingReviewsMade   LandlordListingReview[]   @relation("LandlordListingReviewer")
+  agentProposals       AgentProposal[]           @relation("AgentProposalAgent")
+  proposalQuestions    AgentProposalQuestion[]   @relation("AgentProposalQuestionAsker")
 
   @@map("profiles")
 }
@@ -1352,6 +1354,7 @@ model LandlordListing {
   claimer Profile?              @relation("LandlordListingClaimer", fields: [claimedBy], references: [id], onDelete: Restrict)
   files   LandlordListingFile[]
   reviews LandlordListingReview[]
+  proposals AgentProposal[]
 
   @@index([ownerId, status])
   @@index([status, submittedAt])
@@ -1433,4 +1436,65 @@ model LandlordListingReview {
   @@index([decidedAt])
   @@index([listingId, decidedAt])
   @@map("landlord_listing_reviews")
+}
+
+enum AgentProposalStatus {
+  SUBMITTED
+  WITHDRAWN
+  DECLINED
+  SELECTED
+}
+
+enum AgentProposalFeeType {
+  PERCENT
+  FIXED
+}
+
+/// An Agent's structured proposal on an approved Landlord listing (Phase 2
+/// Task 5, ADR-038). Money is integer pence.
+model AgentProposal {
+  id             String               @id @db.Uuid
+  listingId      String               @db.Uuid
+  agentId        String               @db.Uuid
+  status         AgentProposalStatus  @default(SUBMITTED)
+  valuationGBP   BigInt
+  feeType        AgentProposalFeeType
+  /// 150 = 1.5%, when feeType = PERCENT.
+  feeBasisPoints Int?
+  /// Pence, when feeType = FIXED.
+  feeGBP         BigInt?
+  contractMonths Int
+  terms          String
+  pitch          String
+  submittedAt    DateTime             @default(now())
+  withdrawnAt    DateTime?
+  declinedAt     DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  listing   LandlordListing         @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  agent     Profile                 @relation("AgentProposalAgent", fields: [agentId], references: [id], onDelete: Restrict)
+  questions AgentProposalQuestion[]
+
+  @@unique([listingId, agentId])
+  @@index([listingId, status])
+  @@index([agentId])
+  @@map("agent_proposals")
+}
+
+/// Structured Q&A on a proposal: the Landlord asks, the Agent answers once.
+model AgentProposalQuestion {
+  id         String    @id @db.Uuid
+  proposalId String    @db.Uuid
+  askedBy    String    @db.Uuid
+  question   String
+  answer     String?
+  createdAt  DateTime  @default(now())
+  answeredAt DateTime?
+
+  proposal AgentProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  asker    Profile       @relation("AgentProposalQuestionAsker", fields: [askedBy], references: [id], onDelete: Restrict)
+
+  @@index([proposalId, createdAt])
+  @@map("agent_proposal_questions")
 }

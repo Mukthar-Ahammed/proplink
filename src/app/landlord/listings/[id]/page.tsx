@@ -119,7 +119,13 @@ export default async function LandlordListingPage({
           className="mb-6 rounded-lg border border-success/40 bg-success/5 p-4 text-sm"
         >
           Approved. Verified agents can now see this listing and send you proposals. It
-          stays private: never public, never in search.
+          stays private: never public, never in search.{" "}
+          <Link
+            href={`/landlord/listings/${listing.id}/proposals`}
+            className="font-semibold text-primary underline"
+          >
+            Compare proposals
+          </Link>
         </p>
       )}
 

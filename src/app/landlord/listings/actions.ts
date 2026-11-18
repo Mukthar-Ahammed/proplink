@@ -16,6 +16,7 @@ import {
   withdrawOwnListing,
   type LandlordActor,
 } from "@/services/landlord/listings";
+import { askQuestion, declineProposal } from "@/services/landlord/marketplace";
 
 export type FormState =
   { kind: "idle" } | { kind: "error"; message: string } | { kind: "saved" };
@@ -147,6 +148,35 @@ export async function deleteDraftAction(
   const result = await deleteOwnDraft(actor, text(formData, "id"));
   if (!result.ok) return { kind: "error", message: result.error };
   redirect("/landlord/listings");
+}
+
+/** Structured question on an Agent's proposal (Phase 2 Task 5; not chat). */
+export async function askQuestionAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const actor = await landlord();
+  if (!actor) return { kind: "error", message: "Sign in as a Landlord" };
+  const result = await askQuestion(
+    actor,
+    text(formData, "proposalId"),
+    text(formData, "question"),
+  );
+  if (!result.ok) return { kind: "error", message: result.error };
+  revalidatePath(`/landlord/listings/${text(formData, "listingId")}/proposals`);
+  return { kind: "saved" };
+}
+
+export async function declineProposalAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const actor = await landlord();
+  if (!actor) return { kind: "error", message: "Sign in as a Landlord" };
+  const result = await declineProposal(actor, text(formData, "proposalId"));
+  if (!result.ok) return { kind: "error", message: result.error };
+  revalidatePath(`/landlord/listings/${text(formData, "listingId")}/proposals`);
+  return { kind: "saved" };
 }
 
 /**

@@ -32,8 +32,8 @@ mandate exists (OD-22).
 | 1. Landlord module           | Done                                              | ADR-034 |
 | 2. AI listing assistant      | Done (real-provider smoke test waits for the key) | ADR-036 |
 | 3. Admin review queue        | Done                                              | ADR-037 |
-| 4. Private-listing hardening | Done (Agent visibility check comes with Task 5)   |         |
-| 5. Agent marketplace         | Not started                                       |         |
+| 4. Private-listing hardening | Done                                              |         |
+| 5. Agent marketplace         | Done (selection is the Task 6 mandate)            | ADR-038 |
 | 6. Exclusive mandate         | Not started                                       |         |
 | 7. Landlord data exposure    | Not started                                       |         |
 | 8. Notifications             | Not started                                       |         |
@@ -201,3 +201,52 @@ mandate exists (OD-22).
   Task 5 marketplace; its E2E test will extend this spec.
 - Admin is not crawled (sign-in needs the owner's MFA); Admin access is
   covered by the review-queue tests.
+
+## Task 5 — Agent marketplace (2026-11-18)
+
+**Delivered** (ADR-038; OD-23 recorded)
+
+- Migration `20261118120000_phase2_agent_proposals` (with `rollback.sql`):
+  `agent_proposals` and `agent_proposal_questions`, guard triggers,
+  server-only.
+- `src/services/landlord/marketplace.ts`: verified-Agent check; marketplace
+  list with filters and detail with access-checked photos; structured
+  proposals (valuation, fee, contract period, terms, pitch) with edit,
+  withdraw and resubmit; Landlord side-by-side comparison, questions and
+  decline; Agent answers; email notifications by preference.
+- Pages: `/agent/marketplace` (nav "Landlord listings"),
+  `/agent/marketplace/[id]`, `/landlord/listings/[id]/proposals` (linked
+  from the approved listing).
+- `createGrantedDownloadLink` for photos a verified Agent may see; callable
+  only from the Landlord service (boundary test).
+- Permission matrix moved to Phase 2: real checkers for
+  `create_private_listing` and `view_private_landlord_listing`.
+
+**Verification**
+
+- `tests/unit/agent-marketplace.test.ts` (21): money parsing and proposal
+  validation, rate limit first, verified-Agent rules (role, active, legacy
+  ID, company gate), list and detail never select the Landlord and show
+  photos only, create / edit / resubmit / decided / duplicate race / email
+  failure, withdraw scope, question ownership and cap, decline scope.
+- `tests/integration/agent-marketplace-db.test.ts` (4, disposable database):
+  verified Agent sees approved listings only (Admin-rejected company and
+  Investor refused); a racing double submission leaves one proposal;
+  owner-only comparison and questions, answer once by the right Agent;
+  database guards (non-Agent author, unapproved listing, fee shape, unique
+  pair, immutable listing, resubmission on a withdrawn listing, question
+  asker and edits), RLS on, no Data API access. This caught a NULL-unsafe fee
+  check (a fixed fee with no amount passed); fixed before release.
+- Permission matrix: 63 checks pass with Phase 2 delivered.
+- Leakage crawl extended (5 of 5 pass against the development database):
+  signed out, Buyer and Investor see nothing; the verified Agent sees the
+  approved listing in the marketplace and on its page, nowhere else, and
+  never the Landlord's name, email or ID; the Agent sends a proposal through
+  the real form (stored as 18,500,000 and 275,000 pence).
+- Rollback rehearsed. Full suite on the disposable database: 118 files, 1540
+  tests pass. Without a database: 102 files pass, 16 database-only skipped.
+
+**Open**
+
+- Choosing an Agent (the exclusive mandate, with the one-mandate race test)
+  is Task 6; declining sends no email until Task 8.

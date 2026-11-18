@@ -1027,6 +1027,22 @@ of the boundary.
 - `tests/e2e/private-listing-leakage.spec.ts` crawls the site as each role
   and asserts no private listing data appears anywhere.
 
+## Agent marketplace and proposals (Phase 2 Task 5, ADR-038)
+
+- `src/services/landlord/marketplace.ts`: verified-Agent check (company gate,
+  OD-19), marketplace list (approved listings; filters: town or postcode,
+  type, work, outcome; postcode district only) and detail (address, photos
+  via `createGrantedDownloadLink`; never the Landlord's identity or
+  documents, OD-23); proposals (send, edit, withdraw, resubmit); Landlord
+  comparison, structured questions and decline; Agent answers. Money in
+  integer pence; fee in basis points or pence.
+- Schema (migration `20261118120000`): `agent_proposals` (one per Agent per
+  listing) and `agent_proposal_questions`, with guard triggers; server-only.
+- Pages: `/agent/marketplace`, `/agent/marketplace/[id]`,
+  `/landlord/listings/[id]/proposals`.
+- Proposal actions: 10 per minute per user (`proposal_action`).
+- Permission matrix at `CURRENT_PHASE = 2`.
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers

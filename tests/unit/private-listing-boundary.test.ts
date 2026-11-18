@@ -21,7 +21,12 @@ const SERVICE_USERS = [
   "src/services/landlord/",
   "src/app/landlord/",
   "src/app/admin/landlord-listings/",
+  // Phase 2 Task 5 (ADR-038): verified Agents only; every read goes through
+  // isVerifiedAgent and returns approved listings without Landlord details.
+  "src/app/agent/marketplace/",
 ];
+/** Download links that skip the owner/Admin check: Landlord service only. */
+const GRANTED_LINK_CALL = /createGrantedDownloadLink\s*\(/;
 
 const PRISMA_ACCESS = /\.landlordListing(?:File|Review)?\b/;
 const SQL_ACCESS = /\b(?:public\.)?"?landlord_listing(?:s|_files|_reviews)"?\s/i;
@@ -64,6 +69,19 @@ describe("private Landlord listings: code boundary", () => {
       .filter(({ text }) => SERVICE_IMPORT.test(text))
       .map(({ rel }) => rel);
     expect(users.filter((rel) => !allowed(rel, SERVICE_USERS))).toEqual([]);
+  });
+
+  it("issues pre-authorised download links only from the Landlord service", () => {
+    const callers = files
+      .filter(
+        ({ rel, text }) =>
+          GRANTED_LINK_CALL.test(text) && rel !== "src/services/uploads/pipeline.ts",
+      )
+      .map(({ rel }) => rel);
+    expect(callers.length).toBeGreaterThan(0);
+    expect(callers.filter((rel) => !rel.startsWith("src/services/landlord/"))).toEqual(
+      [],
+    );
   });
 
   it("keeps public surfaces (sitemap, robots, search, marketplace) away from it", () => {

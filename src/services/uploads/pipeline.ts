@@ -346,6 +346,35 @@ export async function createDownloadLink(
   return { ok: true, url: `/api/files/download?token=${body}.${sign(body)}` };
 }
 
+/**
+ * A download link for a viewer the caller has already authorised by a
+ * relationship this module cannot see (Phase 2 Task 5: a verified Agent
+ * viewing a photo on an approved Landlord listing). Bound to that viewer and
+ * valid for 5 minutes like every other link. Only `src/services/landlord/`
+ * may call it (tests/unit/private-listing-boundary.test.ts).
+ */
+export async function createGrantedDownloadLink(
+  viewerProfileId: string,
+  fileId: string,
+  options: { inline?: boolean } = {},
+  now = Date.now(),
+): Promise<{ ok: true; url: string } | { ok: false; status: number }> {
+  if (!z.uuid().safeParse(fileId).success) return { ok: false, status: 404 };
+  const file = await db.uploadedFile.findUnique({
+    where: { id: fileId },
+    select: { status: true, previewable: true },
+  });
+  if (!file || file.status !== UploadStatus.AVAILABLE) return { ok: false, status: 404 };
+  const payload: TokenPayload = {
+    f: fileId,
+    u: viewerProfileId,
+    d: options.inline && file.previewable ? "inline" : "attachment",
+    e: Math.floor(now / 1000) + DOWNLOAD_TTL_SECONDS,
+  };
+  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return { ok: true, url: `/api/files/download?token=${body}.${sign(body)}` };
+}
+
 export type DownloadResult =
   | {
       ok: true;

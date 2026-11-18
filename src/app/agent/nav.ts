@@ -7,6 +7,7 @@ import type { PortalNavItem } from "@/components/portal/PortalShell";
 export const AGENT_NAV: PortalNavItem[] = [
   { href: "/agent", label: "Dashboard" },
   { href: "/agent/listings", label: "Listings" },
+  { href: "/agent/marketplace", label: "Landlord listings" },
   { href: "/agent/leads", label: "Leads" },
   { href: "/agent/profile", label: "Profile" },
   { href: "/agent/company", label: "Company" },
