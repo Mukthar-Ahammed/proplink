@@ -47,3 +47,20 @@ pipeline and signed URLs.
   the `viewProfile` matrix test (public/private × self/admin/co-investor/
   agent/buyer/anonymous). The Agent-allowed row becomes testable in Phase 4.
 - Rollback drops the table and trigger; uploaded photos remain as files.
+
+## Amendment (2026-11-18): TRD alignment
+
+- **Visibility for non-investors (TRD PR-3; owner choice):** new value
+  `MEMBERS` ("platform members only") is the default for Landlord, Agent and
+  Buyer profiles, switchable to `PUBLIC`. Signed-out visitors to a
+  members-only profile see only a "sign in to view" page. Investors keep
+  `PRIVATE` (default) / `PUBLIC` anonymous (Q4). Database trigger: `PRIVATE`
+  only for Investors, `MEMBERS` never for Investors. Migrations
+  `20261118070000` (enum value) and `20261118080000` (rules; existing
+  non-investor rows moved to `MEMBERS`, column default `MEMBERS`).
+- **Track record (TRD 5.2):** properties handled/listed, completed
+  refurbishments/builds, average project completion time, member since.
+  Project figures read "None yet" / "Not enough data yet" until Phase 4.
+  **Historical ROI is not shown** (OD-07: no public ROI before legal review).
+- **Contact options (PR-1):** provided by on-platform chat and enquiries
+  (Phase 3), never by displaying email or phone.

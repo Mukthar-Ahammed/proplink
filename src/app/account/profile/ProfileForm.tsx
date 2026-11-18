@@ -13,7 +13,7 @@ type Initial = {
   location: string;
   experience: string;
   specialisms: string;
-  visibility: "PUBLIC" | "PRIVATE";
+  visibility: "PUBLIC" | "PRIVATE" | "MEMBERS";
 };
 
 const FIELDS = [
@@ -119,6 +119,33 @@ export function ProfileForm({
           )}
         </div>
       ))}
+      {!isInvestor && (
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium text-primary">
+            Who can see your profile
+          </legend>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="radio"
+              name="visibility"
+              value="MEMBERS"
+              defaultChecked={initial.visibility !== "PUBLIC"}
+              className="mt-1"
+            />
+            <span>PropLink members only: people signed in to PropLink.</span>
+          </label>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="radio"
+              name="visibility"
+              value="PUBLIC"
+              defaultChecked={initial.visibility === "PUBLIC"}
+              className="mt-1"
+            />
+            <span>Public: anyone with the link. Never your email or phone.</span>
+          </label>
+        </fieldset>
+      )}
       {isInvestor && (
         <fieldset className="space-y-2">
           <legend className="text-sm font-medium text-primary">

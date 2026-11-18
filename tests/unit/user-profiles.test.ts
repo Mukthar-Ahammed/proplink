@@ -80,7 +80,7 @@ beforeEach(() => {
 });
 
 describe("profile visibility matrix (exit gate)", () => {
-  type Expectation = "full" | "public" | "anonymous" | null;
+  type Expectation = "full" | "public" | "anonymous" | "members_only" | null;
   const cases: [string, Role, ProfileVisibility, Viewer, Expectation][] = [
     ["private investor / self", Role.INVESTOR, ProfileVisibility.PRIVATE, self, "full"],
     ["private investor / admin", Role.INVESTOR, ProfileVisibility.PRIVATE, admin, "full"],
@@ -122,6 +122,34 @@ describe("profile visibility matrix (exit gate)", () => {
     ],
     ["agent / anonymous", Role.AGENT, ProfileVisibility.PUBLIC, null, "public"],
     ["landlord / buyer", Role.LANDLORD, ProfileVisibility.PUBLIC, buyer, "public"],
+    [
+      "members-only agent / anonymous",
+      Role.AGENT,
+      ProfileVisibility.MEMBERS,
+      null,
+      "members_only",
+    ],
+    [
+      "members-only agent / buyer",
+      Role.AGENT,
+      ProfileVisibility.MEMBERS,
+      buyer,
+      "public",
+    ],
+    [
+      "members-only landlord / co-investor",
+      Role.LANDLORD,
+      ProfileVisibility.MEMBERS,
+      coInvestor,
+      "public",
+    ],
+    [
+      "members-only landlord / self",
+      Role.LANDLORD,
+      ProfileVisibility.MEMBERS,
+      { ...self!, role: Role.LANDLORD },
+      "full",
+    ],
   ];
 
   it.each(cases)("%s → %s", async (_label, role, visibility, viewer, expected) => {
@@ -154,22 +182,29 @@ describe("profile visibility matrix (exit gate)", () => {
     await expect(viewProfile(buyer, "PL-../../x")).resolves.toBeNull();
   });
 
-  it("computes the agent track record on the server", async () => {
+  it("computes the TRD 5.2 track record on the server, without ROI", async () => {
     mockDb.userProfile.findUnique.mockResolvedValueOnce(
       row(Role.AGENT, ProfileVisibility.PUBLIC) as never,
     );
-    mockDb.property.count.mockResolvedValueOnce(4).mockResolvedValueOnce(2);
+    mockDb.property.count.mockResolvedValueOnce(7);
     const view = await viewProfile(null, PUBLIC_ID);
-    expect(view?.trackRecord).toEqual([
-      { label: "Completed deals", value: "4" },
-      { label: "Live listings", value: "2" },
+    if (!view || view.kind === "members_only")
+      throw new Error("expected a visible profile");
+    expect(view.trackRecord).toEqual([
+      { label: "Properties handled / listed", value: "7" },
+      { label: "Completed refurbishments / builds", value: "None yet" },
+      { label: "Average project completion time", value: "Not enough data yet" },
       { label: "Member since", value: "2025" },
     ]);
+    expect(mockDb.property.count.mock.calls[0][0]).toMatchObject({
+      where: { status: { not: "DRAFT" }, agentProfile: { userId: "legacy-target" } },
+    });
+    expect(JSON.stringify(view.trackRecord)).not.toMatch(/ROI/i);
   });
 });
 
 describe("ensureUserProfile", () => {
-  it("creates investors private and others public, with an anonymous ID", async () => {
+  it("creates investors private and others members-only, with an anonymous ID", async () => {
     mockDb.userProfile.findUnique.mockResolvedValue(null);
     mockDb.userProfile.create.mockImplementation(
       (async (args: { data: unknown }) => args.data) as never,
@@ -179,7 +214,7 @@ describe("ensureUserProfile", () => {
     const created = mockDb.userProfile.create.mock.calls.map(
       (call) => (call[0] as { data: { visibility: string; publicId: string } }).data,
     );
-    expect(created.map((c) => c.visibility)).toEqual(["PRIVATE", "PUBLIC"]);
+    expect(created.map((c) => c.visibility)).toEqual(["PRIVATE", "MEMBERS"]);
     for (const c of created) expect(c.publicId).toMatch(/^PL-[0-9A-HJKMNP-TV-Z]{8}$/);
   });
 
@@ -223,6 +258,20 @@ describe("updateOwnProfile", () => {
   ])("rejects %#", async (input) => {
     await expect(updateOwnProfile(investor, input)).resolves.toMatchObject({ ok: false });
     expect(mockDb.userProfile.update).not.toHaveBeenCalled();
+  });
+
+  it("non-investors choose members-only or public; investors never members-only", async () => {
+    for (const visibility of ["MEMBERS", "PUBLIC"]) {
+      await expect(
+        updateOwnProfile(
+          { profileId: TARGET, role: Role.AGENT },
+          { ...base, visibility },
+        ),
+      ).resolves.toEqual({ ok: true });
+    }
+    await expect(
+      updateOwnProfile(investor, { ...base, visibility: "MEMBERS" }),
+    ).resolves.toMatchObject({ ok: false });
   });
 
   it("only investors can go private", async () => {

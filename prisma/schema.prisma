@@ -1259,6 +1259,9 @@ enum ProfileVisibility {
   PUBLIC
   /// Hidden; full details only to the project's Agent (Phase 4), self, Admin.
   PRIVATE
+  /// Non-investors (TRD PR-3, owner choice 2026-11-18): signed-in members
+  /// only. The default for Landlord, Agent and Buyer profiles.
+  MEMBERS
 }
 
 /// LinkedIn-style profile for every account. Track record is computed by the

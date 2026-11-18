@@ -76,7 +76,8 @@ const overrideSchema = z
   .strict();
 
 export type SearchResult =
-  { ok: true; results: CompanySummary[] } | { ok: false; error: string };
+  | { ok: true; results: CompanySummary[] }
+  | { ok: false; error: string; unavailable?: true };
 
 export type ConfirmResult =
   | { ok: true; result: CompanyCheckResult; company: CompanySummary }
@@ -84,12 +85,12 @@ export type ConfirmResult =
 
 export type OverrideResult = { ok: true } | { ok: false; error: string; status: number };
 
-function unavailable(error: unknown): { ok: false; error: string } {
+function unavailable(error: unknown): { ok: false; error: string; unavailable: true } {
   if (error instanceof CompaniesHouseUnavailableError) {
     console.error(
       JSON.stringify({ event: "companies_house.unavailable", reason: error.reason }),
     );
-    return { ok: false, error: COMPANY_CHECK_MESSAGES.unavailable };
+    return { ok: false, error: COMPANY_CHECK_MESSAGES.unavailable, unavailable: true };
   }
   throw error;
 }
@@ -108,8 +109,36 @@ export async function searchCompanies(
   ) {
     return { ok: false, error: COMPANY_CHECK_MESSAGES.limited };
   }
+  return searchRegister(parsed.data);
+}
 
-  const query = parsed.data;
+/** Invitee lookups: 10 per minute per IP (not signed in yet). */
+export function inviteLookupLimits(ip: string): LimitSpec[] {
+  return [{ kind: "ip", identifier: ip, windowSeconds: 60, limit: 10 }];
+}
+
+/**
+ * Search during invite acceptance (business Q1: the company is checked on
+ * acceptance). The caller has already verified a valid, unexpired invite
+ * token; this applies its own per-IP limit.
+ */
+export async function searchCompaniesForInvite(
+  ip: string,
+  rawQuery: unknown,
+): Promise<SearchResult> {
+  const parsed = querySchema.safeParse(rawQuery);
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the search" };
+  }
+  if (
+    !(await consumeRateLimits("companies_house_invite_lookup", inviteLookupLimits(ip)))
+  ) {
+    return { ok: false, error: COMPANY_CHECK_MESSAGES.limited };
+  }
+  return searchRegister(parsed.data);
+}
+
+async function searchRegister(query: string): Promise<SearchResult> {
   try {
     if (looksLikeCompanyNumber(query)) {
       const number = normaliseCompanyNumber(query);

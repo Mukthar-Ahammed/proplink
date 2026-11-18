@@ -30,7 +30,9 @@ import {
   confirmCompany,
   effectiveCompanyStatus,
   listAgentCompanyChecks,
+  inviteLookupLimits,
   lookupLimits,
+  searchCompaniesForInvite,
   overrideCompanyCheck,
   searchCompanies,
 } from "@/services/agents/companyCheck";
@@ -102,6 +104,7 @@ describe("searchCompanies", () => {
     await expect(searchCompanies(AGENT, MOCK_UNAVAILABLE_NUMBER)).resolves.toEqual({
       ok: false,
       error: COMPANY_CHECK_MESSAGES.unavailable,
+      unavailable: true,
     });
     log.mockRestore();
   });
@@ -189,6 +192,7 @@ describe("confirmCompany", () => {
     await expect(confirmCompany(AGENT, MOCK_UNAVAILABLE_NUMBER)).resolves.toEqual({
       ok: false,
       error: COMPANY_CHECK_MESSAGES.unavailable,
+      unavailable: true,
     });
     log.mockRestore();
     expect(mockDb.agentCompanyCheck.upsert).not.toHaveBeenCalled();
@@ -316,5 +320,39 @@ describe("effective status", () => {
     expect(mockDb.profile.findMany.mock.calls[0][0]).toMatchObject({
       where: { role: "AGENT" },
     });
+  });
+});
+
+describe("searchCompaniesForInvite (company checked on acceptance, Q1)", () => {
+  it("limits invitee lookups to 10 a minute per IP", async () => {
+    expect(inviteLookupLimits("203.0.113.9")).toEqual([
+      { kind: "ip", identifier: "203.0.113.9", windowSeconds: 60, limit: 10 },
+    ]);
+    await expect(
+      searchCompaniesForInvite("203.0.113.9", "demo estates"),
+    ).resolves.toMatchObject({
+      ok: true,
+      results: [{ companyNumber: "12345678" }],
+    });
+    expect(consumeRateLimits).toHaveBeenCalledWith(
+      "companies_house_invite_lookup",
+      inviteLookupLimits("203.0.113.9"),
+    );
+    vi.mocked(consumeRateLimits).mockResolvedValueOnce(false);
+    await expect(searchCompaniesForInvite("203.0.113.9", "demo")).resolves.toEqual({
+      ok: false,
+      error: COMPANY_CHECK_MESSAGES.limited,
+    });
+  });
+
+  it("validates the query and flags an outage", async () => {
+    await expect(searchCompaniesForInvite("ip", "a")).resolves.toMatchObject({
+      ok: false,
+    });
+    const log = vi.spyOn(console, "error").mockImplementation(() => {});
+    await expect(
+      searchCompaniesForInvite("ip", MOCK_UNAVAILABLE_NUMBER),
+    ).resolves.toMatchObject({ ok: false, unavailable: true });
+    log.mockRestore();
   });
 });

@@ -562,3 +562,31 @@ exist yet for any service; it is not built here.
    OD-18 (service-role key), OD-20 (KYC provider) with Sumsub sandbox keys, S3
    buckets and ClamAV. See BLOCKERS.
 4. A TOTP helper for the Admin Playwright specs.
+
+## Alignment with the business PDFs (2026-11-18)
+
+At the owner's request the Phase 1 flows were compared with the TRD, the
+Clarification Questions and the Clarification Answers. Matching: invite-only
+Agents (REG-1, REG-4), auto-approval and immediate dashboard (Q1), company
+name checked against Companies House (Q1, Q3), badge only after Admin
+verification (PR-2, acceptance 6), existing agents notified then authorised
+(Q2). Changed:
+
+- **A. Company check on acceptance** (Q1; journey "invitation, company check,
+  …"): "Your company" search on the invite page; recorded at acceptance; fall
+  back to the dashboard only if Companies House is down. ADR-024 amendment.
+- **C. Track record per TRD 5.2**, ROI hidden (OD-07). ADR-032 amendment.
+- **D. Non-investor profiles members-only by default** (TRD PR-3; owner
+  option 1, OD-21). Two additive migrations, applied to the disposable test
+  database (rollback rehearsed) and to development.
+- **B. Admin direct provisioning (REG-2b)** recorded under OD-18 (needs the
+  service-role key); invite links satisfy "invite or provision" meanwhile.
+
+Verification: full suite on a fresh disposable database **109 files, 1,442
+tests pass**; typecheck and lint clean. New tests: invite-time company search
+(rate limit, validation, outage flag), TRD track-record figures without ROI,
+members-only matrix rows (signed-out → sign-in page; members → public view;
+self → full), visibility choices per role, and the database rule that
+Investors can never be members-only. The KYC browser test passes against
+development; the three Admin flows are being checked by hand by the owner
+(no automated test Admin until OD-18).

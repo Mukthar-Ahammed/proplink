@@ -77,13 +77,22 @@ let counter = 0;
 const publicId = () => `PL-${String(10_000_000 + (counter += 1)).slice(-8)}`;
 
 describe.skipIf(!hasDb)("User profiles (database)", () => {
-  it("lets investors be private and nobody else", async () => {
+  it("lets investors be private, non-investors members-only, and not the reverse", async () => {
     await inRollback(async () => {
       const investor = await person("INVESTOR");
       const agent = await person("AGENT");
       await client.query(INSERT, [investor, publicId(), "PRIVATE", null]);
       await expectRejected(INSERT, [agent, publicId(), "PRIVATE", null]);
       await client.query(INSERT, [agent, publicId(), "PUBLIC", null]);
+      // Members-only is for non-investors (TRD PR-3); investors never.
+      const buyer = await person("BUYER");
+      await client.query(INSERT, [buyer, publicId(), "MEMBERS", null]);
+      await expectRejected(INSERT, [
+        await person("INVESTOR"),
+        publicId(),
+        "MEMBERS",
+        null,
+      ]);
     });
   });
 

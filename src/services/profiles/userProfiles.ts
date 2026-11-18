@@ -36,7 +36,11 @@ export function generatePublicId(): string {
   return id;
 }
 
-/** Creates the profile record on first use; Investors start PRIVATE. */
+/**
+ * Creates the profile record on first use. Investors start PRIVATE (Q4);
+ * everyone else starts MEMBERS, "platform members only" (TRD PR-3, owner
+ * choice 2026-11-18).
+ */
 export async function ensureUserProfile(profileId: string, role: Role) {
   const existing = await db.userProfile.findUnique({ where: { profileId } });
   if (existing) return existing;
@@ -47,7 +51,9 @@ export async function ensureUserProfile(profileId: string, role: Role) {
           profileId,
           publicId: generatePublicId(),
           visibility:
-            role === Role.INVESTOR ? ProfileVisibility.PRIVATE : ProfileVisibility.PUBLIC,
+            role === Role.INVESTOR
+              ? ProfileVisibility.PRIVATE
+              : ProfileVisibility.MEMBERS,
         },
       });
     } catch (error) {
@@ -76,6 +82,17 @@ export async function isProjectAgentFor(
 export type TrackRecordItem = { label: string; value: string };
 
 /** Computed by the server; users cannot edit it. */
+/** Shown until Phase 4 project data exists, instead of a misleading 0. */
+export const NO_PROJECTS_YET = "None yet";
+export const NOT_ENOUGH_DATA = "Not enough data yet";
+
+/**
+ * Computed by the server from platform data; users cannot edit it. Figures
+ * follow TRD 5.2: total properties handled/listed, completed
+ * refurbishments/builds, average project completion time. Historical ROI is
+ * deliberately not shown: public ROI stays hidden until legal review (OD-07).
+ * Project figures come from Phase 4 projects.
+ */
 export async function trackRecord(target: {
   id: string;
   role: Role;
@@ -86,30 +103,29 @@ export async function trackRecord(target: {
     label: "Member since",
     value: String(target.createdAt.getUTCFullYear()),
   };
-  if (target.role === Role.AGENT && target.legacyUserId) {
-    const [completed, live] = await Promise.all([
-      db.property.count({
-        where: {
-          status: PropertyStatus.SOLD,
-          agentProfile: { userId: target.legacyUserId },
-        },
-      }),
-      db.property.count({
-        where: {
-          status: PropertyStatus.LIVE,
-          agentProfile: { userId: target.legacyUserId },
-        },
-      }),
-    ]);
+  const projectFigures: TrackRecordItem[] = [
+    { label: "Completed refurbishments / builds", value: NO_PROJECTS_YET },
+    { label: "Average project completion time", value: NOT_ENOUGH_DATA },
+  ];
+  if (target.role === Role.AGENT) {
+    const listed = target.legacyUserId
+      ? await db.property.count({
+          where: {
+            status: { not: PropertyStatus.DRAFT },
+            agentProfile: { userId: target.legacyUserId },
+          },
+        })
+      : 0;
     return [
-      { label: "Completed deals", value: String(completed) },
-      { label: "Live listings", value: String(live) },
+      { label: "Properties handled / listed", value: String(listed) },
+      ...projectFigures,
       since,
     ];
   }
-  if (target.role === Role.INVESTOR) {
-    // Project participation arrives in Phase 4.
-    return [{ label: "Completed projects", value: "0" }, since];
+  if (target.role === Role.INVESTOR) return [...projectFigures, since];
+  if (target.role === Role.LANDLORD) {
+    // Landlord listings arrive in Phase 2.
+    return [{ label: "Properties listed", value: NO_PROJECTS_YET }, since];
   }
   return [since];
 }
@@ -136,6 +152,11 @@ export type ProfileView =
       role: Role;
       verified: boolean;
       trackRecord: TrackRecordItem[];
+    }
+  | {
+      /** A members-only profile seen by a signed-out visitor: nothing else. */
+      kind: "members_only";
+      publicId: string;
     };
 
 /** The one place profile visibility is decided. Null means "not found". */
@@ -181,6 +202,10 @@ export async function viewProfile(
       verified: Boolean(target.verificationBadge),
       trackRecord: await trackRecord(target),
     };
+  }
+
+  if (!full && !viewer && row.visibility === ProfileVisibility.MEMBERS) {
+    return { kind: "members_only", publicId: row.publicId };
   }
 
   return {
@@ -230,7 +255,13 @@ const updateSchema = z
           .array(z.string().max(40, "Keep each specialism under 40 characters"))
           .max(10, "Choose up to 10 specialisms"),
       ),
-    visibility: z.enum([ProfileVisibility.PUBLIC, ProfileVisibility.PRIVATE]).optional(),
+    visibility: z
+      .enum([
+        ProfileVisibility.PUBLIC,
+        ProfileVisibility.PRIVATE,
+        ProfileVisibility.MEMBERS,
+      ])
+      .optional(),
     photoFileId: z.uuid().nullable().optional(),
   })
   .strict();
@@ -249,6 +280,9 @@ export async function updateOwnProfile(
   const { visibility, photoFileId, ...fields } = parsed.data;
   if (visibility === ProfileVisibility.PRIVATE && actor.role !== Role.INVESTOR) {
     return { ok: false, error: "Only investor profiles can be private" };
+  }
+  if (visibility === ProfileVisibility.MEMBERS && actor.role === Role.INVESTOR) {
+    return { ok: false, error: "Investor profiles are private or anonymous public" };
   }
   if (photoFileId) {
     const file = await db.uploadedFile.findUnique({
@@ -270,7 +304,7 @@ export async function updateOwnProfile(
     where: { profileId: actor.profileId },
     data: {
       ...fields,
-      ...(actor.role === Role.INVESTOR && visibility ? { visibility } : {}),
+      ...(visibility ? { visibility } : {}),
       ...(photoFileId !== undefined ? { photoFileId } : {}),
     },
   });

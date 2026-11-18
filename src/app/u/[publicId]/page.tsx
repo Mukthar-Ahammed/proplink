@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { auth } from "@/lib/auth";
@@ -35,6 +36,22 @@ export default async function PublicProfilePage({
     : null;
   const view = await viewProfile(viewer, publicId);
   if (!view) notFound();
+  if (view.kind === "members_only") {
+    return (
+      <main className="mx-auto w-full max-w-xl px-4 py-16 text-center sm:px-6">
+        <h1 className="text-2xl font-bold text-primary">Members-only profile</h1>
+        <p className="mt-3 text-sm text-muted">
+          This profile is visible to signed-in PropLink members.
+        </p>
+        <Link
+          href={`/login?callbackUrl=${encodeURIComponent(`/u/${view.publicId}`)}`}
+          className="mt-6 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+        >
+          Sign in to view
+        </Link>
+      </main>
+    );
+  }
 
   const named = view.kind !== "anonymous";
   return (

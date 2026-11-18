@@ -93,3 +93,19 @@ row (`AGENT_COMPANY_CHECKED`, `AGENT_COMPANY_NOT_FOUND`,
   audit rows remain.
 - The live key is a human task (`docs/credentials/companies-house.md`); the
   live smoke test is `scripts/smoke-companies-house.mjs`.
+
+## Amendment (2026-11-18): company check on acceptance
+
+A review against the business PDFs (owner request) found the check belongs in
+invite acceptance: Q1 "On acceptance… company verification = registered
+company name checked against Companies House… Agents then get immediate
+dashboard access", and the accepted journey "Receive Admin invitation and
+complete setup → complete required verification" / "Invitation, company
+check, subscription, then chat". The invite page now has a "Your company"
+search (valid invite token required, 10 lookups per minute per IP,
+`searchCompaniesForInvite`); the invitee must choose a company to accept,
+and after the account is created the server looks the company up again by
+number and records it (`confirmCompany`). If Companies House is unreachable
+the invitee may accept anyway and finish the check from the dashboard (the
+OD-19 listing gate still applies). `/agent/company` remains for changing
+company later.

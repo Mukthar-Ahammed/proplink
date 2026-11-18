@@ -11,12 +11,18 @@ import {
 } from "@/services/agents/agentInvites";
 import { bridgeVerifiedUser } from "@/services/auth/supabaseAuthService";
 import { db } from "@/lib/db";
+import {
+  confirmCompany,
+  searchCompaniesForInvite,
+  type SearchResult,
+} from "@/services/agents/companyCheck";
 
 export type InviteView =
   { kind: "ready"; email: string } | { kind: "problem"; message: string };
 
 export type AcceptView =
-  { kind: "success"; destination: string } | { kind: "error"; message: string };
+  | { kind: "success"; destination: string; companyChecked: boolean }
+  | { kind: "error"; message: string };
 
 async function requestIp(): Promise<string> {
   const requestHeaders = await headers();
@@ -35,11 +41,34 @@ export async function inspectInviteAction(token: unknown): Promise<InviteView> {
 }
 
 /**
- * Accepts the invitation, then signs the new Agent in so they land straight in
- * the Agent portal (Phase 1 Task 3).
+ * Company search on the invite page (business Q1: the company is checked on
+ * acceptance). Only for a valid, unexpired invitation; rate-limited per IP.
+ */
+export async function searchCompanyForInviteAction(
+  token: unknown,
+  query: unknown,
+): Promise<SearchResult> {
+  const invite = await inspectAgentInvite(typeof token === "string" ? token : "");
+  if (!invite.ok) return { ok: false, error: INVITE_MESSAGES[invite.problem] };
+  return searchCompaniesForInvite(await requestIp(), query);
+}
+
+/**
+ * Accepts the invitation, signs the new Agent in so they land straight in the
+ * Agent portal (Phase 1 Task 3), and records their company from Companies
+ * House (business Q1). If the register can't be reached, the account is still
+ * created and the dashboard asks them to finish the company check.
  */
 export async function acceptInviteAction(raw: unknown): Promise<AcceptView> {
-  const result = await acceptAgentInvite(raw, await requestIp());
+  const companyNumber =
+    raw && typeof raw === "object" && "companyNumber" in raw
+      ? (raw as { companyNumber: unknown }).companyNumber
+      : undefined;
+  const acceptInput =
+    raw && typeof raw === "object"
+      ? Object.fromEntries(Object.entries(raw).filter(([key]) => key !== "companyNumber"))
+      : raw;
+  const result = await acceptAgentInvite(acceptInput, await requestIp());
   if (!result.ok) {
     return {
       kind: "error",
@@ -56,7 +85,7 @@ export async function acceptInviteAction(raw: unknown): Promise<AcceptView> {
   });
   if (error || !data.user) {
     // The account exists; the Agent can still sign in normally.
-    return { kind: "success", destination: "/login" };
+    return { kind: "success", destination: "/login", companyChecked: false };
   }
 
   await bridgeVerifiedUser(data.user);
@@ -64,6 +93,7 @@ export async function acceptInviteAction(raw: unknown): Promise<AcceptView> {
     where: { id: data.user.id },
     select: { legacyUserId: true },
   });
+  let companyChecked = false;
   if (profile?.legacyUserId) {
     await writeAudit({
       actorUserId: profile.legacyUserId,
@@ -71,6 +101,14 @@ export async function acceptInviteAction(raw: unknown): Promise<AcceptView> {
       entity: "AgentInvite",
       entityId: result.inviteId,
     });
+    if (typeof companyNumber === "string" && companyNumber.length > 0) {
+      // The server looks the company up again; nothing from the browser is trusted.
+      const check = await confirmCompany(
+        { profileId: data.user.id, legacyUserId: profile.legacyUserId },
+        companyNumber,
+      );
+      companyChecked = check.ok;
+    }
   }
-  return { kind: "success", destination: "/agent" };
+  return { kind: "success", destination: "/agent", companyChecked };
 }
