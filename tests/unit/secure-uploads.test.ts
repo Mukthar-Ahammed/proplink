@@ -238,7 +238,7 @@ describe("signed downloads", () => {
   }
 
   beforeEach(async () => {
-    await store.put("private", `files/${FILE}`, PDF, "application/pdf");
+    await store.put("private", `files/${FILE}`, PDF);
     mockDb.uploadedFile.findUnique.mockResolvedValue(available() as never);
   });
 
