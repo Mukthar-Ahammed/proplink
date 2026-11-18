@@ -50,6 +50,10 @@ jobs:
           SUMSUB_APP_TOKEN: ci-placeholder
           SUMSUB_SECRET_KEY: ci-placeholder
           SUMSUB_WEBHOOK_SECRET: ci-placeholder
+          # Phase 2-3 providers default to the real adapters in production builds.
+          ANTHROPIC_API_KEY: ci-placeholder
+          STRIPE_SECRET_KEY: sk_test_ci_placeholder
+          STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
 
   secrets:
     name: Secret scanning
