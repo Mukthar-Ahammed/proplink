@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
-import { PropertyStatus, Role } from "@/generated/prisma/enums";
+import { PropertyStatus, ReviewStatus } from "@/generated/prisma/enums";
 import { AgentServiceError } from "@/services/agents/errors";
 import type {
   CreateCaseStudyInput,
@@ -11,7 +11,9 @@ const PROFILE_INCLUDE = {
   user: {
     select: {
       active: true,
-      authProfile: { select: { verificationBadge: { select: { profileId: true } } } },
+      authProfile: {
+        select: { id: true, verificationBadge: { select: { profileId: true } } },
+      },
     },
   },
   caseStudies: true,
@@ -29,7 +31,7 @@ export interface AgentProfilePublic {
   active: boolean;
   /** Admin-awarded verified badge on the owning account (ADR-027). */
   verified: boolean;
-  /** Average of `Appraisal.rating` for this profile — null when there are none yet. */
+  /** Average of published reviews (ADR-054) — null when there are none yet. */
   ratingAverage: number | null;
   ratingCount: number;
   /** Count of this profile's listings with `Property.status = SOLD`. */
@@ -70,12 +72,18 @@ export async function getAgentProfilePublic(
   });
   if (!profile || !profile.active || !profile.user.active) return null;
 
+  // Rating = published reviews from qualifying interactions only (Phase 5
+  // Task 4, ADR-054). Sprint-era appraisals stay listed as history but no
+  // longer count: they were not tied to a completed interaction.
+  const subjectId = profile.user.authProfile?.id;
   const [ratingAgg, verifiedDealCount] = await Promise.all([
-    db.appraisal.aggregate({
-      where: { agentProfileId },
-      _avg: { rating: true },
-      _count: { rating: true },
-    }),
+    subjectId
+      ? db.review.aggregate({
+          where: { subjectId, status: ReviewStatus.PUBLISHED },
+          _avg: { rating: true },
+          _count: { rating: true },
+        })
+      : { _avg: { rating: null }, _count: { rating: 0 } },
     db.property.count({ where: { agentProfileId, status: PropertyStatus.SOLD } }),
   ]);
 
@@ -190,105 +198,4 @@ export async function updateCaseStudy(params: {
 export async function deleteCaseStudy(params: { userId: string; caseStudyId: string }) {
   await findOwnedCaseStudy(params.userId, params.caseStudyId);
   await db.caseStudy.delete({ where: { id: params.caseStudyId } });
-}
-
-export type AppraisalEligibility =
-  | { eligible: true }
-  | { eligible: false; reason: "WRONG_ROLE" | "NOT_QUALIFIED" | "ALREADY_REVIEWED" };
-
-async function hasQualifyingActivity(
-  userId: string,
-  agentProfileId: string,
-): Promise<boolean> {
-  const [enquiryCount, dealCount] = await Promise.all([
-    db.enquiry.count({ where: { fromUserId: userId, property: { agentProfileId } } }),
-    db.deal.count({
-      where: { property: { agentProfileId }, offer: { buyerUserId: userId } },
-    }),
-  ]);
-  return enquiryCount > 0 || dealCount > 0;
-}
-
-/**
- * Qualification rule (brief, Task 2.4): the posting user must have >=1
- * Enquiry or Deal on any listing belonging to this agent profile, must not
- * already have an appraisal for it, and must be an INVESTOR or BUYER (the
- * field is named `investorUserId` but the brief's "may review" rule is
- * "Investors/buyers only", so BUYER qualifies too). Exported separately from
- * `createAppraisal` so the public page can explain *why* a logged-in user
- * can't review, without duplicating the qualification query.
- */
-export async function getAppraisalEligibility(params: {
-  userId: string;
-  role: Role;
-  agentProfileId: string;
-}): Promise<AppraisalEligibility> {
-  if (params.role !== Role.INVESTOR && params.role !== Role.BUYER) {
-    return { eligible: false, reason: "WRONG_ROLE" };
-  }
-
-  const existing = await db.appraisal.findUnique({
-    where: {
-      agentProfileId_investorUserId: {
-        agentProfileId: params.agentProfileId,
-        investorUserId: params.userId,
-      },
-    },
-  });
-  if (existing) return { eligible: false, reason: "ALREADY_REVIEWED" };
-
-  const qualifies = await hasQualifyingActivity(params.userId, params.agentProfileId);
-  if (!qualifies) return { eligible: false, reason: "NOT_QUALIFIED" };
-
-  return { eligible: true };
-}
-
-/**
- * Server-enforced appraisal creation (AGENTS.md: never trust the client for
- * role/qualification). Re-validates the rating range here too, not just at
- * the route's Zod boundary — same "business rule belongs in the service"
- * reasoning as `moderationService.rejectListing`'s reason check — and
- * matches the schema comment on `Appraisal.rating` ("1..5, checked in
- * service layer").
- */
-export async function createAppraisal(params: {
-  userId: string;
-  role: Role;
-  agentProfileId: string;
-  rating: number;
-  review: string;
-}) {
-  if (!Number.isInteger(params.rating) || params.rating < 1 || params.rating > 5) {
-    throw new AgentServiceError(
-      "Rating must be an integer between 1 and 5",
-      "VALIDATION",
-    );
-  }
-
-  const profile = await db.agentProfile.findUnique({
-    where: { id: params.agentProfileId },
-  });
-  if (!profile) throw new AgentServiceError("Agent profile not found", "NOT_FOUND");
-
-  const eligibility = await getAppraisalEligibility(params);
-  if (!eligibility.eligible) {
-    if (eligibility.reason === "ALREADY_REVIEWED") {
-      throw new AgentServiceError("You have already reviewed this agency", "DUPLICATE");
-    }
-    throw new AgentServiceError(
-      eligibility.reason === "WRONG_ROLE"
-        ? "Only investors and buyers can post appraisals"
-        : "You need a prior enquiry or deal with this agency before you can review it",
-      "NOT_QUALIFIED",
-    );
-  }
-
-  return db.appraisal.create({
-    data: {
-      agentProfileId: params.agentProfileId,
-      investorUserId: params.userId,
-      rating: params.rating,
-      review: params.review,
-    },
-  });
 }

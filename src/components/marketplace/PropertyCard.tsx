@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { DISTRESS_TAG_OPTIONS, formatPenceGBP } from "@/components/listings/wizardTypes";
+import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
+import { StarRating } from "@/components/reviews/StarRating";
 import { Badge, EpcBadge } from "@/components/ui/badge";
 import type { SearchResultItem } from "@/services/search/types";
 
@@ -71,6 +73,20 @@ export function PropertyCard({
           {listing.city} · {listing.postcode}
           {listing.bedrooms > 0 && ` · ${listing.bedrooms} bed`}
         </p>
+
+        {/* Criterion 6: the agent's badge appears only once an Admin awarded it;
+            the rating counts published reviews only (ADR-054). */}
+        {(listing.agentVerified || listing.agentRatingCount > 0) && (
+          <p className="flex flex-wrap items-center gap-2" data-testid="card-agent">
+            {listing.agentVerified && <VerifiedBadge />}
+            {listing.agentRatingCount > 0 && (
+              <StarRating
+                average={listing.agentRatingAverage ?? 0}
+                count={listing.agentRatingCount}
+              />
+            )}
+          </p>
+        )}
 
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-2">
           {/* EPC on every listing — legally required in the UK (AGENTS.md). */}

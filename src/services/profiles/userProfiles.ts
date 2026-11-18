@@ -167,6 +167,8 @@ export type ProfileView =
   | {
       kind: "full" | "public";
       publicId: string;
+      /** Server-side only: the reviews section looks reviews up by it. */
+      profileId: string;
       role: Role;
       name: string;
       headline: string | null;
@@ -182,6 +184,7 @@ export type ProfileView =
   | {
       kind: "anonymous";
       publicId: string;
+      profileId: string;
       role: Role;
       verified: boolean;
       trackRecord: TrackRecordItem[];
@@ -231,6 +234,7 @@ export async function viewProfile(
     return {
       kind: "anonymous",
       publicId: row.publicId,
+      profileId: target.id,
       role: target.role,
       verified: Boolean(target.verificationBadge),
       trackRecord: await trackRecord(target),
@@ -244,6 +248,7 @@ export async function viewProfile(
   return {
     kind: full ? "full" : "public",
     publicId: row.publicId,
+    profileId: target.id,
     role: target.role,
     name: target.name ?? "PropLink member",
     headline: row.headline,

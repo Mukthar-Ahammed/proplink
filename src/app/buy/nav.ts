@@ -11,6 +11,7 @@ export const BUYER_NAV: PortalNavItem[] = [
   { href: "/buy/viewings", label: "Viewings" },
   { href: "/buy/offers", label: "Offers" },
   { href: "/messages", label: "Messages" },
+  { href: "/account/reviews", label: "Reviews" },
   { href: "/account/profile", label: "My profile" },
   { href: "/account/notifications", label: "Notifications" },
 ];

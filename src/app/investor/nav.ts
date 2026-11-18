@@ -26,6 +26,7 @@ export function getInvestorNav(
   nav.push(
     { href: "/investor/kyc", label: "Identity & Verification" },
     { href: "/account/billing", label: "Billing" },
+    { href: "/account/reviews", label: "Reviews" },
     { href: "/account/profile", label: "My profile" },
     { href: "/account/notifications", label: "Notifications" },
   );

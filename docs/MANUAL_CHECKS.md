@@ -198,6 +198,19 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
 - [ ] **Buyer journey on a phone.** Search, open a listing, save it (sign in
       returns you to it), enquire, book a viewing, make an offer.
 
+- [ ] **Reviews.** On a sold project, as the Co-Investor open "Reviews":
+      the Agent and the Lead Investor are offered; as the Lead only the
+      Agent. Send one; it says an Admin checks it first. As Admin at
+      Reviews, reject one (needs a reason) and publish another. The
+      published one appears on the person's profile and the agency page,
+      reviewer shown by role only. As the Agent, reply once. As another
+      member, report it; as Admin, hide it from the report. A Landlord sees
+      nothing to review until the mandate is closed.
+- [ ] **Badges and stars on listing cards.** Award the verified badge to a
+      listing's Agent at Verified Badges: the badge appears on that Agent's
+      cards in search; revoke it and it goes. Stars appear only after a
+      review is published.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

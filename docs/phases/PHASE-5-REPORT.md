@@ -52,18 +52,18 @@ Phase 6).
 | 1a. Sale completion and handoff | Done                                                 | ADR-052 |
 | 2. Buyer experience             | Done (state machines; existing search/map/save kept) | ADR-053 |
 | 3. Maps and saved-search alerts | Not started                                          |         |
-| 4. Reviews and ratings          | Not started                                          |         |
+| 4. Reviews and ratings          | Done (qualifying pairs, moderation, cards)           | ADR-054 |
 | 5. Track record and analytics   | Not started                                          |         |
 | 6. SEO and safety               | Not started                                          |         |
 
 ## Exit gate
 
 - [x] Acceptance criterion 5 end to end (accept mandate → publish to Investor Portal → re-list on the Retail Buyer Portal → Sold → settlement).
-- [ ] Criterion 6: badges only after Admin verification, on profiles and listing cards.
-- [ ] Criterion 7: reviews only from qualifying interactions.
+- [x] Criterion 6: badges only after Admin verification, on profiles and listing cards.
+- [x] Criterion 7: reviews only from qualifying interactions.
 - [x] Investor, Landlord and Agent accounts cannot book viewings or submit offers.
 - [ ] Public crawl exposes only for-sale data.
-- [ ] Review eligibility and moderation tests pass.
+- [x] Review eligibility and moderation tests pass.
 - [x] Offer and viewing state machines tested, including concurrent actions.
 - [ ] Buyer journey E2E passes on mobile and desktop; accessibility checks pass.
 - [ ] Phase report written.
@@ -118,3 +118,43 @@ Phase 6).
   (property row lock; a deadlock found and fixed); viewings request →
   confirm → reschedule → confirm → done, cancel, and no slot change without
   the Agent.
+
+## Task 4 — Reviews and ratings (2026-11-18)
+
+**Delivered** (ADR-054)
+
+- Migration `20261119100000_phase5_reviews` (with `rollback.sql`,
+  rehearsed): `reviews` and `review_reports`; `proplink_review_eligible()`
+  holds the OD-17 pairs (Landlord → Agent on a closed mandate; Co-Investor →
+  Lead or Agent and Lead → Agent on a sold project; Buyer → Agent after a
+  completed purchase); guard triggers refuse other pairs, deletes, edits to
+  the text, non-Admin moderation and second replies.
+- `/account/reviews` for every role (what you may review, reviews about you
+  with a one-time reply, reviews you wrote and their status);
+  `/admin/reviews` (publish or reject with a reason; reported reviews:
+  hide or keep). "Reviews" added to each portal's menu and the Admin
+  sidebar.
+- Published reviews and stars on profiles, the agency page and the listing
+  page's agent card. **Listing cards** now show the agent's Admin-awarded
+  verified badge and published rating (criterion 6).
+- Sprint-era appraisals retired: the endpoint returns 410 (it allowed
+  ratings after an enquiry, against criterion 7); old appraisals stay as
+  history and no longer count.
+
+**Verification**
+
+- `tests/integration/reviews-db.test.ts` (3, disposable database): on a
+  project taken to sold, the Co-Investor may review the Agent and the Lead,
+  the Lead only the Agent; Lead → Co-Investor, Agent → anyone and an outsider
+  are refused, by the service and by the database directly; one review per
+  interaction; the Landlord's review opens only when the mandate closes and
+  cannot target anyone but the mandate's Agent. A Buyer reviews the Agent only
+  after the deal completes, and no other Buyer can. Nothing counts until an
+  Admin publishes; the card shows no badge until one is awarded, then the
+  badge and the published rating. Sanitised text, Admin-only moderation,
+  one reply by the reviewed person, one report per person, hide via report,
+  restore, fixed text and no deletes.
+- `tests/unit/reviews-service.test.ts` (7): per-day limits, validation after
+  sanitising, pending on create, database refusal mapping, reply scope,
+  Admin-only moderation.
+- Agency and appraisal tests updated (rating from published reviews; 410).

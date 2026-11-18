@@ -17,8 +17,7 @@ interface EnquiryFormProps {
  * Public `/marketplace/[id]` "Post Enquiry" form (Task 2.5 brief). `Enquiry.
  * fromUserId` is a required column (`prisma/schema.prisma`) — there is no
  * anonymous-enquiry path, so a logged-out visitor sees a login prompt instead
- * of the form (mirrors `/agents/[id]`'s `<AppraisalForm>` not-logged-in
- * pattern). The "name" field the brief describes is read-only, sourced from
+ * of the form. The "name" field the brief describes is read-only, sourced from
  * the session (there is nowhere to persist an edited one — the account IS
  * the identity behind `fromUserId`); `contactPhone` is the one genuinely
  * optional/editable extra, folded into the stored message server-side

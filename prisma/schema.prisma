@@ -246,6 +246,11 @@ model Profile {
   agentInvitesCreated  AgentInvite[]             @relation("AgentInviteCreator")
   agentInvitesAccepted AgentInvite[]             @relation("AgentInviteAccepted")
   announcements        Announcement[]
+  reviewsWritten       Review[]                  @relation("ReviewReviewer")
+  reviewsReceived      Review[]                  @relation("ReviewSubject")
+  reviewsModerated     Review[]                  @relation("ReviewModerator")
+  reviewReports        ReviewReport[]            @relation("ReviewReporter")
+  reviewReportsResolved ReviewReport[]           @relation("ReviewReportResolver")
   companyCheck         AgentCompanyCheck?        @relation("AgentCompanyCheckProfile")
   companyOverrides     AgentCompanyCheck[]       @relation("AgentCompanyCheckOverrider")
   agentMigration       AgentMigration?           @relation("AgentMigrationProfile")
@@ -2579,4 +2584,69 @@ model ViewingEvent {
 
   @@index([viewingId, createdAt])
   @@map("viewing_events")
+}
+
+// ── Phase 5 Task 4: reviews and ratings (ADR-054) ──
+
+enum ReviewContext {
+  MANDATE
+  PROJECT
+  PURCHASE
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+  HIDDEN
+}
+
+/// 1-5 stars and text from a qualifying, completed interaction only (TRD RV,
+/// criterion 7, OD-17); a trigger checks the pair. Admin publishes first; the
+/// reviewed party may reply once. Never deleted.
+model Review {
+  id             String        @id @db.Uuid
+  reviewerId     String        @db.Uuid
+  subjectId      String        @db.Uuid
+  contextType    ReviewContext
+  contextId      String
+  rating         Int
+  body           String
+  status         ReviewStatus  @default(PENDING)
+  moderatedBy    String?       @db.Uuid
+  moderatedAt    DateTime?
+  moderationNote String?
+  reply          String?
+  repliedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now())
+
+  reviewer  Profile        @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  subject   Profile        @relation("ReviewSubject", fields: [subjectId], references: [id], onDelete: Restrict)
+  moderator Profile?       @relation("ReviewModerator", fields: [moderatedBy], references: [id], onDelete: Restrict)
+  reports   ReviewReport[]
+
+  @@unique([reviewerId, subjectId, contextType, contextId], map: "reviews_one_per_interaction")
+  @@index([subjectId, status], map: "reviews_subject_status")
+  @@index([status, createdAt], map: "reviews_status_created")
+  @@index([reviewerId, createdAt], map: "reviews_reviewer_created")
+  @@map("reviews")
+}
+
+model ReviewReport {
+  id         String    @id @db.Uuid
+  reviewId   String    @db.Uuid
+  reporterId String    @db.Uuid
+  reason     String
+  resolvedAt DateTime?
+  resolvedBy String?   @db.Uuid
+  createdAt  DateTime  @default(now())
+
+  review   Review   @relation(fields: [reviewId], references: [id], onDelete: Restrict)
+  reporter Profile  @relation("ReviewReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  resolver Profile? @relation("ReviewReportResolver", fields: [resolvedBy], references: [id], onDelete: Restrict)
+
+  @@unique([reviewId, reporterId], map: "review_reports_one_per_reporter")
+  @@index([resolvedAt, createdAt], map: "review_reports_open")
+  @@map("review_reports")
 }

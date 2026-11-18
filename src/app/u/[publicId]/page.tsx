@@ -3,7 +3,10 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
+import { ReviewList } from "@/components/reviews/ReviewList";
+import { StarRating } from "@/components/reviews/StarRating";
 import { viewProfile } from "@/services/profiles/userProfiles";
+import { publishedReviewsAbout, ratingSummaries } from "@/services/reviews/reviews";
 import { createProfilePhotoUrl } from "@/services/uploads/pipeline";
 
 export const dynamic = "force-dynamic";
@@ -54,6 +57,11 @@ export default async function PublicProfilePage({
   }
 
   const named = view.kind !== "anonymous";
+  const [reviews, ratings] = await Promise.all([
+    publishedReviewsAbout(view.profileId),
+    ratingSummaries([view.profileId]),
+  ]);
+  const rating = ratings.get(view.profileId) ?? { average: 0, count: 0 };
   return (
     <main className="mx-auto w-full max-w-3xl space-y-8 px-4 py-10 sm:px-6">
       <header className="flex items-start gap-4">
@@ -143,9 +151,13 @@ export default async function PublicProfilePage({
         <h2 id="reviews" className={SECTION_HEADING}>
           Reviews
         </h2>
-        <p className="mt-2 text-sm text-muted">
-          Reviews open after completed deals (coming soon).
-        </p>
+        <div className="mt-2 space-y-3">
+          <StarRating average={rating.average} count={rating.count} />
+          <ReviewList
+            reviews={reviews}
+            canReport={Boolean(viewer) && viewer?.profileId !== view.profileId}
+          />
+        </div>
       </section>
     </main>
   );

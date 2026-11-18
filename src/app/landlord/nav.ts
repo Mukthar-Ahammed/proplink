@@ -10,6 +10,7 @@ export const LANDLORD_NAV: PortalNavItem[] = [
   { href: "/landlord/listings", label: "My properties" },
   { href: "/landlord/projects", label: "Projects" },
   { href: "/messages", label: "Messages" },
+  { href: "/account/reviews", label: "Reviews" },
   { href: "/account/profile", label: "Profile" },
   { href: "/account/notifications", label: "Notifications" },
 ];

@@ -1221,6 +1221,15 @@ of the boundary.
   offer/viewing statuses, counter columns, one-accepted index,
   `offer_events`/`viewing_events` (append-only), Buyer-only and transition
   triggers.
+- Reviews (Phase 5 Task 4, ADR-054): `src/services/reviews/reviews.ts`
+  (`reviewOpportunities`, submit, Admin moderation, one reply, reports,
+  `ratingSummaries`, `agentRatingsByAgentProfile`); `/account/reviews` for
+  every role; `/admin/reviews`; reviews on `/u/[publicId]` and
+  `/agents/[id]`. Listing cards show the agent's verified badge and published
+  rating (computed in the search query). Migration `20261119100000`:
+  `reviews`, `review_reports`, `proplink_review_eligible()` and guard
+  triggers (qualifying pairs only; Admin-only moderation; no deletes). The
+  Sprint-era appraisal endpoint returns 410.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 
