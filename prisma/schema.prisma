@@ -257,6 +257,8 @@ model Profile {
   landlordListings     LandlordListing[]         @relation("LandlordListingOwner")
   landlordListingsMade LandlordListing[]         @relation("LandlordListingCreator")
   aiUsage              AiUsage[]                 @relation("AiUsageProfile")
+  landlordListingsHeld LandlordListing[]         @relation("LandlordListingClaimer")
+  listingReviewsMade   LandlordListingReview[]   @relation("LandlordListingReviewer")
 
   @@map("profiles")
 }
@@ -1339,15 +1341,21 @@ model LandlordListing {
   reviewedAt      DateTime?
   reviewedBy      String?                 @db.Uuid
   withdrawnAt     DateTime?
+  /// Admin holding the listing for review (Phase 2 Task 3); cleared when it leaves SUBMITTED.
+  claimedBy       String?                 @db.Uuid
+  claimedAt       DateTime?
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
 
   owner   Profile               @relation("LandlordListingOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   creator Profile               @relation("LandlordListingCreator", fields: [createdBy], references: [id])
+  claimer Profile?              @relation("LandlordListingClaimer", fields: [claimedBy], references: [id], onDelete: Restrict)
   files   LandlordListingFile[]
+  reviews LandlordListingReview[]
 
   @@index([ownerId, status])
   @@index([status, submittedAt])
+  @@index([claimedBy])
   @@map("landlord_listings")
 }
 
@@ -1400,4 +1408,29 @@ model AiUsage {
   @@index([createdAt])
   @@index([profileId, createdAt])
   @@map("ai_usage")
+}
+
+enum LandlordListingReviewDecision {
+  APPROVED
+  REJECTED
+}
+
+/// Append-only history of Admin review decisions (Phase 2 Task 3, ADR-037).
+/// `submittedAt` is copied from the listing at decision time, so the SLA
+/// history survives a reject-and-resubmit.
+model LandlordListingReview {
+  id          String                        @id @db.Uuid
+  listingId   String                        @db.Uuid
+  reviewerId  String                        @db.Uuid
+  decision    LandlordListingReviewDecision
+  reason      String?
+  submittedAt DateTime
+  decidedAt   DateTime                      @default(now())
+
+  listing  LandlordListing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  reviewer Profile         @relation("LandlordListingReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([decidedAt])
+  @@index([listingId, decidedAt])
+  @@map("landlord_listing_reviews")
 }

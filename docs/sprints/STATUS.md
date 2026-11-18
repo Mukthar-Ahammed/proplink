@@ -12,8 +12,9 @@ from Phase 1; see `docs/phases/PHASE-2-REPORT.md`). **Phase 0 closed 2026-11-18.
 **Phase 1:** all 13 tasks implemented, PR #1 open; exit waits on the owner's hand
 check of three Admin flows. Phase 2 cannot exit before Phase 1.
 
-**Phase 2:** Task 1 (Landlord module) and Task 2 (AI listing assistant, mock
-until the Anthropic key exists) done; Task 3 (Admin review queue) next.
+**Phase 2:** Task 1 (Landlord module), Task 2 (AI listing assistant, mock
+until the Anthropic key exists) and Task 3 (Admin review queue with SLA
+metrics) done; Task 4 (private-listing hardening) next.
 
 | Phase 1 task                           | State |
 | -------------------------------------- | ----- |

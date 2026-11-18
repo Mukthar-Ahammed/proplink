@@ -1001,6 +1001,21 @@ of the boundary.
   for review and only put into the form on request. Nothing is saved
   automatically. Hidden when `AI_PROVIDER=disabled`.
 
+## Landlord listing review queue (Phase 2 Task 3, ADR-037)
+
+- `src/services/landlord/reviewQueue.ts`: queue views (waiting oldest first,
+  held by me, recently decided), claim / take over / release / assign,
+  approve or reject with a reason (one transaction, conditioned on the same
+  submission and holder; approval needs a KYC-approved, active Landlord),
+  SLA state (30-minute target, 60-minute limit) and SLA metrics.
+- Schema (migration `20261118110000`): `landlord_listings.claimedBy/claimedAt`
+  (trigger: Admins only; cleared when the listing leaves `SUBMITTED`);
+  append-only `landlord_listing_reviews` history (server-only).
+- Pages: `/admin/landlord-listings` (metrics and queue) and
+  `/admin/landlord-listings/[id]` (review, files via signed links, history).
+- Notifications: `listing.review_decision` email to the Landlord, gated by
+  their preferences; failures are logged and never undo a decision.
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers

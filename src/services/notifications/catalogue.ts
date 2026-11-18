@@ -72,6 +72,15 @@ export const NOTIFICATION_EVENTS: readonly NotificationEvent[] = [
   },
   // Landlord → Agent link of the chain (Phase 2).
   {
+    key: "listing.review_decision",
+    label: "Listing review results",
+    description: "PropLink approved your property listing or asked for changes.",
+    roles: [Role.LANDLORD],
+    defaults: { inApp: true, email: true },
+    mandatory: false,
+    deliveredInPhase: 2,
+  },
+  {
     key: "listing.private_listing",
     label: "New landlord listings",
     description: "A landlord's listing passed PropLink review and is open to agents.",

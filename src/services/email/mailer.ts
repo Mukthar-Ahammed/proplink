@@ -111,6 +111,34 @@ export async function sendListingRejectedEmail(
   });
 }
 
+// Phase 2 Task 3 — Admin review decisions on a Landlord's private listing.
+// The listing stays private either way; only verified Agents see approved ones.
+
+export async function sendLandlordListingApprovedEmail(params: {
+  to: string;
+  listingTitle: string;
+  listingId: string;
+}) {
+  await mailer.send({
+    to: params.to,
+    subject: `Your property "${params.listingTitle}" passed review`,
+    text: `Good news: PropLink has reviewed "${params.listingTitle}" and approved it.\n\nVerified agents can now see it and send you proposals. It stays private: it never appears in public search.\n\nView it: ${BASE_URL}/landlord/listings/${params.listingId}`,
+  });
+}
+
+export async function sendLandlordListingRejectedEmail(params: {
+  to: string;
+  listingTitle: string;
+  listingId: string;
+  reason: string;
+}) {
+  await mailer.send({
+    to: params.to,
+    subject: `Your property "${params.listingTitle}" needs changes`,
+    text: `PropLink reviewed "${params.listingTitle}" and could not approve it yet.\n\nWhat to change: ${params.reason}\n\nEdit it and submit it again: ${BASE_URL}/landlord/listings/${params.listingId}`,
+  });
+}
+
 // Task 2.5 — public property detail page enquiry notification.
 
 export async function sendNewEnquiryEmail(params: {

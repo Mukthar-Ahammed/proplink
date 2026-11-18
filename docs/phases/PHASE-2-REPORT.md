@@ -1,4 +1,4 @@
-# Phase 2 — Landlord Listings, Admin Queue, Agent Interest and Exclusive Mandates
+| 3. Admin review queue | Done | ADR-037 |# Phase 2 — Landlord Listings, Admin Queue, Agent Interest and Exclusive Mandates
 
 | Status      | Started    | Branch                      | Depends on                                             |
 | ----------- | ---------- | --------------------------- | ------------------------------------------------------ |
@@ -31,7 +31,7 @@ mandate exists (OD-22).
 | ---------------------------- | ------------------------------------------------- | ------- |
 | 1. Landlord module           | Done                                              | ADR-034 |
 | 2. AI listing assistant      | Done (real-provider smoke test waits for the key) | ADR-036 |
-| 3. Admin review queue        | Not started                                       |         |
+| 3. Admin review queue        | Done                                              | ADR-037 |
 | 4. Private-listing hardening | Not started                                       |         |
 | 5. Agent marketplace         | Not started                                       |         |
 | 6. Exclusive mandate         | Not started                                       |         |
@@ -116,3 +116,44 @@ mandate exists (OD-22).
 
 - Real-provider smoke test: waits for `ANTHROPIC_API_KEY` (H1.9); steps in
   `docs/credentials/anthropic.md`.
+
+## Task 3 — Admin review queue (2026-11-18)
+
+**Delivered** (ADR-037)
+
+- Migration `20261118110000_phase2_listing_review_queue` (with
+  `rollback.sql`): claim columns and trigger on `landlord_listings`;
+  append-only `landlord_listing_reviews`; server-only.
+- `src/services/landlord/reviewQueue.ts`: queue views, claim / take over /
+  release / assign, approve or reject with reason (atomic, KYC-gated),
+  history rows, audit, Landlord email per preferences, SLA state and metrics.
+- `/admin/landlord-listings`: SLA metrics (waiting, unclaimed, overdue,
+  oldest; decided, within 60 minutes, median and p90 over 7 days) and the
+  queue; `/admin/landlord-listings/[id]`: listing, Landlord KYC, files via
+  signed links, earlier decisions, hold and decision controls. Sidebar link.
+- Notification event `listing.review_decision`; Landlord decision emails.
+
+**Verification**
+
+- `tests/unit/landlord-review-queue.test.ts` (15): SLA boundaries, Admin
+  rate limit, atomic claim and audit, take-over audit, assignment to active
+  Admins only, reason rules, held-by-another refusal, KYC and suspension gate,
+  lost race writes nothing, approval writes history, audit and email,
+  rejection respects the email preference, email failure keeps the decision,
+  event offered to Landlords only.
+- `tests/integration/landlord-review-queue-db.test.ts` (5, disposable
+  database): hold and take-over; two Admins deciding at once produce exactly
+  one decision, one history row and one audit row; reject, resubmit and
+  approve keep both history rows and feed the metrics; KYC no longer approved
+  blocks approval; database guards (non-Admin claim refused, withdrawal
+  releases a claim, history append-only, reason rules, non-Admin reviewer
+  refused, RLS on, no Data API access).
+- Rollback rehearsed (table, columns and trigger removed, re-applied).
+- Full suite on the disposable database (seeded): 115 files pass. Without a
+  database: 100 files pass, 15 database-only skipped.
+
+**Open**
+
+- Owner hand check of the queue with two Admin accounts (needs the owner's
+  MFA); telling verified Agents about approved listings comes with Tasks 5
+  and 8.

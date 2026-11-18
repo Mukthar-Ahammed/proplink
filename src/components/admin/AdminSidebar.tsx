@@ -21,6 +21,12 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     items: [
       { label: "Overview", href: "/admin", exact: true, status: "active" },
       { label: "KYC Queue", href: "/admin/kyc", status: "active" },
+      {
+        label: "Landlord Listings",
+        href: "/admin/landlord-listings",
+        exact: true,
+        status: "active",
+      },
       { label: "Moderation", href: "/admin/moderation", status: "active" },
       { label: "Flipper Resales", href: "/admin/resales", status: "active" },
     ],
