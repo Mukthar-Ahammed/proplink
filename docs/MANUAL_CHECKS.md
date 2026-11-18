@@ -189,6 +189,15 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       the Agent "Record the sale": the listing shows Sold. As the Solicitor
       confirm and settle.
 
+- [ ] **Offers and viewings.** As `buyer@` make an offer and book a viewing
+      on a live listing. As the listing's Agent at "Offers & viewings":
+      counter the offer; as the Buyer accept the counter (listing goes Under
+      offer, the deal tracker appears). Confirm the viewing; as the Buyer ask
+      for a new time; confirm again. As `investor@`, the offer and viewing
+      buttons are refused.
+- [ ] **Buyer journey on a phone.** Search, open a listing, save it (sign in
+      returns you to it), enquire, book a viewing, make an offer.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

@@ -149,6 +149,9 @@ enum OfferStatus {
   ACCEPTED
   REJECTED
   WITHDRAWN
+  UNDER_REVIEW
+  COUNTER_OFFERED
+  EXPIRED
 }
 
 enum DealStage {
@@ -164,6 +167,7 @@ enum ViewingStatus {
   CONFIRMED
   DECLINED
   DONE
+  CANCELLED
 }
 
 enum PartnerCategory {
@@ -624,10 +628,15 @@ model Offer {
   amountGBP   Int // pence
   status      OfferStatus @default(SUBMITTED)
   createdAt   DateTime    @default(now())
+  /// Phase 5 (ADR-053): the Agent's counter-offer, and when it lapses.
+  counterAmountGBP Int?
+  expiresAt   DateTime?
+  updatedAt   DateTime    @default(now()) @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id])
   buyer    User     @relation(fields: [buyerUserId], references: [id])
   deals    Deal[]
+  events   OfferEvent[]
 
   @@index([propertyId])
   @@index([buyerUserId])
@@ -654,9 +663,12 @@ model Viewing {
   slotStart   DateTime
   slotEnd     DateTime
   status      ViewingStatus @default(REQUESTED)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id])
   buyer    User     @relation(fields: [buyerUserId], references: [id])
+  events   ViewingEvent[]
 
   @@index([propertyId])
   @@index([buyerUserId])
@@ -2533,4 +2545,38 @@ model ProjectRetailListing {
   creator  Profile         @relation("ProjectRetailListingCreator", fields: [createdBy], references: [id], onDelete: Restrict)
 
   @@map("project_retail_listings")
+}
+
+// ── Phase 5 Task 2: offer and viewing history (ADR-053) ──
+
+model OfferEvent {
+  id          String   @id @db.Uuid
+  offerId     String
+  fromStatus  String?
+  toStatus    String
+  amountGBP   Int?
+  actorUserId String
+  note        String?
+  createdAt   DateTime @default(now())
+
+  offer Offer @relation(fields: [offerId], references: [id], onDelete: Restrict)
+
+  @@index([offerId, createdAt])
+  @@map("offer_events")
+}
+
+model ViewingEvent {
+  id          String    @id @db.Uuid
+  viewingId   String
+  fromStatus  String?
+  toStatus    String
+  slotStart   DateTime?
+  actorUserId String
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  viewing Viewing @relation(fields: [viewingId], references: [id], onDelete: Restrict)
+
+  @@index([viewingId, createdAt])
+  @@map("viewing_events")
 }

@@ -54,7 +54,11 @@ export async function submitOffer(
     return { ok: false as const, error: "Property not available for offers" };
   }
   if (property.listingSource === "FLIPPER_RESALE") {
-    return { ok: false as const, error: "Direct buyer offers on Flipper resale listings are not currently supported." };
+    return {
+      ok: false as const,
+      error:
+        "Direct buyer offers on Flipper resale listings are not currently supported.",
+    };
   }
   const buyer = await db.user.findUnique({
     where: { id: buyerUserId },
@@ -70,7 +74,11 @@ export async function submitOffer(
   // One live offer per buyer per property. Improving an offer means withdrawing
   // the last one, which keeps the agent's queue honest.
   const existing = await db.offer.findFirst({
-    where: { propertyId: property.id, buyerUserId, status: "SUBMITTED" },
+    where: {
+      propertyId: property.id,
+      buyerUserId,
+      status: { in: ["SUBMITTED", "UNDER_REVIEW", "COUNTER_OFFERED"] },
+    },
   });
   if (existing) {
     return { ok: false as const, error: "You already have an offer awaiting a decision" };
@@ -79,17 +87,22 @@ export async function submitOffer(
   const offer = await db.offer.create({
     data: { propertyId: property.id, buyerUserId, amountGBP: input.amountGBP },
   });
+  // Phase 5 (ADR-053): history starts with the submission.
+  const { recordOfferSubmitted } = await import("@/services/buyers/negotiation");
+  await recordOfferSubmitted(offer.id, buyerUserId, input.amountGBP);
 
   return { ok: true as const, offer };
 }
 
 export async function withdrawOffer(buyerUserId: string, offerId: string) {
-  // Scoped by buyer in the `where`, so one buyer can never withdraw another's.
-  const result = await db.offer.updateMany({
-    where: { id: offerId, buyerUserId, status: "SUBMITTED" },
-    data: { status: "WITHDRAWN" },
-  });
-  return { ok: result.count === 1 };
+  // Scoped by buyer; any open status (Phase 5, ADR-053), with history.
+  const { buyerOfferAction } = await import("@/services/buyers/negotiation");
+  const result = await buyerOfferAction(
+    { userId: buyerUserId, role: Role.BUYER },
+    offerId,
+    "withdraw",
+  );
+  return { ok: result.ok };
 }
 
 export async function listBuyerOffers(buyerUserId: string) {

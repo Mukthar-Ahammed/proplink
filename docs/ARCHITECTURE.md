@@ -1214,6 +1214,13 @@ of the boundary.
   `markProjectSold`, `retailListingFor`); `RelistPanel`; migration
   `20261119080000` (`ListingSource.INVESTOR_PROJECT`, `project_retail_listings`
   with guard). AG-6 notice on `/marketplace/[id]`.
+- Negotiation (Phase 5 Task 2, ADR-053): `src/services/buyers/negotiation.ts`
+  (Agent and Buyer offer/viewing actions, counter expiry, race-safe accept,
+  history, `agentQueue`, `buyerOfferHistory`); `/agent/offers`; Buyer controls
+  on `/buy/offers` and `/buy/viewings`. Migration `20261119090000`: new
+  offer/viewing statuses, counter columns, one-accepted index,
+  `offer_events`/`viewing_events` (append-only), Buyer-only and transition
+  triggers.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

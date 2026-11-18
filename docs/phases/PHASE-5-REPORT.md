@@ -46,25 +46,25 @@ Phase 6).
 
 ## Task progress
 
-| Task                            | State       | Notes   |
-| ------------------------------- | ----------- | ------- |
-| 1. Re-list for sale             | Done        | ADR-052 |
-| 1a. Sale completion and handoff | Done        | ADR-052 |
-| 2. Buyer experience             | Not started |         |
-| 3. Maps and saved-search alerts | Not started |         |
-| 4. Reviews and ratings          | Not started |         |
-| 5. Track record and analytics   | Not started |         |
-| 6. SEO and safety               | Not started |         |
+| Task                            | State                                                | Notes   |
+| ------------------------------- | ---------------------------------------------------- | ------- |
+| 1. Re-list for sale             | Done                                                 | ADR-052 |
+| 1a. Sale completion and handoff | Done                                                 | ADR-052 |
+| 2. Buyer experience             | Done (state machines; existing search/map/save kept) | ADR-053 |
+| 3. Maps and saved-search alerts | Not started                                          |         |
+| 4. Reviews and ratings          | Not started                                          |         |
+| 5. Track record and analytics   | Not started                                          |         |
+| 6. SEO and safety               | Not started                                          |         |
 
 ## Exit gate
 
-- [ ] Acceptance criterion 5 end to end (accept mandate → publish to Investor Portal → re-list on the Retail Buyer Portal → Sold → settlement).
+- [x] Acceptance criterion 5 end to end (accept mandate → publish to Investor Portal → re-list on the Retail Buyer Portal → Sold → settlement).
 - [ ] Criterion 6: badges only after Admin verification, on profiles and listing cards.
 - [ ] Criterion 7: reviews only from qualifying interactions.
-- [ ] Investor, Landlord and Agent accounts cannot book viewings or submit offers.
+- [x] Investor, Landlord and Agent accounts cannot book viewings or submit offers.
 - [ ] Public crawl exposes only for-sale data.
 - [ ] Review eligibility and moderation tests pass.
-- [ ] Offer and viewing state machines tested, including concurrent actions.
+- [x] Offer and viewing state machines tested, including concurrent actions.
 - [ ] Buyer journey E2E passes on mobile and desktop; accessibility checks pass.
 - [ ] Phase report written.
 
@@ -90,3 +90,31 @@ Phase 6).
   (listing SOLD) → Solicitor confirms (project SOLD) → settlement entries →
   mandate can close); re-listing refused before completion and by the
   database for anyone but the project's Agent.
+
+## Task 2 — Buyer experience (2026-11-18)
+
+**Delivered** (ADR-053)
+
+- Migration `20261119090000_phase5_offers_viewings` (with `rollback.sql`,
+  rehearsed): under review, counter-offered and expired offers; cancelled
+  viewings; counter amount and expiry; one accepted offer per property;
+  append-only histories; Buyer-only and transition triggers.
+- Agent queue `/agent/offers` (review, counter with days, accept, reject;
+  confirm, decline, done) with history; Buyer controls (withdraw, accept a
+  counter, cancel, reschedule). Accepting puts the listing under offer,
+  rejects the other open offers and starts the deal tracker.
+- Kept from Sprints 4-5: search and filters, results and map, gallery,
+  save (sign-in and return), enquiry, Buyer dashboard. Owner checks cover
+  the journey on a phone.
+
+**Verification**
+
+- `tests/integration/negotiation-db.test.ts` (5, disposable database): Investor,
+  Landlord and Agent accounts refused by the services and, with the role
+  faked, by the database; submit → review → counter → buyer accepts (amount
+  becomes the counter, rival rejected, listing under offer, deal opened,
+  history in order); finished offers fixed and history append-only;
+  counter-offers lapse; **6 concurrent accepts → exactly one accepted**
+  (property row lock; a deadlock found and fixed); viewings request →
+  confirm → reschedule → confirm → done, cancel, and no slot change without
+  the Agent.
