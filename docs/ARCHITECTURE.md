@@ -1016,6 +1016,17 @@ of the boundary.
 - Notifications: `listing.review_decision` email to the Landlord, gated by
   their preferences; failures are logged and never undo a decision.
 
+## Private-listing boundary (Phase 2 Task 4)
+
+- Only `src/services/landlord/` reads `landlord_listings`,
+  `landlord_listing_files` and `landlord_listing_reviews`; only the Landlord
+  portal and `/admin/landlord-listings` import that service. Enforced by
+  `tests/unit/private-listing-boundary.test.ts`; a new reader (the Task 5
+  marketplace) is added to its allowlist deliberately.
+- `src/app/robots.ts` disallows every private area; no sitemap lists them.
+- `tests/e2e/private-listing-leakage.spec.ts` crawls the site as each role
+  and asserts no private listing data appears anywhere.
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers

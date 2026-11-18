@@ -13,8 +13,9 @@ from Phase 1; see `docs/phases/PHASE-2-REPORT.md`). **Phase 0 closed 2026-11-18.
 check of three Admin flows. Phase 2 cannot exit before Phase 1.
 
 **Phase 2:** Task 1 (Landlord module), Task 2 (AI listing assistant, mock
-until the Anthropic key exists) and Task 3 (Admin review queue with SLA
-metrics) done; Task 4 (private-listing hardening) next.
+until the Anthropic key exists), Task 3 (Admin review queue with SLA
+metrics) and Task 4 (private-listing hardening and leakage crawl) done; Task 5
+(Agent marketplace) next.
 
 | Phase 1 task                           | State |
 | -------------------------------------- | ----- |

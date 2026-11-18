@@ -32,7 +32,7 @@ mandate exists (OD-22).
 | 1. Landlord module           | Done                                              | ADR-034 |
 | 2. AI listing assistant      | Done (real-provider smoke test waits for the key) | ADR-036 |
 | 3. Admin review queue        | Done                                              | ADR-037 |
-| 4. Private-listing hardening | Not started                                       |         |
+| 4. Private-listing hardening | Done (Agent visibility check comes with Task 5)   |         |
 | 5. Agent marketplace         | Not started                                       |         |
 | 6. Exclusive mandate         | Not started                                       |         |
 | 7. Landlord data exposure    | Not started                                       |         |
@@ -157,3 +157,47 @@ mandate exists (OD-22).
 - Owner hand check of the queue with two Admin accounts (needs the owner's
   MFA); telling verified Agents about approved listings comes with Tasks 5
   and 8.
+
+## Task 4 — Private-listing hardening (2026-11-18)
+
+**Delivered** (TRD LL-2 to LL-5; acceptance criterion 3)
+
+- Already in place and now covered by tests: Landlord listing tables are
+  server-only (RLS on, no Data API); `/landlord`, `/admin`, `/agent` and
+  `/api` responses carry `Cache-Control: private, no-store` and
+  `X-Robots-Tag: noindex, nofollow`; files only through short-lived signed,
+  access-checked links (Phase 1 Task 12).
+- `src/app/robots.ts`: `robots.txt` disallows every private area. There is
+  no sitemap, and none may list a private route.
+- Code boundary guard (`tests/unit/private-listing-boundary.test.ts`): only
+  `src/services/landlord/` reads the listing tables; only the Landlord portal
+  and the Admin review pages use that service; sitemap, robots, search,
+  marketplace and public APIs never touch it. A planted leak in
+  `src/app/marketplace/` was confirmed to fail all three checks. The Task 5
+  Agent marketplace must be added to the allowlist on purpose.
+- Leakage crawl (`tests/e2e/private-listing-leakage.spec.ts`): a throwaway
+  Landlord's **approved** listing (the most visible state) carries unique
+  markers. Signed out, then as Buyer, Investor and Agent, the test crawls the
+  public site and its links (up to 40 pages per role), calls the public
+  search, count, listings and case-study APIs with words from the listing,
+  fetches `robots.txt` and `/sitemap.xml`, and requests the private URLs
+  directly. No response may contain the title, address, description,
+  defects or ID; direct private URLs never return 200 and are `no-store`
+  and `noindex`. Fixtures are removed afterwards.
+- Shared E2E login helper waits for hydration and allows a cold dev server
+  more time (it was submitting before hydration and retrying into the login
+  rate limit).
+
+**Verification**
+
+- Boundary and header/robots unit tests: 8 pass.
+- Leakage crawl against the development database: 4 of 4 pass (signed out,
+  Buyer, Investor, Agent); no fixtures left behind.
+- Full suite without a database: 101 files pass, 15 database-only skipped.
+
+**Open**
+
+- "Visible to a Verified Agent" (the other half of criterion 3) needs the
+  Task 5 marketplace; its E2E test will extend this spec.
+- Admin is not crawled (sign-in needs the owner's MFA); Admin access is
+  covered by the review-queue tests.

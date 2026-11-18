@@ -16,14 +16,18 @@ export async function login(
   const loginPath = audience === "ADMIN" ? "/admin/login" : "/login";
   await expect(async () => {
     await page.goto(loginPath);
+    // Submitting before hydration posts a plain form and loses the attempt;
+    // a cold dev server can also take seconds to compile the portal page.
+    await page.waitForLoadState("networkidle");
     await page.locator('input[type="email"]').fill(email);
     await page.locator('input[type="password"]').fill(password);
     await page.locator('button[type="submit"]').click();
 
     await expect(page).not.toHaveURL(
       new RegExp(`${loginPath.replace("/", "\\/")}(?:\\?|$)`),
+      { timeout: 20_000 },
     );
     const response = await page.request.get("/portal");
     expect(new URL(response.url()).pathname).not.toBe("/login");
-  }).toPass({ timeout: 20_000 });
+  }).toPass({ timeout: 60_000 });
 }
