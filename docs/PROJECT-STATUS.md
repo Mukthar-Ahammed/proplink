@@ -23,7 +23,9 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 - **Phase 3 build complete** on `phase-3-subscriptions-chat`: Stripe
   subscriptions (ADR-042), Admin-authorised one-to-one chat with private
   Realtime, attachments, notifications, Buyer ↔ Agent migration and Admin
-  tools (ADR-043). The owner does every manual
+  tools (ADR-043).
+- **Phase 4 started** on `phase-4-investor-projects` (investor projects, Lead
+  and Co-Investors, pledges, Solicitor, agreements and e-signature, ledger). The owner does every manual
   check after the last phase; the running list is `docs/MANUAL_CHECKS.md`.
 
 ## 2026-11-17 update
