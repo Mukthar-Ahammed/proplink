@@ -6,11 +6,12 @@
 > `docs/phases/PHASE-N-REPORT.md`. The 12-week sprint plan and the sprint
 > sections below are the historical baseline (superseded, ADR-019).
 
-**Current focus → Phase 2 — Landlord Listings, Admin Queue, Agent Interest and
-Exclusive Mandates**, on `phase-2-landlord-pipeline` (started 2026-11-18, branched
-from Phase 1; see `docs/phases/PHASE-2-REPORT.md`). **Phase 0 closed 2026-11-18.**
-**Phase 1:** all 13 tasks implemented, PR #1 open; exit waits on the owner's hand
-check of three Admin flows. Phase 2 cannot exit before Phase 1.
+**Current focus → Phase 3 — Subscriptions, Chat Authorization and Realtime
+Messaging**, on `phase-3-subscriptions-chat` (started 2026-11-18, branched from
+Phase 2; see `docs/phases/PHASE-3-REPORT.md`). **Phase 0 closed 2026-11-18.**
+**Phases 1 and 2:** built and tested; the owner does all manual checks after the
+last phase (`docs/MANUAL_CHECKS.md`). No phase is closed or merged to `main`
+before its checks pass. PR #1 (Phases 0-1) is open with green CI.
 
 **Phase 2:** Task 1 (Landlord module), Task 2 (AI listing assistant, mock
 until the Anthropic key exists), Task 3 (Admin review queue with SLA
