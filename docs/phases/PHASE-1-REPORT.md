@@ -22,7 +22,7 @@ development Supabase project (see the Phase 0 report).
 | 7. Blue tick                           | **Done**    | ADR-027                              |
 | 8. Profiles                            | Not started | Needs Task 12 for photo uploads      |
 | 9. Suspend/reinstate                   | **Done**    | ADR-028; fixed actor-ID defect       |
-| 10. Notification preferences           | Not started |                                      |
+| 10. Notification preferences           | **Done**    | ADR-029                              |
 | 11. MFA                                | Not started |                                      |
 | 12. Secure upload pipeline             | Not started |                                      |
 | 13. Permission-matrix harness          | Not started |                                      |
@@ -376,4 +376,30 @@ exist yet for any service; it is not built here.
 - `tests/integration/session-revocation-db.test.ts`: `authenticated` cannot
   update `sessionsRevokedAt` or `active`.
 - Rollback rehearsed. Full suite: **99 files, 1,275 tests pass**; typecheck and
+  lint clean.
+
+## Task 10 — Notification preferences (2026-11-18)
+
+**Delivered** (ADR-029)
+
+- Event catalogue keyed to the Q12 chain (13 events across Phases 1–4; account
+  security, verification results and ledger corrections are mandatory).
+- Migration `20261118030000_phase1_notification_preferences` (with
+  `rollback.sql`): server-only `notification_preferences`, key-format check.
+- `src/services/notifications/preferences.ts`: `getPreferences`,
+  `updatePreferences` (catalogue and role enforced, mandatory ignored, default
+  choices remove the row), `shouldNotify` for later senders.
+- `/account/notifications` for every signed-in role, linked from the Agent,
+  Investor and Buyer portals.
+
+**Verification**
+
+- `tests/unit/notification-preferences.test.ts`: catalogue keys and Q12
+  chain per role, mandatory set, merge over defaults, mandatory stays on, store
+  vs remove-at-default, mandatory switch-off ignored, off-role/unknown/bad
+  type/extra key/extra field rejected, `shouldNotify` default, stored,
+  mandatory, unknown and off-role.
+- `tests/integration/notification-preferences-db.test.ts`: key check, cascade,
+  no Data API access. Investor nav test updated for the new link.
+- Rollback rehearsed. Full suite: **101 files, 1,291 tests pass**; typecheck and
   lint clean.

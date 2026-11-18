@@ -29,6 +29,9 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   Admin deactivation working at all; reason required; suspension revokes all
   sessions, including refreshed ones. Full suite 99 files / 1,275 tests pass.
   Phase 1 tasks done: 1–7 and 9 of 13.
+- **Task 10 (notification preferences) done** (ADR-029): catalogue keyed to the
+  Q12 chain, `/account/notifications`, `shouldNotify()` for later phases. Full
+  suite 101 files / 1,291 tests pass. Phase 1 tasks done: 1–7, 9 and 10 of 13.
 - Phase 0 is unchanged: only the owner's manual authentication test remains.
 
 ## 2026-11-16 update

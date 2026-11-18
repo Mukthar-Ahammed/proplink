@@ -249,6 +249,7 @@ model Profile {
   kycApplicant         KycApplicant?             @relation("KycApplicantProfile")
   verificationBadge    VerificationBadge?        @relation("VerificationBadgeProfile")
   badgesAwarded        VerificationBadge[]       @relation("VerificationBadgeAwarder")
+  notificationPrefs    NotificationPreference[]  @relation("NotificationPreferenceProfile")
 
   @@map("profiles")
 }
@@ -1153,4 +1154,19 @@ model VerificationBadge {
   awarder Profile @relation("VerificationBadgeAwarder", fields: [awardedBy], references: [id])
 
   @@map("verification_badges")
+}
+
+/// Phase 1 Task 10 (ADR-029). A user's changes from the catalogue defaults
+/// (src/services/notifications/catalogue.ts). No row = defaults.
+model NotificationPreference {
+  profileId String   @db.Uuid
+  eventKey  String
+  inApp     Boolean
+  email     Boolean
+  updatedAt DateTime @updatedAt
+
+  profile Profile @relation("NotificationPreferenceProfile", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, eventKey])
+  @@map("notification_preferences")
 }

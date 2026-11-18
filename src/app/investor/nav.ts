@@ -5,7 +5,11 @@ export function getInvestorNav(investorType: InvestorType | null): PortalNavItem
   const base: PortalNavItem[] = [{ href: "/investor", label: "Dashboard" }];
 
   if (!investorType) {
-    return [...base, { href: "/investor/kyc", label: "Identity & Verification" }];
+    return [
+      ...base,
+      { href: "/investor/kyc", label: "Identity & Verification" },
+      { href: "/account/notifications", label: "Notifications" },
+    ];
   }
 
   if (investorType === InvestorType.FLIPPER || investorType === InvestorType.BOTH) {
@@ -17,6 +21,7 @@ export function getInvestorNav(investorType: InvestorType | null): PortalNavItem
   }
 
   base.push({ href: "/investor/kyc", label: "Identity & Verification" });
+  base.push({ href: "/account/notifications", label: "Notifications" });
   return base;
 }
 

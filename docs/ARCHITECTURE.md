@@ -251,6 +251,10 @@ The complete one-line policy rationale is in
   rows. Suspension sets `profiles.sessionsRevokedAt`; `auth()` refuses sessions whose sign-in
   time (earliest `amr` timestamp in the access token) is before it, so pre-suspension refresh
   tokens cannot revive a session after reinstatement.
+- **Notification preferences (Phase 1, ADR-029):** event catalogue keyed to the Q12 chain
+  (`src/services/notifications/catalogue.ts`), server-only `notification_preferences` storing
+  only changes from defaults, `shouldNotify()` for later senders (mandatory events always on).
+  UI `/account/notifications`.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

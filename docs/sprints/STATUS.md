@@ -23,7 +23,7 @@ before then.
 | 7. Blue tick                           | Done        |
 | 8. Profiles                            | Not started |
 | 9. Suspend/reinstate                   | Done        |
-| 10. Notification preferences           | Not started |
+| 10. Notification preferences           | Done        |
 | 11. MFA                                | Not started |
 | 12. Secure upload pipeline             | Not started |
 | 13. Permission-matrix harness          | Not started |
