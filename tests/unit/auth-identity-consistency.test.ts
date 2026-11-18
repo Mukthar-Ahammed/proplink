@@ -2,18 +2,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
+  getSession: vi.fn(),
   findProfile: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({
-  createClient: vi.fn(async () => ({ auth: { getUser: mocks.getUser } })),
+  createClient: vi.fn(async () => ({
+    auth: { getUser: mocks.getUser, getSession: mocks.getSession },
+  })),
 }));
 vi.mock("@/lib/db", () => ({
   db: { profile: { findUnique: mocks.findProfile } },
 }));
 
-import { auth } from "@/lib/auth";
+import { auth, sessionSignedInAt } from "@/lib/auth";
 
 const authUser = {
   id: "11111111-1111-4111-8111-111111111111",
@@ -78,5 +81,64 @@ describe("auth identity consistency", () => {
   ])("fails closed for %s", async (_label, candidate) => {
     mocks.findProfile.mockResolvedValue(candidate);
     await expect(auth()).resolves.toBeNull();
+  });
+});
+
+function token(claims: Record<string, unknown>): string {
+  const encode = (value: unknown) =>
+    Buffer.from(JSON.stringify(value)).toString("base64url");
+  return `${encode({ alg: "HS256" })}.${encode(claims)}.sig`;
+}
+
+describe("session revocation after suspension (Phase 1 Task 9)", () => {
+  const revokedAt = new Date("2026-11-18T10:00:00Z");
+  const before = Math.floor(revokedAt.getTime() / 1000) - 60;
+  const after = Math.floor(revokedAt.getTime() / 1000) + 60;
+
+  function withSession(claims: Record<string, unknown> | null) {
+    mocks.getSession.mockResolvedValue({
+      data: { session: claims ? { access_token: token(claims) } : null },
+    });
+  }
+
+  it("skips the session read for profiles never suspended", async () => {
+    await auth();
+    expect(mocks.getSession).not.toHaveBeenCalled();
+  });
+
+  it("refuses a session that signed in before the revocation, even if refreshed", async () => {
+    mocks.findProfile.mockResolvedValue({ ...profile, sessionsRevokedAt: revokedAt });
+    withSession({ iat: after, amr: [{ method: "password", timestamp: before }] });
+    await expect(auth()).resolves.toBeNull();
+  });
+
+  it("accepts a session that signed in after the revocation", async () => {
+    mocks.findProfile.mockResolvedValue({ ...profile, sessionsRevokedAt: revokedAt });
+    withSession({ iat: after, amr: [{ method: "password", timestamp: after }] });
+    await expect(auth()).resolves.toMatchObject({ user: { id: "legacy-1" } });
+  });
+
+  it("fails closed when the session cannot be read", async () => {
+    mocks.findProfile.mockResolvedValue({ ...profile, sessionsRevokedAt: revokedAt });
+    withSession(null);
+    await expect(auth()).resolves.toBeNull();
+  });
+
+  it("reads the earliest amr timestamp, falling back to iat", () => {
+    expect(
+      sessionSignedInAt(
+        token({
+          iat: 500,
+          amr: [
+            { method: "totp", timestamp: 300 },
+            { method: "password", timestamp: 200 },
+          ],
+        }),
+      ),
+    ).toBe(200);
+    expect(sessionSignedInAt(token({ iat: 500 }))).toBe(500);
+    expect(sessionSignedInAt(token({ amr: "bad" }))).toBeNull();
+    expect(sessionSignedInAt("not-a-jwt")).toBeNull();
+    expect(sessionSignedInAt("a.%%%.c")).toBeNull();
   });
 });

@@ -55,6 +55,19 @@ export async function auth(): Promise<AppSession | null> {
     return null;
   }
 
+  // Phase 1 Task 9 (ADR-028): a suspension revokes every session that signed
+  // in before it, including ones refreshed later. Only profiles that were
+  // ever suspended pay for this extra (local, no-network) session read.
+  if (profile.sessionsRevokedAt) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const signedInAt = session ? sessionSignedInAt(session.access_token) : null;
+    if (signedInAt === null || signedInAt * 1000 < profile.sessionsRevokedAt.getTime()) {
+      return null;
+    }
+  }
+
   return {
     user: {
       id: profile.legacyUser.id,
@@ -68,4 +81,35 @@ export async function auth(): Promise<AppSession | null> {
       kycStatus: profile.kycStatus,
     },
   };
+}
+
+/**
+ * When the session behind this access token first signed in, in seconds.
+ * Supabase records each authentication method in `amr` with its timestamp;
+ * these survive token refreshes, so the earliest one is the session's sign-in
+ * time. Falls back to `iat`. Only called on a token `getUser()` has already
+ * validated in this request; returns null if it cannot be read.
+ */
+export function sessionSignedInAt(accessToken: string): number | null {
+  const payload = accessToken.split(".")[1];
+  if (!payload) return null;
+  let claims: unknown;
+  try {
+    claims = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+  } catch {
+    return null;
+  }
+  if (!claims || typeof claims !== "object") return null;
+  const { amr, iat } = claims as { amr?: unknown; iat?: unknown };
+  const stamps = Array.isArray(amr)
+    ? amr
+        .map((entry) =>
+          entry && typeof entry === "object"
+            ? (entry as { timestamp?: unknown }).timestamp
+            : undefined,
+        )
+        .filter((value): value is number => typeof value === "number" && value > 0)
+    : [];
+  if (stamps.length > 0) return Math.min(...stamps);
+  return typeof iat === "number" && iat > 0 ? iat : null;
 }

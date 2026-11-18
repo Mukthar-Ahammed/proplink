@@ -246,6 +246,11 @@ The complete one-line policy rationale is in
   approved, Agent company check passed (`src/services/profiles/badges.ts`). Admin UI
   `/admin/badges`. Removed automatically on provider KYC rejection or a failed/rejected
   company check. Shown by `VerifiedBadge` from a server-computed flag.
+- **Suspend / reinstate (Phase 1, ADR-028):** `setUserActive` (`src/services/admin/users.ts`)
+  takes the Admin's profile and legacy IDs, requires a logged reason and updates both identity
+  rows. Suspension sets `profiles.sessionsRevokedAt`; `auth()` refuses sessions whose sign-in
+  time (earliest `amr` timestamp in the access token) is before it, so pre-suspension refresh
+  tokens cannot revive a session after reinstatement.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

@@ -29,9 +29,13 @@ async function toggleActive(formData: FormData) {
   if (!authz.ok) return;
 
   const result = await setUserActive({
-    actorUserId: authz.session.user.id,
+    actor: {
+      profileId: authz.session.user.authUserId,
+      legacyUserId: authz.session.user.id,
+    },
     userId: String(formData.get("userId")),
     active: formData.get("nextActive") === "true",
+    reason: String(formData.get("reason") ?? ""),
   });
   if (!result.ok) throw new Error(result.error);
   revalidatePath("/admin/users");

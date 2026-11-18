@@ -21,7 +21,7 @@ development Supabase project (see the Phase 0 report).
 | 6. KYC/AML provider                    | **Done**    | ADR-026; provider choice OD-20       |
 | 7. Blue tick                           | **Done**    | ADR-027                              |
 | 8. Profiles                            | Not started | Needs Task 12 for photo uploads      |
-| 9. Suspend/reinstate                   | Not started |                                      |
+| 9. Suspend/reinstate                   | **Done**    | ADR-028; fixed actor-ID defect       |
 | 10. Notification preferences           | Not started |                                      |
 | 11. MFA                                | Not started |                                      |
 | 12. Secure upload pipeline             | Not started |                                      |
@@ -345,4 +345,35 @@ exist yet for any service; it is not built here.
 - `tests/integration/kyc-provider-webhook.test.ts`: a provider KYC rejection
   removes the badge and the audit row records it.
 - Rollback rehearsed. Full suite: **98 files, 1,264 tests pass**; typecheck and
+  lint clean.
+
+## Task 9 — Suspend / reinstate (2026-11-18)
+
+**Delivered** (ADR-028)
+
+- **Defect fixed:** the existing `setUserActive` looked the Admin up by
+  profile UUID while both Admin pages passed the legacy user ID, so
+  deactivation could never succeed in the running app (its unit test mocked the
+  lookup).
+- `setUserActive`: Admin profile + legacy IDs must match an active Admin;
+  reason required (10–500, control characters stripped); self, no-op and
+  last-Admin changes refused; both identity rows updated; reason audited.
+- Migration `20261118020000_phase1_session_revocation` (with
+  `rollback.sql`): `profiles.sessionsRevokedAt`, outside the user UPDATE grant.
+- `auth()` refuses sessions that signed in before `sessionsRevokedAt` (earliest
+  `amr` timestamp, else `iat`), so a refreshed pre-suspension session stays
+  dead after reinstatement. No extra work for never-suspended profiles.
+- Admin control asks for the reason inline (no browser dialog).
+
+**Verification**
+
+- `tests/unit/admin-users.test.ts` (rewritten, 11): lookup by profile ID,
+  suspend with revocation and audited reason, reinstate, reason rules, self,
+  Admin/identity mismatch, no-op, last Admin.
+- `tests/unit/auth-identity-consistency.test.ts` (+5): no session read for
+  never-suspended profiles, refreshed pre-suspension session refused, new
+  session accepted, unreadable session refused, `amr`/`iat` parsing.
+- `tests/integration/session-revocation-db.test.ts`: `authenticated` cannot
+  update `sessionsRevokedAt` or `active`.
+- Rollback rehearsed. Full suite: **99 files, 1,275 tests pass**; typecheck and
   lint clean.

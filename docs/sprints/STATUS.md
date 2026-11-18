@@ -22,7 +22,7 @@ before then.
 | 6. KYC/AML provider                    | Done        |
 | 7. Blue tick                           | Done        |
 | 8. Profiles                            | Not started |
-| 9. Suspend/reinstate                   | Not started |
+| 9. Suspend/reinstate                   | Done        |
 | 10. Notification preferences           | Not started |
 | 11. MFA                                | Not started |
 | 12. Secure upload pipeline             | Not started |

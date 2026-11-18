@@ -231,6 +231,8 @@ model Profile {
   avatarUrl      String?
   gdprConsentAt  DateTime?
   active         Boolean   @default(true)
+  /// Phase 1 Task 9 (ADR-028): sessions signed in before this are refused.
+  sessionsRevokedAt DateTime?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 

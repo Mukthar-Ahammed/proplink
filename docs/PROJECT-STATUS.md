@@ -24,7 +24,11 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 - **Task 7 (verified badge) done** (ADR-027): Admin-awarded blue tick at
   `/admin/badges`, suggested after KYC or company verification, removed
   automatically when that verification fails. Full suite 98 files / 1,264 tests
-  pass. Phase 1 tasks done: 1–7 of 13.
+  pass.
+- **Task 9 (suspend/reinstate) done** (ADR-028): fixed a defect that stopped
+  Admin deactivation working at all; reason required; suspension revokes all
+  sessions, including refreshed ones. Full suite 99 files / 1,275 tests pass.
+  Phase 1 tasks done: 1–7 and 9 of 13.
 - Phase 0 is unchanged: only the owner's manual authentication test remains.
 
 ## 2026-11-16 update

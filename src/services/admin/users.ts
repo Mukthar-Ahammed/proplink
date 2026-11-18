@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 import { db } from "@/lib/db";
 import type { Role, KycStatus, InvestorType } from "@/generated/prisma/enums";
 
@@ -178,26 +180,64 @@ export async function getUserDetails(userId: string) {
   };
 }
 
+const accountStateSchema = z
+  .object({
+    userId: z.string().min(1).max(64),
+    active: z.boolean(),
+    reason: z
+      .string()
+      .transform((value) => value.replace(/[\u0000-\u001f\u007f]+/g, " ").trim())
+      .pipe(
+        z
+          .string()
+          .min(10, "Give a reason of at least 10 characters")
+          .max(500, "Keep the reason under 500 characters"),
+      ),
+  })
+  .strict();
+
+/**
+ * Suspend or reinstate an account (Phase 1 Task 9, ADR-028). Admin-only; the
+ * caller has passed requireRole(ADMIN) and passes its server-verified
+ * identities. Suspending also revokes every existing session: auth() refuses
+ * sessions that signed in before `sessionsRevokedAt`, so even a refresh
+ * token issued earlier cannot bring them back after reinstatement.
+ */
 export async function setUserActive(params: {
-  actorUserId: string;
+  actor: { profileId: string; legacyUserId: string };
   userId: string;
   active: boolean;
+  reason: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (params.actorUserId === params.userId) {
-    return { ok: false, error: "You cannot deactivate your own account" };
+  const parsed = accountStateSchema.safeParse({
+    userId: params.userId,
+    active: params.active,
+    reason: params.reason,
+  });
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? "Check the form" };
+  }
+  const { userId, active, reason } = parsed.data;
+  if (params.actor.legacyUserId === userId) {
+    return { ok: false, error: "You cannot change your own account state" };
   }
 
   return db.$transaction(async (transaction) => {
     const actor = await transaction.profile.findUnique({
-      where: { id: params.actorUserId },
-      select: { role: true, active: true },
+      where: { id: params.actor.profileId },
+      select: { role: true, active: true, legacyUserId: true },
     });
-    if (!actor || actor.role !== "ADMIN" || !actor.active) {
+    if (
+      !actor ||
+      actor.role !== "ADMIN" ||
+      !actor.active ||
+      actor.legacyUserId !== params.actor.legacyUserId
+    ) {
       return { ok: false as const, error: "Active Admin authorization required" };
     }
 
     const user = await transaction.user.findUnique({
-      where: { id: params.userId },
+      where: { id: userId },
       select: {
         id: true,
         email: true,
@@ -207,36 +247,45 @@ export async function setUserActive(params: {
       },
     });
     if (!user) return { ok: false as const, error: "User not found" };
+    if (user.active === active && (user.authProfile?.active ?? active) === active) {
+      return {
+        ok: false as const,
+        error: active
+          ? "This account is already active"
+          : "This account is already suspended",
+      };
+    }
 
-    if (user.authProfile?.role === "ADMIN" && user.authProfile.active && !params.active) {
+    if (user.authProfile?.role === "ADMIN" && user.authProfile.active && !active) {
       const activeAdmins = await transaction.profile.count({
         where: { role: "ADMIN", active: true },
       });
       if (activeAdmins <= 1) {
         return {
           ok: false as const,
-          error: "The last active Admin cannot be deactivated",
+          error: "The last active Admin cannot be suspended",
         };
       }
     }
 
+    const now = new Date();
     if (user.authProfile) {
       await transaction.profile.update({
         where: { id: user.authProfile.id },
-        data: { active: params.active },
+        data: active ? { active } : { active, sessionsRevokedAt: now },
       });
     }
     await transaction.user.update({
-      where: { id: params.userId },
-      data: { active: params.active },
+      where: { id: userId },
+      data: { active },
     });
     await transaction.auditLog.create({
       data: {
-        actorUserId: params.actorUserId,
-        action: params.active ? "USER_REACTIVATED" : "USER_DEACTIVATED",
+        actorUserId: params.actor.legacyUserId,
+        action: active ? "USER_REACTIVATED" : "USER_DEACTIVATED",
         entity: "User",
-        entityId: params.userId,
-        metaJson: { email: user.email },
+        entityId: userId,
+        metaJson: { reason, sessionsRevoked: !active },
       },
     });
 
