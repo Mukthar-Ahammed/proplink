@@ -187,9 +187,6 @@ export default async function InvestorKycPage() {
           <KycSubmissionForm
             submissionId={draft.submissionId}
             initialDocumentCount={draft.documentCount}
-            onSubmitted={() => {
-              /* router.refresh() handled in client */
-            }}
           />
         </PortalSection>
       )}

@@ -6,20 +6,26 @@ import { login } from "./helpers/login";
  * Phase 1 Task 6 (ADR-026): an Investor verifies through the mock provider's
  * development-only hosted flow; the signed mock webhook approves them. Needs
  * the Phase 1 migrations on the target database and KYC_PROVIDER=mock.
+ * The seeded investor's KYC status is restored afterwards.
  */
 test.skip(!hasDb, "requires the development database");
 
 const EMAIL = "investor@proplink.test";
+let originalStatus: string | null = null;
 
-async function resetInvestor() {
+/** Both identity rows in one statement: the database refuses them disagreeing. */
+async function setStatus(status: string) {
   await q(
-    `UPDATE public.profiles SET "kycStatus" = 'NOT_STARTED'
-     WHERE "legacyUserId" = (SELECT id FROM public."User" WHERE email = $1)`,
-    [EMAIL],
+    `WITH u AS (
+       UPDATE public."User" SET "kycStatus" = $2::"KycStatus" WHERE email = $1 RETURNING id
+     )
+     UPDATE public.profiles SET "kycStatus" = $2::"KycStatus"
+     WHERE "legacyUserId" IN (SELECT id FROM u)`,
+    [EMAIL, status],
   );
-  await q(`UPDATE public."User" SET "kycStatus" = 'NOT_STARTED' WHERE email = $1`, [
-    EMAIL,
-  ]);
+}
+
+async function removeApplicant() {
   await q(
     `DELETE FROM public.kyc_applicants WHERE "profileId" =
        (SELECT p.id FROM public.profiles p JOIN public."User" u ON u.id = p."legacyUserId"
@@ -28,13 +34,23 @@ async function resetInvestor() {
   );
 }
 
+test.beforeAll(async () => {
+  const rows = await q<{ kycStatus: string }>(
+    `SELECT "kycStatus"::text AS "kycStatus" FROM public."User" WHERE email = $1`,
+    [EMAIL],
+  );
+  originalStatus = rows[0]?.kycStatus ?? null;
+});
+
 test.afterAll(async () => {
-  await resetInvestor();
+  await removeApplicant();
+  if (originalStatus) await setStatus(originalStatus);
   await closeDb();
 });
 
 test("Investor verifies identity through the mock provider", async ({ page }) => {
-  await resetInvestor();
+  await removeApplicant();
+  await setStatus("NOT_STARTED");
   await login(page, EMAIL, "Password123!");
   await page.goto("/investor/kyc");
   await page.getByRole("button", { name: "Verify my identity" }).click();

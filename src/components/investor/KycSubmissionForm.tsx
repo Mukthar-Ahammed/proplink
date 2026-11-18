@@ -40,7 +40,8 @@ function formatBytes(bytes: number): string {
 type KycSubmissionFormProps = {
   submissionId: string;
   initialDocumentCount: number;
-  onSubmitted: () => void;
+  /** Optional extra callback; the form refreshes the page itself. */
+  onSubmitted?: () => void;
 };
 
 export function KycSubmissionForm({
@@ -80,7 +81,10 @@ export function KycSubmissionForm({
 
       if (!presignRes.ok) {
         const data = (await presignRes.json()) as { error: string };
-        setUploadState({ phase: "error", message: data.error ?? "Failed to get upload URL" });
+        setUploadState({
+          phase: "error",
+          message: data.error ?? "Failed to get upload URL",
+        });
         return;
       }
 
@@ -127,7 +131,10 @@ export function KycSubmissionForm({
 
       if (!recordRes.ok) {
         const data = (await recordRes.json()) as { error: string };
-        setUploadState({ phase: "error", message: data.error ?? "Failed to record document" });
+        setUploadState({
+          phase: "error",
+          message: data.error ?? "Failed to record document",
+        });
         return;
       }
 
@@ -149,7 +156,10 @@ export function KycSubmissionForm({
       // Reset file input
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch {
-      setUploadState({ phase: "error", message: "Unexpected error during upload. Please try again." });
+      setUploadState({
+        phase: "error",
+        message: "Unexpected error during upload. Please try again.",
+      });
     }
   }
 
@@ -160,7 +170,9 @@ export function KycSubmissionForm({
       return;
     }
     if (declaration.trim().length < 20) {
-      setSubmitError("Please complete the declaration statement (minimum 20 characters).");
+      setSubmitError(
+        "Please complete the declaration statement (minimum 20 characters).",
+      );
       return;
     }
 
@@ -180,7 +192,7 @@ export function KycSubmissionForm({
         return;
       }
 
-      onSubmitted();
+      onSubmitted?.();
       router.refresh();
     } catch {
       setSubmitError("Unexpected error. Please try again.");
@@ -200,8 +212,8 @@ export function KycSubmissionForm({
       <div className="rounded-2xl border border-line bg-white p-6">
         <h3 className="font-semibold text-primary">Identity Documents</h3>
         <p className="mt-1 text-sm text-muted">
-          Upload one or more identity documents (passport, driver&apos;s licence, or proof of
-          address). Accepted formats: PDF, JPEG, PNG, WebP — up to 20 MB each.
+          Upload one or more identity documents (passport, driver&apos;s licence, or proof
+          of address). Accepted formats: PDF, JPEG, PNG, WebP — up to 20 MB each.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-3">
@@ -232,8 +244,18 @@ export function KycSubmissionForm({
                 : "border-accent bg-accent/5 text-accent hover:bg-accent hover:text-white"
             }`}
           >
-            <svg className="size-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            <svg
+              className="size-4 shrink-0"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+              />
             </svg>
             {isUploading ? "Uploading…" : "Upload Document"}
             <input
@@ -250,12 +272,17 @@ export function KycSubmissionForm({
 
         {/* Upload state feedback */}
         {uploadState.phase === "error" && (
-          <p role="alert" className="mt-3 rounded-xl bg-danger/10 px-4 py-2.5 text-sm text-danger">
+          <p
+            role="alert"
+            className="mt-3 rounded-xl bg-danger/10 px-4 py-2.5 text-sm text-danger"
+          >
             {uploadState.message}
           </p>
         )}
         {uploadState.phase === "done" && (
-          <p className="mt-3 text-sm text-success font-medium">✓ Document uploaded successfully</p>
+          <p className="mt-3 text-sm text-success font-medium">
+            ✓ Document uploaded successfully
+          </p>
         )}
         {isUploading && (
           <p className="mt-3 text-sm text-muted animate-pulse">
@@ -269,18 +296,33 @@ export function KycSubmissionForm({
         {uploadedDocs.length > 0 && (
           <ul className="mt-4 space-y-2">
             {uploadedDocs.map((doc) => {
-              const kindLabel = DOCUMENT_KINDS.find((k) => k.value === doc.kind)?.label ?? doc.kind;
+              const kindLabel =
+                DOCUMENT_KINDS.find((k) => k.value === doc.kind)?.label ?? doc.kind;
               return (
                 <li
                   key={doc.id}
                   className="flex items-center gap-3 rounded-xl border border-line bg-surface/60 px-4 py-3"
                 >
-                  <svg className="size-5 shrink-0 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <svg
+                    className="size-5 shrink-0 text-success"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
                   </svg>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-primary">{doc.filename}</p>
-                    <p className="text-xs text-muted">{kindLabel} · {formatBytes(doc.sizeBytes)}</p>
+                    <p className="truncate text-sm font-medium text-primary">
+                      {doc.filename}
+                    </p>
+                    <p className="text-xs text-muted">
+                      {kindLabel} · {formatBytes(doc.sizeBytes)}
+                    </p>
                   </div>
                 </li>
               );
@@ -290,7 +332,8 @@ export function KycSubmissionForm({
 
         {initialDocumentCount > 0 && uploadedDocs.length === 0 && (
           <p className="mt-3 text-sm text-muted">
-            {initialDocumentCount} document{initialDocumentCount !== 1 ? "s" : ""} already attached to this application.
+            {initialDocumentCount} document{initialDocumentCount !== 1 ? "s" : ""} already
+            attached to this application.
           </p>
         )}
       </div>
@@ -299,9 +342,9 @@ export function KycSubmissionForm({
       <div className="rounded-2xl border border-line bg-white p-6">
         <h3 className="font-semibold text-primary">Declaration</h3>
         <p className="mt-1 text-sm text-muted">
-          By submitting this application you declare that all documents and information provided are
-          genuine, accurate, and complete, and that you understand PropLink may contact you or
-          relevant authorities for verification purposes.
+          By submitting this application you declare that all documents and information
+          provided are genuine, accurate, and complete, and that you understand PropLink
+          may contact you or relevant authorities for verification purposes.
         </p>
         <textarea
           id="kyc-declaration"
@@ -318,7 +361,10 @@ export function KycSubmissionForm({
       {/* Submit */}
       <div className="flex flex-wrap items-center gap-4">
         {submitError && (
-          <p role="alert" className="w-full rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
+          <p
+            role="alert"
+            className="w-full rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger"
+          >
             {submitError}
           </p>
         )}
