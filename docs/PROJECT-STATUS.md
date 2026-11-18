@@ -31,6 +31,9 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   and changes (ADR-049), sale and append-only ledger (ADR-050), project
   decisions (ADR-051). Every exit-gate item is proven by tests; owner checks
   and the Dropbox Sign live smoke test are pending.
+- **Phase 6 started** (2026-11-19) on `phase-6-admin-ads`: Admin permissions with
+  maker-checker, cases and disputes, advertising, Admin dashboards
+  (`docs/phases/PHASE-6-REPORT.md`).
 - **Phase 5 built** (2026-11-19) on `phase-5-sale-buyers` (re-listing completed projects,
   buyer experience, reviews, trust features). Built so far: re-listing and
   sale handoff (ADR-052), offers and viewings (ADR-053), reviews from
