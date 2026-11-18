@@ -390,3 +390,14 @@ provider (default Dropbox Sign, alternative DocuSign).
   every pledge, ends the project's chats, cannot be undone (service or SQL)
   and lets the mandate end.
 - `tests/unit/permission-matrix.test.ts`: 63 checks at Phase 4.
+
+## End-to-end (2026-11-18)
+
+- `tests/e2e/investor-project.spec.ts` against the development database
+  (passed): the seeded verified Agent publishes an active mandate to the
+  Investor Portal (criterion 5, publish half); the seeded investor sees only
+  the disclosed property (no street or listing title), the calculator shows
+  "Only £100,000 remains unfunded" and disables the button for £250,000,
+  previews 25.0000% for £25,000, and the pledge is recorded (2,500,000 pence)
+  with the funding bar showing £75,000 remaining (criterion 8). The project is
+  closed afterwards (append-only tables).
