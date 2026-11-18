@@ -14,6 +14,8 @@ import {
 } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
 import { WorksPanel } from "@/components/projects/WorksPanel";
+import { LedgerPanel } from "@/components/projects/LedgerPanel";
+import { ledgerView, settlementPlan } from "@/services/projects/settlement";
 import { worksView } from "@/services/projects/works";
 import { listAgreements } from "@/services/projects/agreements";
 import { listProjectQuestions } from "@/services/projects/community";
@@ -46,6 +48,18 @@ export default async function AdminProjectPage({
   const solicitors = await listProjectSolicitors(project.id);
   const agreements = (await listAgreements(admin, project.id)) ?? [];
   const works = await worksView(admin, project.id);
+  const [ledger, plan] = await Promise.all([
+    ledgerView(admin, project.id),
+    settlementPlan(project.id),
+  ]);
+  const statementParties = [
+    ...new Map(
+      (ledger?.entries ?? []).map((entry) => [
+        entry.partyId,
+        { id: entry.partyId, name: entry.party },
+      ]),
+    ).values(),
+  ];
   const path = `/admin/projects/${project.id}`;
   const current = solicitors.find(
     (row) => row.status === "INVITED" || row.status === "ACTIVE",
@@ -173,6 +187,21 @@ export default async function AdminProjectPage({
             projectId={project.id}
             projectStatus={project.status}
             path={path}
+          />
+        </section>
+      )}
+      {ledger && (
+        <section>
+          <h2 className="text-lg font-semibold text-primary">
+            Sale, ledger and corrections
+          </h2>
+          <LedgerPanel
+            view={ledger}
+            plan={plan}
+            projectId={project.id}
+            projectStatus={project.status}
+            path={path}
+            parties={statementParties}
           />
         </section>
       )}

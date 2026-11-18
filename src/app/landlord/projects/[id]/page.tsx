@@ -7,6 +7,8 @@ import { ActionButton } from "@/components/projects/ActionButton";
 import { signAgreementAction } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
 import { WorksPanel } from "@/components/projects/WorksPanel";
+import { LedgerPanel } from "@/components/projects/LedgerPanel";
+import { ledgerView } from "@/services/projects/settlement";
 import { worksView } from "@/services/projects/works";
 import { Lifecycle } from "@/components/projects/ProjectSummary";
 import { listAgreements } from "@/services/projects/agreements";
@@ -41,6 +43,11 @@ export default async function LandlordProjectPage({
   const agreements = (await listAgreements(landlord, project.id)) ?? [];
   // Task 3a: milestones, itemised costs and updates addressed to the Landlord.
   const works = await worksView(landlord, project.id);
+  const [ledger, plan] = await Promise.all([
+    ledgerView(landlord, project.id),
+    // Only the Solicitor sees the settlement plan (every party's amounts).
+    Promise.resolve(null),
+  ]);
   return (
     <PortalSection
       title={project.listing.title}
@@ -95,6 +102,15 @@ export default async function LandlordProjectPage({
         {works && (
           <WorksPanel
             view={works}
+            projectId={project.id}
+            projectStatus={project.status}
+            path={`/landlord/projects/${project.id}`}
+          />
+        )}
+        {ledger && (
+          <LedgerPanel
+            view={ledger}
+            plan={plan}
             projectId={project.id}
             projectStatus={project.status}
             path={`/landlord/projects/${project.id}`}

@@ -76,18 +76,18 @@ provider (default Dropbox Sign, alternative DocuSign).
 | 5. Solicitor accounts         | Done (acceptance needs the OD-18 key) | ADR-047          |
 | 6. Agreements and e-signature | Done (live provider needs keys)       | ADR-048          |
 | 7. Funds tracking             | Done                                  | ADR-049          |
-| 8. Sale and ledger            | Not started                           |                  |
+| 8. Sale and ledger            | Done (Phase 5 calls recordSale)       | ADR-050          |
 | 9. Edge cases                 | Not started                           |                  |
 
 ## Exit gate
 
 - [x] Acceptance criterion 8: a pledge auto-calculates the share; over-subscription blocked.
-- [ ] Acceptance criterion 9: after a (mock) sale, per-party distributions match the agreement shares.
+- [x] Acceptance criterion 9: after a (mock) sale, per-party distributions match the agreement shares.
 - [x] Acceptance criterion 5 (publish half): an Agent with an active mandate publishes to the Investor Portal.
 - [x] Lead assignment yields exactly one Lead per project under concurrency.
 - [x] The Landlord's project view leaks no investor data.
 - [x] Over-subscription impossible under concurrency (50 parallel pledges).
-- [ ] Ledger immutability proven by tests (direct SQL as the app role fails).
+- [x] Ledger immutability proven by tests (direct SQL as the app role fails).
 - [x] Solicitor scope isolation proven by an RLS matrix.
 - [x] E-sign flow works with the mock; live smoke test documented.
 - [x] Sensitive documents inaccessible before KYC approval.
@@ -331,3 +331,37 @@ provider (default Dropbox Sign, alternative DocuSign).
   nothing; the feed is append-only.
 - `tests/helpers/project-flow.ts`: funded-and-signed project flow through
   the real services for later database tests.
+
+## Task 8 — Sale record and distribution ledger (2026-11-18)
+
+**Delivered** (ADR-050; TRD PD-1, acceptance criterion 9; Q24-Q27; OD-06, OD-14)
+
+- Migration `20261119060000_phase4_sale_ledger` (with `rollback.sql`,
+  rehearsed): sale record (net and ROI checked against the project's
+  purchase and itemised costs), append-only ledger (UPDATE, DELETE and
+  TRUNCATE refused for every role; every entry checked against the
+  confirmed sale, the signed agreement's parties and shares, the binding
+  pledge and the Solicitor; profit or loss shares must add up at commit),
+  corrections (Solicitor proposes, Admin decides once), Solicitor RLS.
+- Agent records the sale; Solicitor confirms (project SOLD) and settles:
+  capital back to each investor, profit split by the agreement's shares to
+  the penny, or a loss entered party by party as the agreement allocates
+  it (PropLink shows the allocation and never computes it).
+- `LedgerPanel` on every project page; parties see only their own entries.
+  PDF statements per party with access checks and minimal PII.
+
+**Verification**
+
+- `tests/integration/settlement-db.test.ts` (5, disposable database):
+  **criterion 9: a JV signed 50/30/20 (Agent 0%) sold for a £33,333.33
+  profit gives capital returns equal to the pledges and profit shares equal
+  to the largest-remainder split to the penny, with no Agent entry**;
+  settle once; parties see only their entries; **UPDATE, DELETE and
+  TRUNCATE CASCADE on the ledger refused (42501), forged entries refused,
+  the sale record cannot be rewritten**; corrections only by the Solicitor,
+  approved only by Admin and only once, original kept, adjustment added,
+  ledger.correction notice sent, rejections add nothing; a £10,000 loss
+  needs per-party shares that add up; statements: own only (the party
+  parameter is ignored for non-staff), outsiders and other Landlords 404,
+  no other party's name, pledge or the street address; Solicitor RLS on the
+  ledger.

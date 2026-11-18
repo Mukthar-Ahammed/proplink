@@ -7,6 +7,8 @@ import {
 } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
 import { WorksPanel } from "@/components/projects/WorksPanel";
+import { LedgerPanel } from "@/components/projects/LedgerPanel";
+import { ledgerView, settlementPlan } from "@/services/projects/settlement";
 import { worksView } from "@/services/projects/works";
 import { PledgeTable } from "@/components/projects/PledgeTable";
 import { PrepareAgreementForm } from "@/components/projects/PrepareAgreementForm";
@@ -42,6 +44,18 @@ export default async function SolicitorHomePage() {
   const pledges = (await listProjectPledges(solicitor, project.id)) ?? [];
   const agreements = (await listAgreements(solicitor, project.id)) ?? [];
   const works = await worksView(solicitor, project.id);
+  const [ledger, plan] = await Promise.all([
+    ledgerView(solicitor, project.id),
+    settlementPlan(project.id),
+  ]);
+  const statementParties = [
+    ...new Map(
+      (ledger?.entries ?? []).map((entry) => [
+        entry.partyId,
+        { id: entry.partyId, name: entry.party },
+      ]),
+    ).values(),
+  ];
   const open = agreements.some((a) => a.status === "DRAFT" || a.status === "SENT");
   const canPrepare =
     !open &&
@@ -73,6 +87,19 @@ export default async function SolicitorHomePage() {
                 id: pledge.id,
                 label: `${pledge.investor.name ?? "Investor"} · ${pledge.share}`,
               }))}
+          />
+        </PortalSection>
+      )}
+
+      {ledger && (
+        <PortalSection title="Sale, settlement and ledger">
+          <LedgerPanel
+            view={ledger}
+            plan={plan}
+            projectId={project.id}
+            projectStatus={project.status}
+            path="/solicitor"
+            parties={statementParties}
           />
         </PortalSection>
       )}

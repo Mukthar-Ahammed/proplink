@@ -362,7 +362,9 @@ export type ProjectNotice =
   | "lead_approved"
   | "lead_rejected"
   | "project_open"
-  | "update";
+  | "update"
+  | "ledger_correction"
+  | "settled";
 
 const PROJECT_COPY: Record<ProjectNotice, { subject: string; body: string }> = {
   published: {
@@ -400,6 +402,14 @@ const PROJECT_COPY: Record<ProjectNotice, { subject: string; body: string }> = {
   update: {
     subject: "There is an update on your project",
     body: "There is a new update on a project you are part of.",
+  },
+  ledger_correction: {
+    subject: "A correction was made to your project ledger",
+    body: "PropLink approved a correction to a ledger entry that affects you. The original entry is kept; the correction is shown beside it. Your statement is updated.",
+  },
+  settled: {
+    subject: "Your project has been settled",
+    body: "The Solicitor recorded the settlement under the signed agreement. Your distributions and statement are ready in PropLink. Payments are made by the Solicitor outside PropLink.",
   },
 };
 

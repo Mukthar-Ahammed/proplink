@@ -15,6 +15,8 @@ import { QuestionList } from "@/components/projects/QuestionList";
 import { signAgreementAction } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
 import { WorksPanel } from "@/components/projects/WorksPanel";
+import { LedgerPanel } from "@/components/projects/LedgerPanel";
+import { ledgerView } from "@/services/projects/settlement";
 import { worksView } from "@/services/projects/works";
 import { listAgreements } from "@/services/projects/agreements";
 import {
@@ -75,6 +77,11 @@ export default async function InvestorProjectPage({
   const favourite = favourites.has(project.id);
   const agreements = (await listAgreements(investor, project.id)) ?? [];
   const works = await worksView(investor, project.id);
+  const [ledger, plan] = await Promise.all([
+    ledgerView(investor, project.id),
+    // Only the Solicitor sees the settlement plan (every party's amounts).
+    Promise.resolve(null),
+  ]);
   const raising =
     project.status === InvestorProjectStatus.PUBLISHED ||
     project.status === InvestorProjectStatus.OPEN_FOR_INVESTMENT;
@@ -281,6 +288,18 @@ export default async function InvestorProjectPage({
         <PortalSection title="Works and costs">
           <WorksPanel
             view={works}
+            projectId={project.id}
+            projectStatus={project.status}
+            path={`/investor/projects/${project.id}`}
+          />
+        </PortalSection>
+      )}
+
+      {ledger && (
+        <PortalSection title="Sale and distributions">
+          <LedgerPanel
+            view={ledger}
+            plan={plan}
             projectId={project.id}
             projectStatus={project.status}
             path={`/investor/projects/${project.id}`}

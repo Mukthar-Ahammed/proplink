@@ -168,6 +168,14 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       and the change; the Landlord sees milestones, costs and only updates
       addressed to them.
 
+- [ ] **Sale and settlement.** On a listed-for-sale project, as the Agent
+      "Record the sale"; as the Solicitor "Confirm the sale" and "Record
+      settlement". Each investor sees their capital returned and profit share
+      and downloads their statement (PDF); the shares match the agreement.
+      As the Solicitor propose a correction; as Admin approve it: the
+      original entry stays and the adjustment appears; the investor gets an
+      email.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

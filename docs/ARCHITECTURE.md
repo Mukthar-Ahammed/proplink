@@ -1196,6 +1196,15 @@ of the boundary.
   `project_costs`, `project_milestones`, `project_updates` (append-only),
   `project_changes`; `proplink_project_role()`; works need a signed agreement
   (trigger); Solicitor RLS read policies.
+- Settlement (Task 8, ADR-050): `settlement.ts` (`recordSale`, `confirmSale`,
+  `settlementPlan`, `settleProject`, `proposeCorrection`, `decideCorrection`,
+  `ledgerView`, `partyStatement`); `GET /api/projects/[id]/statement` (PDF);
+  UI `LedgerPanel` + `settlementActions`.
+- Schema (migration `20261119060000`): `project_sales` (arithmetic CHECK,
+  guard), `distribution_ledger` (append-only incl. TRUNCATE; guard against
+  the sale, signed agreement, shares and actor; deferred balance check),
+  `ledger_corrections` (Solicitor proposes, Admin decides once); Solicitor
+  RLS read policies.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

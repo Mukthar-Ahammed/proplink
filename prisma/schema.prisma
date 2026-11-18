@@ -298,6 +298,12 @@ model Profile {
   projectUpdates       ProjectUpdate[]           @relation("ProjectUpdateAuthor")
   changesRecorded      ProjectChange[]           @relation("ProjectChangeRecorder")
   changesDecided       ProjectChange[]           @relation("ProjectChangeDecider")
+  salesRecorded        ProjectSale[]             @relation("ProjectSaleRecorder")
+  salesConfirmed       ProjectSale[]             @relation("ProjectSaleConfirmer")
+  ledgerEntries        DistributionLedgerEntry[] @relation("LedgerEntryParty")
+  ledgerEntriesMade    DistributionLedgerEntry[] @relation("LedgerEntryActor")
+  correctionsProposed  LedgerCorrection[]        @relation("LedgerCorrectionProposer")
+  correctionsDecided   LedgerCorrection[]        @relation("LedgerCorrectionDecider")
 
   @@map("profiles")
 }
@@ -1958,6 +1964,9 @@ model InvestorProject {
   milestones  ProjectMilestone[]
   updates     ProjectUpdate[]
   changes     ProjectChange[]
+  sale        ProjectSale?
+  ledger      DistributionLedgerEntry[]
+  corrections LedgerCorrection[]
 
   @@index([status, publishedAt])
   @@index([agentId])
@@ -2183,6 +2192,7 @@ model ProjectAgreement {
   signedFile UploadedFile?    @relation("ProjectAgreementSigned", fields: [signedFileId], references: [id], onDelete: Restrict)
   creator    Profile          @relation("ProjectAgreementCreator", fields: [createdBy], references: [id], onDelete: Restrict)
   parties    AgreementParty[]
+  ledger     DistributionLedgerEntry[]
 
   @@unique([projectId, version])
   @@map("project_agreements")
@@ -2366,4 +2376,110 @@ model ProjectChange {
 
   @@index([projectId, recordedAt])
   @@map("project_changes")
+}
+
+// ── Phase 4 Task 8: sale record and distribution ledger (ADR-050) ──
+
+enum ProjectSaleStatus {
+  RECORDED
+  CONFIRMED
+}
+
+enum LedgerEntryType {
+  CAPITAL_RETURN
+  PROFIT_SHARE
+  LOSS_SHARE
+  ADJUSTMENT
+}
+
+enum LedgerPartyRole {
+  INVESTOR
+  LANDLORD
+  AGENT
+}
+
+enum LedgerCorrectionStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+}
+
+/// The sale (TRD PD-1): recorded by the Agent, confirmed by the Solicitor; the
+/// input to settlement. Net profit = sale − purchase − itemised costs (CHECK).
+model ProjectSale {
+  id             String            @id @db.Uuid
+  projectId      String            @unique @db.Uuid
+  status         ProjectSaleStatus @default(RECORDED)
+  salePriceGBP   BigInt
+  purchaseGBP    BigInt
+  totalCostsGBP  BigInt
+  netProfitGBP   BigInt
+  roiBasisPoints BigInt
+  soldOn         DateTime          @db.Date
+  recordedBy     String            @db.Uuid
+  recordedAt     DateTime          @default(now())
+  confirmedBy    String?           @db.Uuid
+  confirmedAt    DateTime?
+
+  project   InvestorProject           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  recorder  Profile                   @relation("ProjectSaleRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  confirmer Profile?                  @relation("ProjectSaleConfirmer", fields: [confirmedBy], references: [id], onDelete: Restrict)
+  ledger    DistributionLedgerEntry[]
+
+  @@map("project_sales")
+}
+
+/// Append-only distribution ledger (no UPDATE or DELETE for any role). It
+/// records what the Solicitor pays outside PropLink under the signed agreement.
+model DistributionLedgerEntry {
+  id               String          @id @db.Uuid
+  projectId        String          @db.Uuid
+  partyId          String          @db.Uuid
+  partyRole        LedgerPartyRole
+  entryType        LedgerEntryType
+  amountGBP        BigInt
+  sharePpm         BigInt
+  agreementId      String          @db.Uuid
+  agreementVersion Int
+  saleId           String          @db.Uuid
+  correctionId     String?         @db.Uuid
+  actorId          String          @db.Uuid
+  createdAt        DateTime        @default(now())
+
+  project     InvestorProject    @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  party       Profile            @relation("LedgerEntryParty", fields: [partyId], references: [id], onDelete: Restrict)
+  agreement   ProjectAgreement   @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  sale        ProjectSale        @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  correction  LedgerCorrection?  @relation("LedgerCorrectionAdjustment", fields: [correctionId], references: [id], onDelete: Restrict)
+  actor       Profile            @relation("LedgerEntryActor", fields: [actorId], references: [id], onDelete: Restrict)
+  corrections LedgerCorrection[] @relation("LedgerCorrectionTarget")
+
+  @@index([projectId, createdAt])
+  @@index([partyId])
+  @@map("distribution_ledger")
+}
+
+/// A correction: proposed by the project's Solicitor, approved by Admin, then
+/// applied as an ADJUSTMENT entry; the original entry is kept.
+model LedgerCorrection {
+  id           String                 @id @db.Uuid
+  projectId    String                 @db.Uuid
+  entryId      String                 @db.Uuid
+  amountGBP    BigInt
+  reason       String
+  status       LedgerCorrectionStatus @default(PROPOSED)
+  proposedBy   String                 @db.Uuid
+  proposedAt   DateTime               @default(now())
+  decidedBy    String?                @db.Uuid
+  decidedAt    DateTime?
+  decisionNote String?
+
+  project     InvestorProject           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  entry       DistributionLedgerEntry   @relation("LedgerCorrectionTarget", fields: [entryId], references: [id], onDelete: Restrict)
+  proposer    Profile                   @relation("LedgerCorrectionProposer", fields: [proposedBy], references: [id], onDelete: Restrict)
+  decider     Profile?                  @relation("LedgerCorrectionDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+  adjustments DistributionLedgerEntry[] @relation("LedgerCorrectionAdjustment")
+
+  @@index([projectId, proposedAt])
+  @@map("ledger_corrections")
 }
