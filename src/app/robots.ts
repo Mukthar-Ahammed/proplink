@@ -13,6 +13,7 @@ export const PRIVATE_CRAWL_PREFIXES = [
   "/investor",
   "/buy",
   "/account",
+  "/messages",
   "/api/",
   "/mfa",
   "/verify",

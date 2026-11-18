@@ -20,8 +20,10 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   (ADR-039), Landlord data exposure (ADR-040), chain notifications (ADR-041).
   Exit waits on the owner checks listed at the end of the Phase 2 report.
   PR #1's CI is green.
-- **Phase 3 started** on `phase-3-subscriptions-chat` (Stripe subscriptions,
-  Admin-authorised chat, realtime messaging). The owner does every manual
+- **Phase 3 build complete** on `phase-3-subscriptions-chat`: Stripe
+  subscriptions (ADR-042), Admin-authorised one-to-one chat with private
+  Realtime, attachments, notifications, Buyer ↔ Agent migration and Admin
+  tools (ADR-043). The owner does every manual
   check after the last phase; the running list is `docs/MANUAL_CHECKS.md`.
 
 ## 2026-11-17 update

@@ -1106,6 +1106,29 @@ of the boundary.
   portal at `/account/billing/mock` (development), `/admin/billing`; webhook
   `POST /api/webhooks/stripe`.
 
+## Chat (Phase 3 Tasks 2-8, ADR-043)
+
+- `src/services/chat/threads.ts`: `threadAccess` (the single rule: participant;
+  Admin-authorised; subscriptions where required, computed read-only on
+  lapse; Buyer ↔ Agent per-sender), thread creation from proposals (Q10),
+  closure when the Agent's relationship ends (Q9), Buyer ↔ Agent threads
+  (OD-15), Admin bulk decisions and revoke.
+- `src/services/chat/messages.ts`: `sendMessage` (limits, access, cleaning,
+  idempotency, attachments, broadcast, throttled email), `listMessages`,
+  `markRead`, reports, logged Admin reads.
+- Routes: `/api/chat/threads/[id]/messages` (GET, POST), `/read`, `/report`;
+  `POST /api/chat` starts a Buyer enquiry. Pages: `/messages`,
+  `/messages/[id]`, `/admin/chats`, `/admin/chats/[id]`.
+- `requireChatAuthorization(threadId)` in `src/lib/authz`.
+- Schema (migrations `20261118170000`, `20261118180000`): `chat_threads` (pair
+  matrix check, two-people check, relationship trigger), `chat_authorizations`,
+  `chat_thread_messages` (append-only trigger, idempotency key),
+  `chat_message_attachments`, `chat_reports`, `proplink_can_join_thread` and
+  the `realtime.messages` policy (Supabase only); legacy `ChatMessage` copied.
+- Realtime: private Broadcast `thread:<id>` via `realtime.send` from the
+  server; clients also poll; offline outbox with idempotent retries.
+- `src/services/esign/`: `ESignProvider` interface (Phase 4 implements).
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers

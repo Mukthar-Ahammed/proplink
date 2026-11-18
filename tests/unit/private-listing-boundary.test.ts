@@ -27,6 +27,10 @@ const SERVICE_USERS = [
   // Phase 2 Task 6 (ADR-039): the Agent's own mandates; the Landlord's name
   // and documents only while the mandate is ACTIVE.
   "src/app/agent/mandates/",
+  // Phase 3 (ADR-043): chat reads listing titles only (listingTitles) for
+  // threads whose participants already know the listing, and reuses the
+  // preference-aware email helper.
+  "src/services/chat/",
 ];
 /** Download links that skip the owner/Admin check: Landlord service only. */
 const GRANTED_LINK_CALL = /createGrantedDownloadLink\s*\(/;
@@ -74,7 +78,9 @@ describe("private Landlord listings: code boundary", () => {
     expect(users.filter((rel) => !allowed(rel, SERVICE_USERS))).toEqual([]);
   });
 
-  it("issues pre-authorised download links only from the Landlord service", () => {
+  it("issues pre-authorised download links only from the Landlord and chat services", () => {
+    // Chat (Phase 3 Task 4): links only after threadAccess allowed reading.
+    const allowedCallers = ["src/services/landlord/", "src/services/chat/"];
     const callers = files
       .filter(
         ({ rel, text }) =>
@@ -82,9 +88,7 @@ describe("private Landlord listings: code boundary", () => {
       )
       .map(({ rel }) => rel);
     expect(callers.length).toBeGreaterThan(0);
-    expect(callers.filter((rel) => !rel.startsWith("src/services/landlord/"))).toEqual(
-      [],
-    );
+    expect(callers.filter((rel) => !allowed(rel, allowedCallers))).toEqual([]);
   });
 
   it("keeps public surfaces (sitemap, robots, search, marketplace) away from it", () => {

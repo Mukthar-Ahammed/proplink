@@ -9,6 +9,7 @@ export const AGENT_NAV: PortalNavItem[] = [
   { href: "/agent/listings", label: "Listings" },
   { href: "/agent/marketplace", label: "Landlord listings" },
   { href: "/agent/mandates", label: "Mandates" },
+  { href: "/messages", label: "Messages" },
   { href: "/agent/leads", label: "Leads" },
   { href: "/agent/profile", label: "Profile" },
   { href: "/agent/company", label: "Company" },

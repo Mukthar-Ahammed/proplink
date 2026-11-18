@@ -278,6 +278,7 @@ export async function closeMandate(
     entity: "Mandate",
     entityId: mandateId,
   });
+  await endAgentChat(mandateId, "Mandate closed", landlord.profileId);
   await notify(
     mandate.agentId,
     "mandate.decision",
@@ -445,6 +446,17 @@ export async function getMandateForAgent(agent: AgentActor, mandateId: string) {
   };
 }
 
+/** Q9: when a mandate ends, the former Agent loses the chat (history stays with the Landlord). */
+async function endAgentChat(mandateId: string, reason: string, actorId: string) {
+  const mandate = await db.mandate.findUnique({
+    where: { id: mandateId },
+    select: { listingId: true, agentId: true },
+  });
+  if (!mandate) return;
+  const { closePrivateListingThread } = await import("@/services/chat/threads");
+  await closePrivateListingThread(mandate.listingId, mandate.agentId, reason, actorId);
+}
+
 // ── Either party ─────────────────────────────────────────────────────────
 
 export type MandateParty = { profileId: string; legacyUserId: string; role: Role };
@@ -494,6 +506,7 @@ export async function terminateMandate(
     entityId: mandateId,
     meta: { by: party.role, reason: reason.data },
   });
+  await endAgentChat(mandateId, "Mandate terminated", party.profileId);
   if (party.role === Role.AGENT) {
     await notify(
       mandate.listing.ownerId,

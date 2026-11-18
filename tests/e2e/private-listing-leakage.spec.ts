@@ -88,6 +88,13 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
+  // Phase 3: a proposal opens a pending chat thread (no messages are sent here).
+  await q(
+    `DELETE FROM public.chat_authorizations WHERE "threadId" IN
+       (SELECT id FROM public.chat_threads WHERE "contextId" = $1)`,
+    [LISTING_ID],
+  );
+  await q(`DELETE FROM public.chat_threads WHERE "contextId" = $1`, [LISTING_ID]);
   await q(
     `DELETE FROM public.agent_proposal_questions WHERE "proposalId" IN
        (SELECT id FROM public.agent_proposals WHERE "listingId" = $1)`,

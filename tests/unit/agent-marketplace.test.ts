@@ -20,6 +20,10 @@ vi.mock("@/services/agents/companyGate", () => ({ agentCompanyGate: vi.fn() }));
 vi.mock("@/services/auth/supabaseAuthService", () => ({ consumeRateLimits: vi.fn() }));
 vi.mock("@/services/notifications/preferences", () => ({ shouldNotify: vi.fn() }));
 vi.mock("@/services/uploads/pipeline", () => ({ createGrantedDownloadLink: vi.fn() }));
+vi.mock("@/services/chat/threads", () => ({
+  ensurePrivateListingThread: vi.fn(),
+  closePrivateListingThread: vi.fn(),
+}));
 vi.mock("@/services/email/mailer", () => ({
   sendNewProposalEmail: vi.fn(),
   sendProposalQuestionEmail: vi.fn(),
@@ -56,6 +60,7 @@ import {
 } from "@/services/landlord/marketplace";
 import { shouldNotify } from "@/services/notifications/preferences";
 import { createGrantedDownloadLink } from "@/services/uploads/pipeline";
+import { ensurePrivateListingThread } from "@/services/chat/threads";
 
 const mockDb = vi.mocked(db, true);
 const AGENT = {
@@ -288,6 +293,12 @@ describe("proposals", () => {
       to: "owner@proplink.test",
       listingTitle: "Derelict terrace",
       listingId: LISTING,
+    });
+    // Phase 3 (Q10): the interest step creates the pending Landlord ↔ Agent chat.
+    expect(ensurePrivateListingThread).toHaveBeenCalledWith({
+      listingId: LISTING,
+      landlordId: LANDLORD.profileId,
+      agentId: AGENT.profileId,
     });
   });
 

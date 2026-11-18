@@ -7,6 +7,7 @@ vi.mock("@/lib/db", () => {
     mandate: {
       create: vi.fn(),
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       findMany: vi.fn(),
       updateMany: vi.fn(),
     },
@@ -22,6 +23,10 @@ vi.mock("@/services/agents/companyGate", () => ({ agentCompanyGate: vi.fn() }));
 vi.mock("@/services/auth/supabaseAuthService", () => ({ consumeRateLimits: vi.fn() }));
 vi.mock("@/services/notifications/preferences", () => ({ shouldNotify: vi.fn() }));
 vi.mock("@/services/uploads/pipeline", () => ({ createGrantedDownloadLink: vi.fn() }));
+vi.mock("@/services/chat/threads", () => ({
+  ensurePrivateListingThread: vi.fn(),
+  closePrivateListingThread: vi.fn(),
+}));
 vi.mock("@/services/email/mailer", () => ({
   sendMandateEmail: vi.fn(),
   sendNewProposalEmail: vi.fn(),
@@ -54,6 +59,7 @@ import {
 } from "@/services/landlord/mandates";
 import { shouldNotify } from "@/services/notifications/preferences";
 import { createGrantedDownloadLink } from "@/services/uploads/pipeline";
+import { closePrivateListingThread } from "@/services/chat/threads";
 
 const mockDb = vi.mocked(db, true);
 const AGENT = {
@@ -316,9 +322,20 @@ describe("ending a mandate", () => {
         NOW,
       ),
     ).toMatchObject({ ok: false, status: 403 });
+    mockDb.mandate.findUnique.mockResolvedValue({
+      listingId: LISTING,
+      agentId: AGENT.profileId,
+    } as never);
     expect(
       await terminateMandate(AGENT, MANDATE, "Landlord stopped responding.", NOW),
     ).toEqual({ ok: true });
+    // Q9: the former Agent's chat closes with the mandate.
+    expect(closePrivateListingThread).toHaveBeenCalledWith(
+      LISTING,
+      AGENT.profileId,
+      "Mandate terminated",
+      AGENT.profileId,
+    );
     expect(mockDb.mandate.findFirst.mock.calls.at(-1)?.[0]?.where).toMatchObject({
       agentId: AGENT.profileId,
       status: "ACTIVE",

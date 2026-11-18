@@ -23,7 +23,7 @@ export const MATRIX_ROLES = [
 export type MatrixRole = (typeof MATRIX_ROLES)[number];
 
 /** The phase currently being delivered; cells from later phases expect DENY. */
-export const CURRENT_PHASE = 2;
+export const CURRENT_PHASE = 3;
 
 export type Cell = "allow" | "deny";
 

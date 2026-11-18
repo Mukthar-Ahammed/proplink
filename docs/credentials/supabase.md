@@ -48,6 +48,17 @@ commands use `.env.staging.local` only when `PROPLINK_ENV=staging`, and
 otherwise use `.env.local` plus dotenv's `.env` fallback. The project guard
 runs before the app starts or scripts perform database/Auth writes.
 
+## Realtime (Phase 3 chat, ADR-043)
+
+- **Project Settings → Realtime:** turn **off** "Allow public access", so only
+  private channels work. Chat uses private Broadcast channels `thread:<id>`.
+- The migration `20261118170000_phase3_chat` creates the RLS policy
+  `proplink_thread_receive` on `realtime.messages`: only the two participants
+  of an authorised thread may receive. Nobody may send from the browser; the
+  server broadcasts with `realtime.send` after its checks.
+- Check: Database → Policies → `realtime.messages` shows
+  `proplink_thread_receive`. Without Realtime, chat still works by polling.
+
 ## Permissions, rotation, and testing
 
 Use the publishable key only for Supabase client identification. Keep database

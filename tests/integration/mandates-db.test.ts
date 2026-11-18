@@ -88,7 +88,7 @@ async function approvedListing(owner: Person, admin: Person): Promise<string> {
   await client.query(
     `INSERT INTO public.landlord_listings
        (id, "ownerId", "createdBy", status, title, city, "submittedAt", "reviewedAt", "reviewedBy", "updatedAt")
-     VALUES ($1, $2, $2, 'APPROVED', 'Mandate terrace', 'Leeds', now(), now(), $3, now())`,
+     VALUES ($1, $2, $2, 'APPROVED', 'Mandate terrace', 'Town-' || left($1::uuid::text, 8), now(), now(), $3, now())`,
     [id, owner.profileId, admin.profileId],
   );
   const fileId = randomUUID();
@@ -181,7 +181,9 @@ describe.skipIf(!hasDb)("exclusive mandates", () => {
     const mandateId = chosen.data.mandateId;
 
     // Offered: out of the marketplace; Agent sees terms but not the Landlord.
-    const market = await listMarketplace(asAgent(other), {});
+    const market = await listMarketplace(asAgent(other), {
+      location: `Town-${listingId.slice(0, 8)}`,
+    });
     expect(market.ok && market.data.some((row) => row.id === listingId)).toBe(false);
     expect(
       (await getMandateForAgent(asAgent(agent), mandateId))?.listing.landlordName,
@@ -220,7 +222,9 @@ describe.skipIf(!hasDb)("exclusive mandates", () => {
     ).toEqual({ ok: true });
 
     // Q9: back in the pool; the former Agent loses the documents.
-    const after = await listMarketplace(asAgent(other), {});
+    const after = await listMarketplace(asAgent(other), {
+      location: `Town-${listingId.slice(0, 8)}`,
+    });
     expect(after.ok && after.data.some((row) => row.id === listingId)).toBe(true);
     const former = await getMandateForAgent(asAgent(agent), mandateId);
     expect(former?.documents).toEqual([]);

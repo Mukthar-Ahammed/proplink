@@ -96,7 +96,7 @@ async function listing(
     `INSERT INTO public.landlord_listings
        (id, "ownerId", "createdBy", status, title, city, postcode, "requiredWork",
         "submittedAt", "reviewedAt", "reviewedBy", "updatedAt")
-     VALUES ($1, $2, $2, $3::"LandlordListingStatus", 'Market terrace', 'Leeds', 'LS6 2AB',
+     VALUES ($1, $2, $2, $3::"LandlordListingStatus", 'Market terrace', 'Town-' || left($1::uuid::text, 8), 'LS6 2AB',
              'New roof and rewire', now(), $4, $5, now())`,
     [
       id,
@@ -130,7 +130,9 @@ describe.skipIf(!hasDb)("Agent marketplace", () => {
     const approved = await listing(landlord, "APPROVED", admin);
     const waiting = await listing(landlord, "SUBMITTED");
     const agent = await verifiedAgent();
-    const result = await listMarketplace(agentActor(agent), { location: "LS6" });
+    const result = await listMarketplace(agentActor(agent), {
+      location: `Town-${approved.slice(0, 8)}`,
+    });
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const ids = result.data.map((row) => row.id);

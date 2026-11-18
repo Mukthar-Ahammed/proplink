@@ -383,6 +383,13 @@ export async function submitProposal(
     meta: { listingId, resubmission: Boolean(existing) && notify },
   });
   if (notify) {
+    // Q10: the interest step creates a pending Landlord ↔ Agent chat for Admin.
+    const { ensurePrivateListingThread } = await import("@/services/chat/threads");
+    await ensurePrivateListingThread({
+      listingId,
+      landlordId: listing.ownerId,
+      agentId: agent.profileId,
+    });
     await notifyProfile(listing.ownerId, "mandate.offer", (to) =>
       sendNewProposalEmail({ to, listingTitle: listing.title, listingId }),
     );
@@ -412,7 +419,19 @@ export async function withdrawProposal(
     entity: "AgentProposal",
     entityId: proposalId,
   });
+  await closeAgentThread(proposalId, "Agent withdrew the proposal", agent.profileId);
   return { ok: true };
+}
+
+/** Q9: when the Agent's relationship to the listing ends, so does their chat. */
+async function closeAgentThread(proposalId: string, reason: string, actorId: string) {
+  const proposal = await db.agentProposal.findUnique({
+    where: { id: proposalId },
+    select: { listingId: true, agentId: true },
+  });
+  if (!proposal) return;
+  const { closePrivateListingThread } = await import("@/services/chat/threads");
+  await closePrivateListingThread(proposal.listingId, proposal.agentId, reason, actorId);
 }
 
 const answerSchema = text(2, 1000, "Answer");
@@ -580,6 +599,11 @@ export async function declineProposal(
     entity: "AgentProposal",
     entityId: proposalId,
   });
+  await closeAgentThread(
+    proposalId,
+    "Landlord declined the proposal",
+    landlord.profileId,
+  );
   // Task 8: the Agent hears the outcome (mandate.decision covers declines).
   const declined = await db.agentProposal.findUnique({
     where: { id: proposalId },

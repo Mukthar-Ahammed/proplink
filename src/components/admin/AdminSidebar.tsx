@@ -27,6 +27,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
         exact: true,
         status: "active",
       },
+      { label: "Chats", href: "/admin/chats", status: "active" },
       { label: "Moderation", href: "/admin/moderation", status: "active" },
       { label: "Flipper Resales", href: "/admin/resales", status: "active" },
     ],

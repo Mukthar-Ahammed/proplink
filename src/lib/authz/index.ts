@@ -199,8 +199,34 @@ export async function requireSubscription(): Promise<AuthzResult> {
   return result;
 }
 
-export async function requireChatAuthorization(): Promise<never> {
-  throw new NotImplementedError("Chat");
+/**
+ * Phase 3 Task 2 (ADR-043): may the signed-in user send on this thread? Admin
+ * authorisation AND subscriptions where required, checked on every call.
+ */
+export async function requireChatAuthorization(threadId: string): Promise<AuthzResult> {
+  const result = await requireUser();
+  if (!result.ok) return result;
+  const { threadAccess } = await import("@/services/chat/threads");
+  const access = await threadAccess(
+    { profileId: result.session.user.authUserId, role: result.session.user.role },
+    threadId,
+  );
+  if (!access.ok) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: "Not found" }, { status: access.status }),
+    };
+  }
+  if (!access.canSend) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "This chat is not open", blocked: access.blocked },
+        { status: access.blocked === "your_subscription" ? 402 : 403 },
+      ),
+    };
+  }
+  return result;
 }
 
 export async function requireProjectAccess(): Promise<never> {

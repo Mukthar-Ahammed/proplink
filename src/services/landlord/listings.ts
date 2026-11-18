@@ -135,6 +135,21 @@ export async function createDraft(
   return { ok: true, data: { id } };
 }
 
+/**
+ * Titles only, for chat thread lists (Phase 3, ADR-043). Callers show them
+ * only to that thread's participants (the Landlord, or an Agent who sent a
+ * proposal), who may already see the title.
+ */
+export async function listingTitles(ids: string[]): Promise<Map<string, string>> {
+  const valid = ids.filter((id) => z.uuid().safeParse(id).success);
+  if (valid.length === 0) return new Map();
+  const rows = await db.landlordListing.findMany({
+    where: { id: { in: valid } },
+    select: { id: true, title: true },
+  });
+  return new Map(rows.map((row) => [row.id, row.title]));
+}
+
 /** The Landlord's own listing, or nothing (same answer for "not yours"). */
 export async function getOwnListing(ownerId: string, id: string) {
   if (!z.uuid().safeParse(id).success) return null;

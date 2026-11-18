@@ -27,8 +27,17 @@ vi.mock("@/lib/db", () => ({
     profile: { findUnique: vi.fn(async () => null), findFirst: vi.fn(async () => null) },
     agentCompanyCheck: { findUnique: vi.fn(async () => null) },
     landlordListing: { create: vi.fn(async () => ({})), findMany: vi.fn(async () => []) },
+    chatThread: { findUnique: vi.fn(async () => null) },
+    chatThreadMessage: { findMany: vi.fn(async () => []) },
     auditLog: { create: vi.fn() },
   },
+}));
+// Phase 3: subscriptions are tested in billing tests; here they are active.
+vi.mock("@/services/billing/subscriptions", () => ({
+  audiencesFor: (role: string) =>
+    role === "AGENT" ? ["AGENT"] : role === "INVESTOR" ? ["LEAD_INVESTOR"] : [],
+  subscriptionState: vi.fn(async () => ({ state: "active" })),
+  allowsPaidFeatures: () => true,
 }));
 // The company check itself is Phase 1's (ADR-024) and tested there; here it
 // passes, so only the role decides.
@@ -56,6 +65,8 @@ import { createOnBehalfAction } from "@/app/admin/landlord-listings/new/actions"
 import { requireRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { listMarketplace } from "@/services/landlord/marketplace";
+import { adminReadThread } from "@/services/chat/messages";
+import { threadAccess } from "@/services/chat/threads";
 
 function sessionAs(role: MatrixRole) {
   return {
@@ -149,6 +160,51 @@ const CHECKERS: Record<string, (role: MatrixRole) => Promise<Cell>> = {
    * in the service), the verified-Agent marketplace (approved listings) and
    * the Admin review pages.
    */
+  /**
+   * Phase 3 (ADR-043): an authorised Landlord ↔ Agent listing chat. Who can be
+   * a participant (the listing's Landlord, an Agent with a proposal) is
+   * enforced by the database trigger (tests/integration/chat-db.test.ts);
+   * here the real access rule runs with the session in its seat. Admin may
+   * read with a logged reason (moderation), never post.
+   */
+  async chat_with_landlord_on_listing(role) {
+    const session = sessionAs(role);
+    mocks.auth.mockResolvedValue(session);
+    const me = session.user.authUserId;
+    const other = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    const thread = {
+      id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      contextType: "PRIVATE_LISTING",
+      contextId: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      pairType: "LANDLORD_AGENT",
+      participantA: role === Role.LANDLORD ? me : other,
+      participantB: role === Role.AGENT ? me : other,
+      status: "AUTHORIZED",
+      a: { name: "A" },
+      b: { name: "B" },
+    };
+    vi.mocked(db.chatThread.findUnique).mockResolvedValue(thread as never);
+    vi.mocked(db.profile.findUnique).mockImplementation((async () => ({
+      role,
+      active: true,
+    })) as never);
+    try {
+      const access = await threadAccess({ profileId: me, role }, thread.id);
+      const participant = access.ok && access.canSend;
+      const moderation = (
+        await adminReadThread(
+          { profileId: me, legacyUserId: session.user.id, role },
+          thread.id,
+          "Reviewing a reported chat",
+        )
+      ).ok;
+      return participant || moderation ? "allow" : "deny";
+    } finally {
+      vi.mocked(db.chatThread.findUnique).mockResolvedValue(null);
+      vi.mocked(db.profile.findUnique).mockImplementation((async () => null) as never);
+    }
+  },
+
   async view_private_landlord_listing(role) {
     mocks.auth.mockResolvedValue(sessionAs(role));
     const session = sessionAs(role);

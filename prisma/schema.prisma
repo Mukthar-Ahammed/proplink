@@ -268,6 +268,12 @@ model Profile {
   plansCreated         SubscriptionPlan[]        @relation("SubscriptionPlanCreator")
   billingCustomer      BillingCustomer?          @relation("BillingCustomerProfile")
   billingSubscriptions BillingSubscription[]     @relation("SubscriptionProfile")
+  chatThreadsAsA       ChatThread[]              @relation("ChatThreadParticipantA")
+  chatThreadsAsB       ChatThread[]              @relation("ChatThreadParticipantB")
+  chatAuthorizations   ChatAuthorization[]       @relation("ChatAuthorizationActor")
+  chatMessagesSent     ChatThreadMessage[]       @relation("ChatThreadMessageSender")
+  chatReportsMade      ChatReport[]              @relation("ChatReportReporter")
+  chatReportsResolved  ChatReport[]              @relation("ChatReportResolver")
 
   @@map("profiles")
 }
@@ -1252,6 +1258,7 @@ model UploadedFile {
 
   owner Profile @relation("UploadedFileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   mandateContracts Mandate[] @relation("MandateTermsFile")
+  chatAttachments ChatMessageAttachment[]
 
   @@index([ownerId, status])
   @@map("uploaded_files")
@@ -1712,4 +1719,139 @@ model BillingWebhookEvent {
   receivedAt     DateTime @default(now())
 
   @@map("billing_webhook_events")
+}
+
+enum ChatContextType {
+  PRIVATE_LISTING
+  PROJECT
+  RETAIL_LISTING
+}
+
+enum ChatPairType {
+  LANDLORD_AGENT
+  AGENT_INVESTOR
+  LEAD_CO_INVESTOR
+  BUYER_AGENT
+}
+
+/// Stored state. "Read-only" is computed: an AUTHORIZED thread is read-only
+/// while a participant who must pay has a lapsed subscription (ADR-043).
+enum ChatThreadStatus {
+  PENDING
+  AUTHORIZED
+  CLOSED
+}
+
+enum ChatAuthorizationAction {
+  REQUESTED
+  APPROVED
+  REJECTED
+  REVOKED
+  CLOSED
+  REOPENED
+}
+
+enum ChatReportStatus {
+  OPEN
+  RESOLVED
+}
+
+/// One-to-one, context-bound chat (Phase 3, ADR-043). The pair matrix, two
+/// distinct people and each participant's relationship to the context are
+/// enforced in the database.
+model ChatThread {
+  id                    String           @id @db.Uuid
+  contextType           ChatContextType
+  contextId             String
+  pairType              ChatPairType
+  participantA          String           @db.Uuid
+  participantB          String           @db.Uuid
+  status                ChatThreadStatus @default(PENDING)
+  requiresAuthorization Boolean          @default(true)
+  authorizedAt          DateTime?
+  closedAt              DateTime?
+  closedReason          String?
+  lastMessageAt         DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  a              Profile             @relation("ChatThreadParticipantA", fields: [participantA], references: [id], onDelete: Restrict)
+  b              Profile             @relation("ChatThreadParticipantB", fields: [participantB], references: [id], onDelete: Restrict)
+  authorizations ChatAuthorization[]
+  messages       ChatThreadMessage[]
+  reports        ChatReport[]
+
+  @@unique([contextType, contextId, participantA, participantB], map: "chat_threads_context_pair_key")
+  @@index([participantA])
+  @@index([participantB])
+  @@index([status, createdAt])
+  @@map("chat_threads")
+}
+
+/// Append-only history of who requested, approved, rejected, revoked or closed.
+model ChatAuthorization {
+  id        String                  @id @db.Uuid
+  threadId  String                  @db.Uuid
+  action    ChatAuthorizationAction
+  actorId   String?                 @db.Uuid
+  reason    String?
+  createdAt DateTime                @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Restrict)
+  actor  Profile?   @relation("ChatAuthorizationActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([threadId, createdAt])
+  @@map("chat_authorizations")
+}
+
+/// Never edited or deleted; only the recipient's read time is set once.
+model ChatThreadMessage {
+  id              String    @id @db.Uuid
+  threadId        String    @db.Uuid
+  senderId        String    @db.Uuid
+  body            String
+  /// Client idempotency key: a retried send is the same message.
+  clientMessageId String
+  createdAt       DateTime  @default(now())
+  readAt          DateTime?
+
+  thread      ChatThread              @relation(fields: [threadId], references: [id], onDelete: Restrict)
+  sender      Profile                 @relation("ChatThreadMessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  attachments ChatMessageAttachment[]
+
+  @@unique([threadId, senderId, clientMessageId], map: "chat_thread_messages_idempotency_key")
+  @@index([threadId, createdAt])
+  @@map("chat_thread_messages")
+}
+
+model ChatMessageAttachment {
+  messageId String   @db.Uuid
+  fileId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  message ChatThreadMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  file    UploadedFile      @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@id([messageId, fileId])
+  @@index([fileId])
+  @@map("chat_message_attachments")
+}
+
+model ChatReport {
+  id         String           @id @db.Uuid
+  threadId   String           @db.Uuid
+  reporterId String           @db.Uuid
+  reason     String
+  status     ChatReportStatus @default(OPEN)
+  resolution String?
+  resolvedBy String?          @db.Uuid
+  resolvedAt DateTime?
+  createdAt  DateTime         @default(now())
+
+  thread   ChatThread @relation(fields: [threadId], references: [id], onDelete: Restrict)
+  reporter Profile    @relation("ChatReportReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  resolver Profile?   @relation("ChatReportResolver", fields: [resolvedBy], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@map("chat_reports")
 }

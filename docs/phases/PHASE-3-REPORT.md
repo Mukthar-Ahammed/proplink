@@ -1,8 +1,8 @@
 # Phase 3 — Subscriptions, Chat Authorization and Realtime Messaging
 
-| Status      | Started    | Branch                       | Depends on                                         |
-| ----------- | ---------- | ---------------------------- | -------------------------------------------------- |
-| In progress | 2026-11-18 | `phase-3-subscriptions-chat` | Phases 1-2 built; owner checks deferred (see note) |
+| Status                          | Started    | Branch                       | Depends on                                         |
+| ------------------------------- | ---------- | ---------------------------- | -------------------------------------------------- |
+| Built; waiting for owner checks | 2026-11-18 | `phase-3-subscriptions-chat` | Phases 1-2 built; owner checks deferred (see note) |
 
 Started from `phase-2-landlord-pipeline` after its build finished. By the
 owner's choice (2026-11-18), manual checks for every phase are done together
@@ -46,16 +46,16 @@ needs no Admin authorisation; Solicitor uses project updates, not chat).
 
 ## Task progress
 
-| Task                       | State                              | Notes   |
-| -------------------------- | ---------------------------------- | ------- |
-| 1. Stripe subscriptions    | Done (real Stripe needs test keys) | ADR-042 |
-| 2. Chat authorization      | Not started                        |         |
-| 3. Realtime chat           | Not started                        |         |
-| 4. Attachments             | Not started                        |         |
-| 5. E-signature groundwork  | Not started                        |         |
-| 6. Notifications           | Not started                        |         |
-| 7. Buyer ↔ Agent messaging | Not started                        |         |
-| 8. Admin tools             | Not started                        |         |
+| Task                       | State                                | Notes            |
+| -------------------------- | ------------------------------------ | ---------------- |
+| 1. Stripe subscriptions    | Done (real Stripe needs test keys)   | ADR-042          |
+| 2. Chat authorization      | Done                                 | ADR-043          |
+| 3. Realtime chat           | Done                                 | ADR-043          |
+| 4. Attachments             | Done                                 | ADR-043          |
+| 5. E-signature groundwork  | Done (interface; Phase 4 implements) | ADR-043          |
+| 6. Notifications           | Done                                 | ADR-043          |
+| 7. Buyer ↔ Agent messaging | Done (OD-15 default)                 | ADR-043          |
+| 8. Admin tools             | Done                                 | ADR-042, ADR-043 |
 
 ## Task 1 — Stripe subscriptions (2026-11-18)
 
@@ -105,3 +105,62 @@ needs no Admin authorisation; Solicitor uses project updates, not chat).
 - Real Stripe test-mode run (owner, `docs/MANUAL_CHECKS.md`).
 - Prices are not set (OD-01): Admin enters them; until then the billing page
   says plans are not available yet.
+
+## Tasks 2-8 — Chat, realtime, attachments, notifications, Buyer ↔ Agent, Admin tools (2026-11-18)
+
+**Delivered** (ADR-043)
+
+- Migrations `20261118170000_phase3_chat` and
+  `20261118180000_phase3_buyer_agent_threads` (both with `rollback.sql`,
+  rehearsed): threads with the pair matrix, two-people and relationship
+  checks in the database; authorisation history; append-only messages with
+  idempotency keys; attachments limited to the sender's scanned files;
+  reports; the Realtime join function and `realtime.messages` policy;
+  legacy Buyer ↔ Agent messages copied (development: 1 thread, 2 messages).
+- Chat opens only with Admin authorisation AND subscriptions where
+  required, checked on every send; read-only on lapse; Buyer ↔ Agent opens
+  without Admin (OD-15) and only the Agent needs a subscription.
+- Proposals create pending threads (Q10); declined or withdrawn proposals and
+  ended mandates close the Agent's thread (Q9; Landlord keeps history).
+- `/messages` (all roles; nav for Landlords, Agents, Buyers), conversation
+  page with polling plus private Realtime, offline outbox, read receipts,
+  attachments, report-a-chat; `/admin/chats` bulk queue, revoke, reported
+  chats with logged reads and resolution; `/buy/messages` redirects.
+- Emails: chat authorised; new message at most every 15 minutes per thread,
+  never with text. Notification preferences page now at Phase 3.
+- `requireChatAuthorization`; `ESignProvider` interface; permission matrix at
+  `CURRENT_PHASE = 3` with a real checker for Landlord ↔ Agent chat.
+
+**Verification**
+
+- `tests/integration/chat-db.test.ts` (9, disposable database): pending →
+  authorised → read-only without the Agent's subscription → open → lapse →
+  read-only → renew; outsiders get 404 on read and send; the Realtime join
+  function admits only the two participants of an authorised thread (not
+  pending, not Admin, not outsiders; not callable by anon); idempotent
+  retries; an XSS payload stays plain text; edits and deletes refused; every
+  disallowed pair and relationship refused by the database (including
+  project threads); declining a proposal closes the Agent's chat while the
+  Landlord keeps the history; only the sender's scanned files attach (other
+  people's and malware-rejected refused) and access ends with the thread;
+  reports and logged Admin reads; Buyer ↔ Agent rules; legacy copy.
+- `tests/unit/chat.test.ts` (10): limits, cleaning, flood and validation
+  order, blocked-send reasons and codes, read receipts. Guard tests for
+  `requireChatAuthorization`; marketplace and mandate tests assert the
+  thread hooks; permission matrix 63 checks at Phase 3.
+- `tests/e2e/chat-realtime.spec.ts` against the development database
+  (acceptance criterion 4): a Landlord and a verified Agent exchange
+  messages both ways; a Buyer gets 404 on the page, the read API and the
+  send API; a message sent offline arrives exactly once after reconnecting.
+  Delivery in this run may have used polling or Realtime; the live
+  indicator is in the owner checks. No fixtures left.
+- Stabilised two database tests that read the shared marketplace (unique
+  towns per test listing). Full suite on the disposable database, twice:
+  127 files, 1622 tests pass. Without a database: 107 files pass.
+
+**Open**
+
+- Realtime "Live" confirmation and the Realtime "Allow public access" setting
+  (owner; `docs/credentials/supabase.md`).
+- EICAR through chat with real ClamAV (the mock scanner path is tested in
+  Phase 1; chat accepts only files the scanner passed).

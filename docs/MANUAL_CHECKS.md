@@ -81,7 +81,21 @@ and complete the mock identity check at `/verify`.
 
 ## Phase 3 — Subscriptions, chat authorisation, realtime messaging
 
-(Being built; more items are added as tasks finish.)
+- [ ] **Chat end to end.** As `agent@` (subscribed, see above) send a proposal
+      on an approved listing. As Admin at `/admin/chats`, tick it and
+      "Authorise selected". As the Landlord and the Agent, open `/messages`
+      in two browsers and chat; the page should say "Live" (Realtime) and
+      messages appear within a second. Attach a PDF. Report the chat; as Admin
+      read it (give a reason) and resolve the report. As a Buyer, open the
+      chat's URL: you should get "not found".
+- [ ] **Read-only on lapse.** In mock billing choose "Cancel now" for the Agent:
+      the chat becomes read-only for both; subscribe again and it reopens.
+- [ ] **Supabase Realtime setting.** Project Settings → Realtime: "Allow public
+      access" is off (`docs/credentials/supabase.md`).
+- [ ] **Buyer enquiry.** As `buyer@`, message an agent from a live listing;
+      the agent replies from `/messages`.
+- [ ] **EICAR via chat (needs real ClamAV).** Attaching the EICAR test file is
+      refused with a clear message.
 
 - [ ] **Subscriptions with the mock provider.** As Admin at `/admin/billing`,
       set Agent prices (monthly and yearly). As `agent@`, open Billing,

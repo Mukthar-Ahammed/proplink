@@ -9,11 +9,10 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Notification preferences — PropLink UK" };
 
 /**
- * The roadmap phase now live; later events show as "coming soon". Phase 2's
- * chain events are delivered (ADR-041); move to 3 when Phase 3's chat events
- * ship.
+ * The roadmap phase now live; later events show as "coming soon". Phase 3
+ * delivers chat and billing notices (ADR-042, ADR-043).
  */
-const CURRENT_PHASE = 2;
+const CURRENT_PHASE = 3;
 
 /**
  * Notification preferences for every signed-in role (Phase 1 Task 10,

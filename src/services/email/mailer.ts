@@ -268,6 +268,24 @@ export async function sendPaymentFailedEmail(params: { to: string; graceDays: nu
   });
 }
 
+// Phase 3 — chat. Emails never contain message text (confidentiality).
+
+export async function sendChatAuthorisedEmail(params: { to: string; threadId: string }) {
+  await mailer.send({
+    to: params.to,
+    subject: "PropLink opened a conversation for you",
+    text: `PropLink authorised a new conversation for you.\n\nOpen it: ${BASE_URL}/messages/${params.threadId}`,
+  });
+}
+
+export async function sendNewChatMessageEmail(params: { to: string; threadId: string }) {
+  await mailer.send({
+    to: params.to,
+    subject: "You have a new message on PropLink",
+    text: `You have a new message. For privacy, messages are shown only in PropLink.\n\nRead it: ${BASE_URL}/messages/${params.threadId}`,
+  });
+}
+
 // Task 2.5 — public property detail page enquiry notification.
 
 export async function sendNewEnquiryEmail(params: {
