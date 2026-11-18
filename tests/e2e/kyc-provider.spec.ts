@@ -49,13 +49,19 @@ test.afterAll(async () => {
 });
 
 test("Investor verifies identity through the mock provider", async ({ page }) => {
+  // Remote development database: each step makes several ~200 ms round trips.
+  test.setTimeout(90_000);
   await removeApplicant();
   await setStatus("NOT_STARTED");
   await login(page, EMAIL, "Password123!");
   await page.goto("/investor/kyc");
+  // Wait for hydration: the buttons submit server actions that write to the
+  // database before redirecting.
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Verify my identity" }).click();
-  await expect(page).toHaveURL(/\/verify\/mock\?applicant=mock-/);
+  await expect(page).toHaveURL(/\/verify\/mock\?applicant=mock-/, { timeout: 15_000 });
+  await page.waitForLoadState("networkidle");
   await page.getByRole("button", { name: "Approve" }).click();
-  await expect(page).toHaveURL(/\/investor\/kyc\?verified=approved/);
+  await expect(page).toHaveURL(/\/investor\/kyc\?verified=approved/, { timeout: 15_000 });
   await expect(page.getByText("APPROVED", { exact: true })).toBeVisible();
 });
