@@ -30,7 +30,8 @@ import { declaredTypeMatches, detectFileType } from "@/services/uploads/sniff";
 export const DEFAULT_MAX_FILE_BYTES = 100 * 1024 * 1024;
 export const DEFAULT_USER_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
 export const DOWNLOAD_TTL_SECONDS = 5 * 60;
-export const UPLOAD_PURPOSES = ["profile_photo", "document"] as const;
+// Phase 6 (ADR-060): ad creatives go through the same quarantine and scan.
+export const UPLOAD_PURPOSES = ["profile_photo", "document", "ad_creative"] as const;
 export type UploadPurpose = (typeof UPLOAD_PURPOSES)[number];
 
 export const UPLOAD_MESSAGES = {
@@ -509,6 +510,34 @@ export async function readProfilePhoto(
     !file.detectedType
   ) {
     return { ok: false, status: 404 };
+  }
+  return {
+    ok: true,
+    bytes: await getStore().get("private", file.storageKey),
+    contentType: file.detectedType,
+  };
+}
+
+/**
+ * Phase 6 Task 1 (ADR-060): an ad image, served only while it is a clean,
+ * previewable image of a live campaign (checked by the caller with the
+ * campaign; this checks the file itself).
+ */
+export async function readAdCreative(
+  fileId: string,
+): Promise<{ ok: true; bytes: Uint8Array; contentType: string } | { ok: false }> {
+  const file = await db.uploadedFile.findUnique({
+    where: { id: fileId },
+    select: { status: true, previewable: true, purpose: true, storageKey: true, detectedType: true },
+  });
+  if (
+    !file ||
+    file.status !== UploadStatus.AVAILABLE ||
+    !file.previewable ||
+    file.purpose !== "ad_creative" ||
+    !file.detectedType
+  ) {
+    return { ok: false };
   }
   return {
     ok: true,

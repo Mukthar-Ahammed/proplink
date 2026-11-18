@@ -1,3 +1,4 @@
+import { AdSlot } from "@/components/ads/AdSlot";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -294,6 +295,11 @@ export default async function Home() {
       {/* ================================================================ 5/6 */}
       {/* Platform — connected ecosystem redesign with shared platform centerpiece */}
       <PlatformEcosystem />
+
+      {/* Phase 6 (ADR-060): sponsored partners strip, below the fold; empty without a live ad. */}
+      <div className="mx-auto w-full max-w-4xl px-6 py-10 empty:hidden">
+        <AdSlot slot="HOME_PARTNERS" />
+      </div>
 
       {/* ================================================================ 6/6 */}
       {/* Closing CTA — back to the `brand` band, as the reference closes. */}

@@ -265,6 +265,10 @@ model Profile {
   dataExportsAbout      DataExportRequest[]       @relation("DataExportSubject")
   dataExportsRequested  DataExportRequest[]       @relation("DataExportRequester")
   dataExportsDecided    DataExportRequest[]       @relation("DataExportDecider")
+  adApplicationsDecided AdvertiserApplication[]   @relation("AdApplicationDecider")
+  advertisersCreated    Advertiser[]              @relation("AdvertiserCreator")
+  adCampaignsApproved   AdCampaign[]              @relation("AdCampaignApprover")
+  adCampaignsCreated    AdCampaign[]              @relation("AdCampaignCreator")
   companyCheck         AgentCompanyCheck?        @relation("AgentCompanyCheckProfile")
   companyOverrides     AgentCompanyCheck[]       @relation("AgentCompanyCheckOverrider")
   agentMigration       AgentMigration?           @relation("AgentMigrationProfile")
@@ -1329,6 +1333,7 @@ model UploadedFile {
   owner Profile @relation("UploadedFileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   mandateContracts Mandate[] @relation("MandateTermsFile")
   chatAttachments ChatMessageAttachment[]
+  adCampaigns     AdCampaign[]            @relation("AdCampaignImage")
 
   @@index([ownerId, status])
   @@map("uploaded_files")
@@ -2896,4 +2901,124 @@ model DataExportRequest {
 
   @@index([status, createdAt], map: "data_export_requests_status")
   @@map("data_export_requests")
+}
+
+// ── Phase 6 Task 1: advertising (ADR-060) ──
+
+enum AdPlacement {
+  HOME_PARTNERS
+  AGENT_DASHBOARD
+  LANDLORD_DASHBOARD
+  INVESTOR_DASHBOARD
+}
+
+enum AdFormat {
+  TEXT_CARD
+  IMAGE_BANNER
+}
+
+enum AdApplicationStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum AdCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum AdPriceModel {
+  NONE
+  FLAT_MONTHLY
+  CPM
+  CPC
+}
+
+/// A business asking to advertise, with its preferred placement and format.
+model AdvertiserApplication {
+  id              String              @id @db.Uuid
+  businessName    String
+  category        String
+  contactName     String
+  contactEmail    String
+  website         String?
+  preferredSlot   AdPlacement
+  preferredFormat AdFormat
+  message         String?
+  status          AdApplicationStatus @default(SUBMITTED)
+  decidedBy       String?             @db.Uuid
+  decidedAt       DateTime?
+  decisionNote    String?
+  createdAt       DateTime            @default(now())
+
+  decider    Profile?    @relation("AdApplicationDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+  advertiser Advertiser?
+
+  @@index([status, createdAt], map: "advertiser_applications_status")
+  @@map("advertiser_applications")
+}
+
+model Advertiser {
+  id            String   @id @db.Uuid
+  businessName  String
+  category      String
+  contactEmail  String
+  website       String?
+  applicationId String?  @unique @db.Uuid
+  active        Boolean  @default(true)
+  createdBy     String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  application AdvertiserApplication? @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  creator     Profile                @relation("AdvertiserCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  campaigns   AdCampaign[]
+
+  @@map("advertisers")
+}
+
+/// One ad in one designated slot. Live only after an approving Admin (trigger).
+model AdCampaign {
+  id             String           @id @db.Uuid
+  advertiserId   String           @db.Uuid
+  slot           AdPlacement
+  format         AdFormat
+  headline       String
+  body           String
+  imageFileId    String?          @db.Uuid
+  destinationUrl String
+  status         AdCampaignStatus @default(DRAFT)
+  startsAt       DateTime
+  endsAt         DateTime
+  priceModel     AdPriceModel     @default(NONE)
+  pricePence     BigInt?
+  approvedBy     String?          @db.Uuid
+  approvedAt     DateTime?
+  createdBy      String           @db.Uuid
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now())
+
+  advertiser Advertiser     @relation(fields: [advertiserId], references: [id], onDelete: Restrict)
+  image      UploadedFile?  @relation("AdCampaignImage", fields: [imageFileId], references: [id], onDelete: Restrict)
+  approver   Profile?       @relation("AdCampaignApprover", fields: [approvedBy], references: [id], onDelete: Restrict)
+  creator    Profile        @relation("AdCampaignCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  stats      AdDailyStat[]
+
+  @@index([slot, status, startsAt, endsAt], map: "ad_campaigns_live")
+  @@map("ad_campaigns")
+}
+
+/// Private aggregate counts (no per-viewer data).
+model AdDailyStat {
+  campaignId  String   @db.Uuid
+  day         DateTime @db.Date
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+
+  campaign AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+
+  @@id([campaignId, day])
+  @@map("ad_daily_stats")
 }

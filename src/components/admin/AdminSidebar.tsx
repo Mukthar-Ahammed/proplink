@@ -63,7 +63,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     items: [
       { label: "Subscriptions", href: "/admin/billing", status: "active" },
       { label: "Fee Settings", href: "/admin/fees", status: "placeholder" },
-      { label: "Ad Campaigns", href: "/admin/ads", status: "placeholder" },
+      { label: "Advertising", href: "/admin/ads", status: "active" },
     ],
   },
   {

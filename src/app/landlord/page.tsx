@@ -1,3 +1,4 @@
+import { AdSlot } from "@/components/ads/AdSlot";
 import Link from "next/link";
 
 import { KycStatus } from "@/generated/prisma/enums";
@@ -147,6 +148,8 @@ export default async function LandlordHomePage() {
           </ul>
         )}
       </PortalSection>
+      {/* Phase 6 (ADR-060): one designated sponsored slot; nothing renders without a live ad. */}
+      <AdSlot slot="LANDLORD_DASHBOARD" />
     </>
   );
 }

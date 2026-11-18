@@ -262,6 +262,13 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       `buyer@`; you cannot approve your own; a second case manager
       approves; the JSON downloads (account, messages, offers, viewings…).
 
+- [ ] **Advertising.** Apply at `/advertise` as a business. As Admin at
+      Advertising approve it, create a text campaign for the Agent dashboard
+      and approve it: as `agent@` the dashboard shows it labelled Sponsored;
+      the link opens the advertiser's site in a new tab. Search, listing
+      pages, messages, offers and project pages never show an ad. Pause it:
+      it disappears. An image banner needs an image that passes the scan.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

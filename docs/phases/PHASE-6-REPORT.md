@@ -53,7 +53,7 @@ None new. Advertising has no billing (OD-11).
 | ------------------------------ | ----------- | ------- |
 | 2. Admin roles and permissions | Done        | ADR-058 |
 | 3. Reporting and disputes      | Done        | ADR-059 |
-| 1. Advertising module          | Not started |         |
+| 1. Advertising module          | Done        | ADR-060 |
 | 4. Admin dashboards            | Not started |         |
 | 5. Admin A5 verification debt  | Not started |         |
 
@@ -61,7 +61,7 @@ None new. Advertising has no billing (OD-11).
 
 - [x] Permission matrix tests per admin role.
 - [x] Maker-checker cannot be bypassed.
-- [ ] Ads cannot appear on forbidden pages.
+- [x] Ads cannot appear on forbidden pages.
 - [x] Case workflow E2E passes.
 - [ ] Phase report written.
 
@@ -129,3 +129,34 @@ None new. Advertising has no billing (OD-11).
 - `tests/e2e/case-workflow.spec.ts`: a Buyer reports a listing; the Admin
   (MFA session) opens the case, takes it, adds a note and evidence,
   resolves and closes it. Passed against the dev server.
+
+## Task 1 — Advertising module (2026-11-19)
+
+**Delivered** (ADR-060)
+
+- Migration `20261120020000_phase6_advertising` (rollback rehearsed; enum
+  named `AdPlacement` because a legacy `AdSlot` table exists — a first
+  rehearsal caught the clash, nothing was changed in the database):
+  applications, advertisers, campaigns, daily stats; trigger requires an
+  approving Admin with ADVERTISER_MANAGEMENT to go live or change a live ad;
+  https-only destinations; ended campaigns fixed; no deletes.
+- `/advertise` (any business: category, preferred placement and format;
+  rate-limited); `/admin/ads` (approve or decline, create drafts, upload a
+  scanned image, approve and go live, pause, resume, end, counts; price
+  recorded, not billed).
+- `<AdSlot>` in four designated places; click redirect and image route;
+  counts at most once per visitor per campaign per hour.
+
+**Verification**
+
+- `tests/unit/ads-placement.test.ts` (30): only the designated pages use
+  `<AdSlot>`, each its own slot; nothing in 14 forbidden areas; Sponsored
+  label, rel=sponsored, no scripts or external URLs in the slot; unknown
+  slots refused; destination rules (https, no shorteners, no credentials,
+  no IPs or odd ports).
+- `tests/integration/ads-db.test.ts` (1, disposable database): application
+  with a non-designated slot refused; only advertiser managers approve;
+  bad destinations refused; drafts never served; going live refused for an
+  Admin without the permission (service and database); served only in its
+  slot; counts once per visitor; ended campaigns fixed, not deleted.
+- Full suite: 152 files, 1,833 passed, 0 failed.

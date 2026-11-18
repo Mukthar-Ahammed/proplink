@@ -1342,3 +1342,11 @@ of the boundary.
   `/admin/privacy`, `GET /api/admin/data-exports/[id]`; `ReportPanel` on
   listing and profile pages. E2E Admin sessions use
   `tests/e2e/helpers/adminSession.ts` (MFA recovery grant, test only).
+- Advertising (Task 1, ADR-060): `advertiser_applications`, `advertisers`,
+  `ad_campaigns`, `ad_daily_stats` (migration `20261120020000`; enum
+  `AdPlacement`); `src/services/ads/placements.ts` (slot allowlist,
+  forbidden areas, destination checks) and `src/services/ads/ads.ts`;
+  `<AdSlot>` (`src/components/ads/AdSlot.tsx`) on the home page and the
+  Agent, Landlord and Investor dashboards only; `/advertise`;
+  `/admin/ads`; `/api/ads/click/[id]`, `/api/ads/image/[id]`; upload
+  purpose `ad_creative`.
