@@ -14,6 +14,8 @@ import { requirePageRole } from "@/lib/authz";
 import { QuestionList } from "@/components/projects/QuestionList";
 import { signAgreementAction } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
+import { WorksPanel } from "@/components/projects/WorksPanel";
+import { worksView } from "@/services/projects/works";
 import { listAgreements } from "@/services/projects/agreements";
 import {
   coInvestorsForLead,
@@ -72,6 +74,7 @@ export default async function InvestorProjectPage({
   ]);
   const favourite = favourites.has(project.id);
   const agreements = (await listAgreements(investor, project.id)) ?? [];
+  const works = await worksView(investor, project.id);
   const raising =
     project.status === InvestorProjectStatus.PUBLISHED ||
     project.status === InvestorProjectStatus.OPEN_FOR_INVESTMENT;
@@ -270,6 +273,17 @@ export default async function InvestorProjectPage({
                 />
               ) : null
             }
+          />
+        </PortalSection>
+      )}
+
+      {works && (
+        <PortalSection title="Works and costs">
+          <WorksPanel
+            view={works}
+            projectId={project.id}
+            projectStatus={project.status}
+            path={`/investor/projects/${project.id}`}
           />
         </PortalSection>
       )}

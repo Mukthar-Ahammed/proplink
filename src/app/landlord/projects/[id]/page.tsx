@@ -6,6 +6,8 @@ import { day } from "@/components/projects/format";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { signAgreementAction } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
+import { WorksPanel } from "@/components/projects/WorksPanel";
+import { worksView } from "@/services/projects/works";
 import { Lifecycle } from "@/components/projects/ProjectSummary";
 import { listAgreements } from "@/services/projects/agreements";
 import { Role } from "@/generated/prisma/enums";
@@ -37,6 +39,8 @@ export default async function LandlordProjectPage({
   if (!project) notFound();
   // OD-14: only agreements that name the Landlord, with only their own row.
   const agreements = (await listAgreements(landlord, project.id)) ?? [];
+  // Task 3a: milestones, itemised costs and updates addressed to the Landlord.
+  const works = await worksView(landlord, project.id);
   return (
     <PortalSection
       title={project.listing.title}
@@ -88,6 +92,14 @@ export default async function LandlordProjectPage({
         <p className="rounded-lg border border-line bg-surface p-3 text-xs text-muted">
           {PROJECT_RESPONSIBILITY_NOTICE}
         </p>
+        {works && (
+          <WorksPanel
+            view={works}
+            projectId={project.id}
+            projectStatus={project.status}
+            path={`/landlord/projects/${project.id}`}
+          />
+        )}
         {agreements.length > 0 && (
           <div>
             <h3 className="mb-2 text-sm font-semibold text-primary">Your agreement</h3>

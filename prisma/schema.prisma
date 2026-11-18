@@ -291,6 +291,13 @@ model Profile {
   solicitorsEnded      ProjectSolicitor[]        @relation("ProjectSolicitorEnder")
   agreementsPrepared   ProjectAgreement[]        @relation("ProjectAgreementCreator")
   agreementParties     AgreementParty[]          @relation("AgreementPartyProfile")
+  fundStatusesRecorded ProjectFundStatus[]       @relation("ProjectFundStatusRecorder")
+  costsRecorded        ProjectCost[]             @relation("ProjectCostRecorder")
+  costsVoided          ProjectCost[]             @relation("ProjectCostVoider")
+  milestonesCreated    ProjectMilestone[]        @relation("ProjectMilestoneCreator")
+  projectUpdates       ProjectUpdate[]           @relation("ProjectUpdateAuthor")
+  changesRecorded      ProjectChange[]           @relation("ProjectChangeRecorder")
+  changesDecided       ProjectChange[]           @relation("ProjectChangeDecider")
 
   @@map("profiles")
 }
@@ -1946,6 +1953,11 @@ model InvestorProject {
   questions   ProjectQuestion[]
   solicitors  ProjectSolicitor[]
   agreements  ProjectAgreement[]
+  fundStatuses ProjectFundStatus[]
+  costs       ProjectCost[]
+  milestones  ProjectMilestone[]
+  updates     ProjectUpdate[]
+  changes     ProjectChange[]
 
   @@index([status, publishedAt])
   @@index([agentId])
@@ -2022,6 +2034,7 @@ model ProjectPledge {
   project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
   investor Profile         @relation("ProjectPledgeInvestor", fields: [investorId], references: [id], onDelete: Restrict)
   agreementParties AgreementParty[]
+  fundStatuses     ProjectFundStatus[]
 
   @@unique([investorId, idempotencyKey])
   @@index([projectId, status])
@@ -2210,4 +2223,147 @@ model ESignWebhookEvent {
 
   @@id([provider, id])
   @@map("esign_webhook_events")
+}
+
+// ── Phase 4 Task 7: funds status, costs, milestones, updates, changes (ADR-049) ──
+
+enum FundStatus {
+  AWAITING
+  RECEIVED
+  PART_RECEIVED
+  RETURNED
+}
+
+enum ProjectCostCategory {
+  MATERIALS
+  CONTRACTOR
+  AGENT_FEES
+  LEGAL_FEES
+  TAXES
+  OTHER
+}
+
+enum ProjectMilestoneStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum ProjectUpdateAudience {
+  INVESTORS
+  INVESTORS_AND_LANDLORD
+}
+
+enum ProjectChangeKind {
+  BUDGET
+  TIMELINE
+  SCOPE
+}
+
+enum ProjectChangeStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+}
+
+/// What the Solicitor's client account received for a pledge (status only;
+/// nothing moves through PropLink). Append-only history; latest wins.
+model ProjectFundStatus {
+  id          String     @id @db.Uuid
+  projectId   String     @db.Uuid
+  pledgeId    String     @db.Uuid
+  status      FundStatus
+  receivedGBP BigInt?
+  note        String?
+  recordedBy  String     @db.Uuid
+  recordedAt  DateTime   @default(now())
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  pledge   ProjectPledge   @relation(fields: [pledgeId], references: [id], onDelete: Restrict)
+  recorder Profile         @relation("ProjectFundStatusRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+
+  @@index([pledgeId, recordedAt])
+  @@index([projectId])
+  @@map("project_fund_statuses")
+}
+
+/// An itemised cost. Never edited: voided with a reason and recorded again.
+model ProjectCost {
+  id          String              @id @db.Uuid
+  projectId   String              @db.Uuid
+  category    ProjectCostCategory
+  description String
+  amountGBP   BigInt
+  incurredOn  DateTime            @db.Date
+  recordedBy  String              @db.Uuid
+  createdAt   DateTime            @default(now())
+  voidedAt    DateTime?
+  voidedBy    String?             @db.Uuid
+  voidReason  String?
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  recorder Profile         @relation("ProjectCostRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  voider   Profile?        @relation("ProjectCostVoider", fields: [voidedBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, incurredOn])
+  @@map("project_costs")
+}
+
+model ProjectMilestone {
+  id          String                 @id @db.Uuid
+  projectId   String                 @db.Uuid
+  title       String
+  status      ProjectMilestoneStatus @default(PLANNED)
+  dueOn       DateTime?              @db.Date
+  completedAt DateTime?
+  createdBy   String                 @db.Uuid
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  project InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  creator Profile         @relation("ProjectMilestoneCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, createdAt])
+  @@map("project_milestones")
+}
+
+/// The project's in-app feed (append-only); some updates also reach the Landlord.
+model ProjectUpdate {
+  id        String                @id @db.Uuid
+  projectId String                @db.Uuid
+  authorId  String                @db.Uuid
+  audience  ProjectUpdateAudience @default(INVESTORS)
+  title     String
+  body      String
+  createdAt DateTime              @default(now())
+
+  project InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  author  Profile         @relation("ProjectUpdateAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([projectId, createdAt])
+  @@map("project_updates")
+}
+
+/// A budget, timeline or scope change: recorded by the Solicitor, decided by
+/// the Lead Investor (executive authority, Q20-Q23).
+model ProjectChange {
+  id              String              @id @db.Uuid
+  projectId       String              @db.Uuid
+  kind            ProjectChangeKind
+  summary         String
+  budgetDeltaGBP  BigInt?
+  newCompletionOn DateTime?           @db.Date
+  status          ProjectChangeStatus @default(PROPOSED)
+  recordedBy      String              @db.Uuid
+  recordedAt      DateTime            @default(now())
+  decidedBy       String?             @db.Uuid
+  decidedAt       DateTime?
+  decisionNote    String?
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  recorder Profile         @relation("ProjectChangeRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  decider  Profile?        @relation("ProjectChangeDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, recordedAt])
+  @@map("project_changes")
 }

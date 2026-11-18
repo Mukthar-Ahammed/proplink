@@ -1188,6 +1188,14 @@ of the boundary.
   triggers: shares 100% and every live pledge named before sending,
   pledges binding on signature, no cancelling a pledge out for signature;
   Solicitor RLS read policies.
+- Works (Task 7, ADR-049): `works.ts` (`projectRelation`, funds status,
+  costs with void, milestones, updates feed, Solicitor-recorded and
+  Lead-decided changes, `advanceProject`, `worksView`); UI
+  `WorksPanel` + `worksActions` on every project page.
+- Schema (migration `20261119050000`): `project_fund_statuses` (append-only),
+  `project_costs`, `project_milestones`, `project_updates` (append-only),
+  `project_changes`; `proplink_project_role()`; works need a signed agreement
+  (trigger); Solicitor RLS read policies.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

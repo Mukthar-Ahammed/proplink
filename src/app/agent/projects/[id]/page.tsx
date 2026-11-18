@@ -8,6 +8,8 @@ import { PledgeTable } from "@/components/projects/PledgeTable";
 import { QuestionList } from "@/components/projects/QuestionList";
 import { signAgreementAction } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
+import { WorksPanel } from "@/components/projects/WorksPanel";
+import { worksView } from "@/services/projects/works";
 import { listAgreements } from "@/services/projects/agreements";
 import { ProjectSummary } from "@/components/projects/ProjectSummary";
 import { ProjectTermsForm } from "@/components/projects/ProjectTermsForm";
@@ -59,6 +61,7 @@ export default async function AgentProjectPage({
   const pledges = (await listProjectPledges(agent, project.id)) ?? [];
   const questions = (await listProjectQuestions(agent, project.id)) ?? [];
   const agreements = (await listAgreements(agent, project.id)) ?? [];
+  const works = await worksView(agent, project.id);
   const published = project.status === InvestorProjectStatus.PUBLISHED;
   const live = project.nominations.find(
     (nomination) =>
@@ -177,6 +180,17 @@ export default async function AgentProjectPage({
           }
         />
       </PortalSection>
+
+      {works && (
+        <PortalSection title="Works and costs">
+          <WorksPanel
+            view={works}
+            projectId={project.id}
+            projectStatus={project.status}
+            path={`/agent/projects/${project.id}`}
+          />
+        </PortalSection>
+      )}
 
       <PortalSection title="Agreements">
         <AgreementList

@@ -13,6 +13,8 @@ import {
   voidAgreementAction,
 } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
+import { WorksPanel } from "@/components/projects/WorksPanel";
+import { worksView } from "@/services/projects/works";
 import { listAgreements } from "@/services/projects/agreements";
 import { listProjectQuestions } from "@/services/projects/community";
 import { listProjectPledges } from "@/services/projects/pledges";
@@ -43,6 +45,7 @@ export default async function AdminProjectPage({
   const questions = (await listProjectQuestions(admin, project.id)) ?? [];
   const solicitors = await listProjectSolicitors(project.id);
   const agreements = (await listAgreements(admin, project.id)) ?? [];
+  const works = await worksView(admin, project.id);
   const path = `/admin/projects/${project.id}`;
   const current = solicitors.find(
     (row) => row.status === "INVITED" || row.status === "ACTIVE",
@@ -162,6 +165,17 @@ export default async function AdminProjectPage({
           </div>
         )}
       </section>
+      {works && (
+        <section>
+          <h2 className="text-lg font-semibold text-primary">Works, costs and funds</h2>
+          <WorksPanel
+            view={works}
+            projectId={project.id}
+            projectStatus={project.status}
+            path={path}
+          />
+        </section>
+      )}
       <section>
         <h2 className="text-lg font-semibold text-primary">Agreements</h2>
         <AgreementList

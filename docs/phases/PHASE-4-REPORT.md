@@ -66,18 +66,18 @@ provider (default Dropbox Sign, alternative DocuSign).
 
 ## Task progress
 
-| Task                          | State                                            | Notes   |
-| ----------------------------- | ------------------------------------------------ | ------- |
-| 1. Publish to investors       | Done                                             | ADR-044 |
-| 2. Lead / Co-Investor model   | Done                                             | ADR-044 |
-| 3. Investor portal            | Done                                             | ADR-046 |
-| 3a. Landlord project view     | Done (costs, milestones, updates with Tasks 5/7) | ADR-046 |
-| 4. Pledge flow                | Done                                             | ADR-045 |
-| 5. Solicitor accounts         | Done (acceptance needs the OD-18 key)            | ADR-047 |
-| 6. Agreements and e-signature | Done (live provider needs keys)                  | ADR-048 |
-| 7. Funds tracking             | Not started                                      |         |
-| 8. Sale and ledger            | Not started                                      |         |
-| 9. Edge cases                 | Not started                                      |         |
+| Task                          | State                                 | Notes            |
+| ----------------------------- | ------------------------------------- | ---------------- |
+| 1. Publish to investors       | Done                                  | ADR-044          |
+| 2. Lead / Co-Investor model   | Done                                  | ADR-044          |
+| 3. Investor portal            | Done                                  | ADR-046          |
+| 3a. Landlord project view     | Done                                  | ADR-046, ADR-049 |
+| 4. Pledge flow                | Done                                  | ADR-045          |
+| 5. Solicitor accounts         | Done (acceptance needs the OD-18 key) | ADR-047          |
+| 6. Agreements and e-signature | Done (live provider needs keys)       | ADR-048          |
+| 7. Funds tracking             | Done                                  | ADR-049          |
+| 8. Sale and ledger            | Not started                           |                  |
+| 9. Edge cases                 | Not started                           |                  |
 
 ## Exit gate
 
@@ -298,3 +298,36 @@ provider (default Dropbox Sign, alternative DocuSign).
   connection limit (`DATABASE_POOL_MAX`), Phase 4 fixtures retire their
   accounts, and agreement parties keep a fixed order. One Windows-only
   worker flake remains (`docs/ARCHITECTURE.md` → Testing).
+
+## Task 7 — Funds tracking, costs and changes (2026-11-18)
+
+**Delivered** (ADR-049; SO-3, SO-4; Q20-Q23)
+
+- Migration `20261119050000_phase4_funds_costs` (with `rollback.sql`,
+  rehearsed): funds status history (Solicitor only, append-only), itemised
+  costs (Agent or Solicitor; void once, never edit), milestones (Agent),
+  updates feed (append-only; investors or investors and Landlord), changes
+  (Solicitor records; only the Lead decides, once), works only under a
+  signed agreement, Solicitor RLS.
+- `WorksPanel` on the investor, Agent, Landlord, Solicitor and Admin pages:
+  stage moves (Funded → In works → Completed → Listed for sale), funds
+  status forms, milestones, costs with category totals, changes with the
+  Lead's approve/reject, updates with audience. Emails go along the chain.
+- Task 3a completed: the Landlord sees milestones, costs and updates
+  addressed to them.
+
+**Verification**
+
+- `tests/integration/works-db.test.ts` (5, disposable database): funds by the
+  Solicitor only, part-received needs the amount, investors see only their
+  own status, history append-only and Solicitor-only in the database;
+  costs by Agent and Solicitor, not investors, totals by category in pence,
+  void once, database refuses edits and deletes; changes recorded only by
+  the Solicitor, decided only by the Lead and only once, database refuses
+  others' decisions and edits; works refused without a signed agreement
+  (service and SQL), then milestones and stages through to listed for sale;
+  **the Landlord sees only their updates, no changes or funds, and no
+  investor ids, pledge ids or amounts**; outsiders and other Landlords get
+  nothing; the feed is append-only.
+- `tests/helpers/project-flow.ts`: funded-and-signed project flow through
+  the real services for later database tests.

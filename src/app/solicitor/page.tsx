@@ -6,6 +6,8 @@ import {
   voidAgreementAction,
 } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
+import { WorksPanel } from "@/components/projects/WorksPanel";
+import { worksView } from "@/services/projects/works";
 import { PledgeTable } from "@/components/projects/PledgeTable";
 import { PrepareAgreementForm } from "@/components/projects/PrepareAgreementForm";
 import { ProjectSummary } from "@/components/projects/ProjectSummary";
@@ -39,6 +41,7 @@ export default async function SolicitorHomePage() {
   }
   const pledges = (await listProjectPledges(solicitor, project.id)) ?? [];
   const agreements = (await listAgreements(solicitor, project.id)) ?? [];
+  const works = await worksView(solicitor, project.id);
   const open = agreements.some((a) => a.status === "DRAFT" || a.status === "SENT");
   const canPrepare =
     !open &&
@@ -55,6 +58,25 @@ export default async function SolicitorHomePage() {
       <PortalSection title="Parties and pledges">
         <PledgeTable pledges={pledges} />
       </PortalSection>
+      {works && (
+        <PortalSection title="Funds, works and costs">
+          <WorksPanel
+            view={works}
+            projectId={project.id}
+            projectStatus={project.status}
+            path="/solicitor"
+            pledges={pledges
+              .filter(
+                (pledge) => pledge.status === "PLEDGED" || pledge.status === "BINDING",
+              )
+              .map((pledge) => ({
+                id: pledge.id,
+                label: `${pledge.investor.name ?? "Investor"} · ${pledge.share}`,
+              }))}
+          />
+        </PortalSection>
+      )}
+
       <PortalSection title="Agreements">
         <AgreementList
           agreements={agreements}

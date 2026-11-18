@@ -161,6 +161,13 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
 - [ ] **Dropbox Sign live smoke test (needs keys, OD-24).** Follow
       `docs/credentials/esignature.md` → "Live smoke test".
 
+- [ ] **Works.** With a signed agreement: as the Agent "Start works", add and
+      complete a milestone, record a cost and void one. As the Solicitor
+      record funds received for a pledge and record a budget change; as the
+      Lead approve it. The co-investor sees their funds status, the costs
+      and the change; the Landlord sees milestones, costs and only updates
+      addressed to them.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.
