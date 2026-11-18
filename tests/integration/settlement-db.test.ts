@@ -247,6 +247,26 @@ describe.skipIf(!hasDb)("sale, settlement and the ledger (Task 8)", () => {
         "",
       ),
     ).toMatchObject({ ok: false, status: 403 });
+    // Phase 6 (ADR-058): an Admin without the financial-adjustments permission
+    // is refused by the service and, going around it, by the database.
+    const viewer = await person(client, "ADMIN", {
+      adminPermissions: ["PROJECT_OVERSIGHT"],
+    });
+    expect(
+      await decideCorrection(
+        as(viewer, Role.ADMIN),
+        proposed.data.correctionId,
+        true,
+        "x",
+      ),
+    ).toMatchObject({ ok: false, status: 403 });
+    await expect(
+      client.query(
+        `UPDATE public.ledger_corrections SET status = 'APPROVED', "decidedBy" = $2, "decidedAt" = now()
+         WHERE id = $1`,
+        [proposed.data.correctionId, viewer.profileId],
+      ),
+    ).rejects.toMatchObject({ code: "23514" });
     vi.mocked(sendProjectEmail).mockClear();
     expect(
       await decideCorrection(

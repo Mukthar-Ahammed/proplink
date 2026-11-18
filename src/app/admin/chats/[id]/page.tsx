@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { adminReadThread } from "@/services/chat/messages";
 
 export const dynamic = "force-dynamic";
@@ -24,7 +23,7 @@ export default async function AdminReadChatPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ reason?: string }>;
 }) {
-  const session = await requirePageRole(Role.ADMIN);
+  const session = await requireAdminPagePermission("CHAT_AUTHORIZATION");
   const { id } = await params;
   const { reason } = await searchParams;
   const back = (

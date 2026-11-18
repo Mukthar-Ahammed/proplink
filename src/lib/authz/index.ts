@@ -3,10 +3,12 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { NextResponse } from "next/server";
 
-import { InvestorType, KycStatus, Role } from "@/generated/prisma/enums";
+import { AdminPermission, InvestorType, KycStatus, Role } from "@/generated/prisma/enums";
 import { auth, type AppSession } from "@/lib/auth";
 import { getInvestorCapabilities } from "@/services/syndicates/investorType";
 import { isMfaSatisfied, requiresMfa } from "@/services/auth/mfa";
+import { writeAudit } from "@/services/admin/audit";
+import { hasAdminPermission } from "@/services/admin/permissions";
 
 export type AuthzResult =
   { ok: true; session: AppSession } | { ok: false; response: NextResponse };
@@ -231,4 +233,90 @@ export async function requireChatAuthorization(threadId: string): Promise<AuthzR
 
 export async function requireProjectAccess(): Promise<never> {
   throw new NotImplementedError("Project");
+}
+
+// ── Phase 6 Task 2 (ADR-058): Admin permissions ──────────────────────────
+
+/**
+ * Logs every Admin permission check (security event) and audits refusals.
+ * Allowed checks are not written to the audit table: the action that follows
+ * is audited by its own service.
+ */
+async function recordPermissionCheck(
+  session: AppSession,
+  permission: AdminPermission,
+  allowed: boolean,
+) {
+  console.info(
+    JSON.stringify({
+      event: "admin.permission_check",
+      permission,
+      allowed,
+      profileId: session.user.authUserId,
+    }),
+  );
+  if (!allowed) {
+    try {
+      await writeAudit({
+        actorUserId: session.user.id,
+        action: "admin_permission.denied",
+        entity: "AdminPermission",
+        entityId: permission,
+      });
+    } catch {
+      // A failed audit write must not turn a refusal into an error page.
+    }
+  }
+}
+
+/** Route handlers and server actions: Admin role, MFA, then the permission. */
+export async function requireAdminPermission(
+  permission: AdminPermission,
+): Promise<AuthzResult> {
+  const result = await requireRole(Role.ADMIN);
+  if (!result.ok) return result;
+  const allowed = await hasAdminPermission(result.session.user.authUserId, permission);
+  await recordPermissionCheck(result.session, permission, allowed);
+  if (!allowed) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { error: "Your Admin account does not have this permission", permission },
+        { status: 403 },
+      ),
+    };
+  }
+  return result;
+}
+
+/** Admin pages: as above; without the permission, back to the Admin home. */
+export async function requireAdminPagePermission(
+  permission: AdminPermission,
+): Promise<AppSession> {
+  const session = await requirePageRole(Role.ADMIN);
+  const allowed = await hasAdminPermission(session.user.authUserId, permission);
+  await recordPermissionCheck(session, permission, allowed);
+  if (!allowed) redirect(`/admin?denied=${permission}`);
+  return session;
+}
+
+/**
+ * For actions shared by several roles (Agent, Solicitor and Admin): an Admin
+ * caller also needs the permission; other roles are checked by the service.
+ */
+export async function adminCallerHas(
+  caller: { role: Role; profileId: string },
+  permission: AdminPermission,
+): Promise<boolean> {
+  if (caller.role !== Role.ADMIN) return true;
+  const allowed = await hasAdminPermission(caller.profileId, permission);
+  console.info(
+    JSON.stringify({
+      event: "admin.permission_check",
+      permission,
+      allowed,
+      profileId: caller.profileId,
+    }),
+  );
+  return allowed;
 }

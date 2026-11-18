@@ -672,10 +672,31 @@ async function seedBuyerActivity() {
   return { viewings: 1, offers: 1, messages };
 }
 
+/**
+ * Phase 6 (ADR-058): on a fresh database the seeded Admin becomes the first
+ * super-admin (the database allows a request-less grant only while no active
+ * super-admin exists). Later grants need two super-admins.
+ */
+async function seedSuperAdmin() {
+  await db.$executeRaw`
+    INSERT INTO public.admin_permission_grants (id, "profileId", permission)
+    SELECT gen_random_uuid(), p.id, 'SUPER_ADMIN'::"AdminPermission"
+    FROM public.profiles p
+    JOIN public."User" u ON u.id = p."legacyUserId"
+    WHERE u.email = 'admin@proplink.test' AND p.role = 'ADMIN' AND p.active
+      AND NOT EXISTS (
+        SELECT 1 FROM public.admin_permission_grants g
+        JOIN public.profiles q ON q.id = g."profileId"
+        WHERE g.permission = 'SUPER_ADMIN' AND g."revokedAt" IS NULL AND q.role = 'ADMIN' AND q.active
+      )
+  `;
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash("Password123!", 10);
 
   const userCount = await seedUsers(passwordHash);
+  await seedSuperAdmin();
 
   const agent = await db.user.findUniqueOrThrow({
     where: { email: "agent@proplink.test" },

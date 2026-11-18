@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import { setPlanPrice, updateGraceDays } from "@/services/billing/subscriptions";
 
 export type AdminBillingState =
@@ -14,7 +13,7 @@ export type AdminBillingState =
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "");
 
 async function adminActor() {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("SUBSCRIPTION_PRICING");
   if (!authz.ok) return null;
   const { user } = authz.session;
   return { profileId: user.authUserId, legacyUserId: user.id, role: user.role };

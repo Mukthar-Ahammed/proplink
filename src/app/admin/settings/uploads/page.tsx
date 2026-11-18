@@ -1,5 +1,4 @@
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { getUploadSettings, uploadsEnabled } from "@/services/uploads/pipeline";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,7 @@ const MB = 1024 * 1024;
 
 /** Admin-configurable upload limits (Phase 1 Task 12, ADR-031). */
 export default async function AdminUploadSettingsPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("SYSTEM_INTEGRATIONS");
   const settings = await getUploadSettings();
   return (
     <div className="space-y-6">

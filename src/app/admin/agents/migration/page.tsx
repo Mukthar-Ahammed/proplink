@@ -1,5 +1,4 @@
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import {
   listMigrationQueue,
   RENOTIFY_COOLDOWN_MS,
@@ -40,7 +39,7 @@ function canNotify(
  * registered before invite-only onboarding, then authorise those who confirm.
  */
 export default async function AdminAgentMigrationPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("VERIFICATION");
   const queue = await listMigrationQueue();
   const now = new Date();
 

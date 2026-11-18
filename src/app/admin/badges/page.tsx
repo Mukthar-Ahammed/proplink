@@ -1,5 +1,4 @@
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { listBadgeQueue } from "@/services/profiles/badges";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
@@ -24,7 +23,7 @@ const BASIS: Record<string, string> = {
  * account's verification passes; awarded and revoked by Admin only.
  */
 export default async function AdminBadgesPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("VERIFICATION");
   const { suggested, awarded } = await listBadgeQueue();
 
   return (

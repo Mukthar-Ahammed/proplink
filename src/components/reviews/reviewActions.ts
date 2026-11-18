@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
-import { Role } from "@/generated/prisma/enums";
-import { requireRole, requireUser } from "@/lib/authz";
+import { requireAdminPermission, requireUser } from "@/lib/authz";
 import type { Actor } from "@/services/projects/common";
 import {
   moderateReview,
@@ -27,7 +26,8 @@ async function signedIn(): Promise<Actor | null> {
 }
 
 async function admin(): Promise<Actor | null> {
-  const authz = await requireRole(Role.ADMIN);
+  // Phase 6 (ADR-058): review moderation is its own Admin permission.
+  const authz = await requireAdminPermission("REVIEW_MODERATION");
   if (!authz.ok) return null;
   const { user } = authz.session;
   return { profileId: user.authUserId, legacyUserId: user.id, role: user.role };

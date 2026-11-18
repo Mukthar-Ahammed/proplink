@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import { setHistoricalRoi } from "@/services/profiles/trackRecord";
 
 /** Admin flag for historical ROI on track records (Phase 5 Task 5, ADR-055). */
@@ -12,7 +11,7 @@ export async function setHistoricalRoiAction(
   _previous: ProjectFormState,
   formData: FormData,
 ): Promise<ProjectFormState> {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("SYSTEM_INTEGRATIONS");
   if (!authz.ok) return { kind: "error", message: "Admin access required" };
   const { user } = authz.session;
   const on = formData.get("on") === "true";

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
 import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { adminCallerHas, requireRole } from "@/lib/authz";
 import type { Actor } from "@/services/projects/common";
 import { markProjectSold } from "@/services/projects/relist";
 import {
@@ -106,6 +106,8 @@ export async function decideCorrectionAction(
 ): Promise<ProjectFormState> {
   const who = await actor(Role.ADMIN);
   if (!who) return { kind: "error", message: "Admin access required" };
+  if (!(await adminCallerHas(who, "FINANCIAL_ADJUSTMENTS")))
+    return { kind: "error", message: "Your Admin account does not have this permission" };
   const approve = text(formData, "decision") === "approve";
   return finish(
     formData,

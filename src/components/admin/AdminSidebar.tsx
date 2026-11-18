@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { mayOpenAdminPath } from "@/lib/authz/adminRoutes";
+
 export interface NavItem {
   label: string;
   href: string;
@@ -43,6 +45,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
       { label: "Company Checks", href: "/admin/agents/companies", status: "active" },
       { label: "Existing Agents", href: "/admin/agents/migration", status: "active" },
       { label: "Verified Badges", href: "/admin/badges", status: "active" },
+      { label: "Admin Roles", href: "/admin/roles", status: "active" },
       { label: "Upload Limits", href: "/admin/settings/uploads", status: "active" },
       { label: "Track Record", href: "/admin/settings/track-record", status: "active" },
       { label: "Announcements", href: "/admin/announcements", status: "active" },
@@ -75,11 +78,18 @@ const NAVIGATION_GROUPS: NavGroup[] = [
 export function AdminSidebar({
   mobileOpen,
   onCloseMobile,
+  permissions = [],
 }: {
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
+  /** Phase 6 (ADR-058): links the Admin may not open are hidden (the server still checks). */
+  permissions?: string[];
 }) {
   const currentPath = usePathname();
+  const groups = NAVIGATION_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => mayOpenAdminPath(permissions, item.href)),
+  })).filter((group) => group.items.length > 0);
 
   function isItemActive(item: NavItem): boolean {
     if (item.exact) {
@@ -134,7 +144,7 @@ export function AdminSidebar({
 
         {/* Scrollable Navigation Items */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-          {NAVIGATION_GROUPS.map((group) => (
+          {groups.map((group) => (
             <div key={group.title}>
               <div className="px-3 pb-2 text-[10px] font-bold tracking-wider text-muted uppercase">
                 {group.title}

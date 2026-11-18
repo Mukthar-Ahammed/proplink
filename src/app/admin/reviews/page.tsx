@@ -4,8 +4,7 @@ import { day } from "@/components/projects/format";
 import { moderateAction, resolveReportAction } from "@/components/reviews/reviewActions";
 import { Stars } from "@/components/reviews/StarRating";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { moderationQueue } from "@/services/reviews/reviews";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +39,7 @@ function ReviewSummary({ review }: { review: QueueReview }) {
  * before anyone sees a review). Reports on published reviews come here too.
  */
 export default async function AdminReviewsPage() {
-  const session = await requirePageRole(Role.ADMIN);
+  const session = await requireAdminPagePermission("REVIEW_MODERATION");
   const { pending, reports } = await moderationQueue({
     profileId: session.user.authUserId,
     legacyUserId: session.user.id,

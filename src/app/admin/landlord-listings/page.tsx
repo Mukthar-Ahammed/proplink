@@ -3,8 +3,7 @@ import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge, type StatusTone } from "@/components/admin/StatusBadge";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import {
   listReviewQueue,
   reviewQueueMetrics,
@@ -55,7 +54,7 @@ export default async function LandlordListingQueuePage({
 }: {
   searchParams: Promise<{ view?: string }>;
 }) {
-  const session = await requirePageRole(Role.ADMIN);
+  const session = await requireAdminPagePermission("LISTING_MODERATION");
   const admin = { profileId: session.user.authUserId, legacyUserId: session.user.id };
   const { view: rawView } = await searchParams;
   const view: QueueView = VIEWS.some((entry) => entry.key === rawView)

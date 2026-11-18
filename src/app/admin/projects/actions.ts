@@ -5,8 +5,7 @@ import { redirect } from "next/navigation";
 import { after } from "next/server";
 
 import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import { announceSafely, type Actor } from "@/services/projects/common";
 import { hideProjectQuestion } from "@/services/projects/community";
 import {
@@ -19,8 +18,11 @@ import { announceProject, publishProject } from "@/services/projects/projects";
 
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "");
 
-async function adminActor(): Promise<Actor | null> {
-  const authz = await requireRole(Role.ADMIN);
+/** Phase 6 (ADR-058): each action names the Admin permission it needs. */
+async function adminActor(
+  permission: "PROJECT_OVERSIGHT" | "SOLICITOR_MANAGEMENT" = "PROJECT_OVERSIGHT",
+): Promise<Actor | null> {
+  const authz = await requireAdminPermission(permission);
   if (!authz.ok) return null;
   const { user } = authz.session;
   return { profileId: user.authUserId, legacyUserId: user.id, role: user.role };
@@ -105,7 +107,7 @@ export async function solicitorAction(
   _previous: ProjectFormState,
   formData: FormData,
 ): Promise<ProjectFormState> {
-  const admin = await adminActor();
+  const admin = await adminActor("SOLICITOR_MANAGEMENT");
   if (!admin) return { kind: "error", message: "Admin access required" };
   const projectId = text(formData, "projectId");
   const intent = text(formData, "intent");

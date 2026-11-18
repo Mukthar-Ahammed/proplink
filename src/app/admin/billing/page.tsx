@@ -1,8 +1,7 @@
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { getBillingProvider } from "@/services/billing";
 import {
   getBillingSettings,
@@ -26,7 +25,7 @@ const AUDIENCES = [
  * ADR-042; OD-01). Only Agents, Lead Investors and Co-Investors pay.
  */
 export default async function AdminBillingPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("SUBSCRIPTION_PRICING");
   const [plans, settings, overview] = await Promise.all([
     listActivePlans(),
     getBillingSettings(),

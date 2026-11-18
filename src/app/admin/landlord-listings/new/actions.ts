@@ -1,7 +1,6 @@
 "use server";
 
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import { createOnBehalf } from "@/services/landlord/listings";
 
 export type OnBehalfState =
@@ -14,7 +13,7 @@ export async function createOnBehalfAction(
   _previous: OnBehalfState,
   formData: FormData,
 ): Promise<OnBehalfState> {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("LISTING_MODERATION");
   if (!authz.ok) return { kind: "error", message: "Admin access required" };
   const area = text(formData, "landAreaSqm").trim();
   const result = await createOnBehalf(

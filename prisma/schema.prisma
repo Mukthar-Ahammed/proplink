@@ -253,6 +253,10 @@ model Profile {
   reviewReports        ReviewReport[]            @relation("ReviewReporter")
   reviewReportsResolved ReviewReport[]           @relation("ReviewReportResolver")
   trackRecordSettings   TrackRecordSettings[]     @relation("TrackRecordSettingsEditor")
+  adminGrants           AdminPermissionGrant[]    @relation("AdminGrantHolder")
+  adminGrantRequestsFor AdminGrantRequest[]       @relation("AdminGrantTarget")
+  adminGrantRequestsBy  AdminGrantRequest[]       @relation("AdminGrantRequester")
+  adminGrantDecisions   AdminGrantRequest[]       @relation("AdminGrantDecider")
   companyCheck         AgentCompanyCheck?        @relation("AgentCompanyCheckProfile")
   companyOverrides     AgentCompanyCheck[]       @relation("AgentCompanyCheckOverrider")
   agentMigration       AgentMigration?           @relation("AgentMigrationProfile")
@@ -2701,4 +2705,74 @@ model SavedSearchAlert {
   @@index([status, createdAt], map: "saved_search_alerts_status")
   @@index([userId, windowDay], map: "saved_search_alerts_user_day")
   @@map("saved_search_alerts")
+}
+
+// ── Phase 6 Task 2: Admin permissions with maker-checker (ADR-058) ──
+
+enum AdminPermission {
+  SUPER_ADMIN
+  VERIFICATION
+  LISTING_MODERATION
+  CHAT_AUTHORIZATION
+  REVIEW_MODERATION
+  SUSPENSION
+  FINANCIAL_ADJUSTMENTS
+  SOLICITOR_MANAGEMENT
+  ADVERTISER_MANAGEMENT
+  SUBSCRIPTION_PRICING
+  SYSTEM_INTEGRATIONS
+  PROJECT_OVERSIGHT
+  CASE_MANAGEMENT
+}
+
+enum AdminGrantAction {
+  GRANT
+  REVOKE
+}
+
+enum AdminGrantRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// A super-admin asks; a different super-admin decides (trigger-enforced).
+model AdminGrantRequest {
+  id          String                  @id @db.Uuid
+  targetId    String                  @db.Uuid
+  permission  AdminPermission
+  action      AdminGrantAction
+  reason      String
+  status      AdminGrantRequestStatus @default(PENDING)
+  requestedBy String                  @db.Uuid
+  decidedBy   String?                 @db.Uuid
+  decidedAt   DateTime?
+  createdAt   DateTime                @default(now())
+
+  target    Profile  @relation("AdminGrantTarget", fields: [targetId], references: [id], onDelete: Restrict)
+  requester Profile  @relation("AdminGrantRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  decider   Profile? @relation("AdminGrantDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+  grants    AdminPermissionGrant[] @relation("AdminGrantFromRequest")
+  revokes   AdminPermissionGrant[] @relation("AdminGrantRevokedBy")
+
+  @@index([status, createdAt], map: "admin_grant_requests_status")
+  @@map("admin_grant_requests")
+}
+
+/// Active while revokedAt is null. Created and revoked only via approved requests.
+model AdminPermissionGrant {
+  id              String          @id @db.Uuid
+  profileId       String          @db.Uuid
+  permission      AdminPermission
+  requestId       String?         @db.Uuid
+  grantedAt       DateTime        @default(now())
+  revokedAt       DateTime?
+  revokeRequestId String?         @db.Uuid
+
+  holder        Profile            @relation("AdminGrantHolder", fields: [profileId], references: [id], onDelete: Restrict)
+  request       AdminGrantRequest? @relation("AdminGrantFromRequest", fields: [requestId], references: [id], onDelete: Restrict)
+  revokeRequest AdminGrantRequest? @relation("AdminGrantRevokedBy", fields: [revokeRequestId], references: [id], onDelete: Restrict)
+
+  @@map("admin_permission_grants")
 }

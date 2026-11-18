@@ -2,8 +2,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
 import { isFinancialPromotionsReviewed } from "@/env";
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { getTrackRecordSettings, ROI_LABEL } from "@/services/profiles/trackRecord";
 
 import { setHistoricalRoiAction } from "./actions";
@@ -17,7 +16,7 @@ export const metadata = { title: "Admin — Track record | PropLink" };
  * on and the financial promotions review is complete.
  */
 export default async function AdminTrackRecordPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("SYSTEM_INTEGRATIONS");
   const { showHistoricalRoi } = await getTrackRecordSettings();
   const reviewed = isFinancialPromotionsReviewed();
   return (

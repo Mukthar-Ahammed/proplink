@@ -1,12 +1,11 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPermission } from "@/lib/authz";
 import { getAdminResaleSummary } from "@/services/admin/flipperResaleAdminService";
 
 export async function GET() {
-  const authResult = await requireRole(Role.ADMIN);
+  const authResult = await requireAdminPermission("LISTING_MODERATION");
   if (!authResult.ok) return authResult.response;
 
   const result = await getAdminResaleSummary({

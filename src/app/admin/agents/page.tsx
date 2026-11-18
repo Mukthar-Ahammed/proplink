@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { listAgents } from "@/services/admin/agents";
-import { Role } from "@/generated/prisma/enums";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { DataTable } from "@/components/ui/data-table";
@@ -22,7 +21,7 @@ export default async function AdminAgentsPage({
 }: {
   searchParams: Promise<{ q?: string; active?: string; page?: string }>;
 }) {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("SUSPENSION");
   const params = await searchParams;
   const active =
     params.active === "true" ? true : params.active === "false" ? false : undefined;

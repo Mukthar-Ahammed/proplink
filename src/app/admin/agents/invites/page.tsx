@@ -1,5 +1,4 @@
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { listAgentInvites } from "@/services/agents/agentInvites";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge, type StatusTone } from "@/components/admin/StatusBadge";
@@ -28,7 +27,7 @@ function formatDate(value: Date | null): string {
  * this page is the only way an Agent account comes to exist.
  */
 export default async function AdminAgentInvitesPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("VERIFICATION");
   const invites = await listAgentInvites();
 
   return (

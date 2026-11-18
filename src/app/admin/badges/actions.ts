@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import { awardBadge, revokeBadge } from "@/services/profiles/badges";
 import { isRecentlyAuthenticated, REAUTH_MESSAGE } from "@/services/auth/mfa";
 
@@ -11,7 +10,7 @@ export type BadgeFormState =
   { kind: "idle" } | { kind: "error"; message: string } | { kind: "done" };
 
 async function adminActor() {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("VERIFICATION");
   if (!authz.ok) return null;
   return {
     profileId: authz.session.user.authUserId,
@@ -38,7 +37,7 @@ export async function revokeBadgeAction(
   _previous: BadgeFormState,
   formData: FormData,
 ): Promise<BadgeFormState> {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("VERIFICATION");
   if (!authz.ok) return { kind: "error", message: "Admin access required" };
   if (!isRecentlyAuthenticated(authz.session.user)) {
     return { kind: "error", message: `${REAUTH_MESSAGE} Go to /mfa?reauth=1` };

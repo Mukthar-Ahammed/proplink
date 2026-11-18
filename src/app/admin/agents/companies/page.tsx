@@ -1,5 +1,4 @@
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import {
   listAgentCompanyChecks,
   type EffectiveCompanyStatus,
@@ -31,7 +30,7 @@ function formatDate(value: Date | null | undefined): string {
  * the automatic result and is audited.
  */
 export default async function AdminAgentCompaniesPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("VERIFICATION");
   const agents = await listAgentCompanyChecks();
 
   return (

@@ -1,5 +1,4 @@
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { listAnnouncementsForAdmin } from "@/services/announcements/announcements";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -30,7 +29,7 @@ function stateOf(
  * PropLink's own messaging only; paid advertising is a separate Phase 6 module.
  */
 export default async function AdminAnnouncementsPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("SYSTEM_INTEGRATIONS");
   const announcements = await listAnnouncementsForAdmin();
   const now = new Date();
 

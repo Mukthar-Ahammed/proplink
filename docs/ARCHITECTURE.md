@@ -1322,3 +1322,15 @@ of the boundary.
 | [ADR-016](adr/ADR-016-role-portals.md)                              | Three strictly separate role portals; `/portal` role router; read-side only              |
 | [ADR-017](adr/ADR-017-buyer-portal.md)                              | Buyer portal is a marketplace; real viewing/offer/chat writes; sample price data flagged |
 | [ADR-018](adr/ADR-018-supabase-auth-and-rls-foundation.md)          | Supabase Auth UUID/CUID bridge, least-privilege RLS and Storage foundation               |
+
+## Phase 6 — Admin permissions, cases, advertising
+
+- Admin permissions (Task 2, ADR-058): `AdminPermission` enum;
+  `admin_grant_requests` and `admin_permission_grants` (migration
+  `20261120000000`, maker-checker triggers, no deletes, last super-admin
+  kept); `src/services/admin/permissions.ts`; guards
+  `requireAdminPermission`, `requireAdminPagePermission`, `adminCallerHas`
+  in `src/lib/authz`; area map `src/lib/authz/adminRoutes.ts` (also hides
+  sidebar links); `/admin/roles`. Ledger-correction decisions need
+  FINANCIAL_ADJUSTMENTS. Test fixtures grant permissions directly with
+  `grantAdminPermission` (superuser, disposable database only).

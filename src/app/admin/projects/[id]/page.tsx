@@ -4,8 +4,7 @@ import { notFound } from "next/navigation";
 import { day } from "@/components/projects/format";
 import { PledgeTable } from "@/components/projects/PledgeTable";
 import { ProjectSummary } from "@/components/projects/ProjectSummary";
-import { requirePageRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { QuestionList } from "@/components/projects/QuestionList";
 import {
@@ -38,7 +37,7 @@ export default async function AdminProjectPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await requirePageRole(Role.ADMIN);
+  const session = await requireAdminPagePermission("PROJECT_OVERSIGHT");
   const { id } = await params;
   const admin = {
     profileId: session.user.authUserId,

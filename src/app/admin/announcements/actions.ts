@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import {
   archiveAnnouncement,
   createAnnouncement,
@@ -18,7 +17,7 @@ function asUtc(value: string): string {
 }
 
 async function adminActor() {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("SYSTEM_INTEGRATIONS");
   if (!authz.ok) return null;
   return {
     profileId: authz.session.user.authUserId,

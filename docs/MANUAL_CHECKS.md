@@ -243,6 +243,15 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       listing page and "Reviews": headings, buttons and star ratings are
       announced sensibly (automated axe checks already pass).
 
+- [ ] **Admin permissions (Phase 6).** With two super-admin accounts: as
+      super-admin A, at Admin Roles request "Grant review moderation" for a
+      third Admin; A cannot approve it; as super-admin B approve it. Sign in
+      as the third Admin: the sidebar shows only the overview and Reviews;
+      opening `/admin/kyc` returns to the overview with a "does not have the
+      verification permission" notice. Revoke it the same way.
+- [ ] **Financial adjustments.** An Admin without the financial adjustments
+      permission cannot approve a Solicitor's ledger correction.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

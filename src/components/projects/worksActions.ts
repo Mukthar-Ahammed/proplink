@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
 import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { adminCallerHas, requireRole } from "@/lib/authz";
 import type { Actor } from "@/services/projects/common";
 import { recordDecision } from "@/services/projects/decisions";
 import { relistProject } from "@/services/projects/relist";
@@ -114,6 +114,8 @@ export async function updateAction(
 ): Promise<ProjectFormState> {
   const who = await actor(Role.AGENT, Role.SOLICITOR, Role.ADMIN);
   if (!who) return { kind: "error", message: "Sign in again" };
+  if (!(await adminCallerHas(who, "PROJECT_OVERSIGHT")))
+    return { kind: "error", message: "Your Admin account does not have this permission" };
   return finish(
     formData,
     await postProjectUpdate(who, text(formData, "projectId"), {
@@ -177,6 +179,8 @@ export async function decisionAction(
 ): Promise<ProjectFormState> {
   const who = await actor(Role.AGENT, Role.ADMIN);
   if (!who) return { kind: "error", message: "Sign in again" };
+  if (!(await adminCallerHas(who, "PROJECT_OVERSIGHT")))
+    return { kind: "error", message: "Your Admin account does not have this permission" };
   const result = await recordDecision(who, text(formData, "projectId"), {
     kind: text(formData, "kind"),
     reason: text(formData, "reason"),
@@ -192,6 +196,8 @@ export async function relistAction(
 ): Promise<ProjectFormState> {
   const who = await actor(Role.AGENT, Role.ADMIN);
   if (!who) return { kind: "error", message: "Sign in again" };
+  if (!(await adminCallerHas(who, "PROJECT_OVERSIGHT")))
+    return { kind: "error", message: "Your Admin account does not have this permission" };
   const result = await relistProject(who, text(formData, "projectId"), {
     title: text(formData, "title"),
     description: text(formData, "description"),

@@ -1,7 +1,7 @@
 import { isRecentlyAuthenticated, REAUTH_MESSAGE } from "@/services/auth/mfa";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { requirePageRole, requireRole } from "@/lib/authz";
+import { requireAdminPagePermission, requireAdminPermission } from "@/lib/authz";
 import { listUsers, setUserActive } from "@/services/admin/users";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
@@ -26,7 +26,7 @@ function pageHref(params: Record<string, string | undefined>, page: number) {
 
 async function toggleActive(formData: FormData) {
   "use server";
-  const authz = await requireRole("ADMIN");
+  const authz = await requireAdminPermission("SUSPENSION");
   if (!authz.ok) return;
   // Phase 1 Task 11 (ADR-030): destructive Admin actions need a recent check.
   if (!isRecentlyAuthenticated(authz.session.user)) {
@@ -57,7 +57,7 @@ export default async function AdminUsersPage({
     page?: string;
   }>;
 }) {
-  await requirePageRole("ADMIN");
+  await requireAdminPagePermission("SUSPENSION");
   const params = await searchParams;
   const role = ROLES.includes(params.role as Role) ? (params.role as Role) : undefined;
   const active =

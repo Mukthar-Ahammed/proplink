@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ProjectTermsForm } from "@/components/projects/ProjectTermsForm";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { PROJECT_RESPONSIBILITY_NOTICE } from "@/services/projects/common";
 import { allPublishableMandates } from "@/services/projects/projects";
 
@@ -18,6 +19,8 @@ export default async function AdminPublishPage({
 }: {
   searchParams: Promise<{ mandate?: string }>;
 }) {
+  // Phase 6 (ADR-058): checked here, not only by the Admin layout.
+  await requireAdminPagePermission("PROJECT_OVERSIGHT");
   const { mandate: mandateId } = await searchParams;
   const mandate = (await allPublishableMandates()).find(
     (candidate) => candidate.id === mandateId,

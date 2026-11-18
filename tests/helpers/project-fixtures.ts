@@ -32,10 +32,42 @@ export async function retirePeople(client: Client) {
 }
 export type Role = "ADMIN" | "LANDLORD" | "AGENT" | "INVESTOR" | "SOLICITOR" | "BUYER";
 
+/**
+ * Test-only: gives an Admin a permission directly (Phase 6, ADR-058). The app
+ * can only grant through a request approved by a second super-admin; this
+ * fixture skips that by disabling triggers for one statement, which needs the
+ * disposable database's superuser and is never possible for the app.
+ */
+export async function grantAdminPermission(
+  client: Client,
+  profileId: string,
+  permission: string,
+) {
+  await client.query("BEGIN");
+  try {
+    await client.query("SET LOCAL session_replication_role = replica");
+    await client.query(
+      `INSERT INTO public.admin_permission_grants (id, "profileId", permission)
+       VALUES ($1, $2, $3::"AdminPermission")`,
+      [randomUUID(), profileId, permission],
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
+}
+
 export async function person(
   client: Client,
   role: Role,
-  options: { kyc?: boolean; subscribed?: boolean; name?: string } = {},
+  options: {
+    kyc?: boolean;
+    subscribed?: boolean;
+    name?: string;
+    /** Admin only: permissions to hold (default SUPER_ADMIN; [] for none). */
+    adminPermissions?: string[];
+  } = {},
 ): Promise<Person> {
   const profileId = randomUUID();
   const legacyUserId = `p4-${profileId}`;
@@ -60,6 +92,11 @@ export async function person(
        UPDATE public.profiles SET "kycStatus" = 'APPROVED' WHERE id = $1`,
       [profileId, legacyUserId],
     );
+  }
+  if (role === "ADMIN") {
+    for (const permission of options.adminPermissions ?? ["SUPER_ADMIN"]) {
+      await grantAdminPermission(client, profileId, permission);
+    }
   }
   if (role === "AGENT") {
     await client.query(

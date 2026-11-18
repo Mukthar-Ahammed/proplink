@@ -1,8 +1,7 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
-import { requirePageRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { getListingForModeration } from "@/services/listings/moderationService";
 import { ListingReviewStudioClient } from "./ListingReviewStudioClient";
 
@@ -11,7 +10,7 @@ export const metadata = { title: "Admin — Agent Listing Moderation Studio | Pr
 export default async function AgentListingReviewStudioPage(props: {
   params: Promise<{ propertyId: string }>;
 }) {
-  const session = await requirePageRole(Role.ADMIN);
+  const session = await requireAdminPagePermission("LISTING_MODERATION");
 
   const { propertyId } = await props.params;
 

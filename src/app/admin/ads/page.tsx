@@ -1,10 +1,10 @@
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 
 export const metadata = { title: "Admin — Ad Campaigns" };
 
 export default async function AdsPage() {
-  await requirePageRole("ADMIN");
+  await requireAdminPagePermission("ADVERTISER_MANAGEMENT");
 
   return (
     <div className="space-y-6">
@@ -17,9 +17,12 @@ export default async function AdsPage() {
         <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-pale text-brand mb-4">
           📢
         </div>
-        <h2 className="text-base font-bold text-primary">Operational Surface Placeholder</h2>
+        <h2 className="text-base font-bold text-primary">
+          Operational Surface Placeholder
+        </h2>
         <p className="mt-2 text-xs text-muted max-w-md mx-auto">
-          Ad campaign dashboard arrives with the Ecosystem Marketplace (Sprint 6, Task 6.3 / Phase A7).
+          Ad campaign dashboard arrives with the Ecosystem Marketplace (Sprint 6, Task 6.3
+          / Phase A7).
         </p>
       </div>
     </div>

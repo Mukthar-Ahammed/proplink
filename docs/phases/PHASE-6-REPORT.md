@@ -49,18 +49,51 @@ None new. Advertising has no billing (OD-11).
 
 ## Task progress
 
-| Task                           | State       | Notes |
-| ------------------------------ | ----------- | ----- |
-| 2. Admin roles and permissions | In progress |       |
-| 3. Reporting and disputes      | Not started |       |
-| 1. Advertising module          | Not started |       |
-| 4. Admin dashboards            | Not started |       |
-| 5. Admin A5 verification debt  | Not started |       |
+| Task                           | State       | Notes   |
+| ------------------------------ | ----------- | ------- |
+| 2. Admin roles and permissions | Done        | ADR-058 |
+| 3. Reporting and disputes      | Not started |         |
+| 1. Advertising module          | Not started |         |
+| 4. Admin dashboards            | Not started |         |
+| 5. Admin A5 verification debt  | Not started |         |
 
 ## Exit gate
 
-- [ ] Permission matrix tests per admin role.
-- [ ] Maker-checker cannot be bypassed.
+- [x] Permission matrix tests per admin role.
+- [x] Maker-checker cannot be bypassed.
 - [ ] Ads cannot appear on forbidden pages.
 - [ ] Case workflow E2E passes.
 - [ ] Phase report written.
+
+## Task 2 — Admin roles and permissions (2026-11-19)
+
+**Delivered** (ADR-058)
+
+- Migration `20261120000000_phase6_admin_permissions` (rollback rehearsed):
+  13 permissions; grant requests and grants with maker-checker triggers;
+  bootstrap of existing Admins to super-admin; ledger-correction decider
+  needs FINANCIAL_ADJUSTMENTS.
+- All 57 Admin entry points (pages, actions, APIs) now check their area's
+  permission after the role and MFA checks; shared project actions check it
+  for Admin callers. Two Admin project pages that had relied on the layout
+  alone now check it too.
+- `/admin/roles` (request with a reason, approve or reject as a different
+  super-admin, cancel your own); sidebar hides areas the Admin cannot open;
+  the overview explains a refusal.
+- Every check logged; refusals and every permission change audited. The seed
+  makes its Admin the first super-admin on a fresh database.
+
+**Verification**
+
+- `tests/unit/admin-permissions.test.ts` (75): per-permission matrix (an
+  Admin with only P passes only P; super-admin all; none nothing; pages
+  redirect); every Admin page, action and API names its area's permission
+  and none uses the bare Admin role.
+- `tests/integration/admin-permissions-db.test.ts` (2, disposable database):
+  only super-admins request; the maker cannot approve (service and database);
+  a non-super-admin cannot decide; grants cannot be inserted or revoked
+  without an approved request, or deleted; approve, revoke and cancel work;
+  the last super-admin cannot be revoked.
+- `tests/integration/settlement-db.test.ts`: an Admin without
+  FINANCIAL_ADJUSTMENTS is refused by the service and by the database.
+- Full suite: 149 files, 1,785 passed, 0 failed.

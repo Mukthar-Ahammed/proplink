@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { ActionButton } from "@/components/projects/ActionButton";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { day } from "@/components/projects/format";
 import { formatPence, statusLabel } from "@/services/projects/common";
 import { shortfallProjects } from "@/services/projects/decisions";
@@ -17,6 +18,8 @@ export const metadata = { title: "Admin — Investor projects", robots: { index:
  * (OD-13), every project, and mandates Admin may publish for their Agent.
  */
 export default async function AdminProjectsPage() {
+  // Phase 6 (ADR-058): checked here, not only by the Admin layout.
+  await requireAdminPagePermission("PROJECT_OVERSIGHT");
   const [nominations, projects, mandates, shortfall] = await Promise.all([
     listAcceptedNominations(),
     listAllProjects(),

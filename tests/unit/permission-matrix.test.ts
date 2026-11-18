@@ -28,6 +28,11 @@ vi.mock("@/lib/db", () => ({
     agentCompanyCheck: { findUnique: vi.fn(async () => null) },
     landlordListing: { create: vi.fn(async () => ({})), findMany: vi.fn(async () => []) },
     chatThread: { findUnique: vi.fn(async () => null) },
+    // Phase 6 (ADR-058): the section 5 "Admin" column is a super-admin; the
+    // per-permission matrix is tests/unit/admin-permissions.test.ts.
+    adminPermissionGrant: {
+      findMany: vi.fn(async () => [{ permission: "SUPER_ADMIN" }]),
+    },
     // Phase 4 rows: the data is absent, so an allowed role gets past the role
     // gate and stops at "not found / not open"; a refused role gets 403/404.
     mandate: { findFirst: vi.fn(async () => null) },

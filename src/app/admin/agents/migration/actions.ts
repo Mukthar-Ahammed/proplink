@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import {
   authoriseExistingAgent,
   notifyExistingAgents,
@@ -16,7 +15,7 @@ export type MigrationFormState =
   | { kind: "authorised" };
 
 async function adminActor() {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("VERIFICATION");
   if (!authz.ok) return null;
   return {
     profileId: authz.session.user.authUserId,

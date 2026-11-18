@@ -5,7 +5,7 @@ import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
 import { KycStatus, LandlordListingStatus, Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { db } from "@/lib/db";
 import { getListingForReview, slaFor } from "@/services/landlord/reviewQueue";
 import { createDownloadLink } from "@/services/uploads/pipeline";
@@ -47,7 +47,7 @@ export default async function ReviewLandlordListingPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const session = await requirePageRole(Role.ADMIN);
+  const session = await requireAdminPagePermission("LISTING_MODERATION");
   const me = session.user.authUserId;
   const { id } = await params;
   const listing = await getListingForReview(id);

@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import { resolveReport } from "@/services/chat/messages";
 import { decideThreads, revokeThread } from "@/services/chat/threads";
 
@@ -15,7 +14,7 @@ export type ChatAdminState =
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "");
 
 async function adminActor() {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("CHAT_AUTHORIZATION");
   if (!authz.ok) return null;
   const { user } = authz.session;
   return { profileId: user.authUserId, legacyUserId: user.id, role: user.role };

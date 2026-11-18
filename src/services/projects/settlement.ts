@@ -12,10 +12,12 @@ import {
   PledgeState,
   ProjectSaleStatus,
   Role,
+  AdminPermission,
 } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 import { renderPdf, type PdfLine } from "@/lib/pdf/simplePdf";
 import { writeAudit } from "@/services/admin/audit";
+import { hasAdminPermission } from "@/services/admin/permissions";
 import { sendProjectEmail } from "@/services/email/mailer";
 import type { ServiceResult } from "@/services/landlord/listings";
 import { notifyProfile, poundsToPence } from "@/services/landlord/marketplace";
@@ -402,6 +404,13 @@ export async function decideCorrection(
   now: Date = new Date(),
 ): Promise<ServiceResult> {
   if (admin.role !== Role.ADMIN) return bad("Admin only", 403);
+  // Phase 6 (ADR-058): maker-checker with the Solicitor, and only an Admin
+  // holding the financial-adjustments permission decides (database-checked too).
+  if (
+    !(await hasAdminPermission(admin.profileId, AdminPermission.FINANCIAL_ADJUSTMENTS))
+  ) {
+    return bad("Deciding a correction needs the financial adjustments permission", 403);
+  }
   if (!uuid.safeParse(correctionId).success) return bad("Correction not found", 404);
   const note =
     typeof rawNote === "string" && rawNote.trim().length >= 2

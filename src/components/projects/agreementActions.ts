@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
 import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { adminCallerHas, requireRole } from "@/lib/authz";
 import {
   prepareAgreement,
   reissueAgreement,
@@ -97,6 +97,8 @@ export async function sendAgreementAction(
 ): Promise<ProjectFormState> {
   const sender = await actor(Role.SOLICITOR, Role.ADMIN);
   if (!sender) return { kind: "error", message: "Sign in again" };
+  if (!(await adminCallerHas(sender, "PROJECT_OVERSIGHT")))
+    return { kind: "error", message: "Your Admin account does not have this permission" };
   const result = await sendAgreement(sender, text(formData, "agreementId"));
   if (!result.ok) return { kind: "error", message: result.error };
   refresh(formData);
@@ -109,6 +111,8 @@ export async function voidAgreementAction(
 ): Promise<ProjectFormState> {
   const who = await actor(Role.SOLICITOR, Role.ADMIN);
   if (!who) return { kind: "error", message: "Sign in again" };
+  if (!(await adminCallerHas(who, "PROJECT_OVERSIGHT")))
+    return { kind: "error", message: "Your Admin account does not have this permission" };
   const result = await voidAgreement(
     who,
     text(formData, "agreementId"),
@@ -126,6 +130,8 @@ export async function adminAgreementAction(
 ): Promise<ProjectFormState> {
   const admin = await actor(Role.ADMIN);
   if (!admin) return { kind: "error", message: "Admin access required" };
+  if (!(await adminCallerHas(admin, "PROJECT_OVERSIGHT")))
+    return { kind: "error", message: "Your Admin account does not have this permission" };
   const agreementId = text(formData, "agreementId");
   const result =
     text(formData, "intent") === "reissue"

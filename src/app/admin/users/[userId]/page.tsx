@@ -2,7 +2,7 @@ import { isRecentlyAuthenticated, REAUTH_MESSAGE } from "@/services/auth/mfa";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requirePageRole, requireRole } from "@/lib/authz";
+import { requireAdminPagePermission, requireAdminPermission } from "@/lib/authz";
 import { getUserDetails, setUserActive } from "@/services/admin/users";
 import { Role } from "@/generated/prisma/enums";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ export const metadata = { title: "Admin — User detail | PropLink" };
 
 async function changeAccountState(formData: FormData) {
   "use server";
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("SUSPENSION");
   if (!authz.ok) return;
   // Phase 1 Task 11 (ADR-030): destructive Admin actions need a recent check.
   if (!isRecentlyAuthenticated(authz.session.user)) {
@@ -41,7 +41,7 @@ export default async function AdminUserDetailPage({
 }: {
   params: Promise<{ userId: string }>;
 }) {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("SUSPENSION");
   const { userId } = await params;
   const details = await getUserDetails(userId);
   if (!details) notFound();

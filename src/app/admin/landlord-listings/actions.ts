@@ -8,8 +8,7 @@ import {
   announceSafely,
 } from "@/services/landlord/announcements";
 
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import type { AdminActor } from "@/services/landlord/listings";
 import {
   assignListing,
@@ -26,7 +25,7 @@ export type ReviewState =
 const text = (formData: FormData, key: string) => String(formData.get(key) ?? "");
 
 async function adminActor(): Promise<AdminActor | null> {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("LISTING_MODERATION");
   if (!authz.ok) return null;
   return {
     profileId: authz.session.user.authUserId,

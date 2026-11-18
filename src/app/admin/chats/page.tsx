@@ -2,8 +2,7 @@ import Link from "next/link";
 
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { listOpenReports } from "@/services/chat/messages";
 import { listPendingThreads } from "@/services/chat/threads";
 
@@ -24,7 +23,7 @@ const PAIR: Record<string, string> = {
  * ADR-043). Every decision and every Admin read is audited.
  */
 export default async function AdminChatsPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("CHAT_AUTHORIZATION");
   const [pending, reports] = await Promise.all([listPendingThreads(), listOpenReports()]);
 
   return (
