@@ -261,6 +261,13 @@ The complete one-line policy rationale is in
   redirect to `/mfa`). Hashed single-use recovery codes grant MFA to one session for up to
   12 h. Sensitive Admin actions need an authentication within 15 minutes
   (`isRecentlyAuthenticated`). Service `src/services/auth/mfa.ts`; UI `/mfa`.
+- **Secure uploads (Phase 1, ADR-031):** `POST /api/uploads/files` (capped body, quota) →
+  quarantine → magic-byte check (`sniff.ts`) → `MalwareScanProvider` (clamd `INSTREAM` or
+  mock) → private store `files/<uuid>` (`ObjectStore`: S3, local disk, memory). Table
+  `uploaded_files` (server-only); limits in `upload_settings` (`/admin/settings/uploads`).
+  Downloads: `createDownloadLink` (access check) → HMAC-signed 5-minute link →
+  `GET /api/files/download` (same user; attachment, nosniff, no-store, sandbox CSP; inline
+  only for verified images). Service `src/services/uploads/pipeline.ts`.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

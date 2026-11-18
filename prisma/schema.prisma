@@ -252,6 +252,7 @@ model Profile {
   notificationPrefs    NotificationPreference[]  @relation("NotificationPreferenceProfile")
   mfaRecoveryCodes     MfaRecoveryCode[]         @relation("MfaRecoveryCodeProfile")
   mfaRecoverySessions  MfaRecoverySession[]      @relation("MfaRecoverySessionProfile")
+  uploadedFiles        UploadedFile[]            @relation("UploadedFileOwner")
 
   @@map("profiles")
 }
@@ -1200,4 +1201,53 @@ model MfaRecoverySession {
 
   @@index([profileId])
   @@map("mfa_recovery_sessions")
+}
+
+/// Phase 1 Task 12 (ADR-031). Lifecycle of an upload through the pipeline.
+enum UploadStatus {
+  /// In quarantine, not yet validated or scanned.
+  QUARANTINED
+  /// Scanned clean and promoted to private storage.
+  AVAILABLE
+  /// Declared type contradicted the file's bytes.
+  REJECTED_TYPE
+  /// The malware scanner flagged it.
+  REJECTED_MALWARE
+  /// The scanner failed; nothing was promoted.
+  SCAN_FAILED
+}
+
+/// One uploaded file. The stored name is a UUID; the original name is
+/// metadata only. Bytes live in the private object store, never public.
+model UploadedFile {
+  id              String       @id @db.Uuid
+  ownerId         String       @db.Uuid
+  purpose         String
+  status          UploadStatus @default(QUARANTINED)
+  originalName    String
+  declaredType    String
+  detectedType    String?
+  sizeBytes       Int
+  sha256          String
+  storageKey      String
+  scanSignature   String?
+  previewable     Boolean      @default(false)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  owner Profile @relation("UploadedFileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId, status])
+  @@map("uploaded_files")
+}
+
+/// Admin-managed upload limits (single row, id = 1).
+model UploadSettings {
+  id             Int      @id @default(1)
+  maxFileBytes   Int
+  userQuotaBytes BigInt
+  updatedAt      DateTime @updatedAt
+  updatedBy      String?  @db.Uuid
+
+  @@map("upload_settings")
 }

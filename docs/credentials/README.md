@@ -14,6 +14,7 @@ belong in `.env.local`, which is ignored by Git.
 | [sentry.md](./sentry.md)                             | Error monitoring              |
 | [companies-house.md](./companies-house.md)           | Agent company check           |
 | [kyc-provider.md](./kyc-provider.md)                 | KYC/AML provider (Sumsub)     |
+| [malware-scanning.md](./malware-scanning.md)         | ClamAV and private S3 uploads |
 
 These are setup instructions only. A service is not considered configured for
 an environment until its credentials, access controls, smoke test, and rotation

@@ -24,7 +24,7 @@ development Supabase project (see the Phase 0 report).
 | 9. Suspend/reinstate                   | **Done**    | ADR-028; fixed actor-ID defect       |
 | 10. Notification preferences           | **Done**    | ADR-029                              |
 | 11. MFA                                | **Done**    | ADR-030; Admin login needs TOTP      |
-| 12. Secure upload pipeline             | Not started |                                      |
+| 12. Secure upload pipeline             | **Done**    | ADR-031; S3 + ClamAV pending         |
 | 13. Permission-matrix harness          | Not started |                                      |
 
 ## Task 1 — Roles and schema (2026-11-16)
@@ -443,3 +443,42 @@ exist yet for any service; it is not built here.
   authenticator app.
 - Existing Admin Playwright specs need a TOTP helper before they can run.
 - Resetting another user's authenticator needs the Supabase Admin API (OD-18).
+
+## Task 12 — Secure upload pipeline (2026-11-18)
+
+**Delivered** (ADR-031)
+
+- `POST /api/uploads/files` (capped streaming read, per-user quota, proxy rate
+  limit) and `src/services/uploads/pipeline.ts`: quarantine → magic-byte check
+  (wrong bytes for a recognisable declared type rejected) → malware scan (fail
+  closed) → promotion to `files/<uuid>` in private storage.
+- `MalwareScanProvider`: `ClamdScanner` (clamd `INSTREAM` over TCP) and an
+  EICAR-detecting mock. `ObjectStore`: private S3 (two buckets, SSE), local
+  disk (development), memory (tests).
+- Signed downloads: access check (owner or Admin), HMAC-signed 5-minute link
+  bound to the user, `GET /api/files/download` with attachment, nosniff,
+  no-store, sandbox CSP; inline only for verified images.
+- Migration `20261118050000_phase1_secure_uploads` (with `rollback.sql`):
+  `uploaded_files` (keys tied to the row's UUID, AVAILABLE only when promoted,
+  preview only when available) and `upload_settings` (100 MB / 2 GB defaults).
+- Admin `/admin/settings/uploads`; `docs/credentials/malware-scanning.md`.
+- Production uploads stay disabled until `UPLOADS_ENABLED=true` (requires S3 and
+  ClamAV).
+
+**Verification**
+
+- `tests/unit/secure-uploads.test.ts` (25): magic-byte detection and the
+  declared-vs-detected matrix (including executables), clean upload promoted
+  under a UUID with a sanitised name, **EICAR rejected** and removed from
+  quarantine with audit, **wrong magic bytes rejected** before scanning, scanner
+  outage fails closed, size/quota/purpose/empty limits, enablement needs S3 and
+  ClamAV, name sanitising, links for owner and Admin only, attachment by default,
+  inline only for previewable images, expired/tampered/foreign/malformed tokens
+  refused, settings validation, a fake clamd exercising the real `INSTREAM`
+  framing plus clean/infected/error replies.
+- `tests/integration/secure-uploads-db.test.ts`: key/row binding, AVAILABLE
+  only when promoted, preview only when available, purpose and hash checks,
+  default limits and single settings row, no Data API access.
+- Rollback rehearsed. Full suite: **105 files, 1,341 tests pass**; typecheck and
+  lint clean.
+- Not exercised: real S3 and ClamAV (BLOCKERS).

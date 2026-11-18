@@ -25,7 +25,7 @@ before then.
 | 9. Suspend/reinstate                   | Done        |
 | 10. Notification preferences           | Done        |
 | 11. MFA                                | Done        |
-| 12. Secure upload pipeline             | Not started |
+| 12. Secure upload pipeline             | Done        |
 | 13. Permission-matrix harness          | Not started |
 
 **2026-11-16 Phase 0 progress:** development reconciliation completed
