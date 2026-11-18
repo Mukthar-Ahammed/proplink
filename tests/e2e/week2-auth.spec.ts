@@ -4,9 +4,7 @@ import { login } from "./helpers/login";
 
 test.skip(!hasDb, "requires seeded Supabase Auth and business identities");
 
-test("Supabase user session is established and logout expires it", async ({
-  page,
-}) => {
+test("Supabase user session is established and logout expires it", async ({ page }) => {
   await login(page, "buyer@proplink.test", "Password123!");
   await expect(page).toHaveURL(/\/buy(?:\/|$)/);
 

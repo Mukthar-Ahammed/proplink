@@ -14,10 +14,7 @@ import {
  * strip earns its space and every metric eventually has a value.
  */
 export async function MetricsStrip() {
-  const [metrics, landing] = await Promise.all([
-    getGlobalMetrics(),
-    getLandingStats(),
-  ]);
+  const [metrics, landing] = await Promise.all([getGlobalMetrics(), getLandingStats()]);
 
   const items = [
     {

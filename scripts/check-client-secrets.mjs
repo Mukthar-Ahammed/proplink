@@ -29,8 +29,12 @@ function visit(directory) {
 
 visit(sourceRoot);
 if (violations.length) {
-  console.error(`Server-only credentials referenced under src:\n${[...new Set(violations)].join("\n")}`);
+  console.error(
+    `Server-only credentials referenced under src:\n${[...new Set(violations)].join("\n")}`,
+  );
   process.exitCode = 1;
 } else {
-  console.log("No Supabase service-role references or server-secret reads found under src.");
+  console.log(
+    "No Supabase service-role references or server-secret reads found under src.",
+  );
 }

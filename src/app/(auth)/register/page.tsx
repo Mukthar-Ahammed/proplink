@@ -224,8 +224,11 @@ export default function RegisterPage() {
             </fieldset>
 
             <div className="rounded-xl border border-line bg-white p-3 text-xs text-muted">
-              <span className="font-semibold text-primary">Identity verification required:</span>{" "}
-              Investor accounts must complete identity verification before accessing investment-related financial actions.
+              <span className="font-semibold text-primary">
+                Identity verification required:
+              </span>{" "}
+              Investor accounts must complete identity verification before accessing
+              investment-related financial actions.
             </div>
           </div>
         )}
@@ -235,24 +238,29 @@ export default function RegisterPage() {
             type="checkbox"
             required
             checked={form.gdprConsent}
-            onChange={(event) =>
-              setForm({ ...form, gdprConsent: event.target.checked })
-            }
+            onChange={(event) => setForm({ ...form, gdprConsent: event.target.checked })}
             className="mt-1"
           />
           <span>
-            I agree to the <Link href="/privacy" className="text-accent underline">privacy policy</Link>{" "}
-            and <Link href="/terms" className="text-accent underline">terms of service</Link>.
+            I agree to the{" "}
+            <Link href="/privacy" className="text-accent underline">
+              privacy policy
+            </Link>{" "}
+            and{" "}
+            <Link href="/terms" className="text-accent underline">
+              terms of service
+            </Link>
+            .
           </span>
         </label>
 
-        <TurnstileWidget
-          onToken={setTurnstileToken}
-          resetKey={turnstileResetKey}
-        />
+        <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileResetKey} />
 
         {result.message && (
-          <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger">
+          <p
+            role="alert"
+            className="rounded-xl bg-danger/10 px-4 py-3 text-sm font-medium text-danger"
+          >
             {result.message}
           </p>
         )}
@@ -264,7 +272,10 @@ export default function RegisterPage() {
 
       <p className="mt-8 text-center text-sm text-muted">
         Already registered?{" "}
-        <Link href="/login" className="font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent">
+        <Link
+          href="/login"
+          className="font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
+        >
           Log in
         </Link>
       </p>

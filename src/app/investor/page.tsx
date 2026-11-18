@@ -63,7 +63,8 @@ export default async function InvestorPage() {
               Build your next position.
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/70">
-              Keep opportunities, expressions of interest and verification in one clear view.
+              Keep opportunities, expressions of interest and verification in one clear
+              view.
             </p>
           </div>
           <span
@@ -76,19 +77,53 @@ export default async function InvestorPage() {
       </div>
 
       <div className="mt-5 grid gap-4 sm:grid-cols-3">
-        <Link href="/marketplace" className="group rounded-2xl border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Explore</p>
-          <p className="mt-2 font-semibold text-primary">Find new opportunities <span className="text-accent transition group-hover:translate-x-1 inline-block">→</span></p>
-          <p className="mt-1 text-sm text-muted">Browse approved distressed stock and project information.</p>
+        <Link
+          href="/marketplace"
+          className="group rounded-2xl border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+            Explore
+          </p>
+          <p className="mt-2 font-semibold text-primary">
+            Find new opportunities{" "}
+            <span className="text-accent transition group-hover:translate-x-1 inline-block">
+              →
+            </span>
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            Browse approved distressed stock and project information.
+          </p>
         </Link>
-        <Link href="/investor/kyc" className="group rounded-2xl border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Compliance</p>
-          <p className="mt-2 font-semibold text-primary">Identity & verification <span className="text-accent transition group-hover:translate-x-1 inline-block">→</span></p>
-          <p className="mt-1 text-sm text-muted">View your status and submit documents.</p>
+        <Link
+          href="/investor/kyc"
+          className="group rounded-2xl border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+            Compliance
+          </p>
+          <p className="mt-2 font-semibold text-primary">
+            Identity & verification{" "}
+            <span className="text-accent transition group-hover:translate-x-1 inline-block">
+              →
+            </span>
+          </p>
+          <p className="mt-1 text-sm text-muted">
+            View your status and submit documents.
+          </p>
         </Link>
-        <Link href={isSyndicate ? "/investor/syndicates" : "/investor/flip"} className="group rounded-2xl border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted">Workspace</p>
-          <p className="mt-2 font-semibold text-primary">Open your workspace <span className="text-accent transition group-hover:translate-x-1 inline-block">→</span></p>
+        <Link
+          href={isSyndicate ? "/investor/syndicates" : "/investor/flip"}
+          className="group rounded-2xl border border-line bg-white p-5 transition hover:-translate-y-0.5 hover:border-accent hover:shadow-md"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+            Workspace
+          </p>
+          <p className="mt-2 font-semibold text-primary">
+            Open your workspace{" "}
+            <span className="text-accent transition group-hover:translate-x-1 inline-block">
+              →
+            </span>
+          </p>
           <p className="mt-1 text-sm text-muted">Continue where you left off.</p>
         </Link>
       </div>
@@ -96,7 +131,9 @@ export default async function InvestorPage() {
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-b border-line pb-5">
         <div>
           <p className="text-sm font-semibold text-primary">Your overview</p>
-          <p className="mt-1 text-sm text-muted">Positions, opportunities and identity status.</p>
+          <p className="mt-1 text-sm text-muted">
+            Positions, opportunities and identity status.
+          </p>
         </div>
       </div>
 
@@ -158,7 +195,8 @@ export default async function InvestorPage() {
                         />
                       </span>
                       <span className="text-xs tabular-nums text-muted">
-                        {p.project.fundedPct}% of {formatPenceGBP(p.project.capitalTargetGBP)}
+                        {p.project.fundedPct}% of{" "}
+                        {formatPenceGBP(p.project.capitalTargetGBP)}
                       </span>
                     </div>
                   </li>
@@ -173,9 +211,15 @@ export default async function InvestorPage() {
         <PortalSection title="Flipper Workspace Overview">
           <div className="grid gap-6 sm:grid-cols-3">
             <div className="rounded-2xl border border-line bg-white p-5">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Property Acquisition</span>
-              <p className="mt-2 text-base font-bold text-primary">Browse Refurb Inventory</p>
-              <p className="mt-1 text-xs text-muted">Filter listings with disclosed defects and EPC ratings</p>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Property Acquisition
+              </span>
+              <p className="mt-2 text-base font-bold text-primary">
+                Browse Refurb Inventory
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                Filter listings with disclosed defects and EPC ratings
+              </p>
               <Link
                 href="/marketplace"
                 className="mt-4 inline-block text-xs font-semibold text-primary underline hover:text-accent"
@@ -185,15 +229,23 @@ export default async function InvestorPage() {
             </div>
 
             <div className="rounded-2xl border border-line bg-white p-5 opacity-80">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Renovation Tracking</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Renovation Tracking
+              </span>
               <p className="mt-2 text-base font-bold text-primary">Refurb Projects</p>
-              <p className="mt-1 text-xs text-muted">Contractor milestone management (Coming soon)</p>
+              <p className="mt-1 text-xs text-muted">
+                Contractor milestone management (Coming soon)
+              </p>
             </div>
 
             <div className="rounded-2xl border border-line bg-white p-5 opacity-80">
-              <span className="text-xs font-semibold uppercase tracking-wider text-muted">Resale Exit</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted">
+                Resale Exit
+              </span>
               <p className="mt-2 text-base font-bold text-primary">Property Resale</p>
-              <p className="mt-1 text-xs text-muted">Listing finished refurbishings for sale (Coming soon)</p>
+              <p className="mt-1 text-xs text-muted">
+                Listing finished refurbishings for sale (Coming soon)
+              </p>
             </div>
           </div>
         </PortalSection>

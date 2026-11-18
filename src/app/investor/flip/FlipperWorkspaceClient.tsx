@@ -2,9 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import {
-  FlipperOfferStatus,
-} from "@/generated/prisma/enums";
+import { FlipperOfferStatus } from "@/generated/prisma/enums";
 import { FlipperWorkspaceSummary } from "@/services/flipper/flipperService";
 
 export function FlipperWorkspaceClient() {
@@ -12,7 +10,9 @@ export function FlipperWorkspaceClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<"OPPORTUNITIES" | "OFFERS" | "ACQUISITIONS">("OPPORTUNITIES");
+  const [activeTab, setActiveTab] = useState<"OPPORTUNITIES" | "OFFERS" | "ACQUISITIONS">(
+    "OPPORTUNITIES",
+  );
 
   // Offer Submission Modal
   const [offerPropertyId, setOfferPropertyId] = useState<string | null>(null);
@@ -20,7 +20,10 @@ export function FlipperWorkspaceClient() {
   const [offerAskingPrice, setOfferAskingPrice] = useState<number>(0);
   const [offerAmountInput, setOfferAmountInput] = useState<string>("");
   const [offerSubmitting, setOfferSubmitting] = useState(false);
-  const [offerFeedback, setOfferFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [offerFeedback, setOfferFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
   const fetchWorkspace = useCallback(async () => {
     setLoading(true);
@@ -65,7 +68,10 @@ export function FlipperWorkspaceClient() {
 
     const parsedGbp = parseFloat(offerAmountInput);
     if (isNaN(parsedGbp) || parsedGbp <= 0) {
-      setOfferFeedback({ type: "error", message: "Please enter a valid positive offer amount in £." });
+      setOfferFeedback({
+        type: "error",
+        message: "Please enter a valid positive offer amount in £.",
+      });
       return;
     }
 
@@ -118,7 +124,8 @@ export function FlipperWorkspaceClient() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Property Flipper Workspace</h1>
         <p className="text-sm text-gray-600">
-          Track property opportunities, submit acquisition offers, and manage your refurbishment pipeline.
+          Track property opportunities, submit acquisition offers, and manage your
+          refurbishment pipeline.
         </p>
       </div>
 
@@ -130,8 +137,8 @@ export function FlipperWorkspaceClient() {
               <span>🔒 KYC Identity Verification Required</span>
             </div>
             <p className="text-xs text-amber-800">
-              You can evaluate property opportunities, but submitting binding Flipper acquisition offers requires
-              approved identity verification.
+              You can evaluate property opportunities, but submitting binding Flipper
+              acquisition offers requires approved identity verification.
             </p>
           </div>
           <Link
@@ -180,7 +187,9 @@ export function FlipperWorkspaceClient() {
 
         {/* Tab Contents */}
         {loading ? (
-          <div className="py-12 text-center text-gray-500 text-sm">Loading Flipper workspace...</div>
+          <div className="py-12 text-center text-gray-500 text-sm">
+            Loading Flipper workspace...
+          </div>
         ) : error ? (
           <div className="p-4 bg-red-50 text-red-700 text-sm rounded-lg">{error}</div>
         ) : (
@@ -190,7 +199,9 @@ export function FlipperWorkspaceClient() {
               <div className="space-y-4">
                 {workspace?.opportunities.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-gray-500 text-sm space-y-3">
-                    <p>No evaluated property opportunities in your Flipper workspace yet.</p>
+                    <p>
+                      No evaluated property opportunities in your Flipper workspace yet.
+                    </p>
                     <Link
                       href="/buy"
                       className="inline-block px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700"
@@ -207,7 +218,9 @@ export function FlipperWorkspaceClient() {
                       >
                         <div className="space-y-2">
                           <div className="flex justify-between items-start">
-                            <h3 className="font-bold text-gray-900 text-base">{opp.propertyTitle}</h3>
+                            <h3 className="font-bold text-gray-900 text-base">
+                              {opp.propertyTitle}
+                            </h3>
                             <span className="text-xs px-2 py-0.5 rounded font-semibold bg-blue-50 text-blue-700">
                               {opp.status}
                             </span>
@@ -229,7 +242,13 @@ export function FlipperWorkspaceClient() {
                           </Link>
                           {workspace.isKycApproved ? (
                             <button
-                              onClick={() => openOfferModal(opp.propertyId, opp.propertyTitle, opp.askingPriceGBP)}
+                              onClick={() =>
+                                openOfferModal(
+                                  opp.propertyId,
+                                  opp.propertyTitle,
+                                  opp.askingPriceGBP,
+                                )
+                              }
                               className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm"
                             >
                               Submit Acquisition Offer
@@ -262,17 +281,29 @@ export function FlipperWorkspaceClient() {
                     <table className="min-w-full divide-y divide-gray-200 text-sm">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-600">Property</th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-600">Offer Amount</th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-600">Submitted Date</th>
-                          <th className="px-4 py-3 text-left font-semibold text-gray-600">Status</th>
-                          <th className="px-4 py-3 text-right font-semibold text-gray-600">Action</th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                            Property
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                            Offer Amount
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                            Submitted Date
+                          </th>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-600">
+                            Status
+                          </th>
+                          <th className="px-4 py-3 text-right font-semibold text-gray-600">
+                            Action
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-200 bg-white">
                         {workspace?.offers.map((off) => (
                           <tr key={off.id}>
-                            <td className="px-4 py-3 font-semibold text-gray-900">{off.propertyTitle}</td>
+                            <td className="px-4 py-3 font-semibold text-gray-900">
+                              {off.propertyTitle}
+                            </td>
                             <td className="px-4 py-3 font-bold text-blue-900">
                               £{(off.amountGBP / 100).toLocaleString("en-GB")}
                             </td>
@@ -285,10 +316,10 @@ export function FlipperWorkspaceClient() {
                                   off.status === FlipperOfferStatus.SUBMITTED
                                     ? "bg-blue-100 text-blue-800"
                                     : off.status === FlipperOfferStatus.ACCEPTED
-                                    ? "bg-green-100 text-green-800"
-                                    : off.status === FlipperOfferStatus.REJECTED
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-gray-100 text-gray-800"
+                                      ? "bg-green-100 text-green-800"
+                                      : off.status === FlipperOfferStatus.REJECTED
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-gray-100 text-gray-800"
                                 }`}
                               >
                                 {off.status}
@@ -318,14 +349,20 @@ export function FlipperWorkspaceClient() {
               <div className="space-y-4">
                 {workspace?.acquisitions.length === 0 ? (
                   <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300 text-gray-500 text-sm">
-                    No confirmed acquisitions yet. When an agent accepts your Flipper offer, it will appear here.
+                    No confirmed acquisitions yet. When an agent accepts your Flipper
+                    offer, it will appear here.
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {workspace?.acquisitions.map((acq) => (
-                      <div key={acq.id} className="bg-white border-2 border-green-200 rounded-xl p-5 shadow-sm space-y-3">
+                      <div
+                        key={acq.id}
+                        className="bg-white border-2 border-green-200 rounded-xl p-5 shadow-sm space-y-3"
+                      >
                         <div className="flex justify-between items-start">
-                          <h3 className="font-bold text-gray-900 text-base">{acq.propertyTitle}</h3>
+                          <h3 className="font-bold text-gray-900 text-base">
+                            {acq.propertyTitle}
+                          </h3>
                           <span className="px-2.5 py-1 text-xs font-extrabold bg-green-100 text-green-800 rounded-full">
                             {acq.status}
                           </span>
@@ -337,8 +374,8 @@ export function FlipperWorkspaceClient() {
                           </strong>
                         </div>
                         <div className="p-3 bg-green-50 rounded border border-green-200 text-xs text-green-900">
-                          ✓ Flipper Acquisition Boundary Confirmed. Refurbishment tracking and capex management will
-                          unlock in Phase 7.
+                          ✓ Flipper Acquisition Boundary Confirmed. Refurbishment tracking
+                          and capex management will unlock in Phase 7.
                         </div>
                       </div>
                     ))}
@@ -356,10 +393,15 @@ export function FlipperWorkspaceClient() {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-gray-200">
             <div className="flex justify-between items-start">
               <div>
-                <h3 className="font-bold text-gray-900 text-lg">Submit Flipper Acquisition Offer</h3>
+                <h3 className="font-bold text-gray-900 text-lg">
+                  Submit Flipper Acquisition Offer
+                </h3>
                 <p className="text-xs text-gray-500">{offerPropertyTitle}</p>
               </div>
-              <button onClick={closeOfferModal} className="text-gray-400 hover:text-gray-600 font-bold">
+              <button
+                onClick={closeOfferModal}
+                className="text-gray-400 hover:text-gray-600 font-bold"
+              >
                 ✕
               </button>
             </div>
@@ -378,7 +420,9 @@ export function FlipperWorkspaceClient() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Asking Price</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Asking Price
+                </label>
                 <div className="text-sm font-bold text-gray-800">
                   £{(offerAskingPrice / 100).toLocaleString("en-GB")}
                 </div>
@@ -386,7 +430,8 @@ export function FlipperWorkspaceClient() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-700 mb-1">
-                  Your Acquisition Offer Amount (£) <span className="text-red-600">*</span>
+                  Your Acquisition Offer Amount (£){" "}
+                  <span className="text-red-600">*</span>
                 </label>
                 <input
                   type="number"
@@ -400,8 +445,8 @@ export function FlipperWorkspaceClient() {
               </div>
 
               <div className="p-3 bg-blue-50 rounded text-xs text-blue-900 border border-blue-200">
-                Notice: Submitting an acquisition offer signals intent to acquire for property refurbishment. No funds
-                move at this stage.
+                Notice: Submitting an acquisition offer signals intent to acquire for
+                property refurbishment. No funds move at this stage.
               </div>
             </div>
 

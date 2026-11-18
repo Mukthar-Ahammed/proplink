@@ -635,3 +635,7 @@ CI step on a clean checkout (no `.env.local`) found five problems; all fixed:
 Local CI emulation: audit check passes; typecheck, lint, changed-files format
 check clean; tests 97 files pass, 12 database-only files skipped; production
 build passes.
+
+Follow-up (same day): the changed-files check compares against `main`, and PR #1
+also carries earlier Phase 0 work, so 62 older files it touched were unformatted.
+They were formatted (whitespace only, no code changes) so the check passes.

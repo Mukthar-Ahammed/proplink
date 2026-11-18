@@ -54,9 +54,7 @@ function toItem(
  * sibling class rather than unpicking SQL from business logic.
  */
 export class PostgresSearchService implements SearchService {
-  constructor(
-    private readonly financialPromotionsReviewed = false,
-  ) {}
+  constructor(private readonly financialPromotionsReviewed = false) {}
 
   async search(params: SearchParams): Promise<SearchResult> {
     const page = resolvePage(params.page);
@@ -72,9 +70,7 @@ export class PostgresSearchService implements SearchService {
     ]);
 
     return {
-      items: rows.map((row) =>
-        toItem(row, this.financialPromotionsReviewed),
-      ),
+      items: rows.map((row) => toItem(row, this.financialPromotionsReviewed)),
       total,
       // Report what was actually queried, not what was asked for — the caller
       // paginates against these numbers.

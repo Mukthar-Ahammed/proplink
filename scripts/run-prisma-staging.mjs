@@ -13,11 +13,15 @@ const projectRef = assertExpectedSupabaseProject({
   databaseUrl: env.DIRECT_URL,
 });
 if (env.PROPLINK_STAGING_PROJECT_REF !== projectRef) {
-  throw new Error("Configured staging project reference does not match the approved staging project.");
+  throw new Error(
+    "Configured staging project reference does not match the approved staging project.",
+  );
 }
 const args = process.argv.slice(2);
 if (!args.length) throw new Error("Missing Prisma command");
-const prismaCli = fileURLToPath(new URL("../node_modules/prisma/build/index.js", import.meta.url));
+const prismaCli = fileURLToPath(
+  new URL("../node_modules/prisma/build/index.js", import.meta.url),
+);
 const result = spawnSync(process.execPath, [prismaCli, ...args], {
   stdio: "inherit",
   env,

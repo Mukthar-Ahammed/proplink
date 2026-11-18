@@ -128,15 +128,9 @@ export default async function Home() {
           <p
             className={`${RISE} flex items-center gap-3 text-[11px] font-semibold tracking-[0.24em] text-white/80 uppercase delay-[100ms]`}
           >
-            <span
-              aria-hidden
-              className="h-px w-6 bg-white/35"
-            />
+            <span aria-hidden className="h-px w-6 bg-white/35" />
             UK distressed property platform
-            <span
-              aria-hidden
-              className="h-px w-6 bg-white/35"
-            />
+            <span aria-hidden className="h-px w-6 bg-white/35" />
           </p>
 
           {/* Main headline */}
@@ -149,12 +143,14 @@ export default async function Home() {
           <p
             className={`${RISE} mt-5 max-w-2xl text-center text-base leading-relaxed text-pale/85 delay-[300ms] sm:text-lg`}
           >
-            Private listings, verified access, disclosed defects and EPC ratings in
-            one controlled pipeline.
+            Private listings, verified access, disclosed defects and EPC ratings in one
+            controlled pipeline.
           </p>
 
           {/* Primary CTAs */}
-          <div className={`${RISE} mt-8 flex flex-wrap items-center justify-center gap-3.5 delay-[450ms]`}>
+          <div
+            className={`${RISE} mt-8 flex flex-wrap items-center justify-center gap-3.5 delay-[450ms]`}
+          >
             <Link
               href="/marketplace"
               className="rounded-full bg-white px-8 py-3.5 text-sm font-semibold text-primary shadow-md transition-all hover:bg-accent hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0e4a55]"
@@ -176,7 +172,6 @@ export default async function Home() {
       <section className="relative isolate z-10 -mt-16 sm:-mt-24 lg:-mt-32 overflow-visible bg-background pb-20 sm:pb-28">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="rounded-t-none rounded-b-[28px] sm:rounded-b-[36px] bg-white border border-line shadow-2xl p-6 sm:p-10 lg:p-12 relative overflow-hidden">
-            
             {/* Filter & Portal Bar */}
             <div className="flex flex-col gap-4 border-b border-line/80 pb-6 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -184,7 +179,8 @@ export default async function Home() {
                   Deal Workflow
                 </p>
                 <h3 className="font-display mt-1 text-lg font-semibold text-primary sm:text-xl">
-                  One platform, <span className="font-light text-secondary">whole deal</span>
+                  One platform,{" "}
+                  <span className="font-light text-secondary">whole deal</span>
                 </h3>
               </div>
 
@@ -227,9 +223,7 @@ export default async function Home() {
                   <h4 className="font-display mt-4 font-semibold text-primary text-base group-hover:text-accent transition-colors">
                     {step.title}
                   </h4>
-                  <p className="mt-2 text-xs leading-relaxed text-muted">
-                    {step.desc}
-                  </p>
+                  <p className="mt-2 text-xs leading-relaxed text-muted">{step.desc}</p>
                 </div>
               ))}
             </div>
@@ -290,8 +284,8 @@ export default async function Home() {
             deal
           </h2>
           <p className="mx-auto mt-7 max-w-xl text-center text-base leading-relaxed text-muted">
-            Discovery, authorised project access and retail enquiries — with funds
-            handled outside the platform.
+            Discovery, authorised project access and retail enquiries — with funds handled
+            outside the platform.
           </p>
           <HeroStats />
         </div>

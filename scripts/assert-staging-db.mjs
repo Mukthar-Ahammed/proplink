@@ -35,17 +35,35 @@ if (stagingRef !== projectRef) {
   process.exit(1);
 }
 function parseDb(key) {
-  try { return new URL(env[key]); } catch { console.error(`Invalid ${key}.`); process.exit(1); }
+  try {
+    return new URL(env[key]);
+  } catch {
+    console.error(`Invalid ${key}.`);
+    process.exit(1);
+  }
 }
 const db = parseDb("DATABASE_URL");
 const direct = parseDb("DIRECT_URL");
-if (db.hostname === "" || direct.hostname === "" || db.pathname !== "/postgres" || direct.pathname !== "/postgres") {
-  console.error("Staging database URLs are invalid."); process.exit(1);
+if (
+  db.hostname === "" ||
+  direct.hostname === "" ||
+  db.pathname !== "/postgres" ||
+  direct.pathname !== "/postgres"
+) {
+  console.error("Staging database URLs are invalid.");
+  process.exit(1);
 }
-if (env.DATABASE_URL.includes(projectRefs.production) || env.DIRECT_URL.includes(projectRefs.production)) {
-  console.error("Production project reference detected in database URL."); process.exit(1);
+if (
+  env.DATABASE_URL.includes(projectRefs.production) ||
+  env.DIRECT_URL.includes(projectRefs.production)
+) {
+  console.error("Production project reference detected in database URL.");
+  process.exit(1);
 }
-for (const [key, url] of [["DATABASE_URL", db], ["DIRECT_URL", direct]]) {
+for (const [key, url] of [
+  ["DATABASE_URL", db],
+  ["DIRECT_URL", direct],
+]) {
   const username = decodeURIComponent(url.username);
   const expected = `postgres.${stagingRef}`;
   if (username !== expected) {

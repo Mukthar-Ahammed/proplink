@@ -7,7 +7,8 @@ import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mj
 
 const expectedProjectRef = "onhdlxxbdcfwujhtphaj";
 // Reviewed 2026-11-16: matches the missing parts of 20261007110000 exactly.
-const expectedSqlSha256 = "76b3eeb36475e36b545140772495f11a6a31bcdadaab98a32f9c8b3d5495dfe9";
+const expectedSqlSha256 =
+  "76b3eeb36475e36b545140772495f11a6a31bcdadaab98a32f9c8b3d5495dfe9";
 const runtimeEnv = {
   ...dotenv.parse(fs.readFileSync(".env.local")),
   ...process.env,

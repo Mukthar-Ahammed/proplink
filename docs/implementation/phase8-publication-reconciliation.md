@@ -12,7 +12,7 @@ The only publication-migration objects still missing on development are:
 - `FlipperResale.resalePropertyId` (`TEXT`, nullable)
 - `FlipperResale_resalePropertyId_key` (unique constraint)
 - `FlipperResale_resalePropertyId_fkey` (references `Property.id`, `ON DELETE
-  SET NULL`, `ON UPDATE CASCADE`)
+SET NULL`, `ON UPDATE CASCADE`)
 
 `FlipperResale` is created by
 `20261007100000_phase8_flipper_resale`; therefore that migration must complete

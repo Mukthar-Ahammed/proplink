@@ -29,7 +29,10 @@ import {
   signupSchema,
   tokenWasConsumed,
 } from "@/services/auth/supabaseAuthService";
-import { completeInvestorTypeOnboarding, investorTypeSchema } from "@/services/syndicates/investorType";
+import {
+  completeInvestorTypeOnboarding,
+  investorTypeSchema,
+} from "@/services/syndicates/investorType";
 import { isAuthenticationAudienceAllowed, requireRole } from "@/lib/authz";
 import { auth } from "@/lib/auth";
 import { verifyTurnstileToken } from "@/services/security/turnstile";
@@ -59,9 +62,7 @@ async function requestIp(): Promise<string> {
   );
 }
 
-async function verifyHuman(
-  token: string | undefined,
-): Promise<AuthActionResult | null> {
+async function verifyHuman(token: string | undefined): Promise<AuthActionResult | null> {
   const result = await verifyTurnstileToken(token, await requestIp());
   if (result.ok) return null;
   return {
@@ -96,17 +97,12 @@ async function signupAs(role: AppRole, raw: unknown): Promise<AuthActionResult> 
   if (isInvestor && !parsedInvestorType?.success) {
     return { kind: "error", message: "Select a valid investor type" };
   }
-  const investorType = parsedInvestorType?.success
-    ? parsedInvestorType.data
-    : null;
+  const investorType = parsedInvestorType?.success ? parsedInvestorType.data : null;
 
   const ip = await requestIp();
   const humanVerification = await verifyHuman(parsed.data.turnstileToken);
   if (humanVerification) return humanVerification;
-  const allowed = await consumeRateLimits(
-    "signup",
-    signupLimits(parsed.data.email, ip),
-  );
+  const allowed = await consumeRateLimits("signup", signupLimits(parsed.data.email, ip));
   if (!allowed) {
     await minimumResponseTime(startedAt);
     return { kind: "success", message: GENERIC_SIGNUP };
@@ -376,7 +372,9 @@ export async function requestPasswordResetAction(
   return { kind: "success", message: GENERIC_RESET, cooldownSeconds: 60 };
 }
 
-export async function resetPasswordAction(rawPassword: unknown): Promise<AuthActionResult> {
+export async function resetPasswordAction(
+  rawPassword: unknown,
+): Promise<AuthActionResult> {
   const parsed = passwordSchema.safeParse(rawPassword);
   if (!parsed.success) {
     return { kind: "error", message: parsed.error.issues[0]?.message };

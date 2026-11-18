@@ -14,19 +14,21 @@ import { db } from "@/lib/db";
  */
 export const SELF_SERVE_ROLES = [Role.LANDLORD, Role.INVESTOR, Role.BUYER] as const;
 
-export const signupSchema = z.object({
-  email: z
-    .email("Enter a valid email address")
-    .transform((value) => value.trim().toLowerCase()),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(128, "Password must be at most 128 characters"),
-  name: z.string().trim().min(2, "Enter your full name").max(100),
-  gdprConsent: z.literal(true, {
-    error: "You must accept the privacy policy to register",
-  }),
-}).strict();
+export const signupSchema = z
+  .object({
+    email: z
+      .email("Enter a valid email address")
+      .transform((value) => value.trim().toLowerCase()),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(128, "Password must be at most 128 characters"),
+    name: z.string().trim().min(2, "Enter your full name").max(100),
+    gdprConsent: z.literal(true, {
+      error: "You must accept the privacy policy to register",
+    }),
+  })
+  .strict();
 
 export const investorTypeEnumSchema = z.enum(
   [InvestorType.FLIPPER, InvestorType.SYNDICATE, InvestorType.BOTH],
@@ -37,12 +39,14 @@ export const investorSignupSchema = signupSchema.extend({
   investorType: investorTypeEnumSchema,
 });
 
-export const credentialsSchema = z.object({
-  email: z
-    .email("Enter a valid email address")
-    .transform((value) => value.trim().toLowerCase()),
-  password: z.string().min(1, "Enter your password").max(128),
-}).strict();
+export const credentialsSchema = z
+  .object({
+    email: z
+      .email("Enter a valid email address")
+      .transform((value) => value.trim().toLowerCase()),
+    password: z.string().min(1, "Enter your password").max(128),
+  })
+  .strict();
 
 export const passwordSchema = z
   .string()

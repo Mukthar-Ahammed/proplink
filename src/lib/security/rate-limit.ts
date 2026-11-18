@@ -69,10 +69,7 @@ export function getRateLimitRule(
     return { routeClass: "webhook", limit: 300, windowSeconds: 60 };
   }
 
-  if (
-    upperMethod === "POST" &&
-    ["/login", "/admin/login"].includes(pathname)
-  ) {
+  if (upperMethod === "POST" && ["/login", "/admin/login"].includes(pathname)) {
     return { routeClass: "login", limit: 5, windowSeconds: 15 * 60 };
   }
   if (
@@ -157,9 +154,7 @@ function hashedIdentifier(identity: string): string {
   const env = getServerEnv();
   const secret =
     env.AUTH_SECURITY_SECRET ??
-    (env.NODE_ENV === "production"
-      ? undefined
-      : "proplink-local-rate-limit-only");
+    (env.NODE_ENV === "production" ? undefined : "proplink-local-rate-limit-only");
   if (!secret) throw new RateLimitBackendUnavailableError();
   return createHmac("sha256", secret).update(identity).digest("hex");
 }

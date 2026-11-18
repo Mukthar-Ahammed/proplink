@@ -20,7 +20,9 @@ export async function login(
     await page.locator('input[type="password"]').fill(password);
     await page.locator('button[type="submit"]').click();
 
-    await expect(page).not.toHaveURL(new RegExp(`${loginPath.replace("/", "\\/")}(?:\\?|$)`));
+    await expect(page).not.toHaveURL(
+      new RegExp(`${loginPath.replace("/", "\\/")}(?:\\?|$)`),
+    );
     const response = await page.request.get("/portal");
     expect(new URL(response.url()).pathname).not.toBe("/login");
   }).toPass({ timeout: 20_000 });

@@ -7,9 +7,7 @@ import {
   createSignupIntent,
   investorSignupSchema,
 } from "@/services/auth/supabaseAuthService";
-import {
-  completeInvestorTypeOnboarding,
-} from "@/services/syndicates/investorType";
+import { completeInvestorTypeOnboarding } from "@/services/syndicates/investorType";
 import { getInvestorNav } from "@/app/investor/nav";
 import { db } from "@/lib/db";
 
