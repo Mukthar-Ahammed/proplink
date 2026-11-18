@@ -21,6 +21,11 @@ const optionalSecret = z.preprocess(
 const optionalEnum = <const T extends readonly [string, ...string[]]>(values: T) =>
   z.preprocess((value) => (value === "" ? undefined : value), z.enum(values).optional());
 
+const optionalPositiveInt = z.preprocess(
+  (value) => (value === "" || value === undefined ? undefined : Number(value)),
+  z.number().int().positive().optional(),
+);
+
 const booleanEnv = z.preprocess((value) => {
   if (value === undefined || value === "") return undefined;
   if (value === "true") return true;
@@ -65,6 +70,11 @@ const serverEnvSchema = z
     SUMSUB_SECRET_KEY: optionalString,
     SUMSUB_WEBHOOK_SECRET: optionalString,
     SUMSUB_LEVEL_NAME: optionalString,
+    AI_PROVIDER: optionalEnum(["mock", "anthropic", "disabled"]),
+    ANTHROPIC_API_KEY: optionalString,
+    AI_MODEL: optionalString,
+    AI_DAILY_TOKEN_BUDGET_PER_USER: optionalPositiveInt,
+    AI_GLOBAL_DAILY_BUDGET: optionalPositiveInt,
     SENTRY_DSN: optionalUrl,
     NEXT_PUBLIC_SENTRY_DSN: optionalUrl,
     FINANCIAL_PROMOTIONS_REVIEWED: booleanEnv,
@@ -107,6 +117,23 @@ const serverEnvSchema = z
         code: "custom",
         path: ["KYC_PROVIDER"],
         message: "Production requires a real KYC provider",
+      });
+    }
+
+    const aiProvider =
+      env.AI_PROVIDER ?? (env.NODE_ENV === "production" ? "anthropic" : "mock");
+    if (aiProvider === "anthropic" && !env.ANTHROPIC_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ANTHROPIC_API_KEY"],
+        message: "Required when the Anthropic AI provider is enabled",
+      });
+    }
+    if (env.NODE_ENV === "production" && aiProvider === "mock") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["AI_PROVIDER"],
+        message: "Production cannot use the mock AI provider (use anthropic or disabled)",
       });
     }
 
@@ -298,6 +325,11 @@ export function parseServerEnv(source: NodeJS.ProcessEnv) {
     KYC_PROVIDER:
       parsed.KYC_PROVIDER ?? (parsed.NODE_ENV === "production" ? "sumsub" : "mock"),
     SUMSUB_LEVEL_NAME: parsed.SUMSUB_LEVEL_NAME ?? "basic-kyc-level",
+    AI_PROVIDER:
+      parsed.AI_PROVIDER ?? (parsed.NODE_ENV === "production" ? "anthropic" : "mock"),
+    AI_MODEL: parsed.AI_MODEL ?? "claude-opus-5-5",
+    AI_DAILY_TOKEN_BUDGET_PER_USER: parsed.AI_DAILY_TOKEN_BUDGET_PER_USER ?? 40_000,
+    AI_GLOBAL_DAILY_BUDGET: parsed.AI_GLOBAL_DAILY_BUDGET ?? 1_000_000,
     TURNSTILE_ENABLED: parsed.TURNSTILE_ENABLED ?? parsed.NODE_ENV === "production",
     UPLOADS_ENABLED: parsed.UPLOADS_ENABLED ?? false,
     FINANCIAL_PROMOTIONS_REVIEWED: parsed.FINANCIAL_PROMOTIONS_REVIEWED ?? false,

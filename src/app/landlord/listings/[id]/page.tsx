@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getServerEnv } from "@/env";
 import { KycStatus, LandlordListingStatus } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
 import { db } from "@/lib/db";
@@ -125,6 +126,7 @@ export default async function LandlordListingPage({
       {editable ? (
         <PortalSection title="Details">
           <ListingFieldsForm
+            aiAssistant={getServerEnv().AI_PROVIDER !== "disabled"}
             initial={{
               id: listing.id,
               title: listing.title,

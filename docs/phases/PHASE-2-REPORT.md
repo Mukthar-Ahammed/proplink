@@ -12,7 +12,7 @@ merge to `main`, before Phase 1 does.
 
 | Task                         | Business rule                                                                                   |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
-| 1. Landlord module           | **Done**                                                                                        | ADR-034 |
+| 1. Landlord module           | TRD LL-1; Q5, Q6                                                                                |
 | 2. AI listing assistant      | Q5                                                                                              |
 | 3. Admin review queue        | Q6 (confirmed): reviewed and approved within 30–60 minutes before verified Agents see it        |
 | 4. Private-listing hardening | TRD LL-2 to LL-5; acceptance criterion 3                                                        |
@@ -27,16 +27,16 @@ mandate exists (OD-22).
 
 ## Task progress
 
-| Task                         | State       | Notes |
-| ---------------------------- | ----------- | ----- |
-| 1. Landlord module           | In progress |       |
-| 2. AI listing assistant      | Not started |       |
-| 3. Admin review queue        | Not started |       |
-| 4. Private-listing hardening | Not started |       |
-| 5. Agent marketplace         | Not started |       |
-| 6. Exclusive mandate         | Not started |       |
-| 7. Landlord data exposure    | Not started |       |
-| 8. Notifications             | Not started |       |
+| Task                         | State                                             | Notes   |
+| ---------------------------- | ------------------------------------------------- | ------- |
+| 1. Landlord module           | Done                                              | ADR-034 |
+| 2. AI listing assistant      | Done (real-provider smoke test waits for the key) | ADR-036 |
+| 3. Admin review queue        | Not started                                       |         |
+| 4. Private-listing hardening | Not started                                       |         |
+| 5. Agent marketplace         | Not started                                       |         |
+| 6. Exclusive mandate         | Not started                                       |         |
+| 7. Landlord data exposure    | Not started                                       |         |
+| 8. Notifications             | Not started                                       |         |
 
 ## Task 1 — Landlord module (2026-11-18)
 
@@ -77,3 +77,42 @@ mandate exists (OD-22).
   applied to development.
 - The permission-matrix rows for private listings flip when Task 5 delivers
   agent viewing (both Phase 2 rows together).
+
+## Task 2 — AI listing assistant (2026-11-18)
+
+**Delivered** (ADR-036)
+
+- `src/services/ai/`: provider interface, mock and Anthropic adapters
+  (official SDK, structured JSON output, no tools, server-side system prompt,
+  answers sent as data), `AI_PROVIDER=mock|anthropic|disabled` with
+  production refusing the mock.
+- `listingAssistant.ts`: Landlord-only; input cleaning (contact details,
+  links, markup, control characters removed; length caps); 10 per hour per
+  user; per-user and global daily token budgets; output cleaning and caps;
+  usage-only logging.
+- Migration `20261118100000_phase2_ai_usage` (with `rollback.sql`): the
+  `ai_usage` ledger (token counts only), server-only.
+- Landlord editor: optional "Draft the description with the AI assistant"
+  panel; draft shown for review, put into the form only on request.
+- `docs/credentials/anthropic.md` (account, key, spend limits, rotation,
+  smoke test), `.env.example`, BLOCKERS row.
+
+**Verification**
+
+- `tests/unit/ai-listing-assistant.test.ts` (16): input and output
+  cleaning, enum filtering, Landlord-only, empty-answer refusal, disabled
+  provider, rate limit before budget, budget exhaustion without a provider
+  call, failed calls recorded with their usage, output sanitising, log lines
+  free of listing text; Anthropic adapter: system prompt, data block,
+  fallbacks, no tools, refusal/truncation mapping, status-only error logs.
+- `tests/integration/ai-budget-db.test.ts` (5, disposable database): 10
+  concurrent reservations against a 40,000-token budget let exactly 4 through;
+  settled usage replaces the reservation; global budget across users;
+  previous days not counted; row checks, RLS on, no Data API access.
+- Rollback rehearsed (table and enum removed, re-applied cleanly).
+- Full suite without a database: 99 files pass, 14 database-only skipped.
+
+**Open**
+
+- Real-provider smoke test: waits for `ANTHROPIC_API_KEY` (H1.9); steps in
+  `docs/credentials/anthropic.md`.

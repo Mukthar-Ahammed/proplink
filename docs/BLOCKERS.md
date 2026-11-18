@@ -86,3 +86,4 @@ applications.
 - ✅ 2026-07-23 — **H1.2 Supabase**: `DATABASE_URL`/`DIRECT_URL` in `.env.local`
   (project `tznxdauihxgkietbppdd`, London). Migration + seed applied; `ST_DWithin`,
   FTS trigger, and register→login all verified against the live DB.
+  | 2026-11-18 | **`ANTHROPIC_API_KEY`** (H1.9, `docs/credentials/anthropic.md`) | Real AI drafts in the Landlord listing assistant (Phase 2 Task 2) and its documented real-provider smoke test | `MockAiProvider` (deterministic `[Mock draft]` built from the Landlord's answers) is the default outside production; production refuses the mock (set `AI_PROVIDER=disabled` to launch without the assistant). Unit tests cover the real adapter against a stubbed SDK. ADR-036. |

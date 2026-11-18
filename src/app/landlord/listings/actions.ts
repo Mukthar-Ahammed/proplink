@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { LandlordListingFileKind, Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
+import { draftListingWithAi, type AssistantResult } from "@/services/ai/listingAssistant";
 import {
   attachFile,
   createDraft,
@@ -146,4 +147,20 @@ export async function deleteDraftAction(
   const result = await deleteOwnDraft(actor, text(formData, "id"));
   if (!result.ok) return { kind: "error", message: result.error };
   redirect("/landlord/listings");
+}
+
+/**
+ * AI listing assistant: returns a draft for the Landlord to review. Nothing
+ * is saved; the Landlord puts the draft into the form and saves as usual.
+ */
+export async function draftWithAiAction(raw: unknown): Promise<AssistantResult> {
+  const actor = await landlord();
+  if (!actor) {
+    return { ok: false, reason: "forbidden", error: "Sign in as a Landlord" };
+  }
+  const input =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as Record<string, unknown>)
+      : {};
+  return draftListingWithAi(actor, input);
 }

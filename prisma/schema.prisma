@@ -256,6 +256,7 @@ model Profile {
   userProfile          UserProfile?              @relation("UserProfileProfile")
   landlordListings     LandlordListing[]         @relation("LandlordListingOwner")
   landlordListingsMade LandlordListing[]         @relation("LandlordListingCreator")
+  aiUsage              AiUsage[]                 @relation("AiUsageProfile")
 
   @@map("profiles")
 }
@@ -1369,4 +1370,34 @@ model LandlordListingFile {
 
   @@id([listingId, fileId])
   @@map("landlord_listing_files")
+}
+
+/// Lifecycle of one AI call's budget entry (Phase 2 Task 2, ADR-036).
+enum AiUsageStatus {
+  RESERVED
+  COMPLETED
+  FAILED
+}
+
+/// AI usage ledger: token counts only, never prompt or response text.
+/// A row reserves the call's worst case against the daily budgets, then
+/// records the actual usage.
+model AiUsage {
+  id             String        @id @db.Uuid
+  profileId      String        @db.Uuid
+  feature        String
+  provider       String
+  model          String
+  status         AiUsageStatus @default(RESERVED)
+  reservedTokens Int
+  inputTokens    Int?
+  outputTokens   Int?
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
+
+  profile Profile @relation("AiUsageProfile", fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([profileId, createdAt])
+  @@map("ai_usage")
 }

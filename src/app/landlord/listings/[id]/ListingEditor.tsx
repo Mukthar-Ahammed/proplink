@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 
 import {
   attachFileAction,
@@ -11,6 +11,7 @@ import {
   withdrawListingAction,
   type FormState,
 } from "../actions";
+import { AiAssistantPanel } from "./AiAssistantPanel";
 
 const INPUT =
   "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
@@ -102,12 +103,20 @@ function Field({
 }
 
 /** TRD LL-1 fields. Saving keeps everything as typed if validation fails. */
-export function ListingFieldsForm({ initial }: { initial: EditableFields }) {
+export function ListingFieldsForm({
+  initial,
+  aiAssistant = false,
+}: {
+  initial: EditableFields;
+  /** Show the optional AI listing assistant (off when AI_PROVIDER=disabled). */
+  aiAssistant?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(saveListingAction, {
     kind: "idle",
   } as FormState);
+  const formRef = useRef<HTMLFormElement>(null);
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       <input type="hidden" name="id" value={initial.id} />
       <Field name="title" label="Title" defaultValue={initial.title} max={120} />
       <div className="grid gap-4 sm:grid-cols-3">
@@ -171,6 +180,7 @@ export function ListingFieldsForm({ initial }: { initial: EditableFields }) {
           inputMode="numeric"
         />
       </div>
+      {aiAssistant && <AiAssistantPanel formRef={formRef} />}
       <Field
         name="description"
         label="Description"

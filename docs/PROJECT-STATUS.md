@@ -14,6 +14,8 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   check of three Admin flows.
 - **Phase 2 started** on `phase-2-landlord-pipeline` (Landlord listings, Admin
   queue, Agent proposals, exclusive mandates). See `docs/phases/PHASE-2-REPORT.md`.
+  Task 1 (Landlord module, ADR-034) and Task 2 (AI listing assistant, ADR-036;
+  mock until `ANTHROPIC_API_KEY` exists) done. PR #1's CI is green.
 
 ## 2026-11-17 update
 

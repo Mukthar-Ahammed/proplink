@@ -16,7 +16,7 @@
 | Cache/queue | Upstash Redis                                                                                                                                           | Commute-matrix cache, AI response cache, rate limiting                                                                                                                                                                                          |
 | Auth        | Supabase Auth (active)                                                                                                                                  | `@supabase/ssr` clients and the `profiles` identity bridge are active. Roles/KYC come from server-controlled profile/database fields, never client-writable metadata. Auth.js runtime has been removed; legacy identity records remain bridged. |
 | Storage     | Existing `StorageService` remains active; Supabase Storage security foundation added                                                                    | `kyc-documents` is private; `property-images` is public-delivery but not anonymously listable. Application upload wiring remains a later migration phase.                                                                                       |
-| AI          | Anthropic API — Sonnet (Advisor/AVM/Planning), Haiku (Enhancer/tagging)                                                                                 | Arrives Sprint 5; Redis-cached, budget-capped                                                                                                                                                                                                   |
+| AI          | Anthropic API (`@anthropic-ai/sdk`) — Landlord listing assistant (Phase 2)                                                                              | `src/services/ai/`; mock locally; daily token budgets (ADR-036)                                                                                                                                                                                 |
 | Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active | Distance Matrix API is Legacy — do not use. Two distinct keys: `GOOGLE_MAPS_SERVER_KEY` (geocoding) and `GOOGLE_MAPS_API_KEY` (browser-restricted: static maps, and the Sprint 3 interactive map) — see `docs/BLOCKERS.md`                      |
 | KYC         | Sumsub (sandbox) behind `KycService` + mock                                                                                                             | Arrives Sprint 4                                                                                                                                                                                                                                |
 | Payments    | Stripe (test mode) — subscriptions ONLY (Agents, Lead Investors, Co-Investors); no boosts; ad billing undecided (OD-11)                                 | Arrives Phase 3. Investment funds never pass through the app; syndicate charges forbidden while `SYNDICATE_PAYMENTS_ENABLED=false` (ADR-019)                                                                                                    |
@@ -980,6 +980,26 @@ C 8.76, D 11.71, E 8.78 and F 6.17 on ink. B and F were white at **2.72:1 and
 
 Check contrast when adding a tone — a tinted-self pair often lands the wrong side
 of the boundary.
+
+## AI listing assistant (Phase 2 Task 2, ADR-036)
+
+- `src/services/ai/`: `AiProvider` with `MockAiProvider` and
+  `AnthropicAiProvider` (official SDK, beta `messages.parse` with structured
+  JSON output, effort `low`, max 4,000 output tokens, server-side refusal
+  fallback, no tools). `AI_PROVIDER=mock|anthropic|disabled`; production
+  refuses the mock. Model from `AI_MODEL` (default `claude-opus-5-5`).
+- `listingAssistant.ts`: Landlord only; cleans each answer (control
+  characters, emails, phone numbers, links, angle brackets removed; length
+  capped); 10 per hour per user (`ai_listing_assistant` limiter); reserves
+  budget; calls the provider; cleans the output (markup, links, emails
+  removed; capped to column limits); logs `ai.usage` with token counts only.
+- `budget.ts` and table `ai_usage` (migration `20261118100000`, server-only):
+  each call reserves its worst case under one advisory lock against the
+  per-user and global UTC-day budgets, then records the actual usage. No
+  prompt or draft text is stored.
+- UI: an optional panel in the Landlord listing editor; the draft is shown
+  for review and only put into the form on request. Nothing is saved
+  automatically. Hidden when `AI_PROVIDER=disabled`.
 
 ## Testing & CI
 
