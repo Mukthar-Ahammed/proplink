@@ -81,9 +81,9 @@ movement · multi-language.
 ## Current phase
 
 **Phase 1 — Roles, Access Control, Invites, Verification and Profiles: in
-progress** on `phase-1-roles-access` (started 2026-11-16). **Phase 0 is still
-open**: only the owner's manual authentication test remains, and Phase 1 cannot
-exit before it passes (ADR-020). The feature-rich marketplace and portals are
+progress** on `phase-1-roles-access` (started 2026-11-16). **Phase 0 closed
+2026-11-18** (owner's manual authentication test passed). All 13 Phase 1 tasks
+are implemented; exit waits on the browser tests and pending keys/decisions. The feature-rich marketplace and portals are
 not production-ready. The roadmap is Phases 0–7 in
 [`PROPLINK_PHASE_PROMPTS.md`](./PROPLINK_PHASE_PROMPTS.md); the original 12-week
 sprint plan stopped at Sprint 3 and is superseded (ADR-019). See

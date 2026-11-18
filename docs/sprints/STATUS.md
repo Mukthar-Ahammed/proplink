@@ -8,9 +8,9 @@
 
 **Current focus → Phase 1 — Roles, Access Control, Invites, Verification and
 Profiles**, on `phase-1-roles-access`, started 2026-11-16 in parallel with the
-last Phase 0 item (ADR-020). **Phase 0 stays open** until the owner reports the
-manual authentication test (steps 1–3, part of 4, 6 and 7); Phase 1 cannot exit
-before then.
+last Phase 0 item (ADR-020). **Phase 0 closed 2026-11-18**: the owner's manual
+authentication test passed. All 13 Phase 1 tasks are implemented; Phase 1 exit
+waits on the browser tests and the items in the Phase 1 report's exit-gate table.
 
 | Phase 1 task                           | State |
 | -------------------------------------- | ----- |

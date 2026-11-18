@@ -1,11 +1,11 @@
 # Phase 0 — Stabilise, Security Foundation and Shared Infrastructure
 
-| Status                                                                       | Snapshot   | Branch                                   | Staging dashboard credentials |
-| ---------------------------------------------------------------------------- | ---------- | ---------------------------------------- | ----------------------------- |
-| Exit gate **NOT PASSED** — only the owner's manual auth steps remain (ADR-020) | 2026-11-16 | `phase-0-stabilise` (based on `e3d9f39`) | Not available                 |
-| **Implementation commits:** Six feature groups committed locally; see the    |
-| commit record below. The final documentation group includes this report.     |
-| **Migrations:** Applied only to the owner-confirmed disposable local test DB |
+| Status                                                                                    | Snapshot   | Branch                                   | Staging dashboard credentials |
+| ----------------------------------------------------------------------------------------- | ---------- | ---------------------------------------- | ----------------------------- |
+| Exit gate **PASSED** 2026-11-18 (owner manual auth test; other items carried per ADR-019) | 2026-11-18 | `phase-0-stabilise` (based on `e3d9f39`) | Not available                 |
+| **Implementation commits:** Six feature groups committed locally; see the                 |
+| commit record below. The final documentation group includes this report.                  |
+| **Migrations:** Applied only to the owner-confirmed disposable local test DB              |
 
 ## Summary
 
@@ -932,7 +932,7 @@ the irreversible step. No staging or production database was touched.
 6. **`npm run db:deploy`**: applied `20261009120000`, `20261104000000` and
    `20261104010000`.
 7. **Final check**: inspector **221 PASS / 0 FAIL**; `npx prisma migrate
-   status` reports 21 migrations and "Database schema is up to date!". The
+status` reports 21 migrations and "Database schema is up to date!". The
    temporary Prisma config and migration copy were deleted.
 
 ## Automated authentication checks and fixes (2026-11-16)
@@ -941,14 +941,14 @@ With the development server running against the reconciled project, the agent
 checked routes and ran the parts of the manual plan that need no inbox, using
 the seeded test accounts only:
 
-| Check | Result |
-| ----- | ------ |
-| Auth pages (`/register`, `/login`, `/forgot-password`, `/reset-password`, `/check-email`, `/admin/login`) | HTTP 200 |
-| Portals (`/buy`, `/investor`, `/agent`, `/admin`) signed out | 307 to the right login page |
-| `/register` role options | Buyer and Investor only; no Agent |
-| Buyer login, then sign-out, then `/buy` | Login reached `/buy`; sign-out returned to `/`; `/buy` redirected to `/login` |
-| Unknown email, five attempts | Each showed the generic "Invalid email or password" |
-| Sixth attempt | Blocked by the rate limit with a visible message and 60-second countdown |
+| Check                                                                                                     | Result                                                                        |
+| --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Auth pages (`/register`, `/login`, `/forgot-password`, `/reset-password`, `/check-email`, `/admin/login`) | HTTP 200                                                                      |
+| Portals (`/buy`, `/investor`, `/agent`, `/admin`) signed out                                              | 307 to the right login page                                                   |
+| `/register` role options                                                                                  | Buyer and Investor only; no Agent                                             |
+| Buyer login, then sign-out, then `/buy`                                                                   | Login reached `/buy`; sign-out returned to `/`; `/buy` redirected to `/login` |
+| Unknown email, five attempts                                                                              | Each showed the generic "Invalid email or password"                           |
+| Sixth attempt                                                                                             | Blocked by the rate limit with a visible message and 60-second countdown      |
 
 Three defects were found and fixed:
 
@@ -1003,23 +1003,23 @@ flow when given longer.
   remain outstanding. Use the hand-test plan above. This stays a Phase 0 exit
   gate and needs a working development project.
 
-| Exit gate                                   | Status                         | Evidence                                                                                                                                                                      |
-| ------------------------------------------- | ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Phase 3 fixture typecheck errors fixed      | **PASS**                       | `npm run typecheck` exits 0.                                                                                                                                                  |
-| Repository lint clean                       | **PASS**                       | `npm run lint` exits 0 with no warnings.                                                                                                                                      |
-| Production build                            | **PASS — isolated validation** | `npm run build` passes with process-only dummy provider values and loopback DB URL.                                                                                           |
-| Full test suite against disposable local DB | **PASS**                       | 79 files, 1,000 tests.                                                                                                                                                        |
-| Owner-reported staging RLS catalog audit    | **PASS WITH EXCEPTION**        | Application tables RLS-enabled; managed PostGIS exception documented. Data API was disabled by owner and verified HTTP 503 on 2026-11-05.                                     |
-| Fresh staging Security Advisor scan         | **PASS**                       | Scanned 2026-11-04. Only the known PostGIS findings (`spatial_ref_sys` RLS disabled, `postgis` and `pg_trgm` in `public`, `st_estimatedextent` overloads). Exception review due 2026-12-04; not carried to production. |
-| Database-mocked unit suite                  | **PASS**                       | 78 files, 971 tests.                                                                                                                                                          |
-| Gitleaks empty-example allowlist            | **PASS**                       | Empty declarations no longer trigger; synthetic non-empty key remains flagged.                                                                                                |
-| Full disk Gitleaks clean                    | **NOT CLAIMED**                | Prior scan flagged ignored local/generated files; env files were not opened.                                                                                                  |
-| Zero high/critical `npm audit` findings     | **PASS**                       | Prior full audit: 21 moderate advisories; zero high/critical.                                                                                                                 |
-| Staging Data API compensating control       | **PASS — VERIFIED OFF**        | Owner disabled the toggle; `scripts/check-data-api.ps1` returned HTTP 503 with no table data on 2026-11-05.                                                                   |
-| Data API-off RLS validation parity          | **CARRIED TO PHASE 7**         | PostgREST-dependent policy checks are a planned Phase 7 task, not a Phase 0 blocker. Keep staging and production Data API disabled; never re-enable it to run validation. |
-| Security headers verified locally           | **PASS — EXCEPT HSTS**         | Development build only, 2026-11-13: `curl.exe -I http://localhost:3000/marketplace` returned CSP with nonce, nosniff, referrer, permissions, COOP/CORP, `frame-ancestors 'none'`; `/agent` added `private, no-store` + `noindex`. HSTS is production-only (`src/proxy.ts:237`) and is verified at the first real staging deployment. |
-| Manual authentication flow                  | **PARTLY VERIFIED — PHASE 0 GATE** | 2026-11-16: login, logout, generic errors and rate limiting checked against development (see "Automated authentication checks"). Owner steps 1–3, the Admin and unverified-account checks in step 4, 6 and 7 remain. |
-| Staging/production migration or deployment  | **PASS**                       | None was run. Commits are local to `phase-0-stabilise`; local disposable test DB use is documented above.                                                                     |
+| Exit gate                                   | Status                         | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ------------------------------------------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Phase 3 fixture typecheck errors fixed      | **PASS**                       | `npm run typecheck` exits 0.                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Repository lint clean                       | **PASS**                       | `npm run lint` exits 0 with no warnings.                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Production build                            | **PASS — isolated validation** | `npm run build` passes with process-only dummy provider values and loopback DB URL.                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Full test suite against disposable local DB | **PASS**                       | 79 files, 1,000 tests.                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Owner-reported staging RLS catalog audit    | **PASS WITH EXCEPTION**        | Application tables RLS-enabled; managed PostGIS exception documented. Data API was disabled by owner and verified HTTP 503 on 2026-11-05.                                                                                                                                                                                                                                                                                                                                               |
+| Fresh staging Security Advisor scan         | **PASS**                       | Scanned 2026-11-04. Only the known PostGIS findings (`spatial_ref_sys` RLS disabled, `postgis` and `pg_trgm` in `public`, `st_estimatedextent` overloads). Exception review due 2026-12-04; not carried to production.                                                                                                                                                                                                                                                                  |
+| Database-mocked unit suite                  | **PASS**                       | 78 files, 971 tests.                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Gitleaks empty-example allowlist            | **PASS**                       | Empty declarations no longer trigger; synthetic non-empty key remains flagged.                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Full disk Gitleaks clean                    | **NOT CLAIMED**                | Prior scan flagged ignored local/generated files; env files were not opened.                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Zero high/critical `npm audit` findings     | **PASS**                       | Prior full audit: 21 moderate advisories; zero high/critical.                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| Staging Data API compensating control       | **PASS — VERIFIED OFF**        | Owner disabled the toggle; `scripts/check-data-api.ps1` returned HTTP 503 with no table data on 2026-11-05.                                                                                                                                                                                                                                                                                                                                                                             |
+| Data API-off RLS validation parity          | **CARRIED TO PHASE 7**         | PostgREST-dependent policy checks are a planned Phase 7 task, not a Phase 0 blocker. Keep staging and production Data API disabled; never re-enable it to run validation.                                                                                                                                                                                                                                                                                                               |
+| Security headers verified locally           | **PASS — EXCEPT HSTS**         | Development build only, 2026-11-13: `curl.exe -I http://localhost:3000/marketplace` returned CSP with nonce, nosniff, referrer, permissions, COOP/CORP, `frame-ancestors 'none'`; `/agent` added `private, no-store` + `noindex`. HSTS is production-only (`src/proxy.ts:237`) and is verified at the first real staging deployment.                                                                                                                                                    |
+| Manual authentication flow                  | **PASS**                       | 2026-11-18: the owner ran all seven steps against the development project with Supabase Auth email delivered through Resend SMTP (test sender `onboarding@resend.dev`): Buyer and Investor sign-up, confirmation and reused-link rejection, login, generic errors, unverified-account refusal with resend, Admin login via `/admin/login` with TOTP set-up (Phase 1 Task 11) and refusal at `/login`, logout, password reset and reused-link rejection, session revocation. All passed. |
+| Staging/production migration or deployment  | **PASS**                       | None was run. Commits are local to `phase-0-stabilise`; local disposable test DB use is documented above.                                                                                                                                                                                                                                                                                                                                                                               |
 
 **Decision:** Phase 0 remains open. The only outstanding exit-gate item is the
 owner's part of the manual authentication test. The development project is
@@ -1041,12 +1041,12 @@ opened; this report does not claim a clean full-disk scan.
   header code a deployment would. `/marketplace` returned `Content-Security-Policy` (nonce +
   `strict-dynamic`, `object-src 'none'`, `frame-ancestors 'none'`),
   `X-Content-Type-Options: nosniff`, `Referrer-Policy:
-  strict-origin-when-cross-origin`, `Permissions-Policy: camera=(),
-  microphone=(), geolocation=()`, `Cross-Origin-Opener-Policy: same-origin`,
+strict-origin-when-cross-origin`, `Permissions-Policy: camera=(),
+microphone=(), geolocation=()`, `Cross-Origin-Opener-Policy: same-origin`,
   `Cross-Origin-Resource-Policy: same-origin`, `X-Frame-Options: DENY` and a
   per-request `X-Request-ID`. `/agent` added `Cache-Control: private,
-  no-store, max-age=0, must-revalidate` and `X-Robots-Tag: noindex,
-  nofollow`; `/auth/confirm` returned `Referrer-Policy: no-referrer`.
+no-store, max-age=0, must-revalidate` and `X-Robots-Tag: noindex,
+nofollow`; `/auth/confirm` returned `Referrer-Policy: no-referrer`.
   **HSTS is not covered by this check:** `src/proxy.ts` emits it only when
   `NODE_ENV === "production"`, and a production-mode local start is
   currently refused by the project guard (`PROPLINK_ENV` must agree with
@@ -1081,3 +1081,15 @@ opened; this report does not claim a clean full-disk scan.
   **decided to skip a development backup** (the project holds only test
   accounts), so `migrate resolve --applied` has no undo. Details:
   `docs/implementation/phase8-publication-reconciliation.md`.
+
+## Phase 0 closed (2026-11-18)
+
+The owner reported every manual authentication step passing on the
+development project (see the exit-gate table). Email for Supabase Auth was
+delivered by Resend SMTP configured on the development project, sending from
+Resend's test address, which only delivers to the Resend account owner's
+inbox (aliases of it for the second account). The run happened on the
+`phase-1-roles-access` code after the Phase 1 migrations were applied to
+development, so it also exercised Admin TOTP set-up. With this, the Phase 0
+exit gate is passed; the items ADR-019 carried to later phases stay with
+those phases.

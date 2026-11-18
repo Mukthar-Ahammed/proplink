@@ -1,6 +1,6 @@
 # PropLink UK — Project Status
 
-**Status snapshot:** 2026-11-17
+**Status snapshot:** 2026-11-18
 
 **Repository branches:** `phase-0-stabilise` (pushed; Phase 0 open on one owner
 step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
@@ -48,7 +48,9 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   exited: it waits on the Phase 0 manual auth test, applying the Phase 1
   migrations to development and running the browser tests, and the pending
   keys/decisions (see the Phase 1 report's exit-gate table).
-- Phase 0 is unchanged: only the owner's manual authentication test remains.
+- **Phase 0 closed 2026-11-18**: the owner's manual authentication test passed on
+  development (Supabase Auth email via Resend SMTP, test sender). Phase 1
+  migrations applied to development the same day.
 
 ## 2026-11-16 update
 
