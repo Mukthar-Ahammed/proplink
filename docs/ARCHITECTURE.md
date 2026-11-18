@@ -991,8 +991,20 @@ of the boundary.
 - **Specs that write against a listing must pick a seeded one**
   (`seed-listing-*`), never "whatever sorts first" — the newest card is usually
   another spec's fixture, and writing to it is what orphans it.
-- CI (GitHub Actions): typecheck → lint → format:check → vitest; separate job
-  builds and runs Playwright. Runs once the repo is pushed to GitHub (H1.1).
+- **Without a database** (CI, a fresh checkout), `tests/setup/env.ts` sets a
+  never-connected placeholder `DATABASE_URL` so modules that import the Prisma
+  client load; integration tests recognise it and skip.
+- `npm run typecheck` runs `next typegen` first, so a fresh checkout (no
+  `next-env.d.ts` yet) typechecks.
+- CI (GitHub Actions, 2026-11-18), job "Typecheck, lint, unit tests, build":
+  client-secret check → `npm run audit:check` (high/critical fail unless
+  accepted with a reason and review date in `security/audit-allowlist.json`) →
+  typecheck → lint → `format:check:changed` (Prettier on files the change
+  touches; older unformatted files await one bulk reformat after the redesign
+  merges) → vitest → production build with placeholder values. Secret scanning
+  runs separately. The Playwright job runs only when the repository variable
+  `E2E_ENABLED` is `true` and the `E2E_*` secrets point at a dedicated CI
+  Supabase project (HUMAN_TASKS H7.1); otherwise it is skipped.
 
 ## Decisions log
 

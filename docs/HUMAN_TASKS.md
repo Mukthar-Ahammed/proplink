@@ -23,6 +23,15 @@ whatever Deferred trigger fires first (see table below)._
 
 ## 🟡 Optional now — all have working fallbacks, do whenever convenient
 
+- [ ] **H7.1 CI browser tests** (~30 min, free tier) — create a separate Supabase
+      project just for CI (never development, staging or production). Apply the
+      migrations and seed it, create the seeded test accounts, then in GitHub →
+      Settings → Secrets and variables → Actions add the secrets
+      `E2E_DATABASE_URL`, `E2E_DIRECT_URL`, `E2E_SUPABASE_URL`,
+      `E2E_SUPABASE_PUBLISHABLE_KEY`, `E2E_SUPABASE_PROJECT_REF`,
+      `E2E_AUTH_SECURITY_SECRET` and the variable `E2E_ENABLED=true`. _Fallback:
+      the Playwright job is skipped in CI; browser tests run locally._
+
 - [ ] **H1.6 Google OAuth** (~15 min, free) — only if you want "Sign in with
       Google" working locally. console.cloud.google.com → project `proplink-uk` →
       OAuth consent screen (External) → Web client with origin

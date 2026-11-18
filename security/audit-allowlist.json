@@ -1,0 +1,13 @@
+{
+  "$comment": "Advisories temporarily accepted by scripts/audit-check.mjs. Each needs a reason and a review date; an expired entry fails CI again. Keep this list as short as possible.",
+  "advisories": [
+    {
+      "id": "GHSA-fc5q-39xc-vjpf",
+      "package": "picomatch",
+      "severity": "high",
+      "reason": "ReDoS through repeated extglobs. picomatch is only reached through build and test tooling (ESLint, Vite/Vitest, Sentry's build plugins) on glob patterns we write ourselves; no user input reaches it at runtime. No patched release exists yet; npm's suggested fixes are major downgrades.",
+      "acceptedOn": "2026-11-18",
+      "reviewBy": "2027-01-31"
+    }
+  ]
+}
