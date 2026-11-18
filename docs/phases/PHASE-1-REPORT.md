@@ -553,9 +553,11 @@ exist yet for any service; it is not built here.
 
 1. **Phase 0 gate** (ADR-020): the owner's manual authentication test. Admin
    sign-in now includes setting up an authenticator app (Task 11).
-2. **Apply the Phase 1 migrations to the development database** (none applied
-   outside the disposable test database), then run the written Playwright
-   specs: agent invites, company check, agent migration, KYC provider.
+2. ~~Apply the Phase 1 migrations to the development database~~ **Done
+   2026-11-18**: all 12 applied with `prisma migrate deploy` to the development
+   project (`migrate status`: up to date; `/` and `/login` return 200). Still to
+   do: run the written Playwright specs (agent invites, company check, agent
+   migration, KYC provider). Staging and production remain untouched.
 3. **Credentials/owner decisions** for the live checks: Companies House key,
    OD-18 (service-role key), OD-20 (KYC provider) with Sumsub sandbox keys, S3
    buckets and ClamAV. See BLOCKERS.
