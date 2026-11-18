@@ -37,3 +37,12 @@ export function isSameOriginMutation(
     request.headers.get(CSRF_REQUEST_HEADER) === "1"
   );
 }
+
+/**
+ * Provider webhooks (POST /api/webhooks/*) are authenticated by a signature
+ * over the raw body, verified in their route, so they are exempt from the
+ * same-origin check. Nothing else is: the prefix is exact and POST-only.
+ */
+export function isSignedWebhookRequest(method: string, pathname: string): boolean {
+  return method.toUpperCase() === "POST" && pathname.startsWith("/api/webhooks/");
+}

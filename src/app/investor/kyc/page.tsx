@@ -5,6 +5,8 @@ import { getOrCreateKycDraft, getKycStatusSummary } from "@/services/kyc/kycServ
 import { KycSubmissionForm } from "@/components/investor/KycSubmissionForm";
 import type { KycCaller } from "@/services/kyc/kycService";
 import { KycStatus, KycSubmissionStatus } from "@/generated/prisma/enums";
+import { getProviderApplicantState } from "@/services/kyc/providerVerification";
+import { VerifyButton } from "@/app/verify/VerifyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -63,13 +65,20 @@ export default async function InvestorKycPage() {
     active: true,
   };
 
-  const [statusResult, draftResult] = await Promise.all([
+  const [statusResult, draftResult, providerState] = await Promise.all([
     getKycStatusSummary(caller),
     // Only fetch/create draft when the investor can submit
     user.kycStatus === KycStatus.NOT_STARTED || user.kycStatus === KycStatus.REJECTED
       ? getOrCreateKycDraft(caller)
       : Promise.resolve(null),
+    getProviderApplicantState(user.authUserId),
   ]);
+  // Provider verification is the primary route (ADR-026); the manual
+  // submission below stays for exceptions reviewed in the Admin KYC studio.
+  const canStartProvider =
+    user.kycStatus === KycStatus.NOT_STARTED ||
+    user.kycStatus === KycStatus.REJECTED ||
+    (user.kycStatus === KycStatus.PENDING && providerState.sameProvider);
 
   const config = STATUS_CONFIG[user.kycStatus] ?? STATUS_CONFIG[KycStatus.NOT_STARTED];
   const latestSubmission = statusResult.ok ? statusResult.data.latestSubmission : null;
@@ -82,7 +91,9 @@ export default async function InvestorKycPage() {
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-6">
           <div>
             <h2 className="text-xl font-bold text-primary">{config.title}</h2>
-            <p className="mt-1 text-sm text-muted">Authoritative identity verification status</p>
+            <p className="mt-1 text-sm text-muted">
+              Authoritative identity verification status
+            </p>
           </div>
           <span
             className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${config.badge}`}
@@ -108,20 +119,39 @@ export default async function InvestorKycPage() {
         </div>
       </div>
 
+      {canStartProvider && (
+        <PortalSection title="Verify with our identity partner">
+          <div className="space-y-3 rounded-2xl border border-line bg-white p-6">
+            <p className="text-sm leading-relaxed text-secondary">
+              {user.kycStatus === KycStatus.PENDING
+                ? "Your verification is in progress. Continue where you left off; we update your status as soon as our partner has a result."
+                : "The quickest route: verify your identity online with PropLink's regulated verification partner. It usually takes a few minutes. PropLink stores only the result, not your documents."}
+            </p>
+            <VerifyButton
+              label={
+                user.kycStatus === KycStatus.PENDING
+                  ? "Continue verification"
+                  : "Verify my identity"
+              }
+            />
+          </div>
+        </PortalSection>
+      )}
+
       {/* Submission history */}
       {latestSubmission && (
         <PortalSection title="Application Status">
           <div className="rounded-2xl border border-line bg-white overflow-hidden">
             <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-line">
               <div>
-                <p className="text-sm font-semibold text-primary">
-                  KYC Application
-                </p>
+                <p className="text-sm font-semibold text-primary">KYC Application</p>
                 <p className="text-xs text-muted mt-0.5">
                   {latestSubmission.documentCount} document
                   {latestSubmission.documentCount !== 1 ? "s" : ""} attached
                   {latestSubmission.submittedAt &&
-                    ` · Submitted ${new Date(latestSubmission.submittedAt).toLocaleDateString("en-GB", {
+                    ` · Submitted ${new Date(
+                      latestSubmission.submittedAt,
+                    ).toLocaleDateString("en-GB", {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
@@ -157,7 +187,9 @@ export default async function InvestorKycPage() {
           <KycSubmissionForm
             submissionId={draft.submissionId}
             initialDocumentCount={draft.documentCount}
-            onSubmitted={() => {/* router.refresh() handled in client */}}
+            onSubmitted={() => {
+              /* router.refresh() handled in client */
+            }}
           />
         </PortalSection>
       )}
@@ -170,20 +202,17 @@ export default async function InvestorKycPage() {
               {
                 step: "1",
                 title: "Upload Documents",
-                body:
-                  "Upload one or more identity documents. Accepted: passport, driver's licence, national ID, or proof of address.",
+                body: "Upload one or more identity documents. Accepted: passport, driver's licence, national ID, or proof of address.",
               },
               {
                 step: "2",
                 title: "Compliance Review",
-                body:
-                  "The PropLink compliance team reviews your submission in 1–3 business days. You'll be notified of the outcome.",
+                body: "The PropLink compliance team reviews your submission in 1–3 business days. You'll be notified of the outcome.",
               },
               {
                 step: "3",
                 title: "Access Unlocked",
-                body:
-                  "Once approved, financial features appropriate to your investor workspace will be unlocked.",
+                body: "Once approved, financial features appropriate to your investor workspace will be unlocked.",
               },
             ].map((item) => (
               <div
@@ -205,11 +234,11 @@ export default async function InvestorKycPage() {
       <PortalSection title="Security & Compliance Boundary">
         <div className="rounded-xl border border-line bg-white p-6 text-sm leading-relaxed text-muted">
           <p>
-            PropLink operates under UK financial and anti-money laundering (AML) regulatory
-            boundaries. Investor identity verification protects all syndicate participants and
-            ensures compliance prior to any financial commitment. Documents are stored in a
-            private, encrypted storage vault and are only accessible to PropLink compliance
-            personnel.
+            PropLink operates under UK financial and anti-money laundering (AML)
+            regulatory boundaries. Investor identity verification protects all syndicate
+            participants and ensures compliance prior to any financial commitment.
+            Documents are stored in a private, encrypted storage vault and are only
+            accessible to PropLink compliance personnel.
           </p>
           <div className="mt-4 flex gap-4">
             <Link

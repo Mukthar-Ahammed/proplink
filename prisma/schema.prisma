@@ -244,6 +244,7 @@ model Profile {
   agentMigration       AgentMigration?           @relation("AgentMigrationProfile")
   migrationsNotified   AgentMigration[]          @relation("AgentMigrationNotifier")
   migrationsAuthorised AgentMigration[]          @relation("AgentMigrationAuthoriser")
+  kycApplicant         KycApplicant?             @relation("KycApplicantProfile")
 
   @@map("profiles")
 }
@@ -1097,4 +1098,40 @@ model AgentMigration {
 
   @@index([status])
   @@map("agent_migrations")
+}
+
+/// Phase 1 Task 6 (ADR-026). One provider applicant per profile. Only
+/// provider IDs and outcomes are stored: no documents, no raw payloads.
+model KycApplicant {
+  profileId     String    @id @db.Uuid
+  provider      String
+  applicantId   String
+  /// Last provider decision: PENDING, APPROVED or REJECTED (null until one).
+  outcome       String?
+  rejectType    String?
+  lastEventAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  profile Profile @relation("KycApplicantProfile", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, applicantId])
+  @@map("kyc_applicants")
+}
+
+/// Phase 1 Task 6 (ADR-026). One row per accepted webhook delivery, keyed by
+/// the SHA-256 of the exact raw body: a replay is a no-op. No payload stored.
+model KycWebhookEvent {
+  id          String   @id
+  provider    String
+  applicantId String
+  type        String
+  outcome     String?
+  /// processed, ignored_unknown_applicant, ignored_stale or ignored_no_change.
+  result      String
+  occurredAt  DateTime
+  receivedAt  DateTime @default(now())
+
+  @@index([provider, applicantId])
+  @@map("kyc_webhook_events")
 }

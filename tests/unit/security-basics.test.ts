@@ -51,7 +51,9 @@ describe("CSRF request validation", () => {
     });
 
     expect(isSameOriginMutation(request, "https://app.example", true)).toBe(false);
-    expect(isSameOriginMutation(protectedRequest, "https://app.example", true)).toBe(true);
+    expect(isSameOriginMutation(protectedRequest, "https://app.example", true)).toBe(
+      true,
+    );
     expect(isSameOriginMutation(request, "https://app.example", false)).toBe(true);
   });
 
@@ -151,9 +153,11 @@ describe("route-aware rate-limit rules", () => {
       vi.stubEnv("TURNSTILE_PROVIDER", "cloudflare");
       vi.stubEnv("TURNSTILE_SECRET_KEY", "test-secret");
       vi.stubEnv("NEXT_PUBLIC_TURNSTILE_SITE_KEY", "test-site-key");
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ success: true }), { status: 200 }),
-      );
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValue(
+          new Response(JSON.stringify({ success: true }), { status: 200 }),
+        );
       vi.stubGlobal("fetch", fetchMock);
 
       await expect(verifyTurnstileToken("challenge-token")).resolves.toEqual({
@@ -171,11 +175,37 @@ describe("route-aware rate-limit rules", () => {
     expect(getRateLimitRule("/api/search/count", "GET", false)?.routeClass).toBe(
       "public_search",
     );
-    expect(
-      getRateLimitRule("/api/uploads/presign", "POST", true)?.routeClass,
-    ).toBe("file_upload");
-    expect(
-      getRateLimitRule("/api/investor/flip/offers", "POST", true)?.routeClass,
-    ).toBe("transaction");
+    expect(getRateLimitRule("/api/uploads/presign", "POST", true)?.routeClass).toBe(
+      "file_upload",
+    );
+    expect(getRateLimitRule("/api/investor/flip/offers", "POST", true)?.routeClass).toBe(
+      "transaction",
+    );
+  });
+});
+
+describe("signed provider webhooks (Phase 1 Task 6)", () => {
+  it("exempts only POST /api/webhooks/* from the same-origin check", async () => {
+    const { isSignedWebhookRequest } = await import("@/lib/security/csrf");
+    expect(isSignedWebhookRequest("POST", "/api/webhooks/kyc")).toBe(true);
+    expect(isSignedWebhookRequest("post", "/api/webhooks/kyc")).toBe(true);
+    for (const [method, path] of [
+      ["GET", "/api/webhooks/kyc"],
+      ["PUT", "/api/webhooks/kyc"],
+      ["POST", "/api/webhooks"],
+      ["POST", "/api/webhooksx/kyc"],
+      ["POST", "/api/kyc/submit"],
+      ["POST", "/webhooks/kyc"],
+    ]) {
+      expect(isSignedWebhookRequest(method, path)).toBe(false);
+    }
+  });
+
+  it("gives webhooks their own rate class of 300 per minute", () => {
+    expect(getRateLimitRule("/api/webhooks/kyc", "POST", false)).toEqual({
+      routeClass: "webhook",
+      limit: 300,
+      windowSeconds: 60,
+    });
   });
 });

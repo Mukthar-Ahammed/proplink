@@ -16,7 +16,11 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   Admin-approved company before submitting listings.
 - **Task 5 (existing agents migration) done** (ADR-025, resolves OD-02):
   notify → confirm → Admin authorise at `/admin/agents/migration`. Full suite
-  93 files / 1,196 tests pass. Phase 1 tasks done: 1–5 of 13.
+  93 files / 1,196 tests pass.
+- **Task 6 (KYC/AML provider) done** (ADR-026): Sumsub adapter and mock,
+  signed idempotent webhook at `/api/webhooks/kyc`, Landlord and Investor
+  "Verify my identity". Provider choice is OD-20; keys pending (BLOCKERS). Full
+  suite 96 files / 1,237 tests pass. Phase 1 tasks done: 1–6 of 13.
 - Phase 0 is unchanged: only the owner's manual authentication test remains.
 
 ## 2026-11-16 update

@@ -19,7 +19,8 @@ export type RateLimitClass =
   | "transaction"
   | "authenticated_read"
   | "authenticated_write"
-  | "public_write";
+  | "public_write"
+  | "webhook";
 
 export type RateLimitRule = {
   routeClass: RateLimitClass;
@@ -63,6 +64,10 @@ export function getRateLimitRule(
   authenticated: boolean,
 ): RateLimitRule | null {
   const upperMethod = method.toUpperCase();
+
+  if (upperMethod === "POST" && isPath(pathname, "/api/webhooks")) {
+    return { routeClass: "webhook", limit: 300, windowSeconds: 60 };
+  }
 
   if (
     upperMethod === "POST" &&

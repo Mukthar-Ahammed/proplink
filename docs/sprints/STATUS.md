@@ -19,7 +19,7 @@ before then.
 | 3. Agent invitations and announcements | Done        |
 | 4. Companies House check               | Done        |
 | 5. Existing agents migration           | Done        |
-| 6. KYC/AML provider                    | Not started |
+| 6. KYC/AML provider                    | Done        |
 | 7. Blue tick                           | Not started |
 | 8. Profiles                            | Not started |
 | 9. Suspend/reinstate                   | Not started |

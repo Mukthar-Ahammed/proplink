@@ -3,7 +3,11 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
 import { getServerEnv } from "@/env";
-import { isSameOriginMutation, isStateChangingMethod } from "@/lib/security/csrf";
+import {
+  isSameOriginMutation,
+  isSignedWebhookRequest,
+  isStateChangingMethod,
+} from "@/lib/security/csrf";
 import {
   buildContentSecurityPolicy,
   isFlipperPath,
@@ -21,6 +25,7 @@ const GATES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/investor", roles: ["INVESTOR"] },
   { prefix: "/buy", roles: ["BUYER"] },
   { prefix: "/account-pending", roles: ["LANDLORD", "SOLICITOR", "ADVERTISER"] },
+  { prefix: "/verify", roles: ["LANDLORD", "INVESTOR"] },
 ];
 
 /**
@@ -65,6 +70,7 @@ export async function proxy(request: NextRequest) {
   const expectedOrigin = env.APP_ORIGIN ?? request.nextUrl.origin;
   const isApiRequest = pathname.startsWith("/api/");
   if (
+    !isSignedWebhookRequest(request.method, pathname) &&
     !isSameOriginMutation(
       request,
       expectedOrigin,

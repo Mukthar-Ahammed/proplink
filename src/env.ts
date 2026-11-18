@@ -60,6 +60,11 @@ const serverEnvSchema = z
     MALWARE_SCANNER_TOKEN: optionalString,
     COMPANIES_HOUSE_PROVIDER: optionalEnum(["mock", "companies_house"]),
     COMPANIES_HOUSE_API_KEY: optionalString,
+    KYC_PROVIDER: optionalEnum(["mock", "sumsub"]),
+    SUMSUB_APP_TOKEN: optionalString,
+    SUMSUB_SECRET_KEY: optionalString,
+    SUMSUB_WEBHOOK_SECRET: optionalString,
+    SUMSUB_LEVEL_NAME: optionalString,
     SENTRY_DSN: optionalUrl,
     NEXT_PUBLIC_SENTRY_DSN: optionalUrl,
     FINANCIAL_PROMOTIONS_REVIEWED: booleanEnv,
@@ -79,6 +84,31 @@ const serverEnvSchema = z
     const companiesHouseProvider =
       env.COMPANIES_HOUSE_PROVIDER ??
       (env.NODE_ENV === "production" ? "companies_house" : "mock");
+
+    const kycProvider =
+      env.KYC_PROVIDER ?? (env.NODE_ENV === "production" ? "sumsub" : "mock");
+    if (kycProvider === "sumsub") {
+      for (const key of [
+        "SUMSUB_APP_TOKEN",
+        "SUMSUB_SECRET_KEY",
+        "SUMSUB_WEBHOOK_SECRET",
+      ] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: "Required when the Sumsub KYC provider is enabled",
+          });
+        }
+      }
+    }
+    if (env.NODE_ENV === "production" && kycProvider === "mock") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["KYC_PROVIDER"],
+        message: "Production requires a real KYC provider",
+      });
+    }
 
     if (companiesHouseProvider === "companies_house" && !env.COMPANIES_HOUSE_API_KEY) {
       ctx.addIssue({
@@ -265,6 +295,9 @@ export function parseServerEnv(source: NodeJS.ProcessEnv) {
     COMPANIES_HOUSE_PROVIDER:
       parsed.COMPANIES_HOUSE_PROVIDER ??
       (parsed.NODE_ENV === "production" ? "companies_house" : "mock"),
+    KYC_PROVIDER:
+      parsed.KYC_PROVIDER ?? (parsed.NODE_ENV === "production" ? "sumsub" : "mock"),
+    SUMSUB_LEVEL_NAME: parsed.SUMSUB_LEVEL_NAME ?? "basic-kyc-level",
     TURNSTILE_ENABLED: parsed.TURNSTILE_ENABLED ?? parsed.NODE_ENV === "production",
     UPLOADS_ENABLED: parsed.UPLOADS_ENABLED ?? false,
     FINANCIAL_PROMOTIONS_REVIEWED: parsed.FINANCIAL_PROMOTIONS_REVIEWED ?? false,

@@ -18,7 +18,7 @@ development Supabase project (see the Phase 0 report).
 | 3. Agent invitations and announcements | **Done**    | ADR-023; acceptance needs OD-18 key  |
 | 4. Companies House check               | **Done**    | ADR-024; live key pending (BLOCKERS) |
 | 5. Existing agents migration           | **Done**    | ADR-025                              |
-| 6. KYC/AML provider                    | Not started | Provider choice is an owner decision |
+| 6. KYC/AML provider                    | **Done**    | ADR-026; provider choice OD-20       |
 | 7. Blue tick                           | Not started |                                      |
 | 8. Profiles                            | Not started | Needs Task 12 for photo uploads      |
 | 9. Suspend/reinstate                   | Not started |                                      |
@@ -266,3 +266,51 @@ exist yet for any service; it is not built here.
   pass**. Typecheck and lint clean.
 - `tests/e2e/agent-migration.spec.ts` written, **not yet run** (needs the
   Phase 1 migrations on the development database).
+
+## Task 6 — KYC/AML provider (2026-11-18)
+
+**Delivered** (ADR-026)
+
+- `KycProvider` (`src/services/kycProvider/`): Sumsub adapter (signed
+  requests, 409 fallback, Sumsub-only HTTPS links, `X-Payload-Digest` webhook
+  verification in constant time) and a mock whose development-only hosted flow
+  (`/verify/mock`) sends signed webhooks through the real path.
+  `KYC_PROVIDER`; production refuses the mock and requires the Sumsub keys.
+- Migration `20261118000000_phase1_kyc_provider` (with `rollback.sql`):
+  `kyc_applicants` (Landlord/Investor only, by trigger) and append-only
+  `kyc_webhook_events`; IDs and outcomes only.
+- `src/services/kyc/providerVerification.ts`: start/resume (role, status and
+  manual-review checks, 5 per hour, `PENDING`, audit), webhook processing
+  (64 KB cap, signature, shape, 72 h / 5 min tolerance, body-hash idempotency,
+  row lock, stale/unknown/mismatch handling, profile and legacy user updated
+  together, `KYC_PROVIDER_DECISION` audit, rollback on failure so the
+  provider retries).
+- `POST /api/webhooks/kyc`; proxy exemption from the same-origin check for
+  `POST /api/webhooks/*` only, webhook rate class (300/min), `/verify` gated
+  to Landlord and Investor and private.
+- UI: "Verify my identity" on `/investor/kyc` (manual submission kept for
+  exceptions) and on the Landlord holding page; "Continue verification" while
+  pending.
+- `docs/credentials/kyc-provider.md`, `EXTERNAL_SERVICES.md`,
+  `.env.example`, OD-20, BLOCKERS, ARCHITECTURE.
+
+**Verification**
+
+- `tests/unit/kyc-provider.test.ts` (20): request signature and headers, 409
+  lookup, HTTP/network failures, link host allowlist, status mapping, webhook
+  digests (SHA-1/256/512), forged/missing/unknown-algorithm/non-hex/tampered
+  signatures, unreadable payloads, timestamp formats, mock signature.
+- `tests/unit/kyc-provider-verification.test.ts` (11): start, resume, role and
+  status refusals, rate limit, forged signature, oversize, timestamp tolerance,
+  malformed payload.
+- `tests/integration/kyc-provider-webhook.test.ts` (7, real database and
+  service): approval applied to profile and legacy user with audit, replay is a
+  no-op, out-of-order event ignored, unknown applicant and mismatched external
+  ID ignored, PENDING/no-decision handling, forged delivery records nothing,
+  receipts append-only, applicants Landlord/Investor only.
+- `tests/unit/security-basics.test.ts`: webhook exemption is POST-only and
+  exact-prefix; webhook rate class.
+- Rollback rehearsed on the disposable database. Full suite: **96 files, 1,237
+  tests pass**; typecheck and lint clean.
+- `tests/e2e/kyc-provider.spec.ts` written, **not yet run**. **Sumsub sandbox
+  not exercised**: no keys and no owner confirmation (OD-20).

@@ -232,6 +232,15 @@ The complete one-line policy rationale is in
   `hasNewFeatureAccess()` in `src/services/agents/agentMigration.ts` gates Agent
   features from Phase 3 onwards. Company-check gate for listing submission (OD-19):
   `src/services/agents/companyGate.ts`.
+- **KYC/AML provider (Phase 1, ADR-026):** `KycProvider` (`src/services/kycProvider/`:
+  `SumsubKycProvider`, `MockKycProvider`; `KYC_PROVIDER`). Landlords and Investors start
+  verification (`src/services/kyc/providerVerification.ts`) and are sent to the hosted
+  flow; `POST /api/webhooks/kyc` verifies the signature over the raw body, refuses
+  events outside 72 h, de-duplicates by body hash, locks the applicant, ignores stale
+  events and updates `profiles.kycStatus` and `User.kycStatus` together in one
+  transaction. Tables `kyc_applicants` and append-only `kyc_webhook_events` store IDs
+  and outcomes only. The proxy exempts only `POST /api/webhooks/*` from the same-origin
+  check (`isSignedWebhookRequest`) and rate-limits it as `webhook` (300/min).
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

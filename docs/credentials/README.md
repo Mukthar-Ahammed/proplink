@@ -13,6 +13,7 @@ belong in `.env.local`, which is ignored by Git.
 | [resend.md](./resend.md)                             | Transactional email           |
 | [sentry.md](./sentry.md)                             | Error monitoring              |
 | [companies-house.md](./companies-house.md)           | Agent company check           |
+| [kyc-provider.md](./kyc-provider.md)                 | KYC/AML provider (Sumsub)     |
 
 These are setup instructions only. A service is not considered configured for
 an environment until its credentials, access controls, smoke test, and rotation
