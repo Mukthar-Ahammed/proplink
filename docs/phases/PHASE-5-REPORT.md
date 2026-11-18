@@ -53,7 +53,7 @@ Phase 6).
 | 2. Buyer experience             | Done (state machines; existing search/map/save kept) | ADR-053 |
 | 3. Maps and saved-search alerts | Not started                                          |         |
 | 4. Reviews and ratings          | Done (qualifying pairs, moderation, cards)           | ADR-054 |
-| 5. Track record and analytics   | Not started                                          |         |
+| 5. Track record and analytics   | Done (ROI default behind Admin flag and FPR)         | ADR-055 |
 | 6. SEO and safety               | Not started                                          |         |
 
 ## Exit gate
@@ -158,3 +158,24 @@ Phase 6).
   sanitising, pending on create, database refusal mapping, reply scope,
   Admin-only moderation.
 - Agency and appraisal tests updated (rating from published reviews; 410).
+
+## Task 5 — Track record and analytics (2026-11-18)
+
+**Delivered** (ADR-055)
+
+- `src/services/profiles/trackRecord.ts`: server-computed figures on every
+  profile (Agent: properties handled including mandates, completed
+  projects, average completion time from publishing to confirmed sale,
+  success rate, member since; Investor: projects joined plus the same;
+  Landlord: properties listed, mandates completed).
+- Historical ROI default (net profit ÷ purchase plus costs, confirmed sales,
+  averaged, clearly labelled) behind `/admin/settings/track-record`
+  (migration `20261119110000`, rollback rehearsed) **and**
+  `FINANCIAL_PROMOTIONS_REVIEWED`; hidden while the review is incomplete.
+
+**Verification**
+
+- `tests/unit/track-record.test.ts` (4): figures from a mixed project set
+  (unconfirmed sales ignored), ROI only when asked, hidden while promotions
+  are unreviewed whatever the flag, Admin-only and audited switch.
+- `tests/unit/user-profiles.test.ts` updated (success rate; still no ROI).

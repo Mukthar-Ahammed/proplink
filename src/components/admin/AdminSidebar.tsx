@@ -44,6 +44,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
       { label: "Existing Agents", href: "/admin/agents/migration", status: "active" },
       { label: "Verified Badges", href: "/admin/badges", status: "active" },
       { label: "Upload Limits", href: "/admin/settings/uploads", status: "active" },
+      { label: "Track Record", href: "/admin/settings/track-record", status: "active" },
       { label: "Announcements", href: "/admin/announcements", status: "active" },
       {
         label: "List for a Landlord",

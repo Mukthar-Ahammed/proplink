@@ -1230,6 +1230,11 @@ of the boundary.
   `reviews`, `review_reports`, `proplink_review_eligible()` and guard
   triggers (qualifying pairs only; Admin-only moderation; no deletes). The
   Sprint-era appraisal endpoint returns 410.
+- Track record (Phase 5 Task 5, ADR-055): `src/services/profiles/trackRecord.ts`
+  (properties handled, completed projects, average completion time, success
+  rate, experience; historical ROI default behind the
+  `track_record_settings` flag and `FINANCIAL_PROMOTIONS_REVIEWED`);
+  `/admin/settings/track-record`. Migration `20261119110000`.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

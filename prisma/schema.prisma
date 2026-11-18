@@ -251,6 +251,7 @@ model Profile {
   reviewsModerated     Review[]                  @relation("ReviewModerator")
   reviewReports        ReviewReport[]            @relation("ReviewReporter")
   reviewReportsResolved ReviewReport[]           @relation("ReviewReportResolver")
+  trackRecordSettings   TrackRecordSettings[]     @relation("TrackRecordSettingsEditor")
   companyCheck         AgentCompanyCheck?        @relation("AgentCompanyCheckProfile")
   companyOverrides     AgentCompanyCheck[]       @relation("AgentCompanyCheckOverrider")
   agentMigration       AgentMigration?           @relation("AgentMigrationProfile")
@@ -2649,4 +2650,19 @@ model ReviewReport {
   @@unique([reviewId, reporterId], map: "review_reports_one_per_reporter")
   @@index([resolvedAt, createdAt], map: "review_reports_open")
   @@map("review_reports")
+}
+
+// ── Phase 5 Task 5: track record (ADR-055) ──
+
+/// Single row. Historical ROI shows only when this is on AND
+/// FINANCIAL_PROMOTIONS_REVIEWED is true (OD-07).
+model TrackRecordSettings {
+  id                Int      @id @default(1)
+  showHistoricalRoi Boolean  @default(false)
+  updatedAt         DateTime @default(now())
+  updatedBy         String?  @db.Uuid
+
+  editor Profile? @relation("TrackRecordSettingsEditor", fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@map("track_record_settings")
 }

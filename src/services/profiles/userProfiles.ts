@@ -3,14 +3,13 @@ import "server-only";
 import { randomInt } from "node:crypto";
 import { z } from "zod";
 
-import {
-  InvestorProjectStatus,
-  ProfileVisibility,
-  PropertyStatus,
-  Role,
-  UploadStatus,
-} from "@/generated/prisma/enums";
+import { ProfileVisibility, Role, UploadStatus } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
+import {
+  historicalRoiVisible,
+  trackRecord,
+  type TrackRecordItem,
+} from "@/services/profiles/trackRecord";
 
 /**
  * LinkedIn-style profiles (Phase 1 Task 8, ADR-032; business Q4, TRD §5).
@@ -91,77 +90,13 @@ export async function isProjectAgentFor(
   return Boolean(project);
 }
 
-const COMPLETED_PROJECT = [
-  InvestorProjectStatus.COMPLETED,
-  InvestorProjectStatus.LISTED_FOR_SALE,
-  InvestorProjectStatus.SOLD,
-];
-
-/** Completed Phase 4 projects: as the Agent, or as the Lead Investor. */
-async function completedProjects(profileId: string, role: Role): Promise<number> {
-  if (role !== Role.AGENT && role !== Role.INVESTOR) return 0;
-  return db.investorProject.count({
-    where: {
-      status: { in: COMPLETED_PROJECT },
-      ...(role === Role.AGENT ? { agentId: profileId } : { leadInvestorId: profileId }),
-    },
-  });
-}
-
-export type TrackRecordItem = { label: string; value: string };
-
-/** Computed by the server; users cannot edit it. */
-/** Shown until Phase 4 project data exists, instead of a misleading 0. */
-export const NO_PROJECTS_YET = "None yet";
-export const NOT_ENOUGH_DATA = "Not enough data yet";
-
-/**
- * Computed by the server from platform data; users cannot edit it. Figures
- * follow TRD 5.2: total properties handled/listed, completed
- * refurbishments/builds, average project completion time. Historical ROI is
- * deliberately not shown: public ROI stays hidden until legal review (OD-07).
- * Project figures come from Phase 4 projects.
- */
-export async function trackRecord(target: {
-  id: string;
-  role: Role;
-  legacyUserId: string | null;
-  createdAt: Date;
-}): Promise<TrackRecordItem[]> {
-  const since = {
-    label: "Member since",
-    value: String(target.createdAt.getUTCFullYear()),
-  };
-  const completed = await completedProjects(target.id, target.role);
-  const projectFigures: TrackRecordItem[] = [
-    {
-      label: "Completed refurbishments / builds",
-      value: completed > 0 ? String(completed) : NO_PROJECTS_YET,
-    },
-    { label: "Average project completion time", value: NOT_ENOUGH_DATA },
-  ];
-  if (target.role === Role.AGENT) {
-    const listed = target.legacyUserId
-      ? await db.property.count({
-          where: {
-            status: { not: PropertyStatus.DRAFT },
-            agentProfile: { userId: target.legacyUserId },
-          },
-        })
-      : 0;
-    return [
-      { label: "Properties handled / listed", value: String(listed) },
-      ...projectFigures,
-      since,
-    ];
-  }
-  if (target.role === Role.INVESTOR) return [...projectFigures, since];
-  if (target.role === Role.LANDLORD) {
-    // Landlord listings arrive in Phase 2.
-    return [{ label: "Properties listed", value: NO_PROJECTS_YET }, since];
-  }
-  return [since];
-}
+// Track record moved to its own service in Phase 5 Task 5 (ADR-055).
+export {
+  NO_PROJECTS_YET,
+  NOT_ENOUGH_DATA,
+  trackRecord,
+  type TrackRecordItem,
+} from "@/services/profiles/trackRecord";
 
 export type ProfileView =
   | {
@@ -237,7 +172,9 @@ export async function viewProfile(
       profileId: target.id,
       role: target.role,
       verified: Boolean(target.verificationBadge),
-      trackRecord: await trackRecord(target),
+      trackRecord: await trackRecord(target, {
+        includeRoi: await historicalRoiVisible(),
+      }),
     };
   }
 
@@ -258,7 +195,7 @@ export async function viewProfile(
     experience: row.experience,
     photoFileId: row.photoFileId,
     verified: Boolean(target.verificationBadge),
-    trackRecord: await trackRecord(target),
+    trackRecord: await trackRecord(target, { includeRoi: await historicalRoiVisible() }),
     visibility: row.visibility,
   };
 }

@@ -211,6 +211,12 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       cards in search; revoke it and it goes. Stars appear only after a
       review is published.
 
+- [ ] **Track record.** Open the Agent's and the Lead Investor's profiles
+      after a sold project: completed projects, average completion time and
+      success rate show real figures; nobody can edit them. At Admin →
+      Track Record, turn historical ROI on: it still does not appear on
+      profiles while the financial promotions review is incomplete.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.
