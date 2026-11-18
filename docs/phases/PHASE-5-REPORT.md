@@ -54,7 +54,7 @@ Phase 6).
 | 3. Maps and saved-search alerts | Done (alerts; maps mock until H2.2, commute blocked) | ADR-056 |
 | 4. Reviews and ratings          | Done (qualifying pairs, moderation, cards)           | ADR-054 |
 | 5. Track record and analytics   | Done (ROI default behind Admin flag and FPR)         | ADR-055 |
-| 6. SEO and safety               | Not started                                          |         |
+| 6. SEO and safety               | Done                                                 | ADR-057 |
 
 ## Exit gate
 
@@ -62,7 +62,7 @@ Phase 6).
 - [x] Criterion 6: badges only after Admin verification, on profiles and listing cards.
 - [x] Criterion 7: reviews only from qualifying interactions.
 - [x] Investor, Landlord and Agent accounts cannot book viewings or submit offers.
-- [ ] Public crawl exposes only for-sale data.
+- [x] Public crawl exposes only for-sale data.
 - [x] Review eligibility and moderation tests pass.
 - [x] Offer and viewing state machines tested, including concurrent actions.
 - [ ] Buyer journey E2E passes on mobile and desktop; accessibility checks pass.
@@ -205,3 +205,29 @@ Phase 6).
   turns alerts off; 5-search limit; 5 alerts in a day → 3 sent, 2 skipped.
 - `tests/unit/saved-search-job.test.ts` (4): job off without the secret,
   wrong or missing secret refused, runs with it; maps provider switch.
+
+## Task 6 — SEO and safety (2026-11-18)
+
+**Delivered** (ADR-057)
+
+- `/sitemap.xml`: home, marketplace and LIVE/UNDER_OFFER listings of active
+  agencies only; robots points at it and disallows `/alerts` too.
+- JSON-LD `RealEstateListing` on for-sale listing pages (town, postcode
+  district, price, first photo), escaped against script break-out.
+- Image optimiser allowlist (Supabase public storage, Unsplash, local
+  `/uploads/**`), AVIF/WebP; listing cards use it for allowlisted URLs.
+- Boundary test: public pages, components, search and public APIs never
+  read investor tables or import project services.
+- Bot protection on enquiries confirmed (server-side Turnstile; production
+  requires Cloudflare).
+
+**Verification**
+
+- `tests/integration/sitemap-db.test.ts` (1, disposable database): LIVE and
+  UNDER_OFFER listed; draft, pending review, sold and inactive-agency
+  listings not; only public paths; no Landlord listing or project ids.
+- `tests/unit/seo-safety.test.ts` (14): structured data public fields only
+  (no full postcode, no seller or investor fields), availability, JSON-LD
+  break-out escaping, image allowlist cases.
+- `tests/unit/private-listing-boundary.test.ts`: robots now points at the
+  sitemap; new "no investor data on public surfaces" check.

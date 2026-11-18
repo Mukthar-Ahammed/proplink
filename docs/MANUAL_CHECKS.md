@@ -227,6 +227,13 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       keys: listing pages show real maps; the browser key is refused from
       another site.
 
+- [ ] **Public SEO.** Open `/sitemap.xml`: only the home page, the
+      marketplace and for-sale listings; no sold, draft or private pages.
+      `/robots.txt` points at it. On a for-sale listing, view source: one
+      JSON-LD block with town, postcode district and price, no street
+      address. Run the listing through Google's Rich Results Test once
+      deployed.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

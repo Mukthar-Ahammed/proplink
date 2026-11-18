@@ -1,8 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import { DISTRESS_TAG_OPTIONS, formatPenceGBP } from "@/components/listings/wizardTypes";
 import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
 import { StarRating } from "@/components/reviews/StarRating";
 import { Badge, EpcBadge } from "@/components/ui/badge";
+import { isOptimisableImage } from "@/lib/images";
 import type { SearchResultItem } from "@/services/search/types";
 
 const TAG_LABELS = new Map(DISTRESS_TAG_OPTIONS.map((o) => [o.value, o.label]));
@@ -37,10 +39,20 @@ export function PropertyCard({
       data-listing-id={listing.id}
       className="group flex flex-col overflow-hidden rounded-lg border border-line bg-white shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
-      {listing.imageUrl ? (
-        // Mock-storage and agent-hosted URLs are not in any configured
-        // next/image domain list — same convention as PropertyGallery and
-        // ModerationQueue.
+      {listing.imageUrl && isOptimisableImage(listing.imageUrl) ? (
+        // Allowlisted sources go through the image optimiser (ADR-057).
+        <div className="relative aspect-[4/3] w-full bg-surface">
+          <Image
+            src={listing.imageUrl}
+            alt={`${listing.title} — ${listing.city}`}
+            fill
+            sizes="(min-width: 1536px) 25vw, (min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+            className="object-cover"
+          />
+        </div>
+      ) : listing.imageUrl ? (
+        // Other sources (e.g. agent-hosted URLs) are outside the optimiser's
+        // allowlist; the CSP img-src decides whether they load at all.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={listing.imageUrl}

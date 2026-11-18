@@ -1243,6 +1243,12 @@ of the boundary.
   `20261119120000`: `SavedSearch.alertToken`/`createdAt`,
   `saved_search_alerts` (one per search per day). Maps provider via
   `MAPS_PROVIDER`.
+- Public SEO and safety (Phase 5 Task 6, ADR-057): `src/app/sitemap.ts` (for-sale
+  listings only, via `src/services/search/publicListings.ts`), robots points
+  at it; JSON-LD `RealEstateListing` on for-sale listing pages (public fields,
+  escaped); image optimiser allowlist (`src/lib/images.ts`, `next.config.ts`
+  `images`) matching the CSP `img-src`; boundary test keeps investor tables
+  and project services out of public surfaces.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

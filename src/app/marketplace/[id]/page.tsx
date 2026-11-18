@@ -10,6 +10,8 @@ import {
 } from "@/services/listings/listingService";
 import { getAgentProfilePublic } from "@/services/agents/agentProfileService";
 import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
+import { SITE_URL } from "@/lib/siteUrl";
+import { listingStructuredData, serializeJsonLd } from "@/services/search/publicListings";
 import { staticMapService } from "@/services/maps";
 import { DISTRESS_TAG_OPTIONS, formatPenceGBP } from "@/components/listings/wizardTypes";
 import { Badge, EpcBadge } from "@/components/ui/badge";
@@ -148,6 +150,33 @@ export default async function PropertyDetailPage({ params }: PageProps) {
     // `<main>`, not a plain `<div>`: this page is indexed, and the Lighthouse
     // a11y audit flags a missing main landmark (`landmark-one-main`).
     <main className="mx-auto w-full max-w-4xl space-y-8 px-6 py-10">
+      {/* Structured data (Phase 5 Task 6, ADR-057): public fields only, for
+          listings that are for sale. serializeJsonLd escapes "<", so listing
+          text cannot close the script element. */}
+      {isPublic && (listing.status === "LIVE" || listing.status === "UNDER_OFFER") && (
+        <script
+          type="application/ld+json"
+          data-testid="listing-jsonld"
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(
+              listingStructuredData(
+                {
+                  id: listing.id,
+                  title: listing.title,
+                  city: listing.city,
+                  region: listing.region,
+                  postcode: listing.postcode,
+                  askingPriceGBP: listing.askingPriceGBP,
+                  status: listing.status,
+                  bedrooms: listing.bedrooms,
+                  imageUrl: listing.images[0]?.url ?? null,
+                },
+                SITE_URL,
+              ),
+            ),
+          }}
+        />
+      )}
       {!isPublic && (
         <p
           role="status"

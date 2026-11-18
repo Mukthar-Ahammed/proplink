@@ -115,6 +115,28 @@ describe("private Landlord listings: code boundary", () => {
   });
 });
 
+/**
+ * Phase 5 Task 6 (ADR-057): public pages and JSON never carry investor data.
+ * The public surfaces may not read project, pledge, ledger or review-queue
+ * tables, nor import the project services.
+ */
+describe("public surfaces: no investor data", () => {
+  const INVESTOR_ACCESS =
+    /\.(?:investorProject|projectPledge|projectInterest|distributionLedgerEntry|projectSale|projectAgreement)\b|\b(?:investor_projects|project_pledges|distribution_ledger|project_sales)\b|from\s+["']@\/services\/projects(?:\/|["'])/;
+
+  it("keeps sitemap, robots, search, marketplace and public APIs away from it", () => {
+    const publicFiles = files.filter(({ rel }) =>
+      /^src\/app\/(?:sitemap|robots)\.ts$|^src\/app\/marketplace\/|^src\/app\/api\/(?:search|listings|case-studies)\/|^src\/services\/search\/|^src\/components\/marketplace\//.test(
+        rel,
+      ),
+    );
+    expect(publicFiles.length).toBeGreaterThan(5);
+    for (const { rel, text } of publicFiles) {
+      expect(INVESTOR_ACCESS.test(text), rel).toBe(false);
+    }
+  });
+});
+
 describe("private Landlord listings: crawlers and caches", () => {
   it.each([
     "/landlord",
@@ -125,7 +147,7 @@ describe("private Landlord listings: crawlers and caches", () => {
     expect(isPrivateResponsePath(pathname)).toBe(true);
   });
 
-  it("disallows every private area in robots.txt and lists no sitemap", () => {
+  it("disallows every private area in robots.txt and points at the for-sale sitemap", () => {
     const result = robots();
     const rules = Array.isArray(result.rules) ? result.rules : [result.rules];
     const disallow = rules.flatMap((rule) =>
@@ -135,6 +157,6 @@ describe("private Landlord listings: crawlers and caches", () => {
       expect(disallow).toContain(prefix);
     }
     expect(disallow).toEqual([...PRIVATE_CRAWL_PREFIXES]);
-    expect(result.sitemap).toBeUndefined();
+    expect(result.sitemap).toMatch(/\/sitemap\.xml$/);
   });
 });
