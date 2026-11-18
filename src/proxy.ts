@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
+import { recordSecurityEvent } from "@/services/security/securityEvents";
 import { getServerEnv } from "@/env";
 import {
   isSameOriginMutation,
@@ -79,6 +80,7 @@ export async function proxy(request: NextRequest) {
       isApiRequest && isStateChangingMethod(request.method),
     )
   ) {
+    void recordSecurityEvent("CSRF_REJECTED");
     console.warn(
       JSON.stringify({
         event: "security.csrf_rejected",
@@ -118,6 +120,7 @@ export async function proxy(request: NextRequest) {
     );
   }
   if (rateLimit && !rateLimit.allowed) {
+    void recordSecurityEvent("RATE_LIMITED");
     console.warn(
       JSON.stringify({
         event: "security.rate_limit_exceeded",

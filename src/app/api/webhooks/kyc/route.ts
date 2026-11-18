@@ -1,3 +1,4 @@
+import { recordSecurityEvent } from "@/services/security/securityEvents";
 import { NextResponse } from "next/server";
 
 import {
@@ -22,6 +23,8 @@ export async function POST(request: Request) {
     if (result.status === 200) {
       return NextResponse.json({ ok: true, result: result.result });
     }
+    if (result.status >= 400 && result.status < 500)
+      void recordSecurityEvent("WEBHOOK_REJECTED");
     return NextResponse.json({ error: result.error }, { status: result.status });
   } catch (error) {
     console.error(
@@ -31,6 +34,7 @@ export async function POST(request: Request) {
       }),
     );
     // 5xx so the provider retries; nothing was recorded.
+    void recordSecurityEvent("WEBHOOK_FAILED");
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 }

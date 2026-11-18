@@ -1350,3 +1350,9 @@ of the boundary.
   Agent, Landlord and Investor dashboards only; `/advertise`;
   `/admin/ads`; `/api/ads/click/[id]`, `/api/ads/image/[id]`; upload
   purpose `ad_creative`.
+- Admin dashboards (Task 4, ADR-061): `/admin/system` (KPIs,
+  `src/services/admin/kpis.ts`), `/admin/system/integrations`
+  (`src/services/admin/systemHealth.ts`; modes and missing setting names,
+  never values), `/admin/system/security` (`security_event_counts`, migration
+  `20261120030000`; `recordSecurityEvent` from the proxy, sign-in,
+  webhooks and Admin permission refusals).

@@ -69,6 +69,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
   {
     title: "GOVERNANCE",
     items: [
+      { label: "KPIs & System", href: "/admin/system", status: "active" },
       { label: "Audit Logs", href: "/admin/audit", status: "soon" },
       { label: "Data Requests", href: "/admin/privacy", status: "active" },
       { label: "Platform Settings", href: "/admin/settings", status: "soon" },

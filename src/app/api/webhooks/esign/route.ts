@@ -1,3 +1,4 @@
+import { recordSecurityEvent } from "@/services/security/securityEvents";
 import { NextResponse } from "next/server";
 
 import { processESignWebhook } from "@/services/projects/agreements";
@@ -32,6 +33,8 @@ export async function POST(request: Request) {
   try {
     const result = await processESignWebhook(rawBody, request.headers);
     if (!result.ok) {
+      if (result.status >= 400 && result.status < 500)
+        void recordSecurityEvent("WEBHOOK_REJECTED");
       return NextResponse.json({ error: "Rejected" }, { status: result.status });
     }
     // Dropbox Sign requires this exact acknowledgement text.
@@ -47,6 +50,7 @@ export async function POST(request: Request) {
       }),
     );
     // 5xx so the provider retries; the event is recorded only after verification.
+    void recordSecurityEvent("WEBHOOK_FAILED");
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }
 }

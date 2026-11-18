@@ -39,6 +39,8 @@ const SERVICE_USERS = [
   "src/services/profiles/trackRecord.ts",
   // Phase 6 Task 3 (ADR-059): a member's own listings in their GDPR export.
   "src/services/admin/dataExport.ts",
+  // Phase 6 Task 4 (ADR-061): review-queue counts for the Admin KPIs.
+  "src/services/admin/kpis.ts",
 ];
 /** Download links that skip the owner/Admin check: Landlord service only. */
 const GRANTED_LINK_CALL = /createGrantedDownloadLink\s*\(/;

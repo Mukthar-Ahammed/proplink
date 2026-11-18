@@ -3022,3 +3022,25 @@ model AdDailyStat {
   @@id([campaignId, day])
   @@map("ad_daily_stats")
 }
+
+// ── Phase 6 Task 4: security events (ADR-061) ──
+
+enum SecurityEventKind {
+  RATE_LIMITED
+  CSRF_REJECTED
+  LOGIN_FAILED
+  WEBHOOK_REJECTED
+  WEBHOOK_FAILED
+  ADMIN_PERMISSION_DENIED
+}
+
+/// Per-minute counts only; no personal data.
+model SecurityEventCount {
+  kind   SecurityEventKind
+  bucket DateTime
+  count  Int               @default(0)
+
+  @@id([kind, bucket])
+  @@index([bucket], map: "security_event_counts_bucket")
+  @@map("security_event_counts")
+}

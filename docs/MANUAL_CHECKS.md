@@ -269,6 +269,12 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       pages, messages, offers and project pages never show an ad. Pause it:
       it disappears. An image banner needs an image that passes the scan.
 
+- [ ] **Admin system pages.** At Admin → KPIs & System: queue sizes and
+      ages look right. Integrations health lists each provider as live,
+      mock or off and names missing settings, with no secret values
+      anywhere on the page (view source). Sign in with a wrong password a
+      few times: Security events shows the failed sign-ins.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

@@ -8,6 +8,7 @@ import { auth, type AppSession } from "@/lib/auth";
 import { getInvestorCapabilities } from "@/services/syndicates/investorType";
 import { isMfaSatisfied, requiresMfa } from "@/services/auth/mfa";
 import { writeAudit } from "@/services/admin/audit";
+import { recordSecurityEvent } from "@/services/security/securityEvents";
 import { hasAdminPermission } from "@/services/admin/permissions";
 
 export type AuthzResult =
@@ -256,6 +257,7 @@ async function recordPermissionCheck(
     }),
   );
   if (!allowed) {
+    await recordSecurityEvent("ADMIN_PERMISSION_DENIED");
     try {
       await writeAudit({
         actorUserId: session.user.id,

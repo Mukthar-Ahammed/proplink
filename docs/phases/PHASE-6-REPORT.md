@@ -54,7 +54,7 @@ None new. Advertising has no billing (OD-11).
 | 2. Admin roles and permissions | Done        | ADR-058 |
 | 3. Reporting and disputes      | Done        | ADR-059 |
 | 1. Advertising module          | Done        | ADR-060 |
-| 4. Admin dashboards            | Not started |         |
+| 4. Admin dashboards            | Done        | ADR-061 |
 | 5. Admin A5 verification debt  | Not started |         |
 
 ## Exit gate
@@ -160,3 +160,26 @@ None new. Advertising has no billing (OD-11).
   Admin without the permission (service and database); served only in its
   slot; counts once per visitor; ended campaigns fixed, not deleted.
 - Full suite: 152 files, 1,833 passed, 0 failed.
+
+## Task 4 — Admin dashboards (2026-11-19)
+
+**Delivered** (ADR-061)
+
+- `/admin/system`: KPIs (queues with oldest waiting item, chat
+  authorisations, subscriptions, 30-day funnel).
+- `/admin/system/integrations` (Phase 0 carry-over; Admin, MFA and
+  SYSTEM_INTEGRATIONS): provider mode and missing setting names per
+  integration, database round trip, compliance switches. No values shown.
+- `/admin/system/security`: per-minute counts of rate-limit and CSRF
+  refusals, failed sign-ins, webhook rejections and failures, Admin
+  permission refusals (migration `20261120030000`, rollback rehearsed).
+
+**Verification**
+
+- `tests/unit/system-health.test.ts` (3): secret values never appear in the
+  integrations data; modes and missing keys; compliance switches; database
+  ping.
+- `tests/integration/security-events-db.test.ts` (2, disposable database):
+  repeated events add to one per-minute row per kind; summary totals and
+  hourly series; recording never throws.
+- The Admin entry-point scan covers the new pages (SYSTEM_INTEGRATIONS).
