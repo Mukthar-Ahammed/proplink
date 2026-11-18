@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { requestPasswordResetAction } from "@/app/(auth)/actions";
-import { AUTH_BUTTON, AUTH_INPUT, AUTH_LABEL, AuthShell } from "@/components/auth/AuthShell";
+import {
+  AUTH_BUTTON,
+  AUTH_INPUT,
+  AUTH_LABEL,
+  AuthShell,
+} from "@/components/auth/AuthShell";
 import { TurnstileWidget } from "@/components/security/TurnstileWidget";
 import {
   AUTH_ACTION_UNAVAILABLE_MESSAGE,
@@ -45,7 +50,12 @@ export default function ForgotPasswordPage() {
       title="Reset your password"
       subtitle="We will email a verification link before accepting a new password."
       aside={{
-        headline: <><>Recover access,</><span className="mt-1 block font-light">without bypassing verification</span></>,
+        headline: (
+          <>
+            <>Recover access,</>
+            <span className="mt-1 block font-light">without bypassing verification</span>
+          </>
+        ),
         points: [
           "Responses never reveal whether an account exists",
           "Reset links require an explicit verification button press",
@@ -58,25 +68,37 @@ export default function ForgotPasswordPage() {
       ) : (
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
-            <label htmlFor="email" className={AUTH_LABEL}>Email</label>
-            <input id="email" type="email" autoComplete="email" required value={email} onChange={(event) => setEmail(event.target.value)} className={AUTH_INPUT} />
+            <label htmlFor="email" className={AUTH_LABEL}>
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className={AUTH_INPUT}
+            />
           </div>
           {error && (
-            <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
+            <p
+              role="alert"
+              className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger"
+            >
               {error}
             </p>
           )}
-          <TurnstileWidget
-            onToken={setTurnstileToken}
-            resetKey={turnstileResetKey}
-          />
+          <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileResetKey} />
           <button type="submit" disabled={submitting} className={AUTH_BUTTON}>
             {submitting ? "Sending…" : "Send reset link"}
           </button>
         </form>
       )}
       <p className="mt-8 text-center text-sm text-muted">
-        <Link href="/login" className="font-semibold text-primary underline">Back to log in</Link>
+        <Link href="/login" className="font-semibold text-primary underline">
+          Back to log in
+        </Link>
       </p>
     </AuthShell>
   );

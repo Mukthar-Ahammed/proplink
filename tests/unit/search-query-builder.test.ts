@@ -204,10 +204,7 @@ describe("buildSearchQuery — sorting", () => {
   });
 
   it("omits public ROI values and ignores ROI filters until reviewed", () => {
-    const { text, values } = buildSearchQuery(
-      { minRoiPct: 15, sort: "roi" },
-      false,
-    );
+    const { text, values } = buildSearchQuery({ minRoiPct: 15, sort: "roi" }, false);
 
     expect(text).toContain("NULL::integer AS");
     expect(text).not.toContain(`"targetRoiPct" >=`);
@@ -289,20 +286,23 @@ describe("buildSearchCountQuery", () => {
 
 describe("buildSearchQuery — combinations", () => {
   it("ANDs every supplied filter together in one query", () => {
-    const { text, values } = buildSearchQuery({
-      q: "probate terrace",
-      maxPriceGBP: 20_000_000,
-      epcBands: [EpcRating.D, EpcRating.E],
-      region: "Greater Manchester",
-      propertyType: PropertyType.RESIDENTIAL,
-      minBedrooms: 3,
-      minRoiPct: 12,
-      distressTags: [DistressTag.PROBATE, DistressTag.DAMP],
-      centre: { lat: 53.4808, lng: -2.2426, radiusKm: 10 },
-      sort: "relevance",
-      page: 2,
-      pageSize: 10,
-    }, true);
+    const { text, values } = buildSearchQuery(
+      {
+        q: "probate terrace",
+        maxPriceGBP: 20_000_000,
+        epcBands: [EpcRating.D, EpcRating.E],
+        region: "Greater Manchester",
+        propertyType: PropertyType.RESIDENTIAL,
+        minBedrooms: 3,
+        minRoiPct: 12,
+        distressTags: [DistressTag.PROBATE, DistressTag.DAMP],
+        centre: { lat: 53.4808, lng: -2.2426, radiusKm: 10 },
+        sort: "relevance",
+        page: 2,
+        pageSize: 10,
+      },
+      true,
+    );
 
     for (const fragment of [
       `"status" IN`,

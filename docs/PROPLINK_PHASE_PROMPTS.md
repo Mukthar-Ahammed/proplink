@@ -15,6 +15,7 @@ _Revised 2026-11-16 to close the gaps found in an alignment review against the t
 You are a senior full-stack engineer and application-security engineer completing **PropLink UK**: a private property pipeline **Landlord → Agent → Investor (Lead / Co-Investor) → Retail Buyer**, with a project-scoped **Solicitor**, **Admin**, and **Advertisers**. Existing stack: Next.js 16, TypeScript, Tailwind, Prisma 7, PostgreSQL/PostGIS, Supabase Auth (sole runtime auth system since Phase 0; Auth.js removed) and Supabase RLS, Playwright, Vitest.
 
 ## 0. Non-negotiable working rules
+
 1. **Read before writing.** At the start of each phase read `docs/PROJECT-STATUS.md`, `docs/ARCHITECTURE.md`, `docs/CONTEXT.md`, `docs/BLOCKERS.md`, the previous phase report, and the code you will touch. Never assume a file or feature exists; verify.
 2. **Additive, reversible migrations only.** Never drop or rewrite production-relevant data. Every migration has a documented rollback note.
 3. **One feature branch per phase**, small commits grouped by feature. Never commit secrets, `.env*` (except `.env.example`), fixtures with real data, or service-role keys.
@@ -23,6 +24,7 @@ You are a senior full-stack engineer and application-security engineer completin
 6. **Output at end of every phase:** `docs/phases/PHASE-N-REPORT.md` containing: what was built, files/migrations, env keys added, services added, tests run with results, known gaps, and the exit-gate checklist with pass/fail. Update `docs/PROJECT-STATUS.md`.
 
 ## 1. Security baseline (applies to every feature; verify, don't assume)
+
 - **Authorization at the server and database layer, never UI-only.** Every route handler, server action and API endpoint calls a central guard: authenticate → verify role → verify ownership/relationship → verify state (KYC, subscription, chat authorization, mandate status). Deny by default.
 - **Supabase RLS on every table**, with operation-specific policies (SELECT/INSERT/UPDATE/DELETE), tested with allow and deny cases for each role. No table without RLS. Service-role key is server-only, used only in narrow, audited server modules; never imported in client bundles (add a lint rule/CI grep to enforce).
 - **IDOR protection:** never trust IDs from the client. Resolve resources through ownership-scoped queries. Use non-guessable UUIDs, but still authorize every access.
@@ -43,29 +45,32 @@ You are a senior full-stack engineer and application-security engineer completin
 - **SSRF/open redirect:** allowlist outbound hosts for any server-side fetch; validate redirect targets against an allowlist.
 
 ## 2. Rate limiting (mandatory on everything)
+
 Build a single reusable rate-limit module `src/lib/security/rate-limit.ts` with a pluggable store: **Upstash Redis (sliding window) in staging/production**, in-memory fallback for local dev only (refuse to start in production on the in-memory store). Every route handler and server action must be wrapped by it; a CI test fails if a new route is not wrapped (enumerate routes and assert). Keys combine IP + user ID + route class. Return `429` with `Retry-After`, and write a security log entry on repeated hits. Add progressive penalties (temporary block) for repeated abuse.
 
 Default limits (all configurable via env/admin setting; tune after load testing):
 
-| Route class | Limit (per key) |
-|---|---|
-| Login / password reset / magic link | 5 per 15 min per IP+identifier; global slow-down after failures |
-| Registration / invite acceptance | 5 per hour per IP; 3 per hour per email |
-| Email verification resend | 3 per hour per user |
-| Public search / marketplace / count | 60 per min per IP |
-| Authenticated read APIs | 120 per min per user |
-| Authenticated write APIs | 30 per min per user |
-| Chat message send | 20 per min per user per thread; 200 per hour per user |
-| File upload | 10 per 10 min per user; plus quota |
-| Pledge / offer / viewing / mandate actions | 10 per min per user |
-| KYC submit | 5 per hour per user |
-| Companies House lookup | 20 per min per Admin; respect the provider limit of 600 per 5 min with a shared token bucket and cache |
-| AI endpoints (listing assistant, calculator explainer) | 10 per hour per user; daily token budget per user; global budget cap |
-| Webhooks | provider IP/signature validation; 300 per min global |
-| Admin endpoints | 60 per min per admin; MFA-gated |
+| Route class                                            | Limit (per key)                                                                                        |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Login / password reset / magic link                    | 5 per 15 min per IP+identifier; global slow-down after failures                                        |
+| Registration / invite acceptance                       | 5 per hour per IP; 3 per hour per email                                                                |
+| Email verification resend                              | 3 per hour per user                                                                                    |
+| Public search / marketplace / count                    | 60 per min per IP                                                                                      |
+| Authenticated read APIs                                | 120 per min per user                                                                                   |
+| Authenticated write APIs                               | 30 per min per user                                                                                    |
+| Chat message send                                      | 20 per min per user per thread; 200 per hour per user                                                  |
+| File upload                                            | 10 per 10 min per user; plus quota                                                                     |
+| Pledge / offer / viewing / mandate actions             | 10 per min per user                                                                                    |
+| KYC submit                                             | 5 per hour per user                                                                                    |
+| Companies House lookup                                 | 20 per min per Admin; respect the provider limit of 600 per 5 min with a shared token bucket and cache |
+| AI endpoints (listing assistant, calculator explainer) | 10 per hour per user; daily token budget per user; global budget cap                                   |
+| Webhooks                                               | provider IP/signature validation; 300 per min global                                                   |
+| Admin endpoints                                        | 60 per min per admin; MFA-gated                                                                        |
 
 ## 3. External services and credentials policy (apply every time a service is added)
+
 For every external service used:
+
 1. Implement the integration behind a **provider interface** (`src/lib/providers/<name>/`) with a real adapter and a **mock/fallback adapter** selected by env (`<SERVICE>_PROVIDER=mock|real`). The app must run fully locally with all mocks.
 2. Add its keys to **`.env.example`** with a comment, a placeholder value (never a real value), whether it is **server-only** or public, and which phase/feature needs it. Add to the Zod env schema (required only when the feature is enabled).
 3. Create **`docs/credentials/<service>.md`** with: what it is used for, cost/free tier notes, exact step-by-step on how to create the account and obtain each key, which environment (dev/staging/prod) each key belongs to, required scopes/permissions (least privilege), webhook endpoints to configure with exact URLs, how to rotate the key, and how to test it.
@@ -76,6 +81,7 @@ Services expected across all phases (create the doc and `.env.example` entries w
 Supabase (DB/Auth/Storage/Realtime) · Upstash Redis (rate limit, cache, queues) · Cloudflare Turnstile (bot protection) · Resend (transactional email) · Stripe (subscriptions only) · Companies House API (agent company check) · KYC/AML provider (adapter; default Sumsub, alternatives Veriff/Onfido/Stripe Identity **[OWNER confirms accredited provider]**) · E-signature provider (adapter; default Dropbox Sign, alternative DocuSign **[OWNER confirms]**) · Malware scanning (ClamAV daemon, self-hosted container, or a managed scanning API) · Anthropic API (listing assistant) · Sentry (errors) · Google Maps (optional, Phase 5) · Web push/SMS (optional, only if the owner approves).
 
 ## 4. Testing and definition of done (every phase)
+
 - Unit tests for business logic; integration tests for DB/RLS **with per-role allow/deny matrices**; Playwright E2E for the main journeys; negative tests for every authorization rule (wrong role, wrong owner, wrong state, expired token, replayed webhook, race condition).
 - Security tests per phase: IDOR attempts, privilege escalation, mass assignment, injection payloads, XSS payloads in all user text fields, CSRF, rate-limit assertions, file-upload abuse (wrong MIME, oversize, EICAR test string, path traversal), webhook replay/forgery.
 - Run: typecheck, lint (fix repo-wide errors you touch), unit, integration (serial if parallel is flaky; fix the flakiness), E2E, `npm audit`, secret scan, build. Report real results; never claim a pass you did not run.
@@ -83,22 +89,24 @@ Supabase (DB/Auth/Storage/Realtime) · Upstash Redis (rate limit, cache, queues)
 - Mobile-first responsive UI. Loading, empty, error and success states for every flow. Seamless UX: optimistic updates where safe, clear messages, no dead ends.
 
 ## 5. Business rules (from the owner's Clarification Answers v1.2: do not deviate)
+
 - **Pipeline:** Landlord → Agent → Investor → Retail Buyer. Landlord listings are **100% private** (never in public search, sitemaps, indexes, investor or buyer views); visible only to Admin-verified Agents and Admin, and the owning Landlord.
 - **Roles:** `LANDLORD`, `AGENT`, `INVESTOR` (subtypes map to **Lead Investor** / **Co-Investor**), `BUYER`, `SOLICITOR` (project-scoped), `ADMIN`, plus **Advertiser** accounts. Admin is never self-serve.
 - **Permission matrix (TRD §3.2, extended by the Clarification Answers).** Enforced server-side and by RLS, with an allow/deny test per cell:
 
-  | Capability | Landlord | Verified Agent | Investor / Co-Investor | Retail Buyer | Solicitor | Admin |
-  |---|---|---|---|---|---|---|
-  | Self-register publicly | Yes | **No (invite only)** | Yes | Yes | No (Admin-created) | No |
-  | Create private listing | Yes (own) | No | No | No | No | Yes (on a Landlord's behalf, audited) |
-  | View private landlord listing | Own only | Yes, after Admin approval of the listing | No | No | No | Yes |
-  | Chat with Landlord on a listing | Yes (own listing, per agent thread) | Yes (Admin-authorised thread) | No | No | No | Read/moderate (logged, with a reason) |
-  | Publish to Investor Portal | No | Yes (active mandate only) | No | No | No | Yes (audited) |
-  | Publish to Retail Buyer Portal | No | Yes (completed projects) | No | No | No | Yes (audited) |
-  | Pledge capital to a project | No | No | Yes (KYC approved) | No | No | No |
-  | Book viewings / submit offers on retail listings | No | Manage | **No** (use a Buyer account to buy) | Yes | No | Read |
-  | Verify accounts / assign badges | No | No | No | No | No | Yes |
-  | Post project fund-status updates, propose ledger corrections | No | No | No | No | Yes (own project) | Approves corrections |
+  | Capability                                                   | Landlord                            | Verified Agent                           | Investor / Co-Investor              | Retail Buyer | Solicitor          | Admin                                 |
+  | ------------------------------------------------------------ | ----------------------------------- | ---------------------------------------- | ----------------------------------- | ------------ | ------------------ | ------------------------------------- |
+  | Self-register publicly                                       | Yes                                 | **No (invite only)**                     | Yes                                 | Yes          | No (Admin-created) | No                                    |
+  | Create private listing                                       | Yes (own)                           | No                                       | No                                  | No           | No                 | Yes (on a Landlord's behalf, audited) |
+  | View private landlord listing                                | Own only                            | Yes, after Admin approval of the listing | No                                  | No           | No                 | Yes                                   |
+  | Chat with Landlord on a listing                              | Yes (own listing, per agent thread) | Yes (Admin-authorised thread)            | No                                  | No           | No                 | Read/moderate (logged, with a reason) |
+  | Publish to Investor Portal                                   | No                                  | Yes (active mandate only)                | No                                  | No           | No                 | Yes (audited)                         |
+  | Publish to Retail Buyer Portal                               | No                                  | Yes (completed projects)                 | No                                  | No           | No                 | Yes (audited)                         |
+  | Pledge capital to a project                                  | No                                  | No                                       | Yes (KYC approved)                  | No           | No                 | No                                    |
+  | Book viewings / submit offers on retail listings             | No                                  | Manage                                   | **No** (use a Buyer account to buy) | Yes          | No                 | Read                                  |
+  | Verify accounts / assign badges                              | No                                  | No                                       | No                                  | No           | No                 | Yes                                   |
+  | Post project fund-status updates, propose ledger corrections | No                                  | No                                       | No                                  | No           | Yes (own project)  | Approves corrections                  |
+
 - **Chat pairs (TRD §7, Q10, Q12).** All chats are one-to-one and context-bound. Allowed pairs: **Landlord ↔ Agent** (private-listing context, one thread per interested Agent); **Agent ↔ Investor** (project context: deal enquiries and project updates); **Lead Investor ↔ Co-Investor** (project context, both participants in that project); **Buyer ↔ Agent** (retail-listing context: enquiries, viewings, offers). Subscription rule: Agents, Lead Investors and Co-Investors need an active subscription; Landlords and Buyers never do. Admin authorisation is required for every pair except Buyer ↔ Agent, which defaults to no authorisation **[OWNER]**. The Solicitor communicates through project updates, not chat, unless the owner decides otherwise **[OWNER]**. Any other pair is denied by default.
 - **Notification chain (Q12):** Agents are customers of Landlords, Investors of Agents, Co-Investors of the Lead Investor, Buyers of Agents. Notifications follow that chain and respect per-user preferences.
 - **Agents:** no self-registration. Admin invitation only (single-use, expiring, bound to an email). On acceptance the account is auto-approved from the agent side; company name is checked against Companies House; the Agent then gets immediate dashboard access, including Admin-managed promotional banners and platform updates (Q1). Existing agents are notified first; then Admin authorises.
@@ -130,6 +138,7 @@ Acknowledge these rules, then wait for the phase prompt.
 **Prerequisites:** none. Work only after reading the 231-entry working tree.
 
 ## Tasks
+
 1. **Inventory and protect the working tree.** Produce `docs/phases/PHASE-0-INVENTORY.md` grouping the modified/untracked files by feature (Supabase/identity, investor/KYC, Flipper, admin, buyer, search, misc) and by migration. Confirm no secrets or real data are tracked. Commit in logical groups on a `phase-0-stabilise` branch. Add `.gitignore` coverage for env files, local fixtures and uploads.
 2. **Settle the auth cutover (decision required before Phase 1).** Complete the Supabase Auth cutover so there is **one** auth system: migrate Auth.js sessions/users to Supabase Auth via the existing `profiles` bridge, with a tested rollback path. Remove Auth.js only after parity tests pass (login, logout, email verification, reset, session expiry, role claims). Document it in `docs/ARCHITECTURE.md`. Roles must come from server-verified data (`profiles`/DB), not from user-editable JWT metadata.
 3. **Central authorization layer.** Create `src/lib/authz/` with `requireUser`, `requireRole`, `requireOwnership`, `requireVerified(kind)`, `requireSubscription`, `requireChatAuthorization`, `requireProjectAccess` (stubs for later phases throw `NotImplemented` and are never reachable). Refactor existing handlers to use it.
@@ -144,9 +153,11 @@ Acknowledge these rules, then wait for the phase prompt.
 12. **Public marketplace safety:** confirm the public marketplace exposes only approved for-sale listings. Put public ROI/distress-return fields behind `FINANCIAL_PROMOTIONS_REVIEWED` (hidden while false) and add a sample-data banner where price history is sample data.
 
 ## Exit gate
+
 All tests green in a single serial run and in parallel; zero high/critical `npm audit` findings; gitleaks clean; RLS report shows every table protected; rate-limit CI test passes; headers verified on a staging response; auth cutover parity tests pass (including the manual login/logout/verify/reset/expiry hand test); phase report written.
 
 **Carry-overs agreed at the 2026-11-13 closeout** (record them in an ADR; each becomes a named task in its target phase, not a dropped requirement):
+
 - Admin and Solicitor MFA → **Phase 1** (Task 11).
 - Upload quarantine, malware scanning, private promotion and access-checked downloads → **Phase 1** (Task 12). The closeout carried this to Phase 3, but Phase 1 profile images and Phase 2 landlord documents need it first; this file moves it forward.
 - HSTS and the security-header check on a real staging response → the first staging deployment, re-checked in **Phase 7**.
@@ -161,6 +172,7 @@ All tests green in a single serial run and in parallel; zero high/critical `npm 
 **Prerequisite:** Phase 0 exit gate passed.
 
 ## Tasks
+
 1. **Roles and schema.** Add `LANDLORD` and `SOLICITOR` roles; add Advertiser account type; add investor capability mapping (`LEAD_INVESTOR`, `CO_INVESTOR`, one investor may hold both, per project role is determined in Phase 4). Server-side role storage; role cannot be set from the client or mass-assigned. Migration + backfill + rollback note.
 2. **Public registration** allows only Landlord, Investor and Buyer. **Remove the Agent option from the UI and reject agent self-registration at the API and DB level** (test with direct API calls). Buyer sign-up needs only email + verification; **define and document which details stay hidden until email is verified** (default: browse allowed; saving, enquiries, viewings and offers require verified email; exact address visible after verification).
 3. **Agent invitations.** Table `agent_invites` (email, hashed token, expires_at, used_at, created_by, status). Tokens are random 256-bit, **stored hashed**, single-use, expiring, bound to the invited email, constant-time compare, rate-limited, and show a clear message when expired. Admin UI: invite, resend (invalidates previous), revoke. Acceptance flow: set password/MFA, accept terms, auto-approve from the agent side, then immediate dashboard access. The Agent dashboard shows **Admin-managed promotional banners and platform updates** (Q1): an `announcements` model (audience by role, start/end dates, Admin-authored, sanitised text, no third-party content), clearly separate from paid advertising (Phase 6).
@@ -176,9 +188,11 @@ All tests green in a single serial run and in parallel; zero high/critical `npm 
 13. **Permission-matrix harness.** Encode the section 5 permission matrix as a table-driven allow/deny test (API + RLS). Rows for capabilities delivered in later phases start as expected-deny and are flipped by the phase that delivers them.
 
 ## Security specifics
+
 Prevent user enumeration on login/reset/invite; MFA mandatory for Admin (and Solicitor once provisioned); session revocation on role/status change; signed-URL access for profile images; sanitized bio text; per-route rate limits from the Master table.
 
 ## Exit gate
+
 Direct API agent self-registration rejected; invite token replay/expiry/wrong-email tests pass; Companies House adapter tested with the mock and a documented live smoke test; KYC webhook forgery and replay tests pass; RLS matrix for profiles passes (public/private/co-investor/agent/admin); Admin cannot reach `/admin` without MFA; EICAR and wrong-magic-byte uploads are rejected and a clean image is served only via a signed URL; permission-matrix harness runs in CI; phase report and credential docs written.
 
 ---
@@ -188,16 +202,18 @@ Direct API agent self-registration rejected; invite token replay/expiry/wrong-em
 **Prerequisites:** Phases 0-1 passed.
 
 ## Tasks
+
 1. **Landlord module.** KYC required before submitting. Listing fields: address/location, property type (property/land), description, defects, required work, land area, photos/documents, desired outcome (refurbishment or development JV), ownership documents (required). Draft, edit, save, submit. Withdraw while no mandate exists. All photos and documents go through the Phase 1 upload pipeline. **Admin may create a listing on a Landlord's behalf** (TRD matrix): the listing is owned by that Landlord, the Landlord must have completed KYC and must confirm it before submission, and the action is audited. **Landlord dashboard:** own listings and their status, interested Agents, the active mandate, and (from Phase 4) the Landlord project view.
 2. **AI listing assistant.** Server-side endpoint calling the Anthropic API: the landlord enters short answers/keywords; the AI returns a structured draft description that the landlord reviews and edits before submission. Env: `ANTHROPIC_API_KEY`, `AI_PROVIDER=mock|anthropic`, `AI_DAILY_TOKEN_BUDGET_PER_USER`, `AI_GLOBAL_DAILY_BUDGET`. Security: system prompt kept server-side; user input treated as untrusted (prompt-injection safe: AI output is only text shown for review, never executes tools or reads data); strip/limit input; no PII beyond what the landlord typed; output length-limited and sanitized; log usage, not content; per-user rate limit and budget. Provide a mock for local dev. Write `docs/credentials/anthropic.md` (console account, API key creation, spend limits, key rotation).
 3. **Admin review queue.** New listings enter a queue with SLA timers (target 30-60 minutes), claim/assign, approve/reject with reason, notifications to the Landlord. Reuse the existing moderation queue components. Audit everything.
 4. **Private-listing hardening (TRD LL-2 to LL-5).** Listings never appear in public search, sitemaps, investor or buyer views, or API responses; enforced by RLS and queries; `noindex`, `no-store`, authenticated URLs only, no preview/cache leakage; documents/images via signed, access-checked URLs. Automated tests crawl public routes and sitemap and assert zero private data, and run as each role to assert access rules.
-5. **Agent marketplace.** Verified Agents see approved private listings with filters (location, type, work required). Agents express interest (notification to Landlord). The interest step is a structured **agent proposal** (valuation, proposed terms, fee, contract period, short written pitch) plus a structured Q&A on the proposal; this is not free chat. Landlord sees and **compares proposals** side by side and selects one Agent. Completing the interest step is the trigger that creates a *pending* Landlord ↔ Agent chat thread for Admin authorisation in Phase 3 (Q10), so negotiation, site visits and paperwork discussion move into chat once Phase 3 ships.
+5. **Agent marketplace.** Verified Agents see approved private listings with filters (location, type, work required). Agents express interest (notification to Landlord). The interest step is a structured **agent proposal** (valuation, proposed terms, fee, contract period, short written pitch) plus a structured Q&A on the proposal; this is not free chat. Landlord sees and **compares proposals** side by side and selects one Agent. Completing the interest step is the trigger that creates a _pending_ Landlord ↔ Agent chat thread for Admin authorisation in Phase 3 (Q10), so negotiation, site visits and paperwork discussion move into chat once Phase 3 ships.
 6. **Exclusive mandate.** Table `mandates` (listing_id, agent_id, status, accepted_at, contract period, renewal terms, termination reason, terms document). Exactly one active mandate per listing, enforced by a partial unique index. State machine: Private → Mandate Accepted → (later phases) Open for Investment → … → Sold. Termination returns the listing to the private pool, revokes the former Agent's access to documents and chat (read-only history rule per Phase 3), and is audited. Either party can record termination per the agreed contract; the **Landlord closes the mandate** at the end of the project (Phase 5) or on contract end, which makes the Landlord → Agent review eligible. Mandate contract may be uploaded and, once Phase 4 e-sign exists, signed in-app.
 7. **Landlord data exposure control (AG-7):** when an Agent later publishes to investors, the Agent selects which landlord data is exposed; landlord personal details hidden by default.
 8. **Notifications** along the customer chain (Agents are customers of Landlords) using the Phase 1 preferences and Resend.
 
 ## Exit gate
+
 TRD acceptance criteria 3 (private listing invisible to unauthenticated users, Investors, Buyers and search engines; visible to a Verified Agent) and the "accept a mandate" half of criterion 5 pass as E2E tests; concurrent "select agent" race test results in one mandate only; private-listing leakage crawl passes for every role; Admin-on-behalf listing requires Landlord confirmation; AI mock + real smoke test documented; queue SLA metrics visible; rate limits verified on interest/offer actions; phase report written.
 
 ---
@@ -207,6 +223,7 @@ TRD acceptance criteria 3 (private listing invisible to unauthenticated users, I
 **Prerequisites:** Phases 0-2 passed.
 
 ## Tasks
+
 1. **Stripe subscriptions (Agents, Lead Investors, Co-Investors only).** Products/prices stored as **admin-managed settings** (prices not set; support monthly and yearly, optional yearly discount, currency GBP). Use Stripe Checkout (hosted) + Customer Portal; never handle card data. Subscription state is synced **only via verified webhooks** (`checkout.session.completed`, `customer.subscription.*`, `invoice.payment_failed`, `invoice.paid`); webhook handler is signature-verified, idempotent (event ID table), and tolerant of out-of-order events. Failed payments: automatic retries (Stripe Smart Retries), notify the user, grace period (admin setting), then new chats are blocked. Refunds follow the platform refund policy via Stripe. Server guard `requireSubscription` used by chat and gated features. Landlords and Buyers never see billing UI. Env: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PUBLISHABLE_KEY` (public), `STRIPE_PROVIDER=mock|stripe`. Write `docs/credentials/stripe.md` (account, test vs live keys, creating the webhook endpoint with the exact URL and event list, restricted API key with least privilege, Customer Portal configuration, Stripe CLI for local webhook testing). Use test-mode keys by default; add a boot check refusing live keys outside production.
 2. **Chat authorization workflow.** Implement the **chat-pair matrix in section 5** exactly: `chat_threads` carries a `context_type` (`PRIVATE_LISTING`, `PROJECT`, `RETAIL_LISTING`) and a `pair_type` (`LANDLORD_AGENT`, `AGENT_INVESTOR`, `LEAD_CO_INVESTOR`, `BUYER_AGENT`); a DB check constraint rejects any other combination, and the server verifies each participant's relationship to the context (owning Landlord, mandated or interested Agent, project participant, enquiring Buyer). `PROJECT` threads are created disabled here and switched on in Phase 4 when projects exist. Table `chat_threads` (context, participant A, participant B, status: pending/authorized/read_only/closed) and `chat_authorizations` (who requested, who approved, when, reason). Flow: interest/notification step completes → thread created as `pending` → Admin authorizes (queue with bulk actions, low-volume expectation) → both parties must satisfy `requireSubscription` where applicable → thread opens. **Chat permission = active subscription (where required) AND Admin authorization**, checked on every send, not just on thread creation. Admin may revoke. Lapsed subscription: thread becomes **read-only** until renewal. One-to-one only; enforce with a DB constraint (exactly two participants).
 3. **Realtime chat with Supabase Realtime.** Use **private** Broadcast channels with RLS policies on `realtime.messages` (topic = `thread:{id}`) so only the two authorised participants can subscribe/send; disable "Allow public access" in Realtime settings; the client sets `config: { private: true }`. Messages are written through a server route that runs all checks (rate limit, authorization, subscription, size/type, sanitisation), persists to `chat_messages` (sender, body, attachments, timestamps, delivered/read state), then broadcasts. Clients never insert directly. Features: auto-reconnect, queued unsent messages with retry/idempotency keys (no duplicates), read receipts, typing indicator (optional, throttled), full history, no edit/delete, report-a-chat button (creates a moderation case; Admin read access is logged).
@@ -217,9 +234,11 @@ TRD acceptance criteria 3 (private listing invisible to unauthenticated users, I
 8. **Admin tools:** chat authorization queue, reported-chat review, subscription overview, price settings, grace-period setting.
 
 ## Security specifics
+
 Cross-thread access (IDOR) tests; a user without authorization cannot subscribe to a channel (test the Realtime policy directly); message flood limits; XSS payload tests in messages; replayed webhook tests; forged webhook tests; subscription lapse mid-conversation test.
 
 ## Exit gate
+
 TRD acceptance criterion 4 (Landlord and Verified Agent exchange real-time messages on a private listing; unauthorised users cannot read or post) passes as an E2E test; every disallowed pair in the chat-pair matrix is rejected at API and DB level; chat cannot open without both conditions; lapsed subscription makes the thread read-only; Realtime private-channel access test passes for outsiders; Stripe webhook idempotency/forgery tests pass; EICAR upload blocked; offline queue test passes; phase report and credential docs written.
 
 ---
@@ -229,10 +248,11 @@ TRD acceptance criterion 4 (Landlord and Verified Agent exchange real-time messa
 **Prerequisites:** Phases 0-3 passed. **No investment funds may pass through the app.** `SYNDICATE_PAYMENTS_ENABLED=false` must remain enforced on the server.
 
 ## Tasks
+
 1. **Publish to investors.** An Agent with an active mandate publishes a project (mode 1: refurbishment/build) with Agent-chosen disclosures (Phase 2 Task 7; landlord personal details hidden by default). Admin may also publish on the mandated Agent's behalf (TRD matrix), audited. Project fields: total capital required, minimum pledge, funding deadline, status (open / fully pledged / closed), purchase amount, market value, expected profit and expected time (shown only according to `FINANCIAL_PROMOTIONS_REVIEWED`), Lead Investor and their stats. Tag legal/paperwork responsibility notice per TRD AG-6 (reworded to reflect the Solicitor handling legal agreements). Project lifecycle: Private → Mandate Accepted → Open for Investment → Funded → In Works → Completed → Listed for Sale → Sold.
 2. **Lead / Co-Investor model.** One Lead Investor per project, multiple Co-Investors. **Lead assignment** follows the section 5 default **[OWNER]**: Agent nominates from KYC-approved, subscribed Investors who expressed interest → nominee accepts → Admin approves → unique constraint guarantees one Lead per project; a project cannot move to Open for Investment for Co-Investor pledges until its Lead is confirmed. All steps audited and notified along the chain. Map existing `FLIPPER/SYNDICATE/BOTH` subtypes to capabilities; Lead Investor has executive decision rights (budget/scope decisions flow per the rules in Phase 4 task 7). Put the old Flipper acquisition flows behind `FLIPPER_FLOWS_ENABLED=false`; do not delete.
 3. **Investor portal.** Project detail page, search, filter, favourite, compare, ask questions (Q&A thread visible to the project's investors, moderated), sensitive documents **hidden until KYC is approved**. Subscription required for Lead/Co-Investors for chat features (not for browsing) per the rules. Private investor profiles respected everywhere (Co-Investors never see another investor's private profile). Switch on the Phase 3 `PROJECT` chat threads: **Agent ↔ Investor** (deal enquiries and project updates) and **Lead Investor ↔ Co-Investor**, both with subscription + Admin authorisation and project-membership checks.
-3a. **Landlord project view.** The Landlord of the source listing sees the project's lifecycle status, milestones, itemised costs and the Solicitor updates addressed to Landlords, but no investor identities, pledges of individual investors, or private profiles. For a **development JV**, the Landlord is a party to the agreement (Task 6) and to settlement (Task 8). RLS and API tests prove the Landlord sees only their own source listing's project.
+   3a. **Landlord project view.** The Landlord of the source listing sees the project's lifecycle status, milestones, itemised costs and the Solicitor updates addressed to Landlords, but no investor identities, pledges of individual investors, or private profiles. For a **development JV**, the Landlord is a party to the agreement (Task 6) and to settlement (Task 8). RLS and API tests prove the Landlord sees only their own source listing's project.
 4. **Pledge flow (expression of interest until signed).** Capital Contribution Calculator: investor enters a pledge; live preview of share = pledge ÷ total capital (integer pence, deterministic rounding rules documented; remainder handling defined). Server-side calculation is authoritative. Transactional pledge creation with row locks so **total pledges never exceed the remaining unfunded amount**; first confirmed pledge wins and later users see the remaining amount; idempotency key per request; minimum pledge enforced; KYC and state checks. The AI-driven returns projection is **not** an LLM-generated number: use a deterministic calculator with documented inputs, and optionally an AI text explainer; both gated by `FINANCIAL_PROMOTIONS_REVIEWED`, KYC-approved investors only, with a risk disclaimer.
 5. **Solicitor accounts.** One account per project, created by Admin after the solicitor is agreed (project-scoped role, MFA mandatory, expiring invitation). Access scoped by RLS to that project only: documents, agreements, ledger, updates. Closed on project completion: access ends, records read-only. Admin can create/close, audited.
 6. **Agreements and e-signature.** Provider interface `ESignProvider` with a real adapter (default Dropbox Sign; alternative DocuSign **[OWNER confirms]**) and a mock. Solicitor uploads/prepares the agreement through the Phase 1 upload pipeline; signatories are the verified parties (Lead Investor, Co-Investors, the Agent, and the Landlord where the project is a JV or the agreement names them); signature events arrive by verified webhook; the signed PDF is stored privately, hashed (SHA-256), versioned, and downloadable by parties. Pledge becomes **binding on signature**; after that, edits/cancellation are blocked in-app (cancellation payment amount is stored as an agreement term and handled by the Solicitor outside the app **[OWNER]**). Share ratios are taken from the signed agreement (default calculator pledge ÷ total capital). Env: `ESIGN_PROVIDER`, `ESIGN_API_KEY`, `ESIGN_CLIENT_ID`, `ESIGN_WEBHOOK_SECRET` (names finalised per provider). Write `docs/credentials/esignature.md` with account setup, API app creation, webhook URL, test-mode vs production, and signing-link expiry settings.
@@ -241,9 +261,11 @@ TRD acceptance criterion 4 (Landlord and Verified Agent exchange real-time messa
 9. **Edge cases (Q44 defaults):** concurrent pledge races, expired agreement links (Admin can resend fresh), failed signing, deadline shortfall (extend/close/release options are a project-owner choice recorded as a project decision; money handled by the Solicitor outside the app), refunds/cancellation payments handled by the Solicitor.
 
 ## Security specifics
+
 Pledge race test with 50 parallel requests; double-submit/idempotency test; signature webhook forgery/replay; solicitor cross-project access denial; ledger tamper attempts (direct SQL via app role fails); statement download IDOR tests; PII minimisation in statements; confirm no code path can create a payment for investments (grep + test asserting the flag is enforced).
 
 ## Exit gate
+
 TRD acceptance criteria 8 (pledge auto-calculates share; over-subscription blocked) and 9 (after a sale, per-party distributions match the agreement shares, tested with a mock sale record) pass; the "publish to Investor Portal" half of criterion 5 passes; Lead assignment yields exactly one Lead per project under concurrency; Landlord project view leaks no investor data; over-subscription impossible under concurrency; ledger immutability proven by tests; solicitor scope isolation proven by RLS matrix; e-sign flow works with mock and documented live smoke test; sensitive documents inaccessible before KYC; phase report and credential docs written.
 
 ---
@@ -253,8 +275,9 @@ TRD acceptance criteria 8 (pledge auto-calculates share; over-subscription block
 **Prerequisites:** Phases 0-4 passed.
 
 ## Tasks
+
 1. **Re-list for sale (mode 2).** When the project is completed, the Agent re-lists the property on the public Retail Buyer portal using the existing resale listing (preserves original history). Admin review before going live; public pages show only completed, for-sale properties. Listing views show the AG-6 notice that conveyancing, legal agreements and contract responsibilities are handled by the assigned Agent (and, for the investment side, the project Solicitor).
-1a. **Sale completion and handoff.** When the Agent marks the property Sold, the Agent records the sale price and the itemised costs on the Phase 4 `project_sale` record; the Solicitor confirms and runs settlement into the ledger; investors (and the Landlord for a JV) are notified; the project moves to Sold; the Landlord closes the mandate, which makes the reviews in Task 4 eligible. Transitions are transactional and audited.
+   1a. **Sale completion and handoff.** When the Agent marks the property Sold, the Agent records the sale price and the itemised costs on the Phase 4 `project_sale` record; the Solicitor confirms and runs settlement into the ledger; investors (and the Landlord for a JV) are notified; the project moves to Sold; the Landlord closes the mandate, which makes the reviews in Task 4 eligible. Transitions are transactional and audited.
 2. **Buyer experience, Rightmove-style.** The developer **reviews leading portals (Rightmove, Zoopla, OnTheMarket) and implements the best flow** for: search/filter, results and map, property page, photo gallery, save/favourite (prompt to register/sign in and return to the same property), enquire, book a viewing (time slots, Agent confirms, cancel/reschedule), submit offers with statuses (submitted, under review, counter-offered, accepted, rejected, withdrawn, expired) and history, post-offer tracking (reservation, conveyancing, completion handled per Agent), and a Buyer dashboard (saved, enquiries, viewings, offers, notifications). Reuse and extend the existing buyer portal. Buyer needs only email; no subscription. Per the TRD matrix, viewing and offer actions are **Buyer-only**: Investor, Landlord and Agent accounts are denied at API and RLS level (an Investor who wants to buy a home uses a Buyer account); Admin has read-only access. Existing Flipper offer/viewing paths stay behind `FLIPPER_FLOWS_ENABLED=false`.
 3. **Maps/commute and saved-search alerts** if Google Maps credentials are available: server-side geocoding with restricted keys, HTTP-referrer-restricted browser key, quota alerts; env `GOOGLE_MAPS_BROWSER_KEY` (public, restricted), `GOOGLE_MAPS_SERVER_KEY` (server-only, restricted), `MAPS_PROVIDER=mock|google`. Write `docs/credentials/google-maps.md` (project, enabling APIs, key restrictions, billing alerts). Saved-search alerts use a queue with per-user limits and unsubscribe links.
 4. **Reviews and ratings.** 1-5 stars + text, only after a qualifying completed interaction, using the eligible pairs in section 5 (Landlord → Agent on a closed mandate; Co-Investor → Lead Investor or Agent and Lead Investor → Agent on a closed project; Buyer → Agent after a completed purchase), one per user per project, reply from the reviewed party, report tools, **Admin moderation before publishing** (default **[OWNER]**), aggregate rating on cards and profiles. Sanitized text, rate-limited.
@@ -262,6 +285,7 @@ TRD acceptance criteria 8 (pledge auto-calculates share; over-subscription block
 6. **SEO and safety for public pages:** only for-sale listings in the sitemap; structured data; no private/investor data anywhere in public HTML or JSON; robots rules; image optimisation through an allowlist; bot protection on enquiry forms.
 
 ## Exit gate
+
 TRD acceptance criterion 5 passes end to end (accept mandate → publish to Investor Portal → re-list on the Retail Buyer Portal → Sold → settlement); criteria 6 (badges only after Admin verification, on profiles **and listing cards**) and 7 (reviews only from qualifying interactions) pass; Investor/Landlord/Agent accounts cannot book viewings or submit offers; public crawl exposes only for-sale data; review eligibility and moderation tests pass; offer/viewing state machines tested including concurrent actions; buyer journey E2E passes on mobile and desktop; accessibility checks pass; phase report written.
 
 ---
@@ -271,6 +295,7 @@ TRD acceptance criterion 5 passes end to end (accept mandate → publish to Inve
 **Prerequisites:** Phases 0-5 passed.
 
 ## Tasks
+
 1. **Advertising module.** Advertiser accounts for any business team (surveyors, contractors, brokers, insurers, others). Application captures preferred placement and format; Admin approves final slots. Placement is limited to fixed designated areas, always labelled **Sponsored**; **no pop-ups, no ads in chats, no interruption of search, pledge or offer steps** (enforce with a placement allowlist in code and a test that scans those pages for ad components). Ad creatives are sanitized/validated (image type, size, destination URL allowlist/blocklist, no scripts, `rel="sponsored noopener noreferrer"`), scanned if uploaded, and served without third-party trackers. Impression/click counts stored privately with rate-limiting. Pricing model **[OWNER]**: store as admin-managed fields; no billing until decided (if billing is added, reuse Stripe in the same security model).
 2. **Admin roles and permissions (Q39-40).** RBAC with separate permissions: verification, listing moderation, chat authorization, review moderation, suspension, financial adjustments approval, solicitor management, advertiser management, subscription pricing, system integrations. Super-admin only can grant roles; two-person approval (maker-checker) for financial adjustments and role grants; MFA required; every permission check server-side and audited.
 3. **Reporting and disputes.** Case management for reported chats, reviews, listings and users: status, assignee, notes, evidence links, resolution, SLA. Admin access to private chats is logged and requires a stated reason. Data export tooling for GDPR requests with approval workflow.
@@ -278,6 +303,7 @@ TRD acceptance criterion 5 passes end to end (accept mandate → publish to Inve
 5. **Admin A5 verification debt:** establish an authenticated Admin test session and finish route/viewport/accessibility verification; implement the missing agency management as company-level grouping for Agents.
 
 ## Exit gate
+
 Permission matrix tests per admin role; maker-checker cannot be bypassed; ads cannot appear on forbidden pages; case workflow E2E passes; phase report written.
 
 ---
@@ -287,6 +313,7 @@ Permission matrix tests per admin role; maker-checker cannot be bypassed; ads ca
 **Prerequisites:** Phases 0-6 passed. Production rollout stays deferred until every item below passes.
 
 ## Tasks
+
 1. **Security review.** Run a full threat-model pass (STRIDE) over each module and write `docs/security/THREAT-MODEL.md`. Run automated scans (dependency audit, SAST such as Semgrep/CodeQL, secret scan, container/image scan, OWASP ZAP baseline against staging). Fix all high/critical findings; document accepted lows. Produce `docs/security/PENTEST-CHECKLIST.md` and recommend an independent third-party penetration test before launch.
 2. **Final RLS and authorization audit** across all roles with the reusable matrix: every table, every operation, every role (including Solicitor scope and Advertiser), with deny-by-default evidence. Re-run the Supabase Security Advisor and resolve all findings; Data API stays off unless explicitly justified. Rebuild the PostgREST-dependent parity scripts (`phase3-rls-harness.mjs`, `validate-phase1-investor-type.mjs`, `validate-phase2-auth.mjs`) as local SQL/role tests (carried from Phase 0); never re-enable the Data API to run them. Production must have PostGIS/pg_trgm outside `public` from project creation; the staging exception does not carry over.
 3. **Rate-limit and abuse verification:** load test limiters, confirm 429 behaviour, confirm Redis outage fails **closed** for sensitive routes (login, chat, pledge) and degraded-safe for public reads; document.
@@ -297,6 +324,7 @@ Permission matrix tests per admin role; maker-checker cannot be bypassed; ads ca
 8. **Final documentation:** updated `ARCHITECTURE.md`, `CONTEXT.md`, `PROJECT-STATUS.md`, TRD v2.0 reflecting Solicitor, subscriptions and advertising, `OPEN_DECISIONS.md` showing the status of every **[OWNER]** item, and `docs/credentials/README.md` indexing every credential guide.
 
 ## Final exit gate (launch checklist)
+
 - [ ] All 7 phase reports complete; all exit gates passed with evidence
 - [ ] All nine TRD §10 acceptance criteria pass as E2E tests, and every row of Appendix C is delivered or recorded as an owner-deferred decision
 - [ ] Zero high/critical vulnerabilities; independent pen test scheduled or done
@@ -377,51 +405,51 @@ Subscription prices and yearly discount; behaviour on non-renewal; advertising p
 
 Every requirement in the TRD and every answered clarification question maps to a phase. An agent finishing a phase checks its rows here; Phase 7 checks all of them.
 
-| Source | Requirement (short) | Phase / task |
-|---|---|---|
-| TRD REG-1, REG-2, REG-4, REG-5 | No Agent self-signup; Admin invite/provisioning; single-use expiring invite bound to email; server-side role | 1 / Tasks 2-3 |
-| TRD REG-3 | Public roles: Landlord, Investor, Buyer | 1 / Tasks 1-2 |
-| TRD §3.2 | Permission matrix | §5 rules; 1 / Task 13 harness; each phase flips its rows |
-| TRD LL-1 | Landlord listing fields and desired outcome | 2 / Task 1 |
-| TRD LL-2 to LL-5 | Private visibility, noindex, access-checked files | 2 / Task 4; 1 / Task 12 |
-| TRD CH-1 to CH-6, Q10, Q11 | Real-time Landlord ↔ Agent chat, per-agent threads, history, receipts, attachments, report | 3 / Tasks 2-4 |
-| TRD CH-5, Q12 | Message and chain notifications with preferences | 1 / Task 10; 2 / Task 8; 3 / Task 6 |
-| TRD AG-1, AG-2, Q6-Q8 | Agent marketplace, interest/proposal, exclusive mandate | 2 / Tasks 3, 5-6 |
-| TRD AG-3 | Publish to Investor Portal | 4 / Task 1 |
-| TRD AG-4 | Re-list on Retail Buyer Portal | 5 / Task 1 |
-| TRD AG-5 | Lifecycle Private → … → Sold | 2 / Task 6; 4 / Task 1; 5 / Tasks 1-1a |
-| TRD AG-6 | Legal/paperwork responsibility notice | 4 / Task 1; 5 / Task 1 |
-| TRD AG-7 | Agent chooses exposed landlord data | 2 / Task 7; 4 / Task 1 |
-| TRD PR-1 to PR-3, Q4 | Profiles, blue tick, visibility | 1 / Tasks 7-8 |
-| TRD §5.2, Q38 | Computed track record; ROI formula **[OWNER]** | 5 / Task 5 |
-| TRD RV-1 to RV-4, Q36-Q37 | Reviews, eligibility, replies, moderation, aggregates | 5 / Task 4 |
-| TRD CI-1, Q18 | Lead + Co-Investors; Lead executive rights | 4 / Task 2 |
-| TRD CI-2 to CI-5, Q21 | Project funding fields, calculator, over-subscription, shortfall | 4 / Tasks 1, 4, 9 |
-| TRD PD-1 | Sale price, costs, net profit, ROI recorded on sale | 4 / Task 8; 5 / Task 1a |
-| TRD PD-2 to PD-4, Q24-Q28 | Agreement-based shares, append-only ledger, corrections, investor views, statements | 4 / Task 8 |
-| TRD §7 | Chat locations (private listing, Agent ↔ Investor, Buyer listing) | §5 chat pairs; 3 / Task 2; 4 / Task 3 |
-| TRD §9 | Server-side RBAC, audit, GDPR, KYC/AML, real-time fallback, transactional money | Master §1; 0; 3 / Task 3; 4; 7 / Task 4 |
-| TRD §10 criteria 1-2 | Agent self-registration rejected; invite works | 1 exit gate |
-| TRD §10 criterion 3 | Private listing invisible except to Verified Agents | 2 exit gate |
-| TRD §10 criterion 4 | Real-time Landlord ↔ Agent chat, outsiders denied | 3 exit gate |
-| TRD §10 criterion 5 | Mandate → Investor Portal → Retail Buyer Portal | 2, 4 and 5 exit gates |
-| TRD §10 criteria 6-7 | Badges after Admin verification; qualifying reviews | 5 exit gate |
-| TRD §10 criteria 8-9 | Pledge share and over-subscription; correct distributions | 4 exit gate |
-| Q1 | Invite-only Agents, auto-approve, Companies House, dashboard banners/updates | 1 / Tasks 3-4 |
-| Q2 | Existing agents notified, then Admin authorises | 1 / Task 5 |
-| Q3, Q15, Q41 | KYC per role via accredited provider; restricted areas prompt verification; documents hidden until KYC | 1 / Tasks 2, 6; 4 / Task 3 |
-| Q5 | Drafts, AI listing assistant, ownership documents; withdraw rule **[OWNER]** | 2 / Tasks 1-2 |
-| Q9 | Mandate end returns listing to the pool; Agent loses access | 2 / Task 6 |
-| Q13, Q14 | Investor project page content; search, filter, favourite, compare, ask questions | 4 / Tasks 1, 3 |
-| Q16, Q17 | EOI until signed; solicitor agreement, in-app e-signature, downloadable; calculator **[OWNER confirms]** | 4 / Tasks 4, 6 |
-| Q19, Q20, Q22, Q23 | No in-app investment funds; Solicitor tracks funds and changes; Lead authority | 4 / Tasks 7, 9 |
-| Q26, journey §10 | Landlord follows progress, closes mandate, reviews Agent, party to JV settlement | §5 rules; 2 / Task 6; 4 / Tasks 3a, 6, 8; 5 / Task 1a |
-| Q29-Q35 | Rightmove-style Buyer journey, email-only Buyers | 1 / Task 2; 5 / Tasks 2-3 |
-| Q39, Q40 | Admin permission levels, disputes and reporting | 6 / Tasks 2-3 |
-| Q42 | Retention per UK GDPR; closed Solicitor accounts read-only | 4 / Task 5; 7 / Task 4 |
-| Q43 | FCA/legal review of co-investment | §5 regulatory flag; 7 / Task 4 (launch blocker) |
-| Q44 / Answers §C | Expired invites, concurrent pledges, failed payments, refunds, chat reconnect, corrections | 1 / Task 3; 3 / Tasks 1, 3; 4 / Tasks 8-9 |
-| Answers §D | Subscriptions for Agents, Lead and Co-Investors only; chat = subscription AND Admin authorisation | 3 / Tasks 1-2 |
-| Answers §E | LinkedIn-style profiles and investor privacy | 1 / Task 8 |
-| Answers §F | One Solicitor account per project | 4 / Task 5 |
-| Answers §G | Advertising rules | 6 / Task 1 |
+| Source                         | Requirement (short)                                                                                          | Phase / task                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| TRD REG-1, REG-2, REG-4, REG-5 | No Agent self-signup; Admin invite/provisioning; single-use expiring invite bound to email; server-side role | 1 / Tasks 2-3                                            |
+| TRD REG-3                      | Public roles: Landlord, Investor, Buyer                                                                      | 1 / Tasks 1-2                                            |
+| TRD §3.2                       | Permission matrix                                                                                            | §5 rules; 1 / Task 13 harness; each phase flips its rows |
+| TRD LL-1                       | Landlord listing fields and desired outcome                                                                  | 2 / Task 1                                               |
+| TRD LL-2 to LL-5               | Private visibility, noindex, access-checked files                                                            | 2 / Task 4; 1 / Task 12                                  |
+| TRD CH-1 to CH-6, Q10, Q11     | Real-time Landlord ↔ Agent chat, per-agent threads, history, receipts, attachments, report                   | 3 / Tasks 2-4                                            |
+| TRD CH-5, Q12                  | Message and chain notifications with preferences                                                             | 1 / Task 10; 2 / Task 8; 3 / Task 6                      |
+| TRD AG-1, AG-2, Q6-Q8          | Agent marketplace, interest/proposal, exclusive mandate                                                      | 2 / Tasks 3, 5-6                                         |
+| TRD AG-3                       | Publish to Investor Portal                                                                                   | 4 / Task 1                                               |
+| TRD AG-4                       | Re-list on Retail Buyer Portal                                                                               | 5 / Task 1                                               |
+| TRD AG-5                       | Lifecycle Private → … → Sold                                                                                 | 2 / Task 6; 4 / Task 1; 5 / Tasks 1-1a                   |
+| TRD AG-6                       | Legal/paperwork responsibility notice                                                                        | 4 / Task 1; 5 / Task 1                                   |
+| TRD AG-7                       | Agent chooses exposed landlord data                                                                          | 2 / Task 7; 4 / Task 1                                   |
+| TRD PR-1 to PR-3, Q4           | Profiles, blue tick, visibility                                                                              | 1 / Tasks 7-8                                            |
+| TRD §5.2, Q38                  | Computed track record; ROI formula **[OWNER]**                                                               | 5 / Task 5                                               |
+| TRD RV-1 to RV-4, Q36-Q37      | Reviews, eligibility, replies, moderation, aggregates                                                        | 5 / Task 4                                               |
+| TRD CI-1, Q18                  | Lead + Co-Investors; Lead executive rights                                                                   | 4 / Task 2                                               |
+| TRD CI-2 to CI-5, Q21          | Project funding fields, calculator, over-subscription, shortfall                                             | 4 / Tasks 1, 4, 9                                        |
+| TRD PD-1                       | Sale price, costs, net profit, ROI recorded on sale                                                          | 4 / Task 8; 5 / Task 1a                                  |
+| TRD PD-2 to PD-4, Q24-Q28      | Agreement-based shares, append-only ledger, corrections, investor views, statements                          | 4 / Task 8                                               |
+| TRD §7                         | Chat locations (private listing, Agent ↔ Investor, Buyer listing)                                            | §5 chat pairs; 3 / Task 2; 4 / Task 3                    |
+| TRD §9                         | Server-side RBAC, audit, GDPR, KYC/AML, real-time fallback, transactional money                              | Master §1; 0; 3 / Task 3; 4; 7 / Task 4                  |
+| TRD §10 criteria 1-2           | Agent self-registration rejected; invite works                                                               | 1 exit gate                                              |
+| TRD §10 criterion 3            | Private listing invisible except to Verified Agents                                                          | 2 exit gate                                              |
+| TRD §10 criterion 4            | Real-time Landlord ↔ Agent chat, outsiders denied                                                            | 3 exit gate                                              |
+| TRD §10 criterion 5            | Mandate → Investor Portal → Retail Buyer Portal                                                              | 2, 4 and 5 exit gates                                    |
+| TRD §10 criteria 6-7           | Badges after Admin verification; qualifying reviews                                                          | 5 exit gate                                              |
+| TRD §10 criteria 8-9           | Pledge share and over-subscription; correct distributions                                                    | 4 exit gate                                              |
+| Q1                             | Invite-only Agents, auto-approve, Companies House, dashboard banners/updates                                 | 1 / Tasks 3-4                                            |
+| Q2                             | Existing agents notified, then Admin authorises                                                              | 1 / Task 5                                               |
+| Q3, Q15, Q41                   | KYC per role via accredited provider; restricted areas prompt verification; documents hidden until KYC       | 1 / Tasks 2, 6; 4 / Task 3                               |
+| Q5                             | Drafts, AI listing assistant, ownership documents; withdraw rule **[OWNER]**                                 | 2 / Tasks 1-2                                            |
+| Q9                             | Mandate end returns listing to the pool; Agent loses access                                                  | 2 / Task 6                                               |
+| Q13, Q14                       | Investor project page content; search, filter, favourite, compare, ask questions                             | 4 / Tasks 1, 3                                           |
+| Q16, Q17                       | EOI until signed; solicitor agreement, in-app e-signature, downloadable; calculator **[OWNER confirms]**     | 4 / Tasks 4, 6                                           |
+| Q19, Q20, Q22, Q23             | No in-app investment funds; Solicitor tracks funds and changes; Lead authority                               | 4 / Tasks 7, 9                                           |
+| Q26, journey §10               | Landlord follows progress, closes mandate, reviews Agent, party to JV settlement                             | §5 rules; 2 / Task 6; 4 / Tasks 3a, 6, 8; 5 / Task 1a    |
+| Q29-Q35                        | Rightmove-style Buyer journey, email-only Buyers                                                             | 1 / Task 2; 5 / Tasks 2-3                                |
+| Q39, Q40                       | Admin permission levels, disputes and reporting                                                              | 6 / Tasks 2-3                                            |
+| Q42                            | Retention per UK GDPR; closed Solicitor accounts read-only                                                   | 4 / Task 5; 7 / Task 4                                   |
+| Q43                            | FCA/legal review of co-investment                                                                            | §5 regulatory flag; 7 / Task 4 (launch blocker)          |
+| Q44 / Answers §C               | Expired invites, concurrent pledges, failed payments, refunds, chat reconnect, corrections                   | 1 / Task 3; 3 / Tasks 1, 3; 4 / Tasks 8-9                |
+| Answers §D                     | Subscriptions for Agents, Lead and Co-Investors only; chat = subscription AND Admin authorisation            | 3 / Tasks 1-2                                            |
+| Answers §E                     | LinkedIn-style profiles and investor privacy                                                                 | 1 / Task 8                                               |
+| Answers §F                     | One Solicitor account per project                                                                            | 4 / Task 5                                               |
+| Answers §G                     | Advertising rules                                                                                            | 6 / Task 1                                               |

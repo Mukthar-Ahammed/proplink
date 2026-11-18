@@ -2,10 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import {
-  FlipperCostCategory,
-  FlipperMilestoneStatus,
-} from "@/generated/prisma/enums";
+import { FlipperCostCategory, FlipperMilestoneStatus } from "@/generated/prisma/enums";
 import { FlipperProjectDetail } from "@/services/flipper/flipperProjectService";
 
 export function ProjectDetailClient({ projectId }: { projectId: string }) {
@@ -15,7 +12,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
   // Add Cost Modal
   const [showCostModal, setShowCostModal] = useState(false);
-  const [costCategory, setCostCategory] = useState<FlipperCostCategory>(FlipperCostCategory.MATERIALS);
+  const [costCategory, setCostCategory] = useState<FlipperCostCategory>(
+    FlipperCostCategory.MATERIALS,
+  );
   const [costDescription, setCostDescription] = useState("");
   const [costAmountInput, setCostAmountInput] = useState("");
   const [costSubmitting, setCostSubmitting] = useState(false);
@@ -90,9 +89,12 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   const handleDeleteCost = async (costId: string) => {
     if (!confirm("Are you sure you want to delete this cost entry?")) return;
     try {
-      const res = await fetch(`/api/investor/flip/projects/${projectId}/costs?costId=${costId}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(
+        `/api/investor/flip/projects/${projectId}/costs?costId=${costId}`,
+        {
+          method: "DELETE",
+        },
+      );
       if (!res.ok) {
         const json = await res.json().catch(() => ({}));
         throw new Error(json.error || "Failed to delete cost");
@@ -133,7 +135,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
     }
   };
 
-  const handleToggleMilestone = async (milestoneId: string, currentStatus: FlipperMilestoneStatus) => {
+  const handleToggleMilestone = async (
+    milestoneId: string,
+    currentStatus: FlipperMilestoneStatus,
+  ) => {
     const nextStatus =
       currentStatus === FlipperMilestoneStatus.COMPLETED
         ? FlipperMilestoneStatus.TODO
@@ -156,14 +161,21 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
   };
 
   if (loading) {
-    return <div className="py-12 text-center text-gray-500 text-sm">Loading refurbishment project...</div>;
+    return (
+      <div className="py-12 text-center text-gray-500 text-sm">
+        Loading refurbishment project...
+      </div>
+    );
   }
 
   if (error || !project) {
     return (
       <div className="p-4 bg-red-50 text-red-700 rounded-lg text-sm space-y-2">
         <div>{error || "Project not found"}</div>
-        <Link href="/investor/flip" className="text-xs text-red-900 underline font-semibold">
+        <Link
+          href="/investor/flip"
+          className="text-xs text-red-900 underline font-semibold"
+        >
           ← Return to Flipper Workspace
         </Link>
       </div>
@@ -174,7 +186,10 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
     <div className="space-y-6">
       {/* Navigation breadcrumb */}
       <div className="flex items-center justify-between">
-        <Link href="/investor/flip" className="text-xs text-blue-600 hover:underline font-semibold">
+        <Link
+          href="/investor/flip"
+          className="text-xs text-blue-600 hover:underline font-semibold"
+        >
           ← Back to Flipper Workspace
         </Link>
         <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-bold">
@@ -187,21 +202,27 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         <h1 className="text-2xl font-bold text-gray-900">{project.propertyTitle}</h1>
         <p className="text-sm text-gray-500">
           {project.city}, {project.postcode} • Agreed Acquisition Price:{" "}
-          <strong className="text-gray-900">£{(project.agreedPriceGBP / 100).toLocaleString("en-GB")}</strong>
+          <strong className="text-gray-900">
+            £{(project.agreedPriceGBP / 100).toLocaleString("en-GB")}
+          </strong>
         </p>
       </div>
 
       {/* Budget Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-1">
-          <div className="text-xs font-semibold text-gray-500 uppercase">Planned Refurb Budget</div>
+          <div className="text-xs font-semibold text-gray-500 uppercase">
+            Planned Refurb Budget
+          </div>
           <div className="text-xl font-extrabold text-gray-900">
             £{(project.plannedBudgetGBP / 100).toLocaleString("en-GB")}
           </div>
         </div>
 
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-1">
-          <div className="text-xs font-semibold text-gray-500 uppercase">Recorded Actual Costs</div>
+          <div className="text-xs font-semibold text-gray-500 uppercase">
+            Recorded Actual Costs
+          </div>
           <div className="text-xl font-extrabold text-blue-900">
             £{(project.totalCostsGBP / 100).toLocaleString("en-GB")}
           </div>
@@ -228,7 +249,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         {/* Cost Ledger Card */}
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
-            <h2 className="font-bold text-gray-900 text-base">Cost Ledger ({project.costs.length})</h2>
+            <h2 className="font-bold text-gray-900 text-base">
+              Cost Ledger ({project.costs.length})
+            </h2>
             <button
               onClick={() => setShowCostModal(true)}
               className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm"
@@ -239,7 +262,8 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
           {project.costs.length === 0 ? (
             <div className="py-8 text-center text-xs text-gray-500 italic">
-              No costs recorded yet. Add materials, labour, or fee items to track your refurbishment spend.
+              No costs recorded yet. Add materials, labour, or fee items to track your
+              refurbishment spend.
             </div>
           ) : (
             <div className="space-y-2">
@@ -251,8 +275,8 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                   <div className="space-y-0.5">
                     <div className="font-semibold text-gray-900">{c.description}</div>
                     <div className="text-[10px] text-gray-400">
-                      <span className="font-bold text-gray-600">{c.category}</span> • Incurred{" "}
-                      {new Date(c.incurredAt).toLocaleDateString("en-GB")}
+                      <span className="font-bold text-gray-600">{c.category}</span> •
+                      Incurred {new Date(c.incurredAt).toLocaleDateString("en-GB")}
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
@@ -275,7 +299,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
         {/* Milestones Card */}
         <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b pb-3">
-            <h2 className="font-bold text-gray-900 text-base">Refurbishment Milestones</h2>
+            <h2 className="font-bold text-gray-900 text-base">
+              Refurbishment Milestones
+            </h2>
             <button
               onClick={() => setShowMilestoneModal(true)}
               className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-sm"
@@ -286,7 +312,8 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
 
           {project.milestones.length === 0 ? (
             <div className="py-8 text-center text-xs text-gray-500 italic">
-              No project milestones created yet. Add key targets (e.g. Rip Out, Plumbing, Decorating).
+              No project milestones created yet. Add key targets (e.g. Rip Out, Plumbing,
+              Decorating).
             </div>
           ) : (
             <div className="space-y-2">
@@ -309,12 +336,16 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
                     <div>
                       <div
                         className={`font-semibold ${
-                          m.status === FlipperMilestoneStatus.COMPLETED ? "line-through text-gray-500" : ""
+                          m.status === FlipperMilestoneStatus.COMPLETED
+                            ? "line-through text-gray-500"
+                            : ""
                         }`}
                       >
                         {m.title}
                       </div>
-                      {m.description && <div className="text-[10px] text-gray-500">{m.description}</div>}
+                      {m.description && (
+                        <div className="text-[10px] text-gray-500">{m.description}</div>
+                      )}
                     </div>
                   </div>
                   <span
@@ -337,8 +368,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-600 space-y-1">
         <div className="font-bold text-gray-900">Phase 8 Resale Handoff Notice</div>
         <p>
-          Once your refurbishment is complete, Phase 8 will allow you to generate a new resale listing for your
-          renovated property. Resale listing creation remains locked until Phase 8.
+          Once your refurbishment is complete, Phase 8 will allow you to generate a new
+          resale listing for your renovated property. Resale listing creation remains
+          locked until Phase 8.
         </p>
       </div>
 
@@ -346,7 +378,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
       {showCostModal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-md w-full p-5 space-y-4 border border-gray-200">
-            <h3 className="font-bold text-gray-900 text-base">Add Refurbishment Cost Item</h3>
+            <h3 className="font-bold text-gray-900 text-base">
+              Add Refurbishment Cost Item
+            </h3>
             <div className="space-y-3 text-xs">
               <div>
                 <label className="block font-semibold text-gray-700 mb-1">Category</label>
@@ -364,7 +398,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               </div>
 
               <div>
-                <label className="block font-semibold text-gray-700 mb-1">Description</label>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Description
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Kitchen units, Plumber invoice #123"
@@ -375,7 +411,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               </div>
 
               <div>
-                <label className="block font-semibold text-gray-700 mb-1">Amount (£)</label>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Amount (£)
+                </label>
                 <input
                   type="number"
                   step="0.01"
@@ -414,7 +452,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
             <h3 className="font-bold text-gray-900 text-base">Add Project Milestone</h3>
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-semibold text-gray-700 mb-1">Milestone Title</label>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Milestone Title
+                </label>
                 <input
                   type="text"
                   placeholder="e.g. Electrical Rewire, New Bathroom Fitted"
@@ -425,7 +465,9 @@ export function ProjectDetailClient({ projectId }: { projectId: string }) {
               </div>
 
               <div>
-                <label className="block font-semibold text-gray-700 mb-1">Description (Optional)</label>
+                <label className="block font-semibold text-gray-700 mb-1">
+                  Description (Optional)
+                </label>
                 <textarea
                   rows={2}
                   placeholder="Additional details..."

@@ -36,16 +36,13 @@ export async function verifyTurnstileToken(
 
   let response: Response;
   try {
-    response = await fetch(
-      "https://challenges.cloudflare.com/turnstile/v0/siteverify",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body,
-        signal: AbortSignal.timeout(5_000),
-        cache: "no-store",
-      },
-    );
+    response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body,
+      signal: AbortSignal.timeout(5_000),
+      cache: "no-store",
+    });
   } catch {
     console.error(JSON.stringify({ event: "security.turnstile_unavailable" }));
     return { ok: false, reason: "unavailable" };

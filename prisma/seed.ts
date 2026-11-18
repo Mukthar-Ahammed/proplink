@@ -36,14 +36,54 @@ const plateUrl = (n: number) =>
 
 async function seedUsers(passwordHash: string) {
   const users = [
-    { email: "admin@proplink.test", name: "Platform Admin", role: Role.ADMIN, investorType: null },
-    { email: "agent@proplink.test", name: "Alice Agent", role: Role.AGENT, investorType: null },
-    { email: "investor@proplink.test", name: "Ivan Investor", role: Role.INVESTOR, investorType: "FLIPPER" as const },
-    { email: "buyer@proplink.test", name: "Bella Buyer", role: Role.BUYER, investorType: null },
-    { email: "investor2@proplink.test", name: "Priya Raman", role: Role.INVESTOR, investorType: "BOTH" as const },
-    { email: "investor3@proplink.test", name: "Tom Okafor", role: Role.INVESTOR, investorType: "FLIPPER" as const },
-    { email: "buyer2@proplink.test", name: "Grace Whitfield", role: Role.BUYER, investorType: null },
-    { email: "buyer3@proplink.test", name: "Daniel Mercer", role: Role.BUYER, investorType: null },
+    {
+      email: "admin@proplink.test",
+      name: "Platform Admin",
+      role: Role.ADMIN,
+      investorType: null,
+    },
+    {
+      email: "agent@proplink.test",
+      name: "Alice Agent",
+      role: Role.AGENT,
+      investorType: null,
+    },
+    {
+      email: "investor@proplink.test",
+      name: "Ivan Investor",
+      role: Role.INVESTOR,
+      investorType: "FLIPPER" as const,
+    },
+    {
+      email: "buyer@proplink.test",
+      name: "Bella Buyer",
+      role: Role.BUYER,
+      investorType: null,
+    },
+    {
+      email: "investor2@proplink.test",
+      name: "Priya Raman",
+      role: Role.INVESTOR,
+      investorType: "BOTH" as const,
+    },
+    {
+      email: "investor3@proplink.test",
+      name: "Tom Okafor",
+      role: Role.INVESTOR,
+      investorType: "FLIPPER" as const,
+    },
+    {
+      email: "buyer2@proplink.test",
+      name: "Grace Whitfield",
+      role: Role.BUYER,
+      investorType: null,
+    },
+    {
+      email: "buyer3@proplink.test",
+      name: "Daniel Mercer",
+      role: Role.BUYER,
+      investorType: null,
+    },
   ];
 
   for (const u of users) {

@@ -8,9 +8,9 @@ import { ListingReviewStudioClient } from "./ListingReviewStudioClient";
 
 export const metadata = { title: "Admin — Agent Listing Moderation Studio | PropLink" };
 
-export default async function AgentListingReviewStudioPage(
-  props: { params: Promise<{ propertyId: string }> },
-) {
+export default async function AgentListingReviewStudioPage(props: {
+  params: Promise<{ propertyId: string }>;
+}) {
   const session = await requirePageRole(Role.ADMIN);
 
   const { propertyId } = await props.params;

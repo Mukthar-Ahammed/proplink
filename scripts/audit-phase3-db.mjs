@@ -18,7 +18,8 @@ const verifiedRef = assertExpectedSupabaseProject({
   environment: "staging",
   databaseUrl: connectionString,
 });
-if (verifiedRef !== projectRef) throw new Error("Configured staging project reference is not approved.");
+if (verifiedRef !== projectRef)
+  throw new Error("Configured staging project reference is not approved.");
 const parsedConnection = new URL(connectionString);
 const expectedDatabaseUser = `postgres.${projectRef}`;
 if (

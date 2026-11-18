@@ -142,8 +142,8 @@ export function PlatformEcosystem() {
           Five portals, <span className="font-light text-secondary">shared data</span>
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-muted sm:text-base">
-          A single property ecosystem connecting investors, agents, professionals and market
-          data. Different portals, one shared source of truth.
+          A single property ecosystem connecting investors, agents, professionals and
+          market data. Different portals, one shared source of truth.
         </p>
       </div>
 
@@ -222,8 +222,20 @@ export function PlatformEcosystem() {
                 {/* Subtle Connection Node Halos when Hovered */}
                 {isHovered && (
                   <>
-                    <circle cx={conn.startNode.x} cy={conn.startNode.y} r="6" fill="#062319" fillOpacity="0.12" />
-                    <circle cx={conn.endNode.x} cy={conn.endNode.y} r="6" fill="#062319" fillOpacity="0.12" />
+                    <circle
+                      cx={conn.startNode.x}
+                      cy={conn.startNode.y}
+                      r="6"
+                      fill="#062319"
+                      fillOpacity="0.12"
+                    />
+                    <circle
+                      cx={conn.endNode.x}
+                      cy={conn.endNode.y}
+                      r="6"
+                      fill="#062319"
+                      fillOpacity="0.12"
+                    />
                   </>
                 )}
 
@@ -370,7 +382,12 @@ export function PlatformEcosystem() {
         {/* Stacked Cards */}
         <div className="flex flex-col gap-4">
           {PORTALS.map((portal) => (
-            <PortalCard key={portal.id} portal={portal} isHovered={false} onHover={() => {}} />
+            <PortalCard
+              key={portal.id}
+              portal={portal}
+              isHovered={false}
+              onHover={() => {}}
+            />
           ))}
         </div>
       </div>
@@ -419,7 +436,8 @@ function PortalCard({
       className={cn(
         "group relative flex flex-col rounded-[22px] border bg-white/95 p-6 shadow-[0_4px_20px_-4px_rgba(6,35,25,0.06)] backdrop-blur-sm transition-all duration-300 ease-out",
         "border-line hover:border-primary/30 hover:shadow-[0_12px_32px_-6px_rgba(6,35,25,0.14)] hover:-translate-y-1.5",
-        isHovered && "border-primary/40 shadow-[0_12px_32px_-6px_rgba(6,35,25,0.14)] -translate-y-1.5",
+        isHovered &&
+          "border-primary/40 shadow-[0_12px_32px_-6px_rgba(6,35,25,0.14)] -translate-y-1.5",
       )}
     >
       <div className="flex items-center justify-between">

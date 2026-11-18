@@ -21,8 +21,7 @@ const phaseRequirements = {
 
 const args = process.argv.slice(2);
 const phaseArg = args.find((arg) => arg.startsWith("--phase="))?.slice(8) ?? "0";
-const phases =
-  phaseArg === "all" ? Object.keys(phaseRequirements) : [phaseArg];
+const phases = phaseArg === "all" ? Object.keys(phaseRequirements) : [phaseArg];
 
 if (phases.some((phase) => !Object.hasOwn(phaseRequirements, phase))) {
   console.error("Usage: npm run check-env -- --phase=0|1|2|3|4|5|all");
@@ -41,16 +40,11 @@ for (const phase of phases) {
       keys.push(["TURNSTILE_SECRET_KEY"], ["NEXT_PUBLIC_TURNSTILE_SITE_KEY"]);
     }
     if (process.env.UPLOADS_ENABLED === "true") {
-      keys.push(
-        ["S3_QUARANTINE_BUCKET"],
-        ["S3_PRIVATE_BUCKET"],
-        ["MALWARE_SCANNER_URL"],
-      );
+      keys.push(["S3_QUARANTINE_BUCKET"], ["S3_PRIVATE_BUCKET"], ["MALWARE_SCANNER_URL"]);
     }
   }
   const absent = keys.filter(
-    (alternatives) =>
-      !alternatives.some((key) => process.env[key]?.trim()),
+    (alternatives) => !alternatives.some((key) => process.env[key]?.trim()),
   );
   if (absent.length) {
     const labels = absent.map((alternatives) => alternatives.join(" or "));

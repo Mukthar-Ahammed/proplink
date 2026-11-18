@@ -207,9 +207,7 @@ export async function proxy(request: NextRequest) {
 
   if (!gate.roles.includes(profile.role)) {
     return secureResponse(
-      applyCookies(
-        NextResponse.rewrite(new URL("/403", request.url), { status: 403 }),
-      ),
+      applyCookies(NextResponse.rewrite(new URL("/403", request.url), { status: 403 })),
       request,
       requestId,
       nonce,
@@ -242,12 +240,18 @@ function secureResponse(
   response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
   response.headers.set("X-Frame-Options", "DENY");
   if (process.env.NODE_ENV === "production") {
-    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
   }
 
   const { pathname } = request.nextUrl;
   if (isPrivateResponsePath(pathname)) {
-    response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+    response.headers.set(
+      "Cache-Control",
+      "private, no-store, max-age=0, must-revalidate",
+    );
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
   if (pathname === "/auth/confirm" || pathname === "/reset-password") {

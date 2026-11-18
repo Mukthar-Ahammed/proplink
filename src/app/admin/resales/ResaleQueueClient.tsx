@@ -3,10 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  FlipperResaleStatus,
-  InvestorType,
-} from "@/generated/prisma/enums";
+import { FlipperResaleStatus, InvestorType } from "@/generated/prisma/enums";
 import type {
   AdminResaleQueueItem,
   AdminResaleSummary,
@@ -19,13 +16,17 @@ export function ResaleQueueClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const statusParam = (searchParams.get("status") as FlipperResaleStatus | "ALL") || FlipperResaleStatus.SUBMITTED;
+  const statusParam =
+    (searchParams.get("status") as FlipperResaleStatus | "ALL") ||
+    FlipperResaleStatus.SUBMITTED;
   const subtypeParam = searchParams.get("investorType") || "ALL";
   const searchParam = searchParams.get("search") || "";
   const sortParam = (searchParams.get("sort") as "oldest" | "newest") || "oldest";
   const pageParam = parseInt(searchParams.get("page") || "1", 10);
 
-  const [statusFilter, setStatusFilter] = useState<FlipperResaleStatus | "ALL">(statusParam);
+  const [statusFilter, setStatusFilter] = useState<FlipperResaleStatus | "ALL">(
+    statusParam,
+  );
   const [subtypeFilter, setSubtypeFilter] = useState<string>(subtypeParam);
   const [search, setSearch] = useState(searchParam);
   const [sortOrder, setSortOrder] = useState<"oldest" | "newest">(sortParam);
@@ -178,17 +179,23 @@ export function ResaleQueueClient() {
       {/* Queue Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-warning/30 bg-warning/5 p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Pending Resales</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Pending Resales
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black tabular-nums text-primary">
               {summary?.pendingCount ?? "—"}
             </span>
-            <span className="text-[11px] font-semibold text-warning">Requires review</span>
+            <span className="text-[11px] font-semibold text-warning">
+              Requires review
+            </span>
           </div>
         </div>
 
         <div className="rounded-xl border border-success/30 bg-success/5 p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Approved Resales</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Approved Resales
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black tabular-nums text-primary">
               {summary?.approvedCount ?? "—"}
@@ -198,17 +205,23 @@ export function ResaleQueueClient() {
         </div>
 
         <div className="rounded-xl border border-danger/30 bg-danger/5 p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Rejected Resales</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Rejected Resales
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black tabular-nums text-primary">
               {summary?.rejectedCount ?? "—"}
             </span>
-            <span className="text-[11px] font-semibold text-danger">Investor Revision</span>
+            <span className="text-[11px] font-semibold text-danger">
+              Investor Revision
+            </span>
           </div>
         </div>
 
         <div className="rounded-xl border border-line bg-white p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Oldest Waiting Age</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Oldest Waiting Age
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-lg font-bold text-primary truncate">
               {oldestPendingText}
@@ -325,7 +338,8 @@ export function ResaleQueueClient() {
         <div className="bg-white p-12 rounded-xl border border-line text-center space-y-2">
           <p className="text-sm font-semibold text-primary">No resales found</p>
           <p className="text-xs text-muted">
-            No flipper resale submissions match your selected status, subtype, or search criteria.
+            No flipper resale submissions match your selected status, subtype, or search
+            criteria.
           </p>
         </div>
       ) : (
@@ -376,11 +390,17 @@ export function ResaleQueueClient() {
                       </td>
                       <td className="px-4 py-3 font-bold text-success">
                         £{item.estimatedProfitGBP.toLocaleString()}
-                        <span className="text-[10px] text-muted font-normal block">Advisory</span>
+                        <span className="text-[10px] text-muted font-normal block">
+                          Advisory
+                        </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-primary">{item.investorName}</div>
-                        <div className="text-[11px] text-accent font-bold">{item.investorType ?? "FLIPPER"}</div>
+                        <div className="font-semibold text-primary">
+                          {item.investorName}
+                        </div>
+                        <div className="text-[11px] text-accent font-bold">
+                          {item.investorType ?? "FLIPPER"}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={item.status} />
@@ -395,7 +415,9 @@ export function ResaleQueueClient() {
                               })
                             : "Drafting"}
                         </div>
-                        <div className="text-[10px] font-semibold text-warning">{waitingAge}</div>
+                        <div className="text-[10px] font-semibold text-warning">
+                          {waitingAge}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
@@ -416,7 +438,9 @@ export function ResaleQueueClient() {
           {totalPages > 1 && (
             <div className="p-4 border-t border-line bg-surface flex items-center justify-between text-xs">
               <span className="text-muted">
-                Showing page <strong className="text-primary">{page}</strong> of <strong className="text-primary">{totalPages}</strong> ({total} total items)
+                Showing page <strong className="text-primary">{page}</strong> of{" "}
+                <strong className="text-primary">{totalPages}</strong> ({total} total
+                items)
               </span>
 
               <div className="flex gap-2">

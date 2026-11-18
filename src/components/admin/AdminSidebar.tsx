@@ -126,7 +126,8 @@ export function AdminSidebar({
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
                   const active = isItemActive(item);
-                  const isAvailable = item.status === "active" || item.status === "placeholder";
+                  const isAvailable =
+                    item.status === "active" || item.status === "placeholder";
 
                   if (!isAvailable) {
                     return (
@@ -160,9 +161,7 @@ export function AdminSidebar({
                         {item.status === "placeholder" && (
                           <span
                             className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase ${
-                              active
-                                ? "bg-white/20 text-white"
-                                : "bg-pale text-secondary"
+                              active ? "bg-white/20 text-white" : "bg-pale text-secondary"
                             }`}
                           >
                             Placeholder

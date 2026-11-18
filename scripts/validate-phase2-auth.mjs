@@ -16,7 +16,8 @@ const requiredNames = [
 ];
 
 for (const name of requiredNames) {
-  if (!process.env[name]) throw new Error(`Missing required environment variable: ${name}`);
+  if (!process.env[name])
+    throw new Error(`Missing required environment variable: ${name}`);
 }
 assertConfiguredSupabaseProject();
 
@@ -41,22 +42,18 @@ const projectRefsMatch =
   projectRefFromApi === projectRefFromDatabase;
 const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const publishableKeyShapeValid =
-  publishableKey.startsWith("sb_publishable_") ||
-  publishableKey.split(".").length === 3;
+  publishableKey.startsWith("sb_publishable_") || publishableKey.split(".").length === 3;
 
 console.log(`supabase_url_shape=${urlShapeValid ? "PASS" : "FAIL"}`);
 console.log(`staging_project_match=${projectRefsMatch ? "PASS" : "FAIL"}`);
-console.log(
-  `publishable_key_shape=${publishableKeyShapeValid ? "PASS" : "FAIL"}`,
-);
+console.log(`publishable_key_shape=${publishableKeyShapeValid ? "PASS" : "FAIL"}`);
 
 if (!urlShapeValid || !projectRefsMatch || !publishableKeyShapeValid) {
   process.exitCode = 1;
 } else {
-  const healthResponse = await fetch(
-    new URL("/auth/v1/health", projectUrl),
-    { headers: { apikey: publishableKey } },
-  );
+  const healthResponse = await fetch(new URL("/auth/v1/health", projectUrl), {
+    headers: { apikey: publishableKey },
+  });
   console.log(
     `auth_health=${healthResponse.ok ? "PASS" : "FAIL"} status=${healthResponse.status}`,
   );
@@ -64,7 +61,11 @@ if (!urlShapeValid || !projectRefsMatch || !publishableKeyShapeValid) {
 }
 
 const otherUserId = process.env.PHASE2_OTHER_USER_ID;
-if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(otherUserId)) {
+if (
+  !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    otherUserId,
+  )
+) {
   throw new Error("PHASE2_OTHER_USER_ID must be a UUID");
 }
 
@@ -121,7 +122,8 @@ async function expectApiDenied(label, targetId, values) {
     .eq("id", targetId)
     .select("id");
 
-  const denied = Boolean(error) && (error.code === "42501" || status === 401 || status === 403);
+  const denied =
+    Boolean(error) && (error.code === "42501" || status === 401 || status === 403);
   if (denied) {
     console.log(`${label}=PASS denied (${error.code ?? status})`);
   } else {
@@ -183,7 +185,10 @@ try {
       if (bothNonAdmin) {
         console.log("profile_precondition=PASS two non-admin profiles");
       } else {
-        fail("profile_precondition", bothProfilesExist ? "admin_profile" : "profile_missing");
+        fail(
+          "profile_precondition",
+          bothProfilesExist ? "admin_profile" : "profile_missing",
+        );
       }
 
       if (bothNonAdmin) {
