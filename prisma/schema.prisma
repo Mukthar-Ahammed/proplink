@@ -257,6 +257,14 @@ model Profile {
   adminGrantRequestsFor AdminGrantRequest[]       @relation("AdminGrantTarget")
   adminGrantRequestsBy  AdminGrantRequest[]       @relation("AdminGrantRequester")
   adminGrantDecisions   AdminGrantRequest[]       @relation("AdminGrantDecider")
+  casesAssigned         Case[]                    @relation("CaseAssignee")
+  casesOpened           Case[]                    @relation("CaseOpener")
+  casesResolved         Case[]                    @relation("CaseResolver")
+  caseNotes             CaseNote[]                @relation("CaseNoteAuthor")
+  caseEvidence          CaseEvidence[]            @relation("CaseEvidenceAdder")
+  dataExportsAbout      DataExportRequest[]       @relation("DataExportSubject")
+  dataExportsRequested  DataExportRequest[]       @relation("DataExportRequester")
+  dataExportsDecided    DataExportRequest[]       @relation("DataExportDecider")
   companyCheck         AgentCompanyCheck?        @relation("AgentCompanyCheckProfile")
   companyOverrides     AgentCompanyCheck[]       @relation("AgentCompanyCheckOverrider")
   agentMigration       AgentMigration?           @relation("AgentMigrationProfile")
@@ -2775,4 +2783,117 @@ model AdminPermissionGrant {
   revokeRequest AdminGrantRequest? @relation("AdminGrantRevokedBy", fields: [revokeRequestId], references: [id], onDelete: Restrict)
 
   @@map("admin_permission_grants")
+}
+
+// ── Phase 6 Task 3: cases, disputes and data requests (ADR-059) ──
+
+enum CaseSubjectType {
+  CHAT
+  REVIEW
+  LISTING
+  USER
+}
+
+enum CaseStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum CasePriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum DataExportStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+}
+
+/// One open case per subject; further reports join it. Never deleted.
+model Case {
+  id          String          @id @db.Uuid
+  subjectType CaseSubjectType
+  subjectId   String
+  title       String
+  status      CaseStatus      @default(OPEN)
+  priority    CasePriority    @default(NORMAL)
+  assigneeId  String?         @db.Uuid
+  openedBy    String?         @db.Uuid
+  slaDueAt    DateTime
+  resolution  String?
+  resolvedBy  String?         @db.Uuid
+  resolvedAt  DateTime?
+  reportCount Int             @default(1)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now())
+
+  assignee    Profile?            @relation("CaseAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  opener      Profile?            @relation("CaseOpener", fields: [openedBy], references: [id], onDelete: Restrict)
+  resolver    Profile?            @relation("CaseResolver", fields: [resolvedBy], references: [id], onDelete: Restrict)
+  notes       CaseNote[]
+  evidence    CaseEvidence[]
+  dataExports DataExportRequest[]
+
+  @@index([status, slaDueAt], map: "cases_status_sla")
+  @@index([assigneeId, status], map: "cases_assignee")
+  @@map("cases")
+}
+
+/// Append-only. kind: NOTE (Admin), REPORT (a member's report), EVENT (history).
+model CaseNote {
+  id        String   @id @db.Uuid
+  caseId    String   @db.Uuid
+  authorId  String?  @db.Uuid
+  kind      String   @default("NOTE")
+  body      String
+  createdAt DateTime @default(now())
+
+  case   Case     @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  author Profile? @relation("CaseNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt], map: "case_notes_case")
+  @@map("case_notes")
+}
+
+/// Append-only links (same-site paths or https only).
+model CaseEvidence {
+  id        String   @id @db.Uuid
+  caseId    String   @db.Uuid
+  addedBy   String   @db.Uuid
+  label     String
+  url       String
+  createdAt DateTime @default(now())
+
+  case  Case    @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  adder Profile @relation("CaseEvidenceAdder", fields: [addedBy], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt], map: "case_evidence_case")
+  @@map("case_evidence")
+}
+
+/// GDPR data export: one case manager records it, a different one approves.
+model DataExportRequest {
+  id          String           @id @db.Uuid
+  subjectId   String           @db.Uuid
+  caseId      String?          @db.Uuid
+  reason      String
+  status      DataExportStatus @default(REQUESTED)
+  requestedBy String           @db.Uuid
+  decidedBy   String?          @db.Uuid
+  decidedAt   DateTime?
+  expiresAt   DateTime?
+  createdAt   DateTime         @default(now())
+
+  subject   Profile  @relation("DataExportSubject", fields: [subjectId], references: [id], onDelete: Restrict)
+  case      Case?    @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  requester Profile  @relation("DataExportRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  decider   Profile? @relation("DataExportDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt], map: "data_export_requests_status")
+  @@map("data_export_requests")
 }

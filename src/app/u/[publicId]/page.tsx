@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { auth } from "@/lib/auth";
 import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
+import { ReportPanel } from "@/components/cases/ReportPanel";
 import { ReviewList } from "@/components/reviews/ReviewList";
 import { StarRating } from "@/components/reviews/StarRating";
 import { viewProfile } from "@/services/profiles/userProfiles";
@@ -145,6 +146,14 @@ export default async function PublicProfilePage({
           </h2>
           <p className="mt-2 text-sm whitespace-pre-line text-body">{view.experience}</p>
         </section>
+      )}
+
+      {viewer && viewer.profileId !== view.profileId && (
+        <ReportPanel
+          subjectType="USER"
+          subjectId={view.profileId}
+          label="Report this member"
+        />
       )}
 
       <section aria-labelledby="reviews">

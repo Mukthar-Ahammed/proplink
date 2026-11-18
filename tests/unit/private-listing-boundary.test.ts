@@ -37,6 +37,8 @@ const SERVICE_USERS = [
   "src/services/projects/",
   // Phase 5 Task 5 (ADR-055): a count of the Landlord's own submitted listings.
   "src/services/profiles/trackRecord.ts",
+  // Phase 6 Task 3 (ADR-059): a member's own listings in their GDPR export.
+  "src/services/admin/dataExport.ts",
 ];
 /** Download links that skip the owner/Admin check: Landlord service only. */
 const GRANTED_LINK_CALL = /createGrantedDownloadLink\s*\(/;

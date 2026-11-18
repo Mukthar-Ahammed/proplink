@@ -1334,3 +1334,11 @@ of the boundary.
   sidebar links); `/admin/roles`. Ledger-correction decisions need
   FINANCIAL_ADJUSTMENTS. Test fixtures grant permissions directly with
   `grantAdminPermission` (superuser, disposable database only).
+- Cases and data requests (Task 3, ADR-059): `cases`, `case_notes`,
+  `case_evidence`, `data_export_requests` (migration `20261120010000`);
+  `src/services/admin/cases.ts` (`openOrJoinCase` used by chat and review
+  reports, `reportSubject` for listings and members) and
+  `src/services/admin/dataExport.ts`; `/admin/cases`, `/admin/cases/[id]`,
+  `/admin/privacy`, `GET /api/admin/data-exports/[id]`; `ReportPanel` on
+  listing and profile pages. E2E Admin sessions use
+  `tests/e2e/helpers/adminSession.ts` (MFA recovery grant, test only).

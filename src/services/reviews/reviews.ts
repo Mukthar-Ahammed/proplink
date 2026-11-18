@@ -9,12 +9,15 @@ import {
   InvestorProjectStatus,
   MandateStatus,
   PledgeState,
+  CasePriority,
+  CaseSubjectType,
   ReviewContext,
   ReviewStatus,
   Role,
 } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
+import { openOrJoinCase } from "@/services/admin/cases";
 import { sanitizeAnnouncementText } from "@/services/announcements/announcements";
 import { bad, databaseRule, type Actor } from "@/services/projects/common";
 
@@ -348,6 +351,15 @@ export async function reportReview(
     }
     throw error;
   }
+  // Phase 6 Task 3 (ADR-059): reports also open or join the review's case.
+  await openOrJoinCase({
+    subjectType: CaseSubjectType.REVIEW,
+    subjectId: reviewId,
+    title: "Review reported",
+    reporterId: actor.profileId,
+    report: parsed.data,
+    priority: CasePriority.LOW,
+  });
   return { ok: true };
 }
 

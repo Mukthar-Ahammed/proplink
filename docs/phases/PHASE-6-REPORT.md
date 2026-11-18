@@ -52,7 +52,7 @@ None new. Advertising has no billing (OD-11).
 | Task                           | State       | Notes   |
 | ------------------------------ | ----------- | ------- |
 | 2. Admin roles and permissions | Done        | ADR-058 |
-| 3. Reporting and disputes      | Not started |         |
+| 3. Reporting and disputes      | Done        | ADR-059 |
 | 1. Advertising module          | Not started |         |
 | 4. Admin dashboards            | Not started |         |
 | 5. Admin A5 verification debt  | Not started |         |
@@ -62,7 +62,7 @@ None new. Advertising has no billing (OD-11).
 - [x] Permission matrix tests per admin role.
 - [x] Maker-checker cannot be bypassed.
 - [ ] Ads cannot appear on forbidden pages.
-- [ ] Case workflow E2E passes.
+- [x] Case workflow E2E passes.
 - [ ] Phase report written.
 
 ## Task 2 — Admin roles and permissions (2026-11-19)
@@ -97,3 +97,35 @@ None new. Advertising has no billing (OD-11).
 - `tests/integration/settlement-db.test.ts`: an Admin without
   FINANCIAL_ADJUSTMENTS is refused by the service and by the database.
 - Full suite: 149 files, 1,785 passed, 0 failed.
+
+## Task 3 — Reporting and disputes (2026-11-19)
+
+**Delivered** (ADR-059)
+
+- Migration `20261120010000_phase6_cases` (rollback rehearsed): cases (one
+  open per subject), append-only notes and evidence, data-export requests;
+  triggers for the workflow, case-manager-only assignment and resolution,
+  four-eyes on exports.
+- Chat and review reports feed cases; members report listings and members
+  from their pages.
+- `/admin/cases` (open, mine, overdue, resolved, closed; SLA by priority)
+  and the case page (assign, status, priority, notes, evidence links,
+  resolve, close, reopen; link to the subject, chat reading still asks for a
+  reason). `/admin/privacy`: record, approve (second case manager),
+  download (7 days, audited).
+- Test-only authenticated Admin session for E2E
+  (`tests/e2e/helpers/adminSession.ts`), also part of Task 5.
+
+**Verification**
+
+- `tests/integration/cases-db.test.ts` (3, disposable database): two
+  reports join one case; non-case Admins cannot see, assign or work cases;
+  assignment only to case managers; unsafe evidence links refused (service
+  and database); resolution required; a report after resolution opens a new
+  case; closed cases fixed, notes append-only, no deletes; resolution only
+  by case managers even bypassing the service; self-reports and missing
+  subjects refused; 5 concurrent reports → one case with 5 reports; export
+  needs a second case manager (service and database), downloads audited.
+- `tests/e2e/case-workflow.spec.ts`: a Buyer reports a listing; the Admin
+  (MFA session) opens the case, takes it, adds a note and evidence,
+  resolves and closes it. Passed against the dev server.

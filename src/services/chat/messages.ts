@@ -5,9 +5,15 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 import { Prisma } from "@/generated/prisma/client";
-import { ChatReportStatus, Role, UploadStatus } from "@/generated/prisma/enums";
+import {
+  ChatReportStatus,
+  Role,
+  UploadStatus,
+  CaseSubjectType,
+} from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
+import { openOrJoinCase } from "@/services/admin/cases";
 import { consumeRateLimits, type LimitSpec } from "@/services/auth/supabaseAuthService";
 import { threadAccess, type Viewer } from "@/services/chat/threads";
 import { sendNewChatMessageEmail } from "@/services/email/mailer";
@@ -286,6 +292,14 @@ export async function reportThread(
   const id = randomUUID();
   await db.chatReport.create({
     data: { id, threadId, reporterId: viewer.profileId, reason: reason.data },
+  });
+  // Phase 6 Task 3 (ADR-059): every report opens or joins the chat's case.
+  await openOrJoinCase({
+    subjectType: CaseSubjectType.CHAT,
+    subjectId: threadId,
+    title: "Chat reported",
+    reporterId: viewer.profileId,
+    report: reason.data,
   });
   await writeAudit({
     actorUserId: viewer.legacyUserId,

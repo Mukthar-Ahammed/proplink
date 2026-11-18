@@ -24,6 +24,7 @@ export const ADMIN_ROUTE_PERMISSIONS: readonly (readonly [string, string | null]
   ["/admin/projects", "PROJECT_OVERSIGHT"],
   ["/admin/reviews", "REVIEW_MODERATION"],
   ["/admin/cases", "CASE_MANAGEMENT"],
+  ["/admin/data-exports", "CASE_MANAGEMENT"],
   ["/admin/privacy", "CASE_MANAGEMENT"],
   ["/admin/system", "SYSTEM_INTEGRATIONS"],
   ["/admin/settings", "SYSTEM_INTEGRATIONS"],

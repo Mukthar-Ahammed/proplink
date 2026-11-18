@@ -10,6 +10,7 @@ import {
 } from "@/services/listings/listingService";
 import { getAgentProfilePublic } from "@/services/agents/agentProfileService";
 import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
+import { ReportPanel } from "@/components/cases/ReportPanel";
 import { SITE_URL } from "@/lib/siteUrl";
 import { listingStructuredData, serializeJsonLd } from "@/services/search/publicListings";
 import { staticMapService } from "@/services/maps";
@@ -328,6 +329,15 @@ export default async function PropertyDetailPage({ params }: PageProps) {
             </CardBody>
           </Card>
         </section>
+      )}
+
+      {/* Phase 6 Task 3 (ADR-059): signed-in members may report a listing. */}
+      {isPublic && viewer && (
+        <ReportPanel
+          subjectType="LISTING"
+          subjectId={listing.id}
+          label="Report this listing"
+        />
       )}
 
       {/* Buyer-only write actions (ADR-017). The server decides who sees these —

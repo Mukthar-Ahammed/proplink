@@ -33,6 +33,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
       { label: "Investor Projects", href: "/admin/projects", status: "active" },
       { label: "Moderation", href: "/admin/moderation", status: "active" },
       { label: "Reviews", href: "/admin/reviews", status: "active" },
+      { label: "Cases", href: "/admin/cases", status: "active" },
       { label: "Flipper Resales", href: "/admin/resales", status: "active" },
     ],
   },
@@ -69,7 +70,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     title: "GOVERNANCE",
     items: [
       { label: "Audit Logs", href: "/admin/audit", status: "soon" },
-      { label: "Privacy & Erasure", href: "/admin/privacy", status: "soon" },
+      { label: "Data Requests", href: "/admin/privacy", status: "active" },
       { label: "Platform Settings", href: "/admin/settings", status: "soon" },
     ],
   },

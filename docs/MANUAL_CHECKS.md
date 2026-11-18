@@ -252,6 +252,16 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
 - [ ] **Financial adjustments.** An Admin without the financial adjustments
       permission cannot approve a Solicitor's ledger correction.
 
+- [ ] **Cases.** As `buyer@` report a listing ("Report this listing"); as
+      another member report the same listing: one case with two reports at
+      Admin → Cases. Assign it to yourself, add a note and an evidence link,
+      resolve with a resolution, close it. Report a chat and a review: each
+      opens a case. A chat case's link asks for a reason before showing the
+      chat.
+- [ ] **Data requests.** At Admin → Data Requests record a request for
+      `buyer@`; you cannot approve your own; a second case manager
+      approves; the JSON downloads (account, messages, offers, viewings…).
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.
