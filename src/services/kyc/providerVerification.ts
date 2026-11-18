@@ -6,6 +6,7 @@ import { KycStatus, Role } from "@/generated/prisma/enums";
 import { getServerEnv } from "@/env";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
+import { revokeBadgeForFailedVerification } from "@/services/profiles/badges";
 import { consumeRateLimits, type LimitSpec } from "@/services/auth/supabaseAuthService";
 import {
   getKycProvider,
@@ -228,6 +229,10 @@ export async function processKycWebhook(
               WHERE id = ${applicant.legacyUserId}`;
           }
         }
+        // A blue tick never outlives the verification behind it (ADR-027).
+        const badgeRevoked =
+          outcome === "REJECTED" &&
+          (await revokeBadgeForFailedVerification(tx, applicant.profileId));
         if (applicant.legacyUserId) {
           await tx.auditLog.create({
             data: {
@@ -240,6 +245,7 @@ export async function processKycWebhook(
                 outcome,
                 rejectType: event.rejectType,
                 eventType: event.type,
+                badgeRevoked,
               },
             },
           });

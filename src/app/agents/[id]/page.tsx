@@ -8,6 +8,7 @@ import {
 import { formatPenceGBP } from "@/components/listings/wizardTypes";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
 import { AppraisalForm } from "@/components/agents/AppraisalForm";
+import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -56,7 +57,10 @@ export default async function AgentProfilePage({ params }: PageProps) {
           {profile.agencyName.charAt(0).toUpperCase()}
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-primary">{profile.agencyName}</h1>
+          <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold text-primary">
+            {profile.agencyName}
+            {profile.verified && <VerifiedBadge />}
+          </h1>
           {profile.bio && <p className="mt-1 text-sm text-body">{profile.bio}</p>}
           <p className="mt-1 text-xs font-medium text-muted">
             Compliance code: {profile.complianceCode}

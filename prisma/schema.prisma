@@ -245,6 +245,8 @@ model Profile {
   migrationsNotified   AgentMigration[]          @relation("AgentMigrationNotifier")
   migrationsAuthorised AgentMigration[]          @relation("AgentMigrationAuthoriser")
   kycApplicant         KycApplicant?             @relation("KycApplicantProfile")
+  verificationBadge    VerificationBadge?        @relation("VerificationBadgeProfile")
+  badgesAwarded        VerificationBadge[]       @relation("VerificationBadgeAwarder")
 
   @@map("profiles")
 }
@@ -1134,4 +1136,19 @@ model KycWebhookEvent {
 
   @@index([provider, applicantId])
   @@map("kyc_webhook_events")
+}
+
+/// Phase 1 Task 7 (ADR-027). Verified badge ("blue tick"). Present = shown.
+/// Awarded and revoked by Admin only; every change is in the audit log.
+model VerificationBadge {
+  profileId String   @id @db.Uuid
+  awardedAt DateTime @default(now())
+  awardedBy String   @db.Uuid
+  /// Why it was awarded, shown to Admins only.
+  note      String?
+
+  profile Profile @relation("VerificationBadgeProfile", fields: [profileId], references: [id], onDelete: Cascade)
+  awarder Profile @relation("VerificationBadgeAwarder", fields: [awardedBy], references: [id])
+
+  @@map("verification_badges")
 }

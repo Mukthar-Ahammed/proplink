@@ -207,3 +207,34 @@ describe.skipIf(!hasDb)("KYC provider webhook (database)", () => {
     ).rejects.toThrow(/Landlord and Investor/);
   });
 });
+
+describe.skipIf(!hasDb)("KYC rejection and the verified badge (database)", () => {
+  it("removes the blue tick when the provider rejects KYC", async () => {
+    const subject = await createSubject("LANDLORD");
+    const adminId = randomUUID();
+    await db.$executeRawUnsafe(
+      `INSERT INTO auth.users (id, email) VALUES ($1::uuid, $2)`,
+      adminId,
+      `kyc-admin-${adminId}@proplink.test`,
+    );
+    await db.$executeRawUnsafe(
+      `UPDATE public.profiles SET role = 'ADMIN' WHERE id = $1::uuid`,
+      adminId,
+    );
+    await db.verificationBadge.create({
+      data: { profileId: subject.profileId, awardedBy: adminId },
+    });
+
+    const { raw, headers } = delivery(subject, "REJECTED", Date.now(), "badge");
+    await expect(processKycWebhook(raw, headers)).resolves.toMatchObject({
+      result: "processed",
+    });
+    expect(
+      await db.verificationBadge.findUnique({ where: { profileId: subject.profileId } }),
+    ).toBeNull();
+    const audit = await db.auditLog.findFirst({
+      where: { entityId: subject.profileId, action: "KYC_PROVIDER_DECISION" },
+    });
+    expect(audit?.metaJson).toMatchObject({ outcome: "REJECTED", badgeRevoked: true });
+  });
+});

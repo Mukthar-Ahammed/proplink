@@ -5,6 +5,7 @@ import { z } from "zod";
 import { CompanyCheckOverride, CompanyCheckResult, Role } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
+import { revokeBadgeForFailedVerification } from "@/services/profiles/badges";
 import { consumeRateLimits, type LimitSpec } from "@/services/auth/supabaseAuthService";
 import {
   CompaniesHouseUnavailableError,
@@ -186,6 +187,10 @@ export async function confirmCompany(
     create: { profileId: actor.profileId, ...record },
     update: record,
   });
+  // A company that no longer passes cannot keep a blue tick (ADR-027).
+  const badgeRevoked =
+    result !== CompanyCheckResult.VERIFIED &&
+    (await revokeBadgeForFailedVerification(db, actor.profileId));
   await writeAudit({
     actorUserId: actor.legacyUserId,
     action: "AGENT_COMPANY_CHECKED",
@@ -196,6 +201,7 @@ export async function confirmCompany(
       companyStatus: record.companyStatus,
       result,
       provider: record.provider,
+      badgeRevoked,
       previous: previous
         ? {
             companyNumber: previous.companyNumber,
@@ -245,6 +251,9 @@ export async function overrideCompanyCheck(
       overriddenAt: new Date(),
     },
   });
+  const badgeRevoked =
+    decision === CompanyCheckOverride.REJECTED &&
+    (await revokeBadgeForFailedVerification(db, profileId));
   await writeAudit({
     actorUserId: actor.legacyUserId,
     action: "AGENT_COMPANY_OVERRIDDEN",
@@ -256,6 +265,7 @@ export async function overrideCompanyCheck(
       companyNumber: existing.companyNumber,
       result: existing.result,
       previousOverride: existing.override,
+      badgeRevoked,
     },
   });
   return { ok: true };

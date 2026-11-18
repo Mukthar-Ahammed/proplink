@@ -19,7 +19,7 @@ development Supabase project (see the Phase 0 report).
 | 4. Companies House check               | **Done**    | ADR-024; live key pending (BLOCKERS) |
 | 5. Existing agents migration           | **Done**    | ADR-025                              |
 | 6. KYC/AML provider                    | **Done**    | ADR-026; provider choice OD-20       |
-| 7. Blue tick                           | Not started |                                      |
+| 7. Blue tick                           | **Done**    | ADR-027                              |
 | 8. Profiles                            | Not started | Needs Task 12 for photo uploads      |
 | 9. Suspend/reinstate                   | Not started |                                      |
 | 10. Notification preferences           | Not started |                                      |
@@ -314,3 +314,35 @@ exist yet for any service; it is not built here.
   tests pass**; typecheck and lint clean.
 - `tests/e2e/kyc-provider.spec.ts` written, **not yet run**. **Sumsub sandbox
   not exercised**: no keys and no owner confirmation (OD-20).
+
+## Task 7 — Verified badge / blue tick (2026-11-18)
+
+**Delivered** (ADR-027)
+
+- Migration `20261118010000_phase1_verification_badges` (with
+  `rollback.sql`): server-only `verification_badges`; trigger requires an Admin
+  awarder, forbids self-awards and Admin targets.
+- `src/services/profiles/badges.ts`: eligibility (Landlord/Investor KYC
+  approved; Agent company verified or Admin-approved), suggestion queue, award
+  (eligible only, optional note), revoke (reason required), batch lookup, and
+  automatic removal inside the KYC webhook transaction and on a failed or
+  rejected company check. All audited.
+- Admin UI `/admin/badges` (Suggested / Awarded); `VerifiedBadge` on the public
+  Agent page and the Agent block of listing pages.
+- Marketplace cards do not show the lister yet; the card badge follows when they
+  do (noted in ADR-027).
+
+**Verification**
+
+- `tests/unit/verification-badges.test.ts`: eligibility matrix (11 cases),
+  award with cleaned note, empty note, ineligible/already-badged/missing,
+  self-award, bad ID, extra fields, long note, revoke reason and audit, no badge,
+  queue filtering, display lookup, automatic-removal result.
+- `tests/unit/company-check.test.ts`: inactive company removes the badge;
+  approval does not.
+- `tests/integration/verification-badges-db.test.ts` (4): Admin award,
+  non-Admin/self/Admin-target refused, note limit and cascade, no Data API access.
+- `tests/integration/kyc-provider-webhook.test.ts`: a provider KYC rejection
+  removes the badge and the audit row records it.
+- Rollback rehearsed. Full suite: **98 files, 1,264 tests pass**; typecheck and
+  lint clean.

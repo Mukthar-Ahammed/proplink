@@ -9,6 +9,7 @@ import {
   isPubliclyVisibleStatus,
 } from "@/services/listings/listingService";
 import { getAgentProfilePublic } from "@/services/agents/agentProfileService";
+import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
 import { staticMapService } from "@/services/maps";
 import { DISTRESS_TAG_OPTIONS, formatPenceGBP } from "@/components/listings/wizardTypes";
 import { Badge, EpcBadge } from "@/components/ui/badge";
@@ -265,6 +266,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
               <Link href={`/agents/${agentProfile.id}`} className="hover:underline">
                 {agentProfile.agencyName}
               </Link>
+              {agentProfile.verified && <VerifiedBadge className="ml-2 align-middle" />}
             </CardTitle>
             <CardBody>
               {agentProfile.ratingCount > 0 ? (

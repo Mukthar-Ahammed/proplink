@@ -8,7 +8,12 @@ import type {
 } from "@/services/agents/validation";
 
 const PROFILE_INCLUDE = {
-  user: { select: { active: true } },
+  user: {
+    select: {
+      active: true,
+      authProfile: { select: { verificationBadge: { select: { profileId: true } } } },
+    },
+  },
   caseStudies: true,
   appraisals: {
     include: { investor: { select: { name: true } } },
@@ -22,6 +27,8 @@ export interface AgentProfilePublic {
   bio: string | null;
   complianceCode: string;
   active: boolean;
+  /** Admin-awarded verified badge on the owning account (ADR-027). */
+  verified: boolean;
   /** Average of `Appraisal.rating` for this profile — null when there are none yet. */
   ratingAverage: number | null;
   ratingCount: number;
@@ -78,6 +85,7 @@ export async function getAgentProfilePublic(
     bio: profile.bio,
     complianceCode: profile.complianceCode,
     active: profile.active,
+    verified: Boolean(profile.user.authProfile?.verificationBadge),
     ratingAverage: ratingAgg._avg.rating,
     ratingCount: ratingAgg._count.rating,
     verifiedDealCount,
@@ -113,12 +121,7 @@ async function findOwnedProfile(userId: string, agentProfileId: string) {
     where: { id: agentProfileId },
     include: { user: { select: { active: true } } },
   });
-  if (
-    !profile ||
-    profile.userId !== userId ||
-    !profile.active ||
-    !profile.user.active
-  ) {
+  if (!profile || profile.userId !== userId || !profile.active || !profile.user.active) {
     throw new AgentServiceError(
       "Agent profile not found, or not owned by this user",
       "FORBIDDEN",

@@ -20,7 +20,11 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 - **Task 6 (KYC/AML provider) done** (ADR-026): Sumsub adapter and mock,
   signed idempotent webhook at `/api/webhooks/kyc`, Landlord and Investor
   "Verify my identity". Provider choice is OD-20; keys pending (BLOCKERS). Full
-  suite 96 files / 1,237 tests pass. Phase 1 tasks done: 1–6 of 13.
+  suite 96 files / 1,237 tests pass.
+- **Task 7 (verified badge) done** (ADR-027): Admin-awarded blue tick at
+  `/admin/badges`, suggested after KYC or company verification, removed
+  automatically when that verification fails. Full suite 98 files / 1,264 tests
+  pass. Phase 1 tasks done: 1–7 of 13.
 - Phase 0 is unchanged: only the owner's manual authentication test remains.
 
 ## 2026-11-16 update

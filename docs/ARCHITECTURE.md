@@ -241,6 +241,11 @@ The complete one-line policy rationale is in
   transaction. Tables `kyc_applicants` and append-only `kyc_webhook_events` store IDs
   and outcomes only. The proxy exempts only `POST /api/webhooks/*` from the same-origin
   check (`isSignedWebhookRequest`) and rate-limits it as `webhook` (300/min).
+- **Verified badge (Phase 1, ADR-027):** server-only `verification_badges` (Admin awarder
+  only, no self-award, no Admin targets, by trigger). Eligibility: Landlord/Investor KYC
+  approved, Agent company check passed (`src/services/profiles/badges.ts`). Admin UI
+  `/admin/badges`. Removed automatically on provider KYC rejection or a failed/rejected
+  company check. Shown by `VerifiedBadge` from a server-computed flag.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

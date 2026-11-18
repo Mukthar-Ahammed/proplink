@@ -20,7 +20,7 @@ before then.
 | 4. Companies House check               | Done        |
 | 5. Existing agents migration           | Done        |
 | 6. KYC/AML provider                    | Done        |
-| 7. Blue tick                           | Not started |
+| 7. Blue tick                           | Done        |
 | 8. Profiles                            | Not started |
 | 9. Suspend/reinstate                   | Not started |
 | 10. Notification preferences           | Not started |

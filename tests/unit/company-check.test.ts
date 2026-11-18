@@ -16,6 +16,7 @@ vi.mock("@/lib/db", () => ({
     },
     profile: { findMany: vi.fn() },
     auditLog: { create: vi.fn() },
+    $executeRaw: vi.fn(async () => 0),
   },
 }));
 vi.mock("@/services/auth/supabaseAuthService", () => ({
@@ -132,6 +133,8 @@ describe("confirmCompany", () => {
       companyStatus: "liquidation",
       result: CompanyCheckResult.INACTIVE,
     });
+    // An inactive company removes any blue tick (ADR-027).
+    expect(mockDb.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
   it("clears a previous Admin override when the company changes", async () => {
@@ -207,6 +210,8 @@ describe("overrideCompanyCheck", () => {
     } as never);
 
     await expect(overrideCompanyCheck(ADMIN, valid)).resolves.toEqual({ ok: true });
+    // Approval does not touch badges; only a rejection removes one.
+    expect(mockDb.$executeRaw).not.toHaveBeenCalled();
 
     expect(mockDb.agentCompanyCheck.update).toHaveBeenCalledWith({
       where: { profileId: AGENT.profileId },
