@@ -88,6 +88,7 @@ import { adminReadThread } from "@/services/chat/messages";
 import { threadAccess } from "@/services/chat/threads";
 import { createPledge } from "@/services/projects/pledges";
 import { publishProject } from "@/services/projects/projects";
+import { relistProject } from "@/services/projects/relist";
 import { recordFundStatus } from "@/services/projects/works";
 
 function sessionAs(role: MatrixRole) {
@@ -249,6 +250,21 @@ const CHECKERS: Record<string, (role: MatrixRole) => Promise<Cell>> = {
     } finally {
       vi.mocked(db.profile.findUnique).mockImplementation((async () => null) as never);
     }
+  },
+
+  /**
+   * Phase 5 (ADR-052): the project's Agent re-lists a completed project for
+   * sale, or an Admin on their behalf (audited). Others are refused (403)
+   * before any project lookup; the allowed roles reach "not found" (404).
+   */
+  async publish_to_retail_portal(role) {
+    const session = sessionAs(role);
+    const result = await relistProject(
+      { profileId: session.user.authUserId, legacyUserId: session.user.id, role },
+      "ffffffff-ffff-4fff-8fff-ffffffffffff",
+      {},
+    );
+    return result.ok || !denied(result.status) ? "allow" : "deny";
   },
 
   /**

@@ -190,7 +190,7 @@ export async function relistAction(
   _previous: ProjectFormState,
   formData: FormData,
 ): Promise<ProjectFormState> {
-  const who = await actor(Role.AGENT);
+  const who = await actor(Role.AGENT, Role.ADMIN);
   if (!who) return { kind: "error", message: "Sign in again" };
   const result = await relistProject(who, text(formData, "projectId"), {
     title: text(formData, "title"),

@@ -23,7 +23,7 @@ export const MATRIX_ROLES = [
 export type MatrixRole = (typeof MATRIX_ROLES)[number];
 
 /** The phase currently being delivered; cells from later phases expect DENY. */
-export const CURRENT_PHASE = 4;
+export const CURRENT_PHASE = 5;
 
 export type Cell = "allow" | "deny";
 
@@ -96,7 +96,7 @@ export const PERMISSION_MATRIX: readonly MatrixRow[] = [
     "publish_to_retail_portal",
     [Role.AGENT, Role.ADMIN],
     5,
-    'Agent: completed projects. Admin: audited. Phase 5 builds the retail listing of a completed project (phase prompts); Phase 4 stops at "Listed for sale".',
+    "Agent: own completed project. Admin: on the Agent's behalf, audited (ADR-052). Listings still pass Admin review.",
   ),
   row(
     "pledge_capital",

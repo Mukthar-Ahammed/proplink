@@ -12,7 +12,12 @@ const nextConfig: NextConfig = {
       },
       { protocol: "https", hostname: "images.unsplash.com" },
     ],
-    localPatterns: [{ pathname: "/uploads/**", search: "" }],
+    // Same-origin: uploads, plus the site's own marketing and UI artwork.
+    localPatterns: [
+      { pathname: "/uploads/**", search: "" },
+      { pathname: "/marketing/**", search: "" },
+      { pathname: "/ui/**", search: "" },
+    ],
     formats: ["image/avif", "image/webp"],
   },
   logging: {

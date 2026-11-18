@@ -31,11 +31,11 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   and changes (ADR-049), sale and append-only ledger (ADR-050), project
   decisions (ADR-051). Every exit-gate item is proven by tests; owner checks
   and the Dropbox Sign live smoke test are pending.
-- **Phase 5 started** on `phase-5-sale-buyers` (re-listing completed projects,
+- **Phase 5 built** (2026-11-19) on `phase-5-sale-buyers` (re-listing completed projects,
   buyer experience, reviews, trust features). Built so far: re-listing and
   sale handoff (ADR-052), offers and viewings (ADR-053), reviews from
   qualifying interactions with Admin moderation, and the verified badge and
-  stars on listing cards (ADR-054), and the server-computed track record with historical ROI behind an Admin flag (ADR-055), and saved searches with daily email alerts plus the maps provider switch (ADR-056), and the for-sale sitemap, structured data and image allowlist (ADR-057). The owner does every manual
+  stars on listing cards (ADR-054), and the server-computed track record with historical ROI behind an Admin flag (ADR-055), and saved searches with daily email alerts plus the maps provider switch (ADR-056), and the for-sale sitemap, structured data and image allowlist (ADR-057). Every exit-gate item is proven by tests (buyer journey E2E on phone and desktop, axe checks, full suite green); owner checks pending. The owner does every manual
   check after the last phase; the running list is `docs/MANUAL_CHECKS.md`.
 
 ## 2026-11-17 update

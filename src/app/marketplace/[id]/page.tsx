@@ -214,6 +214,16 @@ export default async function PropertyDetailPage({ params }: PageProps) {
           )}
         </div>
         {canSave && <SaveButton propertyId={listing.id} initialSaved={alreadySaved} />}
+        {/* Signed out: prompt to sign in and come back to this listing (Phase 5 Task 2). */}
+        {isPublic && !viewer && (
+          <Link
+            href={`/login?callbackUrl=${encodeURIComponent(`/marketplace/${listing.id}`)}`}
+            data-testid="save-signin"
+            className="rounded-lg border border-line px-3 py-2 text-sm font-semibold text-primary hover:bg-surface"
+          >
+            ☆ Sign in to save
+          </Link>
+        )}
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

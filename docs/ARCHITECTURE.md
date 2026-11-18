@@ -1249,6 +1249,9 @@ of the boundary.
   escaped); image optimiser allowlist (`src/lib/images.ts`, `next.config.ts`
   `images`) matching the CSP `img-src`; boundary test keeps investor tables
   and project services out of public surfaces.
+- Tests (Phase 5 wrap-up): Vitest projects `main` and `seeded-search`
+  (`groupOrder`), so the exact-catalogue search test runs after the database
+  tests that create live listings. Permission matrix `CURRENT_PHASE = 5`.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

@@ -216,7 +216,7 @@ export default async function Home() {
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-pale text-xs font-bold text-primary">
                       {String(i + 1).padStart(2, "0")}
                     </span>
-                    <span className="text-[10px] font-semibold tracking-wider text-muted/70 uppercase">
+                    <span className="text-[10px] font-semibold tracking-wider text-muted uppercase">
                       STEP {i + 1}
                     </span>
                   </div>

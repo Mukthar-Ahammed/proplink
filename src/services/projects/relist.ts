@@ -61,8 +61,13 @@ export async function relistProject(
   raw: unknown,
   now: Date = new Date(),
 ): Promise<ServiceResult<{ propertyId: string }>> {
-  if ((await projectRelation(agent, projectId)) !== "AGENT")
-    return bad("Project not found", 404);
+  // The project's Agent, or an Admin on their behalf (TRD matrix: "Admin:
+  // audited"). The listing always belongs to the project's Agent's agency.
+  if (agent.role !== Role.AGENT && agent.role !== Role.ADMIN) {
+    return bad("Only the project's Agent or an Admin lists it for sale", 403);
+  }
+  const relation = await projectRelation(agent, projectId);
+  if (relation !== "AGENT" && relation !== "ADMIN") return bad("Project not found", 404);
   const parsed = relistSchema.safeParse(raw);
   if (!parsed.success) return bad(parsed.error.issues[0]?.message ?? "Check the listing");
   const input = parsed.data;
@@ -71,6 +76,8 @@ export async function relistProject(
     where: { id: projectId },
     select: {
       status: true,
+      agentId: true,
+      agent: { select: { legacyUserId: true } },
       retailListing: { select: { propertyId: true } },
       listing: { select: { addressLine1: true, city: true, postcode: true } },
     },
@@ -86,12 +93,21 @@ export async function relistProject(
   if (!addressLine1 || !city || !postcode) {
     return bad("The source listing has no full address to list", 409);
   }
+  const agentUserId = project.agent.legacyUserId;
+  if (!agentUserId) return bad("The project's Agent has no agency profile", 409);
   const agency = await db.agentProfile.findFirst({
-    where: { userId: agent.legacyUserId, active: true },
+    where: { userId: agentUserId, active: true },
     select: { id: true },
     orderBy: { id: "asc" },
   });
-  if (!agency) return bad("Set up your agency profile before listing", 409);
+  if (!agency) {
+    return bad(
+      relation === "ADMIN"
+        ? "The project's Agent has no active agency profile"
+        : "Set up your agency profile before listing",
+      409,
+    );
+  }
 
   let propertyId = "";
   try {
@@ -119,7 +135,7 @@ export async function relistProject(
       });
       propertyId = property.id;
       await tx.projectRetailListing.create({
-        data: { projectId, propertyId, createdBy: agent.profileId },
+        data: { projectId, propertyId, createdBy: project.agentId },
       });
       if (project.status === InvestorProjectStatus.COMPLETED) {
         await tx.investorProject.update({
@@ -147,7 +163,10 @@ export async function relistProject(
     action: "PROJECT_RELISTED",
     entity: "InvestorProject",
     entityId: projectId,
-    meta: { propertyId },
+    meta: {
+      propertyId,
+      ...(relation === "ADMIN" ? { onBehalfOfAgent: project.agentId } : {}),
+    },
   });
   return { ok: true, data: { propertyId } };
 }

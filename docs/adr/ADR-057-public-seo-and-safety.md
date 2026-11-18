@@ -26,8 +26,8 @@
    (`tests/e2e/private-listing-leakage.spec.ts`) keeps covering
    `/sitemap.xml` and public JSON.
 4. **Images**: Next's optimiser serves only allowlisted sources (Supabase
-   public storage, images.unsplash.com, same-origin `/uploads/**` without
-   query strings), AVIF/WebP. Listing cards use it for allowlisted URLs; any
+   public storage, images.unsplash.com, same-origin `/uploads/**`, `/marketing/**` and
+   `/ui/**` without query strings), AVIF/WebP. Listing cards use it for allowlisted URLs; any
    other URL is shown unoptimised and the CSP `img-src` (same host list)
    decides whether it loads.
 5. **Bot protection on enquiries** is already in place: Cloudflare

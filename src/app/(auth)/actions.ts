@@ -261,8 +261,10 @@ async function loginForAudience(
     return { kind: "success", destination: "/admin" };
   }
 
+  // Same-site paths only: "/x", never "//host" or "/\host" (browsers read a
+  // backslash as a slash, so "/\evil.example" would leave the site).
   const destination =
-    requestedDestination && /^\/(?!\/)/.test(requestedDestination)
+    requestedDestination && /^\/(?![/\\])[^\\]*$/.test(requestedDestination)
       ? requestedDestination
       : "/portal";
   return { kind: "success", destination };

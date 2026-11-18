@@ -43,7 +43,8 @@ test.describe("buyer portal", () => {
     // The disclosure summary is visible; the chips inside it are not, until it
     // is opened. Asserting the inner label would assert the opposite of the
     // behaviour under test.
-    const disclosure = page.locator("details");
+    // Scoped: the page also has a "Save this search" disclosure (Phase 5).
+    const disclosure = page.locator("details", { hasText: "Distress type" });
     await expect(disclosure).toHaveCount(1);
     expect(await disclosure.evaluate((el: HTMLDetailsElement) => el.open)).toBe(false);
     await expect(disclosure.locator("summary")).toContainText("Distress type");

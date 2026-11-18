@@ -234,6 +234,15 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       address. Run the listing through Google's Rich Results Test once
       deployed.
 
+- [ ] **Admin re-list.** On a completed project's Admin page, "List for sale":
+      the listing appears under the project Agent's agency, waiting for
+      review; the audit log shows the Admin.
+- [ ] **Sign in to save.** Signed out, open a listing and press "Sign in to
+      save": after signing in you are back on the same listing.
+- [ ] **Screen reader spot check.** With NVDA or VoiceOver, use search, a
+      listing page and "Reviews": headings, buttons and star ratings are
+      announced sensibly (automated axe checks already pass).
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

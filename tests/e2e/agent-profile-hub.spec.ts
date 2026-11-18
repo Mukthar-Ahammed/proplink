@@ -72,9 +72,12 @@ test("appraisals are retired: no form, and the API refuses (410)", async ({ page
   await expect(page.getByTestId("review-rule")).toContainText("completed work");
   await expect(page.getByLabel("Rating")).toHaveCount(0);
 
-  // API: the old appraisal endpoint is gone.
+  // API: the old appraisal endpoint is gone. Same-origin headers so the
+  // request passes the CSRF check and reaches the route itself.
+  const origin = new URL(page.url()).origin;
   const res = await page.request.post(`/api/agents/${profile.id}/appraisals`, {
     data: { rating: 5, review: `${RUN} — should never be created` },
+    headers: { origin, "x-proplink-request": "1" },
   });
   expect(res.status()).toBe(410);
 

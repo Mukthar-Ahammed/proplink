@@ -16,6 +16,8 @@ import { AgreementList } from "@/components/projects/AgreementList";
 import { WorksPanel } from "@/components/projects/WorksPanel";
 import { DecisionPanel } from "@/components/projects/DecisionPanel";
 import { LedgerPanel } from "@/components/projects/LedgerPanel";
+import { RelistPanel } from "@/components/projects/RelistPanel";
+import { retailListingFor } from "@/services/projects/relist";
 import { isShortfall, listDecisions } from "@/services/projects/decisions";
 import { ledgerView, settlementPlan } from "@/services/projects/settlement";
 import { worksView } from "@/services/projects/works";
@@ -51,6 +53,8 @@ export default async function AdminProjectPage({
   const agreements = (await listAgreements(admin, project.id)) ?? [];
   const works = await worksView(admin, project.id);
   const decisions = await listDecisions(project.id);
+  const retail = await retailListingFor(project.id);
+  const sellable = ["COMPLETED", "LISTED_FOR_SALE", "SOLD"].includes(project.status);
   const closable = ["PUBLISHED", "OPEN_FOR_INVESTMENT", "FUNDED"].includes(
     project.status,
   );
@@ -194,6 +198,16 @@ export default async function AdminProjectPage({
             projectStatus={project.status}
             path={path}
           />
+        </section>
+      )}
+      {sellable && (
+        <section>
+          <h2 className="text-lg font-semibold text-primary">Retail sale</h2>
+          <p className="mb-2 text-sm text-muted">
+            Normally the project&rsquo;s Agent lists it. Listing here acts on their behalf
+            (their agency, audited) and still goes to listing review.
+          </p>
+          <RelistPanel projectId={project.id} path={path} listing={retail} />
         </section>
       )}
       {ledger && (

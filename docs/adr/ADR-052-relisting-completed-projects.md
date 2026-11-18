@@ -29,6 +29,15 @@
    investment side is the project Solicitor's; PropLink holds no purchase
    money.
 
+## Addendum (2026-11-19)
+
+The TRD matrix allows Admin to publish to the retail portal ("audited"). An
+Admin may re-list a completed project on the project Agent's behalf: the
+listing is created in the Agent's agency, `project_retail_listings.createdBy`
+stays the Agent (the database guard is unchanged), the audit entry records
+the Admin with `onBehalfOfAgent`, and the listing still goes to Admin
+listing review. Other roles are refused with 403.
+
 ## Consequences
 
 - The legacy `Property.askingPriceGBP` is a 32-bit pence column; re-list

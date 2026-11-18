@@ -102,7 +102,7 @@ describe.skipIf(!hasDb)(
       // Only the project's Agent re-lists, and only once works are complete.
       expect(
         await relistProject(as(p.lead, Role.INVESTOR), p.projectId, LISTING),
-      ).toMatchObject({ ok: false, status: 404 });
+      ).toMatchObject({ ok: false, status: 403 });
       expect(
         await relistProject(agent, p.projectId, {
           ...LISTING,
@@ -187,6 +187,39 @@ describe.skipIf(!hasDb)(
           [p.projectId, rows[0].id, other.profileId],
         ),
       ).rejects.toMatchObject({ code: "23514" });
+    });
+
+    it("lets an Admin list on the Agent's behalf, into the Agent's agency, audited", async () => {
+      const p = await completedProject();
+      // Investors and Landlords are refused outright.
+      expect(
+        await relistProject(as(p.landlord, Role.LANDLORD), p.projectId, LISTING),
+      ).toMatchObject({ ok: false, status: 403 });
+      const listed = await relistProject(as(p.admin, Role.ADMIN), p.projectId, LISTING);
+      expect(listed.ok).toBe(true);
+      if (!listed.ok) return;
+      const { rows } = await client.query(
+        `SELECT ap."userId", p.status::text AS status, rl."createdBy"
+           FROM public."Property" p
+           JOIN public."AgentProfile" ap ON ap.id = p."agentProfileId"
+           JOIN public.project_retail_listings rl ON rl."propertyId" = p.id
+          WHERE p.id = $1`,
+        [listed.data.propertyId],
+      );
+      expect(rows[0]).toEqual({
+        userId: p.agent.legacyUserId,
+        status: "PENDING_REVIEW",
+        createdBy: p.agent.profileId,
+      });
+      const { rows: audit } = await client.query(
+        `SELECT "actorUserId", "metaJson" FROM public."AuditLog"
+          WHERE action = 'PROJECT_RELISTED' AND "entityId" = $1`,
+        [p.projectId],
+      );
+      expect(audit[0]).toMatchObject({
+        actorUserId: p.admin.legacyUserId,
+        metaJson: { onBehalfOfAgent: p.agent.profileId },
+      });
     });
   },
 );

@@ -1,8 +1,8 @@
 # Phase 5 — Final Sale, Retail Buyer Experience, Reviews and Trust Features
 
-| Status      | Started    | Branch                | Depends on                                         |
-| ----------- | ---------- | --------------------- | -------------------------------------------------- |
-| In progress | 2026-11-18 | `phase-5-sale-buyers` | Phases 1-4 built; owner checks deferred (see note) |
+| Status                          | Started    | Branch                | Depends on                                         |
+| ------------------------------- | ---------- | --------------------- | -------------------------------------------------- |
+| Built; waiting for owner checks | 2026-11-18 | `phase-5-sale-buyers` | Phases 1-4 built; owner checks deferred (see note) |
 
 Started from `phase-4-investor-projects` after its build finished. By the
 owner's choice (2026-11-18), manual checks for every phase are done together
@@ -65,8 +65,9 @@ Phase 6).
 - [x] Public crawl exposes only for-sale data.
 - [x] Review eligibility and moderation tests pass.
 - [x] Offer and viewing state machines tested, including concurrent actions.
-- [ ] Buyer journey E2E passes on mobile and desktop; accessibility checks pass.
-- [ ] Phase report written.
+- [x] Buyer journey E2E passes on mobile and desktop; accessibility checks pass.
+- [x] Phase report written.
+- [ ] Owner checks (`docs/MANUAL_CHECKS.md`, Phase 5 section) — done together after the last phase.
 
 ## Tasks 1 and 1a — Re-list for sale; sale completion (2026-11-18)
 
@@ -231,3 +232,60 @@ Phase 6).
   break-out escaping, image allowlist cases.
 - `tests/unit/private-listing-boundary.test.ts`: robots now points at the
   sitemap; new "no investor data on public surfaces" check.
+
+## Wrap-up (2026-11-19)
+
+**Delivered**
+
+- Permission matrix at `CURRENT_PHASE = 5`: `publish_to_retail_portal` is
+  delivered and checked against the real guard (Agent and Admin allowed,
+  everyone else refused with 403). Admin may now re-list a completed project
+  on the Agent's behalf from the Admin project page: the listing belongs to
+  the Agent's agency, the audit log records the Admin, and it still goes to
+  listing review (ADR-052 addendum).
+- Notification preferences page at Phase 5.
+- Signed-out visitors get "Sign in to save" on a listing, which returns them
+  to it after sign-in.
+- **Security fix found on the way:** the login `callbackUrl` check accepted
+  `/\evil.example` (browsers read the backslash as a slash, so the user
+  could be sent off-site after sign-in). Only same-site paths are accepted
+  now; tests cover four off-site forms.
+- Accessibility: axe found one serious colour-contrast failure on the home
+  page (70%-opacity muted text); fixed in two places.
+- The image allowlist also covers the site's own `/marketing/**` and
+  `/ui/**` artwork (the E2E run caught the home page failing without it).
+- The seeded-search database test now runs after the other test files
+  (Vitest projects with `groupOrder`), because other database tests create
+  live listings while they run.
+- `axe-core` (already installed via eslint-plugin-jsx-a11y) is now a direct
+  dev dependency at the same version.
+
+**Verification**
+
+- `tests/e2e/phase5-buyer.spec.ts` against the dev server: buyer journey on
+  desktop (1280×800) and phone (390×844): search, open a listing, JSON-LD
+  present without street address, "Sign in to save" returns to the listing,
+  save and unsave, save a search, turn alerts on, delete it. Axe (WCAG 2
+  A/AA, serious and critical) on `/`, `/marketplace`, a listing, `/login`,
+  `/buy`, `/buy/saved`, `/buy/offers`, `/buy/viewings`, `/account/reviews`:
+  no findings. 4 passed.
+- Changed specs re-run: `agent-profile-hub` (appraisal endpoint 410; it now
+  sends same-origin headers so it reaches the route instead of the CSRF
+  check), `buyer-journey` disclosure test. Running many sign-in specs at once
+  trips the login rate limit (5 per 15 minutes), so they were run in small
+  groups; that is the limiter working.
+- Full Vitest suite on the disposable database: 147 files, 1,711 passed,
+  2 skipped by design, 0 failed (one earlier run lost a worker to the known
+  Windows fork crash; the re-run was clean).
+- `tsc`, ESLint (no new warnings) and the production build with CI
+  placeholders pass.
+- Five additive migrations this phase (`20261119080000` to
+  `20261119120000`), each with a rehearsed `rollback.sql`, applied to the
+  development database.
+
+**Not done here (on purpose)**
+
+- Commute times wait for the Google keys (H2.2); alert emails wait for
+  `CRON_SECRET` (H5.5); both in `docs/BLOCKERS.md`.
+- The landing-page E2E has a pre-existing duplicate "Get started" link
+  locator failure from the home-page redesign; not touched here.

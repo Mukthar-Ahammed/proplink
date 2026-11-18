@@ -458,7 +458,7 @@ function PortalCard({
         </div>
 
         {/* Portal Index Number */}
-        <span className="text-xs font-semibold tracking-wider text-muted/70 tabular-nums">
+        <span className="text-xs font-semibold tracking-wider text-muted tabular-nums">
           {portal.id}
         </span>
       </div>
