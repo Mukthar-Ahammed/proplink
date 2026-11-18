@@ -80,8 +80,10 @@ movement · multi-language.
 
 ## Current phase
 
-**Phase 1 — Roles, Access Control, Invites, Verification and Profiles: in
-progress** on `phase-1-roles-access` (started 2026-11-16). **Phase 0 closed
+**Phase 2 — Landlord Listings, Admin Queue, Agent Interest and Exclusive
+Mandates: in progress** on `phase-2-landlord-pipeline` (started 2026-11-18).
+**Phase 1 — Roles, Access Control, Invites, Verification and Profiles:**
+implemented on `phase-1-roles-access` (PR #1), started 2026-11-16. **Phase 0 closed
 2026-11-18** (owner's manual authentication test passed). All 13 Phase 1 tasks
 are implemented; exit waits on the browser tests and pending keys/decisions. The feature-rich marketplace and portals are
 not production-ready. The roadmap is Phases 0–7 in

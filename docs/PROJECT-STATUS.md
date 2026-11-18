@@ -7,6 +7,14 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 
 **Last Phase 0 implementation commit:** `67ad6c5` (2026-11-16).
 
+## 2026-11-18 update
+
+- **Phase 1** pushed; PR #1 (Phase 0 + Phase 1 into `main`) open. Three
+  credential-dependent checks carried forward; exit waits on the owner's hand
+  check of three Admin flows.
+- **Phase 2 started** on `phase-2-landlord-pipeline` (Landlord listings, Admin
+  queue, Agent proposals, exclusive mandates). See `docs/phases/PHASE-2-REPORT.md`.
+
 ## 2026-11-17 update
 
 - **Phase 1 Task 4 (Companies House check) done** on `phase-1-roles-access`

@@ -6,11 +6,11 @@
 > `docs/phases/PHASE-N-REPORT.md`. The 12-week sprint plan and the sprint
 > sections below are the historical baseline (superseded, ADR-019).
 
-**Current focus → Phase 1 — Roles, Access Control, Invites, Verification and
-Profiles**, on `phase-1-roles-access`, started 2026-11-16 in parallel with the
-last Phase 0 item (ADR-020). **Phase 0 closed 2026-11-18**: the owner's manual
-authentication test passed. All 13 Phase 1 tasks are implemented; Phase 1 exit
-waits on the browser tests and the items in the Phase 1 report's exit-gate table.
+**Current focus → Phase 2 — Landlord Listings, Admin Queue, Agent Interest and
+Exclusive Mandates**, on `phase-2-landlord-pipeline` (started 2026-11-18, branched
+from Phase 1; see `docs/phases/PHASE-2-REPORT.md`). **Phase 0 closed 2026-11-18.**
+**Phase 1:** all 13 tasks implemented, PR #1 open; exit waits on the owner's hand
+check of three Admin flows. Phase 2 cannot exit before Phase 1.
 
 | Phase 1 task                           | State |
 | -------------------------------------- | ----- |
