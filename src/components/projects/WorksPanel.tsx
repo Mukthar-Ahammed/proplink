@@ -30,7 +30,6 @@ const FUNDS: Record<string, string> = {
 const NEXT: Record<string, { to: string; label: string }> = {
   FUNDED: { to: "IN_WORKS", label: "Start works (agreement signed)" },
   IN_WORKS: { to: "COMPLETED", label: "Mark works complete" },
-  COMPLETED: { to: "LISTED_FOR_SALE", label: "Mark listed for sale" },
 };
 const input = "rounded-lg border border-line bg-white px-2 py-1 text-sm text-body";
 

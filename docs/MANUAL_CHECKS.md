@@ -181,6 +181,14 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       on another, close it: pledges show "released", the project "Closed",
       its chats end.
 
+## Phase 5 — Final sale, buyer experience, reviews, trust
+
+- [ ] **Re-list and sell (criterion 5).** On a completed project, as the
+      Agent "List for sale"; as Admin approve it in the listing moderation
+      queue; it appears on `/marketplace` with the responsibility notice. As
+      the Agent "Record the sale": the listing shows Sold. As the Solicitor
+      confirm and settle.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

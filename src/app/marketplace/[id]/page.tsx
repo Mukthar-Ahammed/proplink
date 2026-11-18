@@ -307,6 +307,16 @@ export default async function PropertyDetailPage({ params }: PageProps) {
         </section>
       )}
 
+      <p
+        className="rounded-lg border border-line bg-surface p-3 text-xs text-muted"
+        data-testid="ag6-notice"
+      >
+        Conveyancing, legal agreements and contract responsibilities for this sale are
+        handled by the listing agent. Where a property was refurbished through a PropLink
+        investment project, the investment side is handled by that project&apos;s
+        Solicitor. PropLink does not hold or move purchase money.
+      </p>
+
       {comparables ? (
         <PriceHistory data={comparables} />
       ) : (

@@ -68,6 +68,7 @@ enum InvestorType {
 enum ListingSource {
   AGENT
   FLIPPER_RESALE
+  INVESTOR_PROJECT
 }
 
 enum PropertyStatus {
@@ -305,6 +306,7 @@ model Profile {
   correctionsProposed  LedgerCorrection[]        @relation("LedgerCorrectionProposer")
   correctionsDecided   LedgerCorrection[]        @relation("LedgerCorrectionDecider")
   projectDecisions     ProjectDecision[]         @relation("ProjectDecisionMaker")
+  retailListingsMade   ProjectRetailListing[]    @relation("ProjectRetailListingCreator")
 
   @@map("profiles")
 }
@@ -416,6 +418,7 @@ model Property {
   flipperAcquisitions  FlipperAcquisition[]
   flipperProjects      FlipperProject[]
   flipperResales       FlipperResale[]
+  retailProject        ProjectRetailListing?
 
   @@index([status])
   @@index([agentProfileId])
@@ -1969,6 +1972,7 @@ model InvestorProject {
   ledger      DistributionLedgerEntry[]
   corrections LedgerCorrection[]
   decisions   ProjectDecision[]
+  retailListing ProjectRetailListing?
 
   @@index([status, publishedAt])
   @@index([agentId])
@@ -2512,4 +2516,21 @@ model ProjectDecision {
 
   @@index([projectId, decidedAt])
   @@map("project_decisions")
+}
+
+// ── Phase 5 Tasks 1 and 1a: re-listing completed projects (ADR-052) ──
+
+/// A completed investor project's retail listing (an ordinary Property, Admin
+/// reviewed), linked so the listing keeps the project's history.
+model ProjectRetailListing {
+  projectId  String   @id @db.Uuid
+  propertyId String   @unique
+  createdBy  String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  property Property        @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  creator  Profile         @relation("ProjectRetailListingCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("project_retail_listings")
 }

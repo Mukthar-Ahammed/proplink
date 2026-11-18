@@ -46,15 +46,15 @@ Phase 6).
 
 ## Task progress
 
-| Task                            | State       | Notes |
-| ------------------------------- | ----------- | ----- |
-| 1. Re-list for sale             | Not started |       |
-| 1a. Sale completion and handoff | Not started |       |
-| 2. Buyer experience             | Not started |       |
-| 3. Maps and saved-search alerts | Not started |       |
-| 4. Reviews and ratings          | Not started |       |
-| 5. Track record and analytics   | Not started |       |
-| 6. SEO and safety               | Not started |       |
+| Task                            | State       | Notes   |
+| ------------------------------- | ----------- | ------- |
+| 1. Re-list for sale             | Done        | ADR-052 |
+| 1a. Sale completion and handoff | Done        | ADR-052 |
+| 2. Buyer experience             | Not started |         |
+| 3. Maps and saved-search alerts | Not started |         |
+| 4. Reviews and ratings          | Not started |         |
+| 5. Track record and analytics   | Not started |         |
+| 6. SEO and safety               | Not started |         |
 
 ## Exit gate
 
@@ -67,3 +67,26 @@ Phase 6).
 - [ ] Offer and viewing state machines tested, including concurrent actions.
 - [ ] Buyer journey E2E passes on mobile and desktop; accessibility checks pass.
 - [ ] Phase report written.
+
+## Tasks 1 and 1a — Re-list for sale; sale completion (2026-11-18)
+
+**Delivered** (ADR-052; TRD AG-5, AG-6, PD-1, acceptance criterion 5)
+
+- Migration `20261119080000_phase5_project_relisting` (with `rollback.sql`,
+  rehearsed): `INVESTOR_PROJECT` listing source, `project_retail_listings`
+  (Agent of a completed project only, own agency's listing, fixed).
+- "List for sale" on the Agent's project page creates the retail listing for
+  Admin review and moves the project to Listed for sale; "Record the sale"
+  creates the sale record and marks the listing Sold; the Solicitor then
+  confirms and settles (Phase 4).
+- AG-6 responsibility notice on every public listing page.
+
+**Verification**
+
+- `tests/integration/relist-db.test.ts` (2, disposable database):
+  **criterion 5 end to end at service level** (completed signed project →
+  re-list (Agent only, safeguard required, once) → not public and not
+  sellable until Admin approves → LIVE with source INVESTOR_PROJECT → sold
+  (listing SOLD) → Solicitor confirms (project SOLD) → settlement entries →
+  mandate can close); re-listing refused before completion and by the
+  database for anyone but the project's Agent.

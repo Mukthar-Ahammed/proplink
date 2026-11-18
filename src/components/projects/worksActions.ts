@@ -7,6 +7,7 @@ import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
 import type { Actor } from "@/services/projects/common";
 import { recordDecision } from "@/services/projects/decisions";
+import { relistProject } from "@/services/projects/relist";
 import {
   addMilestone,
   advanceProject,
@@ -182,4 +183,24 @@ export async function decisionAction(
     newDeadline: text(formData, "newDeadline"),
   });
   return finish(formData, result, "Decision recorded.");
+}
+
+/** Phase 5 Task 1: re-list a completed project on the Retail Buyer portal. */
+export async function relistAction(
+  _previous: ProjectFormState,
+  formData: FormData,
+): Promise<ProjectFormState> {
+  const who = await actor(Role.AGENT);
+  if (!who) return { kind: "error", message: "Sign in again" };
+  const result = await relistProject(who, text(formData, "projectId"), {
+    title: text(formData, "title"),
+    description: text(formData, "description"),
+    askingPrice: text(formData, "askingPrice"),
+    bedrooms: text(formData, "bedrooms"),
+    propertyType: text(formData, "propertyType"),
+    epcRating: text(formData, "epcRating"),
+    region: text(formData, "region"),
+    pricingSafeguardAck: formData.get("pricingSafeguardAck") === "on",
+  });
+  return finish(formData, result, "Listed; PropLink reviews it before it goes live.");
 }

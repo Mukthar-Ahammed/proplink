@@ -6,11 +6,11 @@ import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
 import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
 import type { Actor } from "@/services/projects/common";
+import { markProjectSold } from "@/services/projects/relist";
 import {
   confirmSale,
   decideCorrection,
   proposeCorrection,
-  recordSale,
   settleProject,
 } from "@/services/projects/settlement";
 
@@ -44,7 +44,8 @@ export async function recordSaleAction(
   if (!who) return { kind: "error", message: "Sign in again" };
   return finish(
     formData,
-    await recordSale(who, text(formData, "projectId"), {
+    // Phase 5 Task 1a: the sale record and the listing marked SOLD together.
+    await markProjectSold(who, text(formData, "projectId"), {
       salePrice: text(formData, "salePrice"),
       soldOn: text(formData, "soldOn"),
     }),

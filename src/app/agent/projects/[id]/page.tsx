@@ -10,6 +10,8 @@ import { signAgreementAction } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
 import { WorksPanel } from "@/components/projects/WorksPanel";
 import { DecisionPanel } from "@/components/projects/DecisionPanel";
+import { RelistPanel } from "@/components/projects/RelistPanel";
+import { retailListingFor } from "@/services/projects/relist";
 import { LedgerPanel } from "@/components/projects/LedgerPanel";
 import { isShortfall, listDecisions } from "@/services/projects/decisions";
 import { ledgerView } from "@/services/projects/settlement";
@@ -67,6 +69,8 @@ export default async function AgentProjectPage({
   const agreements = (await listAgreements(agent, project.id)) ?? [];
   const works = await worksView(agent, project.id);
   const decisions = await listDecisions(project.id);
+  const retail = await retailListingFor(project.id);
+  const sellable = ["COMPLETED", "LISTED_FOR_SALE", "SOLD"].includes(project.status);
   const closable = ["PUBLISHED", "OPEN_FOR_INVESTMENT", "FUNDED"].includes(
     project.status,
   );
@@ -213,6 +217,16 @@ export default async function AgentProjectPage({
             projectId={project.id}
             projectStatus={project.status}
             path={`/agent/projects/${project.id}`}
+          />
+        </PortalSection>
+      )}
+
+      {sellable && (
+        <PortalSection title="Retail sale">
+          <RelistPanel
+            projectId={project.id}
+            path={`/agent/projects/${project.id}`}
+            listing={retail}
           />
         </PortalSection>
       )}

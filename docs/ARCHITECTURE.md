@@ -1210,6 +1210,10 @@ of the boundary.
   `DecisionPanel`. Schema (migration `20261119070000`): `project_decisions`
   (append-only; Agent or Admin only).
 - Permission matrix at `CURRENT_PHASE = 4` (ADR-051).
+- Re-listing (Phase 5 Tasks 1-1a, ADR-052): `relist.ts` (`relistProject`,
+  `markProjectSold`, `retailListingFor`); `RelistPanel`; migration
+  `20261119080000` (`ListingSource.INVESTOR_PROJECT`, `project_retail_listings`
+  with guard). AG-6 notice on `/marketplace/[id]`.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 
