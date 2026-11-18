@@ -140,6 +140,25 @@ export async function createDraft(
  * only to that thread's participants (the Landlord, or an Agent who sent a
  * proposal), who may already see the title.
  */
+/**
+ * How many listings a Landlord has submitted (anything past draft and
+ * Admin-created-awaiting-confirmation). A count only: the profile track
+ * record (Phase 5 Task 5, ADR-055) needs no listing data.
+ */
+export async function countSubmittedListings(ownerId: string): Promise<number> {
+  return db.landlordListing.count({
+    where: {
+      ownerId,
+      status: {
+        notIn: [
+          LandlordListingStatus.DRAFT,
+          LandlordListingStatus.AWAITING_LANDLORD_CONFIRMATION,
+        ],
+      },
+    },
+  });
+}
+
 export async function listingTitles(ids: string[]): Promise<Map<string, string>> {
   const valid = ids.filter((id) => z.uuid().safeParse(id).success);
   if (valid.length === 0) return new Map();

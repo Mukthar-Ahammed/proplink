@@ -217,6 +217,16 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       Track Record, turn historical ROI on: it still does not appear on
       profiles while the financial promotions review is incomplete.
 
+- [ ] **Saved searches and alerts.** As `buyer@` search, "Save this search",
+      then under Saved turn alerts on (a sixth alerting search is refused).
+      Once `CRON_SECRET` is set (H5.5), publish a matching listing and run
+      the job (or wait for 07:00 UTC): one email arrives with the listing
+      and a "Stop these alerts" link; opening the link changes nothing until
+      you press the button; afterwards alerts show off.
+- [ ] **Maps keys** (when H2.2 is done). Set `MAPS_PROVIDER=google` with both
+      keys: listing pages show real maps; the browser key is refused from
+      another site.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

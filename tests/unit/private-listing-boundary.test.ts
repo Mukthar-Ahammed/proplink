@@ -35,6 +35,8 @@ const SERVICE_USERS = [
   // disclosure (buildInvestorView), never the raw listing; documents only
   // after KYC approval. Pages use the projects service, not this one.
   "src/services/projects/",
+  // Phase 5 Task 5 (ADR-055): a count of the Landlord's own submitted listings.
+  "src/services/profiles/trackRecord.ts",
 ];
 /** Download links that skip the owner/Admin check: Landlord service only. */
 const GRANTED_LINK_CALL = /createGrantedDownloadLink\s*\(/;

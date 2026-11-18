@@ -426,3 +426,22 @@ export async function sendProjectEmail(params: {
     text: `${copy.body}\n\n"${params.projectTitle}": ${BASE_URL}${params.path}`,
   });
 }
+
+// Phase 5 Task 3 (ADR-056): saved-search alert. Plain text; titles and towns
+// only (public listing data); the unsubscribe link needs no sign-in.
+
+export async function sendSavedSearchAlertEmail(params: {
+  to: string;
+  searchName: string;
+  listings: { id: string; title: string; city: string }[];
+  unsubscribeToken: string;
+}) {
+  const lines = params.listings
+    .map((l) => `- ${l.title}, ${l.city}: ${BASE_URL}/marketplace/${l.id}`)
+    .join("\n");
+  await mailer.send({
+    to: params.to,
+    subject: `New listings for "${params.searchName}"`,
+    text: `New properties match your saved search "${params.searchName}" on PropLink UK:\n\n${lines}\n\nStop these alerts: ${BASE_URL}/alerts/unsubscribe/${params.unsubscribeToken}`,
+  });
+}

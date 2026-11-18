@@ -51,7 +51,7 @@ Phase 6).
 | 1. Re-list for sale             | Done                                                 | ADR-052 |
 | 1a. Sale completion and handoff | Done                                                 | ADR-052 |
 | 2. Buyer experience             | Done (state machines; existing search/map/save kept) | ADR-053 |
-| 3. Maps and saved-search alerts | Not started                                          |         |
+| 3. Maps and saved-search alerts | Done (alerts; maps mock until H2.2, commute blocked) | ADR-056 |
 | 4. Reviews and ratings          | Done (qualifying pairs, moderation, cards)           | ADR-054 |
 | 5. Track record and analytics   | Done (ROI default behind Admin flag and FPR)         | ADR-055 |
 | 6. SEO and safety               | Not started                                          |         |
@@ -179,3 +179,29 @@ Phase 6).
   (unconfirmed sales ignored), ROI only when asked, hidden while promotions
   are unreviewed whatever the flag, Admin-only and audited switch.
 - `tests/unit/user-profiles.test.ts` updated (success rate; still no ROI).
+
+## Task 3 — Maps and saved-search alerts (2026-11-18)
+
+**Delivered** (ADR-056)
+
+- `MAPS_PROVIDER=mock|google` with `GOOGLE_MAPS_SERVER_KEY` (server-only) and
+  `GOOGLE_MAPS_BROWSER_KEY` (referrer-restricted); the env check requires both
+  for `google`. `docs/credentials/google-maps.md` (project, APIs, key
+  restrictions, quotas, billing alerts). Mock stays active until H2.2;
+  commute times remain blocked on the keys.
+- Saved searches for Buyers ("Save this search" on `/buy`, list with alerts
+  on/off and delete on `/buy/saved`; 20 searches, 5 alerting).
+- Alert queue (migration `20261119120000`, rollback rehearsed): a daily job
+  (`GET /api/jobs/saved-search-alerts`, Vercel Cron, Bearer `CRON_SECRET`)
+  queues at most one alert per search per day with new live matches and
+  sends at most 3 emails per person per day; every email has a sign-in-free
+  unsubscribe link whose page acts only on a button press.
+
+**Verification**
+
+- `tests/integration/saved-searches-db.test.ts` (3, disposable database):
+  Buyer-only; only listings published after alerts were turned on and only
+  live ones; one alert per search per day; sent with the token; the link
+  turns alerts off; 5-search limit; 5 alerts in a day → 3 sent, 2 skipped.
+- `tests/unit/saved-search-job.test.ts` (4): job off without the secret,
+  wrong or missing secret refused, runs with it; maps provider switch.

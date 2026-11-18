@@ -203,6 +203,7 @@ model User {
   enquiries         Enquiry[]
   savedProperties   SavedProperty[]
   savedSearches     SavedSearch[]
+  savedSearchAlerts SavedSearchAlert[]
   appraisals        Appraisal[]
   subscription      Subscription?
   offers            Offer[]
@@ -565,10 +566,15 @@ model SavedSearch {
   paramsJson    Json
   alertsEnabled Boolean @default(false)
   lastAlertAt   DateTime?
+  /// Phase 5 Task 3 (ADR-056): unsubscribe links carry this random token.
+  alertToken    String?   @unique
+  createdAt     DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts SavedSearchAlert[]
 
   @@index([userId])
+  @@index([alertsEnabled])
 }
 
 model CaseStudy {
@@ -2665,4 +2671,34 @@ model TrackRecordSettings {
   editor Profile? @relation("TrackRecordSettingsEditor", fields: [updatedBy], references: [id], onDelete: Restrict)
 
   @@map("track_record_settings")
+}
+
+// ── Phase 5 Task 3: saved-search alerts (ADR-056) ──
+
+enum SavedSearchAlertStatus {
+  QUEUED
+  SENT
+  SKIPPED
+  FAILED
+}
+
+/// The alert queue: at most one per saved search per day; sent with per-user
+/// limits; every email has an unsubscribe link.
+model SavedSearchAlert {
+  id            String                 @id @db.Uuid
+  savedSearchId String
+  userId        String
+  windowDay     DateTime               @db.Date
+  listingIds    String[]
+  status        SavedSearchAlertStatus @default(QUEUED)
+  createdAt     DateTime               @default(now())
+  sentAt        DateTime?
+
+  savedSearch SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([savedSearchId, windowDay], map: "saved_search_alerts_one_per_day")
+  @@index([status, createdAt], map: "saved_search_alerts_status")
+  @@index([userId, windowDay], map: "saved_search_alerts_user_day")
+  @@map("saved_search_alerts")
 }

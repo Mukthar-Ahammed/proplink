@@ -18,11 +18,23 @@ export { normalisePostcode, isValidUkPostcode } from "@/services/maps/postcode";
 // Postcodes don't move — cache generously (30 days).
 const GEOCODE_CACHE_TTL_SECONDS = 60 * 60 * 24 * 30;
 
-// GOOGLE_MAPS_SERVER_KEY=|H2.2, docs/BLOCKERS.md. Absent locally -> mock is
-// the active provider; tests only ever exercise MockGeocodingService.
+/**
+ * Provider choice (Phase 5 Task 3, ADR-056): `MAPS_PROVIDER=mock|google`
+ * (docs/credentials/google-maps.md). Unset keeps the earlier behaviour: Google
+ * when its key exists, otherwise the mock. Tests only exercise the mocks.
+ */
+export function mapsProvider(): "mock" | "google" {
+  const chosen = process.env.MAPS_PROVIDER;
+  if (chosen === "mock" || chosen === "google") return chosen;
+  return process.env.GOOGLE_MAPS_SERVER_KEY ? "google" : "mock";
+}
+
+// GOOGLE_MAPS_SERVER_KEY=|H2.2, docs/BLOCKERS.md: server-only, API-restricted.
 function createGeocodingService(): GeocodingService {
   const key = process.env.GOOGLE_MAPS_SERVER_KEY;
-  return key ? new GoogleGeocodingService(key) : new MockGeocodingService();
+  return mapsProvider() === "google" && key
+    ? new GoogleGeocodingService(key)
+    : new MockGeocodingService();
 }
 
 export const geocodingService: GeocodingService = createGeocodingService();
@@ -35,12 +47,13 @@ export async function geocodePostcode(postcode: string): Promise<GeocodeResult> 
   );
 }
 
-// GOOGLE_MAPS_API_KEY=|H2.2/H3.1, docs/BLOCKERS.md. The *browser*-restricted
-// key (see staticMapTypes.ts) — absent locally -> mock is the active
-// provider, same "tests only ever exercise the mock" rule as geocoding.
+// GOOGLE_MAPS_BROWSER_KEY (formerly GOOGLE_MAPS_API_KEY, still read)|H2.2/H3.1:
+// the HTTP-referrer-restricted key (see staticMapTypes.ts).
 function createStaticMapService(): StaticMapService {
-  const key = process.env.GOOGLE_MAPS_API_KEY;
-  return key ? new GoogleStaticMapService(key) : new MockStaticMapService();
+  const key = process.env.GOOGLE_MAPS_BROWSER_KEY ?? process.env.GOOGLE_MAPS_API_KEY;
+  return mapsProvider() === "google" && key
+    ? new GoogleStaticMapService(key)
+    : new MockStaticMapService();
 }
 
 export const staticMapService: StaticMapService = createStaticMapService();

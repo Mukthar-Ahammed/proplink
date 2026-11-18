@@ -2,7 +2,6 @@ import "server-only";
 
 import {
   InvestorProjectStatus,
-  LandlordListingStatus,
   MandateStatus,
   PledgeState,
   ProjectSaleStatus,
@@ -12,6 +11,7 @@ import {
 import { isFinancialPromotionsReviewed } from "@/env";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
+import { countSubmittedListings } from "@/services/landlord/listings";
 
 /**
  * Profile track record (Phase 5 Task 5, ADR-055; TRD 5.2), computed by the
@@ -201,17 +201,7 @@ export async function trackRecord(
 
   if (target.role === Role.LANDLORD) {
     const [listed, closed] = await Promise.all([
-      db.landlordListing.count({
-        where: {
-          ownerId: target.id,
-          status: {
-            notIn: [
-              LandlordListingStatus.DRAFT,
-              LandlordListingStatus.AWAITING_LANDLORD_CONFIRMATION,
-            ],
-          },
-        },
-      }),
+      countSubmittedListings(target.id),
       db.mandate.count({
         where: { status: MandateStatus.CLOSED, listing: { ownerId: target.id } },
       }),

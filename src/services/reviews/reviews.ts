@@ -16,7 +16,6 @@ import {
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
 import { sanitizeAnnouncementText } from "@/services/announcements/announcements";
-import type { ServiceResult } from "@/services/landlord/listings";
 import { bad, databaseRule, type Actor } from "@/services/projects/common";
 
 /**
@@ -33,6 +32,10 @@ import { bad, databaseRule, type Actor } from "@/services/projects/common";
  * (OD-17 default), the reviewed party may reply once, anyone signed in may
  * report a published review, and only published reviews count in ratings.
  */
+
+type ServiceResult<T = void> =
+  | ({ ok: true } & (T extends void ? object : { data: T }))
+  | { ok: false; error: string; status: number };
 
 /** Per-person limits over a rolling day (UGC rule: rate-limited). */
 export const REVIEWS_PER_DAY = 5;

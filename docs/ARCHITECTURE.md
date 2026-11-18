@@ -17,7 +17,7 @@
 | Auth        | Supabase Auth (active)                                                                                                                                  | `@supabase/ssr` clients and the `profiles` identity bridge are active. Roles/KYC come from server-controlled profile/database fields, never client-writable metadata. Auth.js runtime has been removed; legacy identity records remain bridged. |
 | Storage     | Existing `StorageService` remains active; Supabase Storage security foundation added                                                                    | `kyc-documents` is private; `property-images` is public-delivery but not anonymously listable. Application upload wiring remains a later migration phase.                                                                                       |
 | AI          | Anthropic API (`@anthropic-ai/sdk`) — Landlord listing assistant (Phase 2)                                                                              | `src/services/ai/`; mock locally; daily token budgets (ADR-036)                                                                                                                                                                                 |
-| Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active | Distance Matrix API is Legacy — do not use. Two distinct keys: `GOOGLE_MAPS_SERVER_KEY` (geocoding) and `GOOGLE_MAPS_API_KEY` (browser-restricted: static maps, and the Sprint 3 interactive map) — see `docs/BLOCKERS.md`                      |
+| Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active | Distance Matrix API is Legacy — do not use. `MAPS_PROVIDER=mock                                                                                                                                                                                 | google`(ADR-056). Two distinct keys:`GOOGLE_MAPS_SERVER_KEY`(geocoding) and`GOOGLE_MAPS_BROWSER_KEY`(formerly`GOOGLE_MAPS_API_KEY`; browser-restricted static maps) — see `docs/credentials/google-maps.md` |
 | KYC         | Sumsub (sandbox) behind `KycService` + mock                                                                                                             | Arrives Sprint 4                                                                                                                                                                                                                                |
 | Payments    | Stripe (test mode) — subscriptions ONLY (Agents, Lead Investors, Co-Investors); no boosts; ad billing undecided (OD-11)                                 | Arrives Phase 3. Investment funds never pass through the app; syndicate charges forbidden while `SYNDICATE_PAYMENTS_ENABLED=false` (ADR-019)                                                                                                    |
 | Realtime    | Supabase Realtime private Broadcast channels (RLS on `realtime.messages`)                                                                               | Arrives Phase 3 for one-to-one chat; replaces the earlier Pusher plan (ADR-019)                                                                                                                                                                 |
@@ -1235,6 +1235,14 @@ of the boundary.
   rate, experience; historical ROI default behind the
   `track_record_settings` flag and `FINANCIAL_PROMOTIONS_REVIEWED`);
   `/admin/settings/track-record`. Migration `20261119110000`.
+- Saved searches and alerts (Phase 5 Task 3, ADR-056):
+  `src/services/buyers/savedSearches.ts` (save, alerts on/off, queue, deliver,
+  unsubscribe); "Save this search" on `/buy`; saved searches on `/buy/saved`;
+  `/alerts/unsubscribe/[token]`; `GET /api/jobs/saved-search-alerts`
+  (Vercel Cron, `vercel.json`, Bearer `CRON_SECRET`). Migration
+  `20261119120000`: `SavedSearch.alertToken`/`createdAt`,
+  `saved_search_alerts` (one per search per day). Maps provider via
+  `MAPS_PROVIDER`.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

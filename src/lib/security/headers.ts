@@ -67,6 +67,8 @@ export function isPrivateResponsePath(pathname: string): boolean {
     pathname === "/verify" ||
     pathname.startsWith("/verify/") ||
     pathname.startsWith("/auth/") ||
+    // Saved-search unsubscribe links carry a token (Phase 5 Task 3).
+    pathname.startsWith("/alerts/") ||
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/forgot-password" ||

@@ -81,6 +81,13 @@ const serverEnvSchema = z
     ESIGN_CLIENT_ID: optionalString,
     ESIGN_WEBHOOK_SECRET: optionalString,
     ESIGN_TEST_MODE: booleanEnv,
+    // Phase 5 Task 3 (ADR-056): maps. Mock until the Google keys exist (H2.2).
+    MAPS_PROVIDER: optionalEnum(["mock", "google"]),
+    GOOGLE_MAPS_SERVER_KEY: optionalString,
+    GOOGLE_MAPS_BROWSER_KEY: optionalString,
+    GOOGLE_MAPS_API_KEY: optionalString,
+    // Phase 5 Task 3: Vercel Cron sends it as a Bearer token to /api/jobs/* (H5.5).
+    CRON_SECRET: optionalSecret,
     ANTHROPIC_API_KEY: optionalString,
     AI_MODEL: optionalString,
     AI_DAILY_TOKEN_BUDGET_PER_USER: optionalPositiveInt,
@@ -156,6 +163,23 @@ const serverEnvSchema = z
         path: ["STRIPE_SECRET_KEY"],
         message: "Live Stripe keys are refused outside production; use test-mode keys",
       });
+    }
+    // Phase 5 Task 3 (ADR-056): the Google provider needs both restricted keys.
+    if (env.MAPS_PROVIDER === "google") {
+      if (!env.GOOGLE_MAPS_SERVER_KEY) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["GOOGLE_MAPS_SERVER_KEY"],
+          message: "Required when MAPS_PROVIDER=google",
+        });
+      }
+      if (!env.GOOGLE_MAPS_BROWSER_KEY && !env.GOOGLE_MAPS_API_KEY) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["GOOGLE_MAPS_BROWSER_KEY"],
+          message: "Required when MAPS_PROVIDER=google",
+        });
+      }
     }
     // Phase 4 Task 6 (ADR-048): mock signatures have no legal effect.
     const esignProvider =
