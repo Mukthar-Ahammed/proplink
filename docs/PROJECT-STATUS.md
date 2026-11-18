@@ -24,8 +24,13 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   subscriptions (ADR-042), Admin-authorised one-to-one chat with private
   Realtime, attachments, notifications, Buyer ↔ Agent migration and Admin
   tools (ADR-043).
-- **Phase 4 started** on `phase-4-investor-projects` (investor projects, Lead
-  and Co-Investors, pledges, Solicitor, agreements and e-signature, ledger). The owner does every manual
+- **Phase 4 build complete** on `phase-4-investor-projects`: investor projects
+  and one Lead per project (ADR-044), race-safe pledges (ADR-045), portal,
+  project chats and Landlord view (ADR-046), Solicitor accounts with RLS
+  scope (ADR-047), agreements and e-signature (ADR-048), funds status, costs
+  and changes (ADR-049), sale and append-only ledger (ADR-050), project
+  decisions (ADR-051). Every exit-gate item is proven by tests; owner checks
+  and the Dropbox Sign live smoke test are pending. The owner does every manual
   check after the last phase; the running list is `docs/MANUAL_CHECKS.md`.
 
 ## 2026-11-17 update

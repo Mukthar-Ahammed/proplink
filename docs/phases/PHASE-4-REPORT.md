@@ -1,8 +1,8 @@
 # Phase 4 — Investor Projects, Pledges, Solicitor, Agreements and Ledger
 
-| Status      | Started    | Branch                      | Depends on                                         |
-| ----------- | ---------- | --------------------------- | -------------------------------------------------- |
-| In progress | 2026-11-18 | `phase-4-investor-projects` | Phases 1-3 built; owner checks deferred (see note) |
+| Status                          | Started    | Branch                      | Depends on                                         |
+| ------------------------------- | ---------- | --------------------------- | -------------------------------------------------- |
+| Built; waiting for owner checks | 2026-11-18 | `phase-4-investor-projects` | Phases 1-3 built; owner checks deferred (see note) |
 
 Started from `phase-3-subscriptions-chat` after its build finished. By the
 owner's choice (2026-11-18), manual checks for every phase are done together
@@ -92,7 +92,7 @@ provider (default Dropbox Sign, alternative DocuSign).
 - [x] E-sign flow works with the mock; live smoke test documented.
 - [x] Sensitive documents inaccessible before KYC approval.
 - [x] No code path can create a payment for investments (grep + test).
-- [ ] Phase report and credential docs written.
+- [x] Phase report and credential docs written (`docs/credentials/esignature.md`).
 
 ## Tasks 1-2 — Publish to investors; Lead / Co-Investor model (2026-11-18)
 
