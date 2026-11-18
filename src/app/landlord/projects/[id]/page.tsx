@@ -3,7 +3,11 @@ import { notFound } from "next/navigation";
 
 import { PortalSection } from "@/components/portal/PortalShell";
 import { day } from "@/components/projects/format";
+import { ActionButton } from "@/components/projects/ActionButton";
+import { signAgreementAction } from "@/components/projects/agreementActions";
+import { AgreementList } from "@/components/projects/AgreementList";
 import { Lifecycle } from "@/components/projects/ProjectSummary";
+import { listAgreements } from "@/services/projects/agreements";
 import { Role } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
 import { formatPence, PROJECT_RESPONSIBILITY_NOTICE } from "@/services/projects/common";
@@ -24,15 +28,15 @@ export default async function LandlordProjectPage({
 }) {
   const session = await requirePageRole(Role.LANDLORD);
   const { id } = await params;
-  const project = await getLandlordProject(
-    {
-      profileId: session.user.authUserId,
-      legacyUserId: session.user.id,
-      role: session.user.role,
-    },
-    id,
-  );
+  const landlord = {
+    profileId: session.user.authUserId,
+    legacyUserId: session.user.id,
+    role: session.user.role,
+  };
+  const project = await getLandlordProject(landlord, id);
   if (!project) notFound();
+  // OD-14: only agreements that name the Landlord, with only their own row.
+  const agreements = (await listAgreements(landlord, project.id)) ?? [];
   return (
     <PortalSection
       title={project.listing.title}
@@ -84,6 +88,27 @@ export default async function LandlordProjectPage({
         <p className="rounded-lg border border-line bg-surface p-3 text-xs text-muted">
           {PROJECT_RESPONSIBILITY_NOTICE}
         </p>
+        {agreements.length > 0 && (
+          <div>
+            <h3 className="mb-2 text-sm font-semibold text-primary">Your agreement</h3>
+            <AgreementList
+              agreements={agreements}
+              renderActions={(agreement) =>
+                agreement.status === "SENT" &&
+                agreement.mine?.signerStatus === "PENDING" ? (
+                  <ActionButton
+                    action={signAgreementAction}
+                    hidden={{
+                      agreementId: agreement.id,
+                      path: `/landlord/projects/${project.id}`,
+                    }}
+                    label="Sign the agreement"
+                  />
+                ) : null
+              }
+            />
+          </div>
+        )}
       </div>
     </PortalSection>
   );

@@ -75,6 +75,12 @@ const serverEnvSchema = z
     STRIPE_WEBHOOK_SECRET: optionalString,
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: optionalString,
     AI_PROVIDER: optionalEnum(["mock", "anthropic", "disabled"]),
+    // Phase 4 Task 6 (ADR-048): e-signature. Default Dropbox Sign [OWNER confirms].
+    ESIGN_PROVIDER: optionalEnum(["mock", "dropbox_sign"]),
+    ESIGN_API_KEY: optionalString,
+    ESIGN_CLIENT_ID: optionalString,
+    ESIGN_WEBHOOK_SECRET: optionalString,
+    ESIGN_TEST_MODE: booleanEnv,
     ANTHROPIC_API_KEY: optionalString,
     AI_MODEL: optionalString,
     AI_DAILY_TOKEN_BUDGET_PER_USER: optionalPositiveInt,
@@ -149,6 +155,34 @@ const serverEnvSchema = z
         code: "custom",
         path: ["STRIPE_SECRET_KEY"],
         message: "Live Stripe keys are refused outside production; use test-mode keys",
+      });
+    }
+    // Phase 4 Task 6 (ADR-048): mock signatures have no legal effect.
+    const esignProvider =
+      env.ESIGN_PROVIDER ?? (env.NODE_ENV === "production" ? "dropbox_sign" : "mock");
+    if (esignProvider === "dropbox_sign") {
+      for (const key of ["ESIGN_API_KEY", "ESIGN_CLIENT_ID"] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: "Required when the Dropbox Sign provider is enabled",
+          });
+        }
+      }
+    }
+    if (env.NODE_ENV === "production" && esignProvider === "mock") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ESIGN_PROVIDER"],
+        message: "Production cannot use the mock e-signature provider",
+      });
+    }
+    if (productionDeployment && env.ESIGN_TEST_MODE === true) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ESIGN_TEST_MODE"],
+        message: "Production signatures must not be test-mode signatures",
       });
     }
     if (env.NODE_ENV === "production" && stripeProvider === "mock") {
@@ -369,6 +403,11 @@ export function parseServerEnv(source: NodeJS.ProcessEnv) {
     AI_PROVIDER:
       parsed.AI_PROVIDER ?? (parsed.NODE_ENV === "production" ? "anthropic" : "mock"),
     AI_MODEL: parsed.AI_MODEL ?? "claude-opus-5-5",
+    ESIGN_PROVIDER:
+      parsed.ESIGN_PROVIDER ??
+      (parsed.NODE_ENV === "production" ? "dropbox_sign" : "mock"),
+    // Test mode unless explicitly turned off (only production deployments may).
+    ESIGN_TEST_MODE: parsed.ESIGN_TEST_MODE ?? parsed.NODE_ENV !== "production",
     AI_DAILY_TOKEN_BUDGET_PER_USER: parsed.AI_DAILY_TOKEN_BUDGET_PER_USER ?? 40_000,
     AI_GLOBAL_DAILY_BUDGET: parsed.AI_GLOBAL_DAILY_BUDGET ?? 1_000_000,
     TURNSTILE_ENABLED: parsed.TURNSTILE_ENABLED ?? parsed.NODE_ENV === "production",

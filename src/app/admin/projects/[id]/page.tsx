@@ -8,6 +8,12 @@ import { requirePageRole } from "@/lib/authz";
 import { Role } from "@/generated/prisma/enums";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { QuestionList } from "@/components/projects/QuestionList";
+import {
+  adminAgreementAction,
+  voidAgreementAction,
+} from "@/components/projects/agreementActions";
+import { AgreementList } from "@/components/projects/AgreementList";
+import { listAgreements } from "@/services/projects/agreements";
 import { listProjectQuestions } from "@/services/projects/community";
 import { listProjectPledges } from "@/services/projects/pledges";
 import { listProjectSolicitors } from "@/services/projects/solicitors";
@@ -36,6 +42,8 @@ export default async function AdminProjectPage({
   const pledges = (await listProjectPledges(admin, project.id)) ?? [];
   const questions = (await listProjectQuestions(admin, project.id)) ?? [];
   const solicitors = await listProjectSolicitors(project.id);
+  const agreements = (await listAgreements(admin, project.id)) ?? [];
+  const path = `/admin/projects/${project.id}`;
   const current = solicitors.find(
     (row) => row.status === "INVITED" || row.status === "ACTIVE",
   );
@@ -153,6 +161,54 @@ export default async function AdminProjectPage({
             </ActionButton>
           </div>
         )}
+      </section>
+      <section>
+        <h2 className="text-lg font-semibold text-primary">Agreements</h2>
+        <AgreementList
+          agreements={agreements}
+          renderActions={(agreement) =>
+            agreement.status === "SENT" ? (
+              <div className="flex flex-wrap gap-3">
+                {agreement.parties
+                  .filter((party) => party.signerStatus === "PENDING")
+                  .map((party) => (
+                    <ActionButton
+                      key={party.profileId}
+                      action={adminAgreementAction}
+                      hidden={{
+                        intent: "resend",
+                        agreementId: agreement.id,
+                        profileId: party.profileId,
+                        path,
+                      }}
+                      label={`Re-send link to ${party.name}`}
+                      tone="secondary"
+                    />
+                  ))}
+                <ActionButton
+                  action={voidAgreementAction}
+                  hidden={{ agreementId: agreement.id, path }}
+                  label="Void"
+                  tone="danger"
+                >
+                  <input
+                    name="reason"
+                    required
+                    placeholder="Reason"
+                    className="w-56 rounded-lg border border-line px-2 py-1 text-sm"
+                  />
+                </ActionButton>
+              </div>
+            ) : ["EXPIRED", "DECLINED", "VOIDED"].includes(agreement.status) &&
+              agreement.version === Math.max(...agreements.map((a) => a.version)) ? (
+              <ActionButton
+                action={adminAgreementAction}
+                hidden={{ intent: "reissue", agreementId: agreement.id, path }}
+                label="Re-issue and send fresh"
+              />
+            ) : null
+          }
+        />
       </section>
       <section>
         <h2 className="text-lg font-semibold text-primary">Questions and answers</h2>

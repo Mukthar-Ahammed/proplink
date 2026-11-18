@@ -1175,6 +1175,19 @@ of the boundary.
   profile trigger's Solicitor branch, `proplink_solicitor_project()` and
   read-only RLS policies (`authenticated`) on `investor_projects` and
   `project_pledges`.
+- E-signature (Task 6, ADR-048): `src/services/esign/` (`ESignProvider`,
+  `DropboxSignProvider`, `MockESignProvider`; `ESIGN_PROVIDER`,
+  `ESIGN_TEST_MODE`); `agreements.ts` (prepare, shares, send, void,
+  re-issue, re-send, `processESignWebhook`, `listAgreements`,
+  `signedShares`); `POST /api/webhooks/esign`; `/esign/mock` (mock only);
+  `src/lib/pdf/simplePdf.ts` (dependency-free PDF writer);
+  `readGrantedFileBytes` in the upload pipeline.
+- Schema (migration `20261119040000`): `project_agreements` (versioned;
+  terms fixed once sent; signed PDF + SHA-256), `agreement_parties` (shares
+  in ppm, signer status), `esign_webhook_events` (append-only replay log);
+  triggers: shares 100% and every live pledge named before sending,
+  pledges binding on signature, no cancelling a pledge out for signature;
+  Solicitor RLS read policies.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 
@@ -1197,6 +1210,20 @@ of the boundary.
 - **Without a database** (CI, a fresh checkout), `tests/setup/env.ts` sets a
   never-connected placeholder `DATABASE_URL` so modules that import the Prisma
   client load; integration tests recognise it and skip.
+- **Parallel database tests** (2026-11-18): every test file is its own worker
+  with its own Prisma pool, so `tests/setup/env.ts` sets
+  `DATABASE_POOL_MAX=4` (read by `src/lib/db.ts`; unset in the app, where
+  pg's default applies) to keep a full run within Postgres's connection
+  limit, and `vitest.config.ts` gives tests 30 s under that shared load.
+  Phase 4 fixtures (`tests/helpers/project-fixtures.ts`) deactivate the
+  accounts they create when a file finishes (`retirePeople`), because
+  announcement tests email every eligible member of the shared database.
+- **Known local flake (Windows):** a forked test worker occasionally exits
+  without an error ("Worker exited unexpectedly"), most often
+  `chain-notifications-db` (about 1 run in 3 alone); its tests pass whenever
+  it completes. Not reproduced with smaller pools, more pools, or closing
+  Prisma at teardown; the threads pool was worse (whole-run native crash
+  0xC0000409). Re-run the file; CI on Linux is the reference.
 - `npm run typecheck` runs `next typegen` first, so a fresh checkout (no
   `next-env.d.ts` yet) typechecks.
 - CI (GitHub Actions, 2026-11-18), job "Typecheck, lint, unit tests, build":

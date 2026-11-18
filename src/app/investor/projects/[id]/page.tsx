@@ -12,6 +12,9 @@ import {
 } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
 import { QuestionList } from "@/components/projects/QuestionList";
+import { signAgreementAction } from "@/components/projects/agreementActions";
+import { AgreementList } from "@/components/projects/AgreementList";
+import { listAgreements } from "@/services/projects/agreements";
 import {
   coInvestorsForLead,
   favouriteIds,
@@ -68,6 +71,7 @@ export default async function InvestorProjectPage({
     coInvestorsForLead(investor, project.id),
   ]);
   const favourite = favourites.has(project.id);
+  const agreements = (await listAgreements(investor, project.id)) ?? [];
   const raising =
     project.status === InvestorProjectStatus.PUBLISHED ||
     project.status === InvestorProjectStatus.OPEN_FOR_INVESTMENT;
@@ -248,6 +252,27 @@ export default async function InvestorProjectPage({
           )}
         </div>
       </PortalSection>
+
+      {agreements.length > 0 && (
+        <PortalSection title="Your agreement">
+          <AgreementList
+            agreements={agreements}
+            renderActions={(agreement) =>
+              agreement.status === "SENT" &&
+              agreement.mine?.signerStatus === "PENDING" ? (
+                <ActionButton
+                  action={signAgreementAction}
+                  hidden={{
+                    agreementId: agreement.id,
+                    path: `/investor/projects/${project.id}`,
+                  }}
+                  label="Sign the agreement"
+                />
+              ) : null
+            }
+          />
+        </PortalSection>
+      )}
 
       <PortalSection title="Questions and answers">
         {member && questions ? (

@@ -289,6 +289,8 @@ model Profile {
   solicitorAppointment ProjectSolicitor?         @relation("ProjectSolicitorProfile")
   solicitorsInvited    ProjectSolicitor[]        @relation("ProjectSolicitorInviter")
   solicitorsEnded      ProjectSolicitor[]        @relation("ProjectSolicitorEnder")
+  agreementsPrepared   ProjectAgreement[]        @relation("ProjectAgreementCreator")
+  agreementParties     AgreementParty[]          @relation("AgreementPartyProfile")
 
   @@map("profiles")
 }
@@ -1277,6 +1279,8 @@ model UploadedFile {
 
   @@index([ownerId, status])
   @@map("uploaded_files")
+  agreementDrafts      ProjectAgreement[]        @relation("ProjectAgreementDraft")
+  agreementsSigned     ProjectAgreement[]        @relation("ProjectAgreementSigned")
 }
 
 /// Admin-managed upload limits (single row, id = 1).
@@ -1941,6 +1945,7 @@ model InvestorProject {
   favourites  ProjectFavourite[]
   questions   ProjectQuestion[]
   solicitors  ProjectSolicitor[]
+  agreements  ProjectAgreement[]
 
   @@index([status, publishedAt])
   @@index([agentId])
@@ -2016,6 +2021,7 @@ model ProjectPledge {
 
   project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
   investor Profile         @relation("ProjectPledgeInvestor", fields: [investorId], references: [id], onDelete: Restrict)
+  agreementParties AgreementParty[]
 
   @@unique([investorId, idempotencyKey])
   @@index([projectId, status])
@@ -2107,4 +2113,101 @@ model ProjectSolicitor {
 
   @@index([email])
   @@map("project_solicitors")
+}
+
+// ── Phase 4 Task 6: agreements and e-signature (ADR-048) ──
+
+enum AgreementStatus {
+  DRAFT
+  SENT
+  SIGNED
+  DECLINED
+  EXPIRED
+  VOIDED
+}
+
+enum AgreementPartyRole {
+  INVESTOR
+  LANDLORD
+  AGENT
+}
+
+enum AgreementSignerStatus {
+  PENDING
+  SIGNED
+  DECLINED
+}
+
+/// A versioned project agreement prepared by the project's Solicitor. Signed
+/// through the e-signature provider; the signed PDF is stored privately with
+/// its SHA-256. Loss allocation and cancellation payment are agreement terms
+/// stored as written (OD-06), never computed.
+model ProjectAgreement {
+  id                     String          @id @db.Uuid
+  projectId              String          @db.Uuid
+  version                Int
+  title                  String
+  draftFileId            String          @db.Uuid
+  status                 AgreementStatus @default(DRAFT)
+  provider               String?
+  envelopeId             String?
+  testMode               Boolean         @default(true)
+  sentAt                 DateTime?
+  completedAt            DateTime?
+  signedFileId           String?         @db.Uuid
+  signedSha256           String?
+  lossAllocation         String
+  cancellationPaymentGBP BigInt?
+  cancellationTerms      String?
+  otherTerms             String?
+  createdBy              String          @db.Uuid
+  endedReason            String?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  project    InvestorProject  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  draftFile  UploadedFile     @relation("ProjectAgreementDraft", fields: [draftFileId], references: [id], onDelete: Restrict)
+  signedFile UploadedFile?    @relation("ProjectAgreementSigned", fields: [signedFileId], references: [id], onDelete: Restrict)
+  creator    Profile          @relation("ProjectAgreementCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  parties    AgreementParty[]
+
+  @@unique([projectId, version])
+  @@map("project_agreements")
+}
+
+/// A signatory. sharePpm is the party's share of the project in parts per
+/// million (0 = signs without an economic interest).
+model AgreementParty {
+  id               String                @id @db.Uuid
+  agreementId      String                @db.Uuid
+  profileId        String                @db.Uuid
+  partyRole        AgreementPartyRole
+  sharePpm         BigInt
+  pledgeId         String?               @db.Uuid
+  signerStatus     AgreementSignerStatus @default(PENDING)
+  providerSignerId String?
+  signedAt         DateTime?
+  declinedAt       DateTime?
+  createdAt        DateTime              @default(now())
+
+  agreement ProjectAgreement @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  profile   Profile          @relation("AgreementPartyProfile", fields: [profileId], references: [id], onDelete: Restrict)
+  pledge    ProjectPledge?   @relation(fields: [pledgeId], references: [id], onDelete: Restrict)
+
+  @@unique([agreementId, profileId])
+  @@index([profileId])
+  @@map("agreement_parties")
+}
+
+/// Verified e-signature events (replay protection); append-only.
+model ESignWebhookEvent {
+  id         String
+  provider   String
+  envelopeId String
+  type       String
+  occurredAt DateTime
+  receivedAt DateTime @default(now())
+
+  @@id([provider, id])
+  @@map("esign_webhook_events")
 }

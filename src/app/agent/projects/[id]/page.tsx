@@ -6,6 +6,9 @@ import { ActionButton } from "@/components/projects/ActionButton";
 import { day, penceToPoundsInput } from "@/components/projects/format";
 import { PledgeTable } from "@/components/projects/PledgeTable";
 import { QuestionList } from "@/components/projects/QuestionList";
+import { signAgreementAction } from "@/components/projects/agreementActions";
+import { AgreementList } from "@/components/projects/AgreementList";
+import { listAgreements } from "@/services/projects/agreements";
 import { ProjectSummary } from "@/components/projects/ProjectSummary";
 import { ProjectTermsForm } from "@/components/projects/ProjectTermsForm";
 import {
@@ -55,6 +58,7 @@ export default async function AgentProjectPage({
   if (!project) notFound();
   const pledges = (await listProjectPledges(agent, project.id)) ?? [];
   const questions = (await listProjectQuestions(agent, project.id)) ?? [];
+  const agreements = (await listAgreements(agent, project.id)) ?? [];
   const published = project.status === InvestorProjectStatus.PUBLISHED;
   const live = project.nominations.find(
     (nomination) =>
@@ -169,6 +173,24 @@ export default async function AgentProjectPage({
                   className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body"
                 />
               </ActionButton>
+            ) : null
+          }
+        />
+      </PortalSection>
+
+      <PortalSection title="Agreements">
+        <AgreementList
+          agreements={agreements}
+          renderActions={(agreement) =>
+            agreement.status === "SENT" && agreement.mine?.signerStatus === "PENDING" ? (
+              <ActionButton
+                action={signAgreementAction}
+                hidden={{
+                  agreementId: agreement.id,
+                  path: `/agent/projects/${project.id}`,
+                }}
+                label="Sign the agreement"
+              />
             ) : null
           }
         />

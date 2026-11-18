@@ -2,7 +2,13 @@ import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { mandateChain, person, TERMS, type Person } from "../helpers/project-fixtures";
+import {
+  mandateChain,
+  person,
+  TERMS,
+  type Person,
+  retirePeople,
+} from "../helpers/project-fixtures";
 import { assertSafeIntegrationDatabase } from "../helpers/test-database-safety";
 
 vi.mock("server-only", () => ({}));
@@ -70,6 +76,7 @@ beforeAll(async () => {
 });
 
 afterAll(async () => {
+  if (hasDb) await retirePeople(client);
   if (hasDb) await client.end();
 });
 

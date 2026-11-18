@@ -1,8 +1,17 @@
 import { PortalSection } from "@/components/portal/PortalShell";
+import { ActionButton } from "@/components/projects/ActionButton";
+import {
+  sendAgreementAction,
+  setSharesAction,
+  voidAgreementAction,
+} from "@/components/projects/agreementActions";
+import { AgreementList } from "@/components/projects/AgreementList";
 import { PledgeTable } from "@/components/projects/PledgeTable";
+import { PrepareAgreementForm } from "@/components/projects/PrepareAgreementForm";
 import { ProjectSummary } from "@/components/projects/ProjectSummary";
 import { Role } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
+import { listAgreements } from "@/services/projects/agreements";
 import { listProjectPledges } from "@/services/projects/pledges";
 import { getSolicitorProject } from "@/services/projects/solicitors";
 
@@ -29,6 +38,11 @@ export default async function SolicitorHomePage() {
     );
   }
   const pledges = (await listProjectPledges(solicitor, project.id)) ?? [];
+  const agreements = (await listAgreements(solicitor, project.id)) ?? [];
+  const open = agreements.some((a) => a.status === "DRAFT" || a.status === "SENT");
+  const canPrepare =
+    !open &&
+    ["FUNDED", "IN_WORKS", "COMPLETED", "LISTED_FOR_SALE"].includes(project.status);
   return (
     <>
       <PortalSection title={project.title}>
@@ -40,6 +54,87 @@ export default async function SolicitorHomePage() {
       </PortalSection>
       <PortalSection title="Parties and pledges">
         <PledgeTable pledges={pledges} />
+      </PortalSection>
+      <PortalSection title="Agreements">
+        <AgreementList
+          agreements={agreements}
+          renderActions={(agreement) =>
+            agreement.status === "DRAFT" ? (
+              <div className="space-y-3">
+                <ActionButton
+                  action={setSharesAction}
+                  hidden={{ agreementId: agreement.id, path: "/solicitor" }}
+                  label="Save shares"
+                  tone="secondary"
+                >
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {agreement.parties.map((party) => (
+                      <label key={party.profileId} className="text-sm text-body">
+                        {party.name} ({party.partyRole.toLowerCase()}) %
+                        <input
+                          name={`share:${party.profileId}`}
+                          defaultValue={party.share.replace("%", "")}
+                          className="ml-2 w-28 rounded-lg border border-line px-2 py-1 text-sm"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </ActionButton>
+                <div className="flex flex-wrap gap-4">
+                  <ActionButton
+                    action={sendAgreementAction}
+                    hidden={{ agreementId: agreement.id, path: "/solicitor" }}
+                    label="Send for signature"
+                  />
+                  <ActionButton
+                    action={voidAgreementAction}
+                    hidden={{ agreementId: agreement.id, path: "/solicitor" }}
+                    label="Void draft"
+                    tone="danger"
+                  >
+                    <input
+                      name="reason"
+                      required
+                      placeholder="Reason"
+                      className="w-56 rounded-lg border border-line px-2 py-1 text-sm"
+                    />
+                  </ActionButton>
+                </div>
+              </div>
+            ) : agreement.status === "SENT" ? (
+              <ActionButton
+                action={voidAgreementAction}
+                hidden={{ agreementId: agreement.id, path: "/solicitor" }}
+                label="Void (stop signing)"
+                tone="danger"
+              >
+                <input
+                  name="reason"
+                  required
+                  placeholder="Reason"
+                  className="w-56 rounded-lg border border-line px-2 py-1 text-sm"
+                />
+              </ActionButton>
+            ) : null
+          }
+        />
+        {canPrepare && (
+          <div className="mt-6 max-w-2xl">
+            <h3 className="mb-2 text-sm font-semibold text-primary">
+              Prepare an agreement
+            </h3>
+            <PrepareAgreementForm
+              projectId={project.id}
+              path="/solicitor"
+              isJointVenture={project.mode === "DEVELOPMENT_JV"}
+            />
+          </div>
+        )}
+        {!canPrepare && !open && (
+          <p className="mt-4 text-sm text-muted">
+            Agreements are prepared once the project is fully pledged.
+          </p>
+        )}
       </PortalSection>
     </>
   );

@@ -429,6 +429,26 @@ export async function readDownload(
   };
 }
 
+/**
+ * Server-side read of a clean file's bytes (Phase 4 Task 6: sending the
+ * Solicitor's agreement to the e-signature provider). The caller has
+ * already checked access; nothing here is returned to a browser.
+ */
+export async function readGrantedFileBytes(
+  fileId: string,
+): Promise<{ bytes: Uint8Array; fileName: string } | null> {
+  if (!z.uuid().safeParse(fileId).success) return null;
+  const file = await db.uploadedFile.findUnique({
+    where: { id: fileId },
+    select: { status: true, storageKey: true, originalName: true },
+  });
+  if (!file || file.status !== UploadStatus.AVAILABLE) return null;
+  return {
+    bytes: await getStore().get("private", file.storageKey),
+    fileName: file.originalName,
+  };
+}
+
 // ── Profile photos (Task 8) ───────────────────────────────────────────────
 
 type PhotoPayload = { f: string; e: number; k: "photo" };

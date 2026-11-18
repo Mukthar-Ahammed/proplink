@@ -149,6 +149,18 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       project and its pledges. As Admin "Close account": the Solicitor then
       sees "No active project". Try the old invitation link: refused.
 
+- [ ] **Agreement with the mock provider.** With a fully pledged project and
+      its Solicitor: on `/solicitor` upload a PDF, fill the loss allocation and
+      "Prepare draft"; check the shares (they add up to 100%) and "Send for
+      signature". As each party (Lead, co-investor, Agent) open the project,
+      press "Sign the agreement" and "Sign" on the mock page. The agreement
+      shows "Signed", a "Signed agreement (PDF)" link and its SHA-256; the
+      investors' pledges show "binding" and can no longer be cancelled.
+- [ ] **Re-issue (Q44).** Send another agreement and "Decline" as one party;
+      as Admin on the project page press "Re-issue and send fresh".
+- [ ] **Dropbox Sign live smoke test (needs keys, OD-24).** Follow
+      `docs/credentials/esignature.md` → "Live smoke test".
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

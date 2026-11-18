@@ -24,7 +24,7 @@ import {
   sharePpm,
   formatPpm,
 } from "@/services/projects/shares";
-import { isProjectSolicitor } from "@/services/projects/solicitors";
+import { isProjectSolicitor } from "@/services/projects/solicitorAccess";
 
 /**
  * Pledges (Phase 4 Task 4, ADR-045; TRD INV-3, acceptance criterion 8). A
@@ -264,14 +264,25 @@ export async function cancelPledge(
       409,
     );
   }
-  const updated = await db.projectPledge.updateMany({
-    where: { id: pledgeId, status: PledgeState.PLEDGED },
-    data: {
-      status: PledgeState.CANCELLED,
-      endedAt: now,
-      endedReason: "Cancelled by the investor",
-    },
-  });
+  let updated: { count: number };
+  try {
+    updated = await db.projectPledge.updateMany({
+      where: { id: pledgeId, status: PledgeState.PLEDGED },
+      data: {
+        status: PledgeState.CANCELLED,
+        endedAt: now,
+        endedReason: "Cancelled by the investor",
+      },
+    });
+  } catch (error) {
+    if (databaseRule(error)) {
+      return bad(
+        "This pledge is in an agreement out for signature. Contact the project's Solicitor.",
+        409,
+      );
+    }
+    throw error;
+  }
   if (updated.count === 0) return bad("This pledge has already ended", 409);
   await writeAudit({
     actorUserId: investor.legacyUserId,

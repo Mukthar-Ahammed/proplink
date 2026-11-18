@@ -74,7 +74,7 @@ provider (default Dropbox Sign, alternative DocuSign).
 | 3a. Landlord project view     | Done (costs, milestones, updates with Tasks 5/7) | ADR-046 |
 | 4. Pledge flow                | Done                                             | ADR-045 |
 | 5. Solicitor accounts         | Done (acceptance needs the OD-18 key)            | ADR-047 |
-| 6. Agreements and e-signature | Not started                                      |         |
+| 6. Agreements and e-signature | Done (live provider needs keys)                  | ADR-048 |
 | 7. Funds tracking             | Not started                                      |         |
 | 8. Sale and ledger            | Not started                                      |         |
 | 9. Edge cases                 | Not started                                      |         |
@@ -89,7 +89,7 @@ provider (default Dropbox Sign, alternative DocuSign).
 - [x] Over-subscription impossible under concurrency (50 parallel pledges).
 - [ ] Ledger immutability proven by tests (direct SQL as the app role fails).
 - [x] Solicitor scope isolation proven by an RLS matrix.
-- [ ] E-sign flow works with the mock; live smoke test documented.
+- [x] E-sign flow works with the mock; live smoke test documented.
 - [x] Sensitive documents inaccessible before KYC approval.
 - [x] No code path can create a payment for investments (grep + test).
 - [ ] Phase report and credential docs written.
@@ -245,3 +245,56 @@ provider (default Dropbox Sign, alternative DocuSign).
   nothing, and nobody writes or reads appointments through the Data API**;
   closing ends access in the service and RLS and cannot be undone.
 - Unit suite updated for the Solicitor portal home.
+
+## Task 6 — Agreements and e-signature (2026-11-18)
+
+**Delivered** (ADR-048; Q16-Q17, SO-2; OD-05, OD-06, OD-14; OD-24 new)
+
+- `ESignProvider` with the Dropbox Sign adapter (default; non-embedded
+  requests, event-hash verification, reminders, cancel, signed-PDF download)
+  and a mock (signed 30-minute links to `/esign/mock`, HMAC-signed events);
+  production refuses the mock and test-mode signatures.
+  `docs/credentials/esignature.md` covers the account, API app, callback
+  URL, test mode and the live smoke test.
+- Migration `20261119040000_phase4_agreements` (with `rollback.sql`,
+  rehearsed): versioned agreements, parties with shares, append-only
+  webhook log, guards (Solicitor's own clean PDF; funded projects; terms and
+  shares fixed once sent; shares exactly 100% with every live pledge named;
+  no cancelling a pledge out for signature; pledges BINDING on signature;
+  signed agreements final), Solicitor RLS.
+- Solicitor portal: upload and prepare (loss allocation, cancellation
+  payment and terms as written), edit shares, send, void. Parties sign from
+  their project page; signed PDF and SHA-256 for every party. Admin: re-send
+  a pending signer's link, void, re-issue a declined, expired or voided
+  agreement as a fresh version (Q44).
+- `POST /api/webhooks/esign`: forgeries 401, malformed or stale 400,
+  replays acknowledged without effect, events recorded only after being
+  applied.
+- Dependency-free PDF writer for the signed copy (mock) and, in Task 8,
+  statements. CI build placeholders for the e-signature keys.
+
+**Verification**
+
+- `tests/integration/agreements-db.test.ts` (6, disposable database, mock
+  provider): Solicitor-only preparation of their own PDF once funded; default
+  parties and exact shares (60%/40%, Agent 0%); one open agreement at a
+  time; JV includes the Landlord, shares set from the agreement must total
+  100%, and `signedShares` returns them; send → pledges can't be
+  cancelled; signing links for parties only; **forged (401), unsigned
+  (401), stale (400) and replayed (no effect) events**; all signed → SIGNED,
+  stored PDF matches its SHA-256, pledges BINDING; investors see only their
+  row; database refuses changing terms or shares after signing and deleting
+  agreements or webhook records; decline, Admin re-send and re-issue
+  (fresh version sent), expiry; void; Solicitor RLS on agreements and
+  parties.
+- `tests/unit/esign-providers.test.ts` (9): Dropbox Sign request shape,
+  signer mapping, event-hash verification and replay key, endpoints, errors
+  without bodies; mock links (tamper, expiry, other secret, no open
+  redirect) and events; PDF writer (pages, escaping, xref); settings
+  (defaults, required keys, production refusals).
+- Full suite on the disposable database (all phases): 135 files, 1674 tests
+  pass. Along the way: Phase 2 announcements now reach every verified Agent
+  (they stopped at 500), parallel database tests stay within Postgres's
+  connection limit (`DATABASE_POOL_MAX`), Phase 4 fixtures retire their
+  accounts, and agreement parties keep a fixed order. One Windows-only
+  worker flake remains (`docs/ARCHITECTURE.md` → Testing).

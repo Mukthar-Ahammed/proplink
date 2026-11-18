@@ -8,7 +8,7 @@
 
 **Current focus → Phase 4 — Investor Projects, Pledges, Solicitor, Agreements
 and Ledger**, on `phase-4-investor-projects` (started 2026-11-18, branched from
-Phase 3; see `docs/phases/PHASE-4-REPORT.md`): Tasks 1-5 and 3a done (ADR-044 to ADR-047). **Phase 3:** all eight tasks
+Phase 3; see `docs/phases/PHASE-4-REPORT.md`): Tasks 1-6 and 3a done (ADR-044 to ADR-048). **Phase 3:** all eight tasks
 built (`docs/phases/PHASE-3-REPORT.md`); waiting for the owner checks like Phases 1-2. **Phase 0 closed 2026-11-18.**
 **Phases 1 and 2:** built and tested; the owner does all manual checks after the
 last phase (`docs/MANUAL_CHECKS.md`). No phase is closed or merged to `main`

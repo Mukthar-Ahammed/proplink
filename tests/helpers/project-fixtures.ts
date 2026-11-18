@@ -10,6 +10,26 @@ import type { Client } from "pg";
  */
 
 export type Person = { profileId: string; legacyUserId: string };
+
+const created: string[] = [];
+
+/**
+ * Deactivates every account this file created, so later runs' announcement
+ * tests (which email every eligible member) do not grow without bound.
+ * Call from afterAll.
+ */
+export async function retirePeople(client: Client) {
+  const ids = created.splice(0);
+  if (ids.length === 0) return;
+  // Profile and legacy user together: their consistency is checked at commit.
+  await client.query(
+    `WITH retired AS (
+       UPDATE public.profiles SET active = false WHERE id = ANY($1::uuid[]) RETURNING "legacyUserId"
+     )
+     UPDATE public."User" SET active = false WHERE id IN (SELECT "legacyUserId" FROM retired)`,
+    [ids],
+  );
+}
 export type Role = "ADMIN" | "LANDLORD" | "AGENT" | "INVESTOR" | "SOLICITOR" | "BUYER";
 
 export async function person(
@@ -19,6 +39,7 @@ export async function person(
 ): Promise<Person> {
   const profileId = randomUUID();
   const legacyUserId = `p4-${profileId}`;
+  created.push(profileId);
   const email = `p4-${profileId}@proplink.test`;
   await client.query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", [
     profileId,
@@ -26,7 +47,7 @@ export async function person(
   ]);
   await client.query(
     `INSERT INTO public."User" (id, email, name, role) VALUES ($1, $2, 'Phase 4 Test', $3::"Role")`,
-    [legacyUserId, email, role === "SOLICITOR" ? "BUYER" : role],
+    [legacyUserId, email, role],
   );
   await client.query(
     `UPDATE public.profiles SET role = $2::"Role", "legacyUserId" = $3, name = $4 WHERE id = $1`,
@@ -171,4 +192,31 @@ export async function mandateChain(client: Client) {
   const listing = await approvedListing(client, landlord, admin);
   const mandateId = await activeMandate(client, listing.listingId, agent);
   return { admin, landlord, agent, mandateId, ...listing };
+}
+
+/** An ACTIVE Solicitor on a project, created in SQL (the invitation flow is tested elsewhere). */
+export async function activeSolicitor(
+  client: Client,
+  projectId: string,
+  admin: Person,
+): Promise<Person> {
+  const solicitor = await person(client, "SOLICITOR", { kyc: false });
+  const id = randomUUID();
+  await client.query(
+    `INSERT INTO public.project_solicitors (id, "projectId", email, name, firm, "tokenHash", "expiresAt", "invitedBy", "updatedAt")
+     VALUES ($1, $2, $3, 'Sam Solicitor', 'Lawful & Co LLP', $4, now() + interval '7 days', $5, now())`,
+    [
+      id,
+      projectId,
+      `p4-${solicitor.profileId}@proplink.test`,
+      id.replace(/-/g, "").padEnd(64, "0"),
+      admin.profileId,
+    ],
+  );
+  await client.query(
+    `UPDATE public.project_solicitors SET status = 'ACTIVE', "profileId" = $2, "acceptedAt" = now(), "updatedAt" = now()
+     WHERE id = $1`,
+    [id, solicitor.profileId],
+  );
+  return solicitor;
 }

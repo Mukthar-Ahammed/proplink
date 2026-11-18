@@ -54,6 +54,8 @@ jobs:
           ANTHROPIC_API_KEY: ci-placeholder
           STRIPE_SECRET_KEY: sk_test_ci_placeholder
           STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+          ESIGN_API_KEY: ci-placeholder
+          ESIGN_CLIENT_ID: ci-placeholder
 
   secrets:
     name: Secret scanning
