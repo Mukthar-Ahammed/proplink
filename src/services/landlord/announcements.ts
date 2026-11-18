@@ -18,20 +18,34 @@ import { deliverOnce, type DeliveryOutcome } from "@/services/notifications/deli
  * the area and kind only. Runs after the response (`after()` in the action).
  */
 
-export const MAX_RECIPIENTS = 500;
+/** Agents are read in pages so every verified Agent is reached (no cap). */
+export const AGENT_PAGE = 500;
 const CONCURRENCY = 5;
 
-/** Verified Agents (OD-19): same rule as `agentCompanyGate`, in one query. */
-export async function verifiedAgentIds(): Promise<string[]> {
-  const agents = await db.profile.findMany({
+function agentPage(cursor: string | undefined) {
+  return db.profile.findMany({
     where: { role: Role.AGENT, active: true },
     select: {
       id: true,
       companyCheck: { select: { result: true, override: true } },
       _count: { select: { agentInvitesAccepted: true } },
     },
-    take: MAX_RECIPIENTS,
+    orderBy: { id: "asc" },
+    take: AGENT_PAGE,
+    ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
   });
+}
+
+/** Verified Agents (OD-19): same rule as `agentCompanyGate`, a page at a time. */
+export async function verifiedAgentIds(): Promise<string[]> {
+  const agents: Awaited<ReturnType<typeof agentPage>> = [];
+  let cursor: string | undefined;
+  for (;;) {
+    const page = await agentPage(cursor);
+    agents.push(...page);
+    if (page.length < AGENT_PAGE) break;
+    cursor = page[page.length - 1].id;
+  }
   return agents
     .filter((agent) => {
       const status = effectiveCompanyStatus(agent.companyCheck);
