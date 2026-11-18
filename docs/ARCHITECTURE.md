@@ -1043,6 +1043,20 @@ of the boundary.
 - Proposal actions: 10 per minute per user (`proposal_action`).
 - Permission matrix at `CURRENT_PHASE = 2`.
 
+## Exclusive mandates (Phase 2 Task 6, ADR-039)
+
+- `src/services/landlord/mandates.ts`: choose an Agent (offer), withdraw an
+  offer, accept or decline, terminate with a reason (either party), close at
+  contract end, attach the contract; `listingStage` derives "Mandate
+  Accepted" from the live mandate.
+- Schema (migration `20261118130000`): `mandates` with a partial unique index
+  (one `OFFERED`/`ACTIVE` per listing), transition and party triggers, and a
+  listing trigger refusing status changes under a live mandate; server-only.
+- Mandated listings leave the marketplace; only the `ACTIVE` Agent sees the
+  Landlord's name and the listing's documents.
+- Pages: `/landlord/listings/[id]/proposals` (mandate panel),
+  `/agent/mandates`, `/agent/mandates/[id]`.
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers

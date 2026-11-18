@@ -178,6 +178,53 @@ export async function sendProposalAnswerEmail(params: {
   });
 }
 
+// Phase 2 Task 6 — exclusive mandates. One plain notice per event; the
+// reader signs in for the details.
+
+export type MandateNotice =
+  "offered" | "accepted" | "declined" | "offer_withdrawn" | "terminated" | "closed";
+
+const MANDATE_COPY: Record<MandateNotice, { subject: string; body: string }> = {
+  offered: {
+    subject: "A landlord chose you for an exclusive mandate",
+    body: "A landlord chose your proposal for an exclusive mandate. Accept or decline it in your Agent portal.",
+  },
+  accepted: {
+    subject: "Your agent accepted the mandate",
+    body: "The agent you chose accepted the exclusive mandate. It is now active.",
+  },
+  declined: {
+    subject: "Your agent declined the mandate",
+    body: "The agent you chose declined the mandate. You can choose another proposal.",
+  },
+  offer_withdrawn: {
+    subject: "A landlord withdrew their mandate offer",
+    body: "The landlord withdrew the mandate they offered you.",
+  },
+  terminated: {
+    subject: "A mandate was terminated",
+    body: "An exclusive mandate you are part of was terminated. The reason is in your portal.",
+  },
+  closed: {
+    subject: "A mandate was closed",
+    body: "The landlord closed the mandate at the end of the agreed contract.",
+  },
+};
+
+export async function sendMandateEmail(params: {
+  to: string;
+  notice: MandateNotice;
+  listingTitle: string;
+  path: string;
+}) {
+  const copy = MANDATE_COPY[params.notice];
+  await mailer.send({
+    to: params.to,
+    subject: `${copy.subject}: "${params.listingTitle}"`,
+    text: `${copy.body}\n\n"${params.listingTitle}": ${BASE_URL}${params.path}`,
+  });
+}
+
 // Task 2.5 — public property detail page enquiry notification.
 
 export async function sendNewEnquiryEmail(params: {

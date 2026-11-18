@@ -33,8 +33,8 @@ mandate exists (OD-22).
 | 2. AI listing assistant      | Done (real-provider smoke test waits for the key) | ADR-036 |
 | 3. Admin review queue        | Done                                              | ADR-037 |
 | 4. Private-listing hardening | Done                                              |         |
-| 5. Agent marketplace         | Done (selection is the Task 6 mandate)            | ADR-038 |
-| 6. Exclusive mandate         | Not started                                       |         |
+| 5. Agent marketplace         | Done                                              | ADR-038 |
+| 6. Exclusive mandate         | Done                                              | ADR-039 |
 | 7. Landlord data exposure    | Not started                                       |         |
 | 8. Notifications             | Not started                                       |         |
 
@@ -250,3 +250,44 @@ mandate exists (OD-22).
 
 - Choosing an Agent (the exclusive mandate, with the one-mandate race test)
   is Task 6; declining sends no email until Task 8.
+
+## Task 6 — Exclusive mandate (2026-11-18)
+
+**Delivered** (ADR-039; OD-23 completed)
+
+- Migration `20261118130000_phase2_mandates` (with `rollback.sql`): `mandates`,
+  partial unique index (one offered or active mandate per listing), mandate
+  guard trigger (start state, source proposal, Agent role, transitions,
+  frozen terms, terminating party, contract file) and a listing guard
+  (no status change under a live mandate, OD-22). Server-only.
+- `src/services/landlord/mandates.ts`: choose an Agent (offer), withdraw an
+  offer, accept or decline, terminate with a reason, close at contract end,
+  attach the contract, Agent and Landlord views; audit and email by
+  preference (new event `mandate.response`).
+- Marketplace hides listings under an offered or active mandate; withdrawal
+  refused while one exists.
+- Pages: mandate panel and "Choose this agent" on
+  `/landlord/listings/[id]/proposals`; `/agent/mandates` (nav "Mandates")
+  and `/agent/mandates/[id]`; contract uploader shared by both parties.
+
+**Verification**
+
+- `tests/unit/mandates.test.ts` (15): calendar months, lifecycle stage,
+  choosing (rate limit, role, KYC, own approved listing, terms copied,
+  unique-index race and lost update refused without side effects, renewal
+  length), withdrawing an offer reopens the proposal, accepting and
+  declining, listing no longer approved, termination scope and notices,
+  close only after the contract period, contract upload ownership, Landlord
+  identity and documents only while active.
+- `tests/integration/mandates-db.test.ts` (4, disposable database): **three
+  concurrent choices produce exactly one mandate** and the losing proposals
+  stay open; full lifecycle (offer → out of the pool → accept → Landlord name
+  and documents visible → withdrawal refused by service and trigger →
+  terminate → back in the pool, former Agent loses access); close after the
+  contract period; database guards and RLS.
+- `tests/e2e/mandate-accept.spec.ts` against the development database: the
+  verified Agent accepts the offered mandate in the browser; the Landlord's
+  name is hidden before and shown after; the mandate is active with an end
+  date. The leakage crawl still passes (5 of 5). No fixtures left behind.
+- Rollback rehearsed. Full suite on the disposable database: 120 files, 1559
+  tests pass. Without a database: 103 files pass, 17 database-only skipped.

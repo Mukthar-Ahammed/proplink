@@ -9,6 +9,7 @@ import {
   AgentProposalStatus,
   LandlordListingFileKind,
   LandlordListingStatus,
+  MandateStatus,
   LandlordPropertyKind,
   LandlordDesiredOutcome,
   Role,
@@ -175,6 +176,7 @@ export async function listMarketplace(agent: AgentActor, raw: unknown) {
   const filters = filterSchema.parse(raw ?? {});
   const where: Prisma.LandlordListingWhereInput = {
     status: LandlordListingStatus.APPROVED,
+    mandates: { none: { status: { in: [MandateStatus.OFFERED, MandateStatus.ACTIVE] } } },
     ...(filters.kind ? { propertyKind: filters.kind } : {}),
     ...(filters.outcome ? { desiredOutcome: filters.outcome } : {}),
     ...(filters.location
@@ -234,7 +236,13 @@ export async function getMarketplaceListing(agent: AgentActor, id: string) {
   if (!(await isVerifiedAgent(agent))) return bad(UNVERIFIED_AGENT_MESSAGE, 403);
   if (!z.uuid().safeParse(id).success) return bad("Listing not found", 404);
   const listing = await db.landlordListing.findFirst({
-    where: { id, status: LandlordListingStatus.APPROVED },
+    where: {
+      id,
+      status: LandlordListingStatus.APPROVED,
+      mandates: {
+        none: { status: { in: [MandateStatus.OFFERED, MandateStatus.ACTIVE] } },
+      },
+    },
     select: {
       id: true,
       title: true,
@@ -291,7 +299,13 @@ export async function submitProposal(
     return bad(parsed.error.issues[0]?.message ?? "Check the proposal");
   const input = parsed.data;
   const listing = await db.landlordListing.findFirst({
-    where: { id: listingId, status: LandlordListingStatus.APPROVED },
+    where: {
+      id: listingId,
+      status: LandlordListingStatus.APPROVED,
+      mandates: {
+        none: { status: { in: [MandateStatus.OFFERED, MandateStatus.ACTIVE] } },
+      },
+    },
     select: { id: true, title: true, ownerId: true },
   });
   if (!listing) return bad("This listing is no longer open to proposals", 404);
@@ -569,7 +583,7 @@ export async function declineProposal(
 }
 
 /** Email if the person's preferences allow. Never undoes the action. */
-async function notifyProfile(
+export async function notifyProfile(
   profileId: string,
   eventKey: string,
   send: (to: string) => Promise<void>,

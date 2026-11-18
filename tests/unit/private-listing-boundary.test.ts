@@ -24,6 +24,9 @@ const SERVICE_USERS = [
   // Phase 2 Task 5 (ADR-038): verified Agents only; every read goes through
   // isVerifiedAgent and returns approved listings without Landlord details.
   "src/app/agent/marketplace/",
+  // Phase 2 Task 6 (ADR-039): the Agent's own mandates; the Landlord's name
+  // and documents only while the mandate is ACTIVE.
+  "src/app/agent/mandates/",
 ];
 /** Download links that skip the owner/Admin check: Landlord service only. */
 const GRANTED_LINK_CALL = /createGrantedDownloadLink\s*\(/;

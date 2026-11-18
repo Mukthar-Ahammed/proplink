@@ -15,7 +15,22 @@ import {
   listProposalsForOwner,
 } from "@/services/landlord/marketplace";
 
+import { ContractUploader } from "@/components/mandates/ContractUploader";
+import { mandatesForOwner } from "@/services/landlord/mandates";
+
+import { attachMandateContractAction } from "../../actions";
+import { ChooseAgent, LandlordMandateControls } from "./MandateControls";
 import { AskQuestion, DeclineProposal } from "./ProposalControls";
+
+const MANDATE_STATUS: Record<string, string> = {
+  OFFERED: "Offered, waiting for the agent",
+  ACTIVE: "Active",
+  DECLINED: "Declined by the agent",
+  WITHDRAWN: "Offer withdrawn",
+  TERMINATED: "Terminated",
+  CLOSED: "Closed",
+};
+const day = (value: Date | null) => (value ? value.toISOString().slice(0, 10) : "—");
 
 export const dynamic = "force-dynamic";
 export const metadata = {
@@ -41,23 +56,81 @@ export default async function ListingProposalsPage({
 }) {
   const session = await requirePageRole(Role.LANDLORD);
   const { id } = await params;
-  const result = await listProposalsForOwner(
-    {
-      profileId: session.user.authUserId,
-      legacyUserId: session.user.id,
-      role: session.user.role,
-      kycStatus: session.user.kycStatus,
-    },
-    id,
-  );
-  if (!result) notFound();
+  const actor = {
+    profileId: session.user.authUserId,
+    legacyUserId: session.user.id,
+    role: session.user.role,
+    kycStatus: session.user.kycStatus,
+  };
+  const [result, mandates] = await Promise.all([
+    listProposalsForOwner(actor, id),
+    mandatesForOwner(actor, id),
+  ]);
+  if (!result || !mandates) notFound();
   const { listing, proposals } = result;
   const open = proposals.filter(
     (proposal) => proposal.status === AgentProposalStatus.SUBMITTED,
   );
+  const live = mandates.live;
+  const canChoose = !live && listing.status === "APPROVED";
 
   return (
     <>
+      {(live || mandates.history.length > 0) && (
+        <PortalSection title="Exclusive mandate">
+          {live ? (
+            <div className="space-y-3 rounded-lg border border-line bg-white p-4 text-sm">
+              <p className="font-semibold text-primary" data-testid="mandate-status">
+                {live.agent.name ?? "Your agent"}: {MANDATE_STATUS[live.status]}
+              </p>
+              <p className="text-body">
+                Valuation {formatPence(live.valuationGBP)} · fee {formatFee(live)} ·{" "}
+                {live.contractMonths} months
+                {live.status === "ACTIVE" &&
+                  ` · accepted ${day(live.acceptedAt)} · contract ends ${day(live.endsAt)}`}
+              </p>
+              {live.renewalTerms && (
+                <p className="text-body">Renewal: {live.renewalTerms}</p>
+              )}
+              {live.status === "ACTIVE" && (
+                <>
+                  {mandates.contractUrl && (
+                    <a href={mandates.contractUrl} className="text-primary underline">
+                      Signed contract
+                    </a>
+                  )}
+                  <ContractUploader
+                    mandateId={live.id}
+                    attach={attachMandateContractAction}
+                    hasContract={Boolean(mandates.contractUrl)}
+                  />
+                </>
+              )}
+              <LandlordMandateControls
+                listingId={listing.id}
+                mandateId={live.id}
+                status={live.status as "OFFERED" | "ACTIVE"}
+                contractEnded={Boolean(live.endsAt && live.endsAt <= new Date())}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-muted">
+              No agent holds a mandate now; you can choose another proposal below.
+            </p>
+          )}
+          {mandates.history.length > 0 && (
+            <ul className="mt-4 space-y-2 text-sm text-muted">
+              {mandates.history.map((mandate) => (
+                <li key={mandate.id}>
+                  {mandate.agent.name ?? "Agent"}: {MANDATE_STATUS[mandate.status]}{" "}
+                  (offered {day(mandate.offeredAt)})
+                  {mandate.terminationReason && ` · reason: ${mandate.terminationReason}`}
+                </li>
+              ))}
+            </ul>
+          )}
+        </PortalSection>
+      )}
       <PortalSection
         title={`Proposals for ${listing.title}`}
         action={
@@ -79,8 +152,7 @@ export default async function ListingProposalsPage({
           <>
             <p className="text-sm text-muted">
               {open.length} open {open.length === 1 ? "proposal" : "proposals"}. Compare
-              them, ask questions, then choose one agent. Choosing an agent (an exclusive
-              mandate) comes next.
+              them, ask questions, then choose one agent for an exclusive mandate.
             </p>
             <div className="mt-6 overflow-x-auto">
               <table
@@ -188,6 +260,13 @@ export default async function ListingProposalsPage({
                         ))}
                         {proposal.status === AgentProposalStatus.SUBMITTED && (
                           <>
+                            {canChoose && (
+                              <ChooseAgent
+                                listingId={listing.id}
+                                proposalId={proposal.id}
+                                agentName={proposal.agent.name ?? "this agent"}
+                              />
+                            )}
                             <AskQuestion
                               listingId={listing.id}
                               proposalId={proposal.id}

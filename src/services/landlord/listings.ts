@@ -8,6 +8,7 @@ import {
   LandlordDesiredOutcome,
   LandlordListingFileKind,
   LandlordListingStatus,
+  MandateStatus,
   LandlordPropertyKind,
   Role,
   UploadStatus,
@@ -309,7 +310,15 @@ export async function withdrawOwnListing(
   id: string,
 ): Promise<ServiceResult> {
   const result = await db.landlordListing.updateMany({
-    where: { id, ownerId: actor.profileId, status: { in: [...WITHDRAWABLE] } },
+    where: {
+      id,
+      ownerId: actor.profileId,
+      status: { in: [...WITHDRAWABLE] },
+      // OD-22: never while a mandate is offered or active (also a database trigger).
+      mandates: {
+        none: { status: { in: [MandateStatus.OFFERED, MandateStatus.ACTIVE] } },
+      },
+    },
     data: { status: LandlordListingStatus.WITHDRAWN, withdrawnAt: new Date() },
   });
   if (result.count === 0) return bad("This listing can't be withdrawn now", 409);

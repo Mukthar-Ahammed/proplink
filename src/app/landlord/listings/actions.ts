@@ -17,6 +17,13 @@ import {
   type LandlordActor,
 } from "@/services/landlord/listings";
 import { askQuestion, declineProposal } from "@/services/landlord/marketplace";
+import {
+  attachContract,
+  chooseAgent,
+  closeMandate,
+  terminateMandate,
+  withdrawOffer,
+} from "@/services/landlord/mandates";
 
 export type FormState =
   { kind: "idle" } | { kind: "error"; message: string } | { kind: "saved" };
@@ -193,4 +200,59 @@ export async function draftWithAiAction(raw: unknown): Promise<AssistantResult> 
       ? (raw as Record<string, unknown>)
       : {};
   return draftListingWithAi(actor, input);
+}
+
+// ── Exclusive mandate (Phase 2 Task 6) ──────────────────────────────────
+
+function refreshMandatePages(formData: FormData) {
+  const listingId = text(formData, "listingId");
+  revalidatePath(`/landlord/listings/${listingId}/proposals`);
+  revalidatePath(`/landlord/listings/${listingId}`);
+  revalidatePath("/landlord");
+}
+
+/** Choose one Agent: offers them the exclusive mandate. */
+export async function chooseAgentAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const actor = await landlord();
+  if (!actor) return { kind: "error", message: "Sign in as a Landlord" };
+  const result = await chooseAgent(actor, text(formData, "proposalId"), {
+    renewalTerms: text(formData, "renewalTerms"),
+  });
+  if (!result.ok) return { kind: "error", message: result.error };
+  refreshMandatePages(formData);
+  return { kind: "saved" };
+}
+
+/** Withdraw an unanswered offer, close at contract end, or terminate with a reason. */
+export async function mandateAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const actor = await landlord();
+  if (!actor) return { kind: "error", message: "Sign in as a Landlord" };
+  const mandateId = text(formData, "mandateId");
+  const intent = text(formData, "intent");
+  const result =
+    intent === "withdraw"
+      ? await withdrawOffer(actor, mandateId)
+      : intent === "close"
+        ? await closeMandate(actor, mandateId)
+        : await terminateMandate(actor, mandateId, text(formData, "reason"));
+  if (!result.ok) return { kind: "error", message: result.error };
+  refreshMandatePages(formData);
+  return { kind: "saved" };
+}
+
+/** Called after the contract was uploaded through the secure pipeline. */
+export async function attachMandateContractAction(
+  mandateId: string,
+  fileId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const actor = await landlord();
+  if (!actor) return { ok: false, error: "Sign in as a Landlord" };
+  const result = await attachContract(actor, mandateId, fileId);
+  return result.ok ? { ok: true } : { ok: false, error: result.error };
 }

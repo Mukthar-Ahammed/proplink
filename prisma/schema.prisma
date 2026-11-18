@@ -261,6 +261,8 @@ model Profile {
   listingReviewsMade   LandlordListingReview[]   @relation("LandlordListingReviewer")
   agentProposals       AgentProposal[]           @relation("AgentProposalAgent")
   proposalQuestions    AgentProposalQuestion[]   @relation("AgentProposalQuestionAsker")
+  mandatesHeld         Mandate[]                 @relation("MandateAgent")
+  mandatesEnded        Mandate[]                 @relation("MandateTerminator")
 
   @@map("profiles")
 }
@@ -1244,6 +1246,7 @@ model UploadedFile {
   updatedAt       DateTime     @updatedAt
 
   owner Profile @relation("UploadedFileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  mandateContracts Mandate[] @relation("MandateTermsFile")
 
   @@index([ownerId, status])
   @@map("uploaded_files")
@@ -1355,6 +1358,7 @@ model LandlordListing {
   files   LandlordListingFile[]
   reviews LandlordListingReview[]
   proposals AgentProposal[]
+  mandates  Mandate[]
 
   @@index([ownerId, status])
   @@index([status, submittedAt])
@@ -1475,6 +1479,7 @@ model AgentProposal {
   listing   LandlordListing         @relation(fields: [listingId], references: [id], onDelete: Restrict)
   agent     Profile                 @relation("AgentProposalAgent", fields: [agentId], references: [id], onDelete: Restrict)
   questions AgentProposalQuestion[]
+  mandates  Mandate[]
 
   @@unique([listingId, agentId])
   @@index([listingId, status])
@@ -1497,4 +1502,56 @@ model AgentProposalQuestion {
 
   @@index([proposalId, createdAt])
   @@map("agent_proposal_questions")
+}
+
+/// Exclusive mandate lifecycle (Phase 2 Task 6, ADR-039). OFFERED: the
+/// Landlord chose this Agent's proposal; ACTIVE: the Agent accepted.
+enum MandateStatus {
+  OFFERED
+  ACTIVE
+  DECLINED
+  WITHDRAWN
+  TERMINATED
+  CLOSED
+}
+
+/// Strictly exclusive (Q8): at most one OFFERED or ACTIVE mandate per listing
+/// (partial unique index in the migration). Agreed terms are copied from the
+/// chosen proposal and never change. Money is integer pence.
+model Mandate {
+  id                String               @id @db.Uuid
+  listingId         String               @db.Uuid
+  agentId           String               @db.Uuid
+  proposalId        String               @db.Uuid
+  status            MandateStatus        @default(OFFERED)
+  valuationGBP      BigInt
+  feeType           AgentProposalFeeType
+  feeBasisPoints    Int?
+  feeGBP            BigInt?
+  contractMonths    Int
+  terms             String
+  renewalTerms      String?
+  termsFileId       String?              @db.Uuid
+  offeredAt         DateTime             @default(now())
+  respondedAt       DateTime?
+  acceptedAt        DateTime?
+  /// acceptedAt + contractMonths: the Landlord may close the mandate from then.
+  endsAt            DateTime?
+  terminatedAt      DateTime?
+  terminatedBy      String?              @db.Uuid
+  terminationReason String?
+  closedAt          DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  listing    LandlordListing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  agent      Profile         @relation("MandateAgent", fields: [agentId], references: [id], onDelete: Restrict)
+  proposal   AgentProposal   @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  terminator Profile?        @relation("MandateTerminator", fields: [terminatedBy], references: [id], onDelete: Restrict)
+  termsFile  UploadedFile?   @relation("MandateTermsFile", fields: [termsFileId], references: [id], onDelete: Restrict)
+
+  @@index([listingId, status])
+  @@index([agentId, status])
+  @@index([proposalId])
+  @@map("mandates")
 }

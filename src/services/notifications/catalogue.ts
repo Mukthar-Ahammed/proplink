@@ -99,6 +99,15 @@ export const NOTIFICATION_EVENTS: readonly NotificationEvent[] = [
     deliveredInPhase: 2,
   },
   {
+    key: "mandate.response",
+    label: "Agent responses to your mandate",
+    description: "The agent you chose accepted or declined, or a mandate ended.",
+    roles: [Role.LANDLORD],
+    defaults: { inApp: true, email: true },
+    mandatory: false,
+    deliveredInPhase: 2,
+  },
+  {
     key: "proposal.question",
     label: "Landlord questions on your proposals",
     description: "A landlord asked a question about one of your proposals.",
