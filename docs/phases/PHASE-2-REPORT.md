@@ -1,8 +1,8 @@
 | 3. Admin review queue | Done | ADR-037 |# Phase 2 — Landlord Listings, Admin Queue, Agent Interest and Exclusive Mandates
 
-| Status      | Started    | Branch                      | Depends on                                             |
-| ----------- | ---------- | --------------------------- | ------------------------------------------------------ |
-| In progress | 2026-11-18 | `phase-2-landlord-pipeline` | Phase 1 exit (owner's hand check of three Admin flows) |
+| Status                          | Started    | Branch                      | Depends on                                             |
+| ------------------------------- | ---------- | --------------------------- | ------------------------------------------------------ |
+| Built; waiting for owner checks | 2026-11-18 | `phase-2-landlord-pipeline` | Phase 1 exit (owner's hand check of three Admin flows) |
 
 Phase 2 started in parallel with Phase 1's last check, branched from
 `phase-1-roles-access` (as ADR-020 did for Phase 0 → 1). It cannot exit, or
@@ -36,7 +36,7 @@ mandate exists (OD-22).
 | 5. Agent marketplace         | Done                                              | ADR-038 |
 | 6. Exclusive mandate         | Done                                              | ADR-039 |
 | 7. Landlord data exposure    | Done (used by Phase 4 publishing)                 | ADR-040 |
-| 8. Notifications             | Not started                                       |         |
+| 8. Notifications             | Done                                              | ADR-041 |
 
 ## Task 1 — Landlord module (2026-11-18)
 
@@ -317,3 +317,73 @@ mandate exists (OD-22).
   Agent can set the disclosure (offered, other Agent and ended mandate
   refused by service and trigger); RLS on.
 - Rollback rehearsed.
+
+## Task 8 — Notifications along the chain (2026-11-18)
+
+**Delivered** (ADR-041; business Q12)
+
+- Every Phase 2 event now has a sender, by preference: listing review
+  results and new proposals, questions, answers and mandate responses to the
+  Landlord; new or returned listings, questions, declines, offers,
+  withdrawals, terminations and closures to the Agent.
+- `listing.private_listing` announcements to verified Agents when a listing
+  is approved or returns to the pool after a mandate ends; after the
+  response, five at a time, at most 500, exactly once per round
+  (`notification_deliveries`, migration `20261118150000` with rollback).
+- Declining a proposal now emails the Agent (left open in Task 5).
+
+**Verification**
+
+- `tests/unit/chain-notifications.test.ts` (15): claim-then-send, never twice,
+  skipped for preference off / inactive / no email, failures recorded and
+  never thrown (this caught a path where recording a failure could itself
+  throw; fixed), verified-Agent rule, open listings only, email content
+  (area and kind only), return-to-pool rounds, and a guard that every Phase 2
+  catalogue event has a sender.
+- `tests/integration/chain-notifications-db.test.ts` (2, disposable
+  database): a verified Agent is emailed once across repeated rounds, an
+  opted-out Agent is skipped, an Admin-rejected Agent is never included, a
+  new round is a new email, and the log holds no listing text; duplicate
+  claims refused; RLS on. Its first full-suite run timed out with about 56
+  Agents delivered one by one, which led to delivering five at a time.
+- Rollback rehearsed. Full suite on the disposable database: 123 files, 1584
+  tests pass.
+
+**Found, not changed (Phase 1):** the events `verification.decision`,
+`account.security` and `platform.update` have no sender that references
+them: KYC results appear in the portal but are not emailed; account emails
+come from Supabase Auth; announcements are dashboard banners. Listed in the
+checks below for an owner decision.
+
+## Owner checks before Phase 2 can close
+
+Phase 2's build is complete. Per the owner's choice, these checks are done
+in one sitting at the end (with Phase 1's). Use the development app.
+
+1. **Phase 1 Admin flows** (needs your Admin MFA): invite an Agent and go
+   through the company step; run a company check and an override; confirm an
+   existing Agent (details in `docs/phases/PHASE-1-REPORT.md`).
+2. **Review queue with two Admin accounts:** a Landlord submits a listing;
+   Admin A claims it, Admin B sees "held by" and takes over; reject with a
+   reason (Landlord sees it and gets an email at /dev/mail); the Landlord
+   edits and resubmits; approve. Expect the SLA badge and metrics to update
+   and verified Agents to receive "New private property" emails.
+3. **Marketplace and mandate as a real Landlord:** as the Agent, send a
+   proposal; as the Landlord, compare, ask a question, then "Choose this
+   agent"; as the Agent, accept; tick what investors see; terminate with a
+   reason. Expect the listing to leave and return to the marketplace and
+   the emails at each step.
+4. **Admin leakage check:** signed in as Admin, open a Landlord listing and
+   the review page; confirm nothing private shows on public pages (the
+   automated crawl covers every other role).
+5. **AI assistant (optional, needs `ANTHROPIC_API_KEY`):** follow the smoke
+   test in `docs/credentials/anthropic.md`.
+6. **Decisions:**
+   - OD-23 (what Agents see before and during a mandate): confirm the
+     default or change it.
+   - Should KYC results also be emailed (`verification.decision`)? Today
+     they show only in the portal.
+   - May an Agent show the Landlord's name to investors without the
+     Landlord's consent (ADR-040 notes the default hides it)?
+7. **Merge:** after Phase 1's checks, merge PR #1; then Phase 2 can be
+   proposed for merge.

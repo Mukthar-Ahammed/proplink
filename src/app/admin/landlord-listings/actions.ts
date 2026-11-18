@@ -1,6 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+
+import {
+  announceListingToAgents,
+  announceSafely,
+} from "@/services/landlord/announcements";
 
 import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
@@ -70,6 +76,10 @@ export async function decideAction(
   const decision = text(formData, "decision") === "APPROVE" ? "APPROVE" : "REJECT";
   const result = await decideListing(admin, id, decision, text(formData, "reason"));
   if (!result.ok) return { kind: "error", message: result.error };
+  if (decision === "APPROVE") {
+    // Task 8: tell verified Agents after the response, so Admin never waits.
+    after(() => announceSafely(() => announceListingToAgents(id, { kind: "approved" })));
+  }
   refresh(id);
   return {
     kind: "done",

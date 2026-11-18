@@ -1070,6 +1070,19 @@ of the boundary.
 - UI: "What investors will see" (choices and live preview) on
   `/agent/mandates/[id]`; summary on the Landlord's mandate panel.
 
+## Chain notifications (Phase 2 Task 8, ADR-041)
+
+- Every Phase 2 catalogue event has a sender (unit test guard), all through
+  `shouldNotify` and the mailer.
+- `src/services/notifications/deliveries.ts`: `deliverOnce` claims a
+  `notification_deliveries` row (unique per recipient, event, dedupe key,
+  channel) before sending; outcome only, never content.
+- `src/services/landlord/announcements.ts`: `listing.private_listing` to
+  verified Agents when a listing is approved or returns to the pool after a
+  mandate ends; five at a time, at most 500, run with `after()` from the
+  Admin decision and mandate actions. Emails carry area and kind only.
+- Schema (migration `20261118150000`): `notification_deliveries`; server-only.
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers

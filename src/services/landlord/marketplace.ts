@@ -20,6 +20,7 @@ import { writeAudit } from "@/services/admin/audit";
 import { agentCompanyGate } from "@/services/agents/companyGate";
 import { consumeRateLimits, type LimitSpec } from "@/services/auth/supabaseAuthService";
 import {
+  sendMandateEmail,
   sendNewProposalEmail,
   sendProposalAnswerEmail,
   sendProposalQuestionEmail,
@@ -579,6 +580,21 @@ export async function declineProposal(
     entity: "AgentProposal",
     entityId: proposalId,
   });
+  // Task 8: the Agent hears the outcome (mandate.decision covers declines).
+  const declined = await db.agentProposal.findUnique({
+    where: { id: proposalId },
+    select: { agentId: true, listing: { select: { id: true, title: true } } },
+  });
+  if (declined) {
+    await notifyProfile(declined.agentId, "mandate.decision", (to) =>
+      sendMandateEmail({
+        to,
+        notice: "proposal_declined",
+        listingTitle: declined.listing.title,
+        path: `/agent/marketplace/${declined.listing.id}`,
+      }),
+    );
+  }
   return { ok: true };
 }
 

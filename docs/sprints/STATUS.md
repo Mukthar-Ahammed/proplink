@@ -14,8 +14,10 @@ check of three Admin flows. Phase 2 cannot exit before Phase 1.
 
 **Phase 2:** Task 1 (Landlord module), Task 2 (AI listing assistant, mock
 until the Anthropic key exists), Task 3 (Admin review queue with SLA
-metrics), Task 4 (private-listing hardening and leakage crawl) Task 5 (Agent
-marketplace and proposals) and Task 6 (exclusive mandate) done; Tasks 7-8 next.
+metrics), Task 4 (private-listing hardening and leakage crawl), Task 5 (Agent
+marketplace and proposals), Task 6 (exclusive mandate), Task 7 (Landlord data
+exposure) and Task 8 (chain notifications) done. **Phase 2 build complete;**
+exit waits on the owner checks listed at the end of the Phase 2 report.
 
 | Phase 1 task                           | State |
 | -------------------------------------- | ----- |

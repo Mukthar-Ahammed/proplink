@@ -12,13 +12,14 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 - **Phase 1** pushed; PR #1 (Phase 0 + Phase 1 into `main`) open. Three
   credential-dependent checks carried forward; exit waits on the owner's hand
   check of three Admin flows.
-- **Phase 2 started** on `phase-2-landlord-pipeline` (Landlord listings, Admin
-  queue, Agent proposals, exclusive mandates). See `docs/phases/PHASE-2-REPORT.md`.
-  Task 1 (Landlord module, ADR-034) and Task 2 (AI listing assistant, ADR-036;
-  mock until `ANTHROPIC_API_KEY` exists), Task 3 (Admin review queue,
-  ADR-037), Task 4 (private-listing hardening, leakage crawl) Task 5 (Agent
-  marketplace and proposals, ADR-038) and Task 6 (exclusive mandate, ADR-039) done. PR #1's
-  CI is green.
+- **Phase 2 build complete** on `phase-2-landlord-pipeline` (see
+  `docs/phases/PHASE-2-REPORT.md`). All eight tasks done: Landlord module
+  (ADR-034), AI listing assistant (ADR-036; mock until `ANTHROPIC_API_KEY`
+  exists), Admin review queue (ADR-037), private-listing hardening and
+  leakage crawl, Agent marketplace and proposals (ADR-038), exclusive mandate
+  (ADR-039), Landlord data exposure (ADR-040), chain notifications (ADR-041).
+  Exit waits on the owner checks listed at the end of the Phase 2 report.
+  PR #1's CI is green.
 
 ## 2026-11-17 update
 

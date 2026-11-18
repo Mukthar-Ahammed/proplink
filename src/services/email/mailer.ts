@@ -182,7 +182,13 @@ export async function sendProposalAnswerEmail(params: {
 // reader signs in for the details.
 
 export type MandateNotice =
-  "offered" | "accepted" | "declined" | "offer_withdrawn" | "terminated" | "closed";
+  | "offered"
+  | "accepted"
+  | "declined"
+  | "offer_withdrawn"
+  | "terminated"
+  | "closed"
+  | "proposal_declined";
 
 const MANDATE_COPY: Record<MandateNotice, { subject: string; body: string }> = {
   offered: {
@@ -205,6 +211,10 @@ const MANDATE_COPY: Record<MandateNotice, { subject: string; body: string }> = {
     subject: "A mandate was terminated",
     body: "An exclusive mandate you are part of was terminated. The reason is in your portal.",
   },
+  proposal_declined: {
+    subject: "A landlord declined your proposal",
+    body: "The landlord compared proposals and declined yours.",
+  },
   closed: {
     subject: "A mandate was closed",
     body: "The landlord closed the mandate at the end of the agreed contract.",
@@ -222,6 +232,29 @@ export async function sendMandateEmail(params: {
     to: params.to,
     subject: `${copy.subject}: "${params.listingTitle}"`,
     text: `${copy.body}\n\n"${params.listingTitle}": ${BASE_URL}${params.path}`,
+  });
+}
+
+// Phase 2 Task 8 — a private listing opened to verified Agents (new, or back
+// in the pool after a mandate ended). Area only: no title, address or owner.
+
+export async function sendPrivateListingEmail(params: {
+  to: string;
+  area: string;
+  kind: string;
+  listingId: string;
+  returned: boolean;
+}) {
+  await mailer.send({
+    to: params.to,
+    subject: params.returned
+      ? `A private ${params.kind} in ${params.area} is open to agents again`
+      : `New private ${params.kind} in ${params.area} on PropLink`,
+    text: `${
+      params.returned
+        ? "A landlord's property is open to proposals again after a mandate ended."
+        : "A landlord's property passed PropLink review and is open to verified agents."
+    }\n\nSee it and send a proposal: ${BASE_URL}/agent/marketplace/${params.listingId}`,
   });
 }
 

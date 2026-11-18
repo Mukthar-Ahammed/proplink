@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+
+import { announceReturnToPool, announceSafely } from "@/services/landlord/announcements";
 
 import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
@@ -40,6 +43,10 @@ export async function agentMandateAction(
       ? await respondToOffer(agent, mandateId, intent === "accept")
       : await terminateMandate(agent, mandateId, text(formData, "reason"));
   if (!result.ok) return { kind: "error", message: result.error };
+  if (intent === "terminate") {
+    // Task 8 / Q9: the listing is back in the pool; tell verified Agents.
+    after(() => announceSafely(() => announceReturnToPool(mandateId)));
+  }
   revalidatePath(`/agent/mandates/${mandateId}`);
   revalidatePath("/agent/mandates");
   const message =

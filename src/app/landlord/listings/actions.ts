@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
+
+import { announceReturnToPool, announceSafely } from "@/services/landlord/announcements";
 import { redirect } from "next/navigation";
 
 import { LandlordListingFileKind, Role } from "@/generated/prisma/enums";
@@ -242,6 +245,10 @@ export async function mandateAction(
         ? await closeMandate(actor, mandateId)
         : await terminateMandate(actor, mandateId, text(formData, "reason"));
   if (!result.ok) return { kind: "error", message: result.error };
+  if (intent !== "withdraw") {
+    // Task 8 / Q9: the listing is back in the pool; tell verified Agents.
+    after(() => announceSafely(() => announceReturnToPool(mandateId)));
+  }
   refreshMandatePages(formData);
   return { kind: "saved" };
 }

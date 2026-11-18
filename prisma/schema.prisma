@@ -264,6 +264,7 @@ model Profile {
   mandatesHeld         Mandate[]                 @relation("MandateAgent")
   mandatesEnded        Mandate[]                 @relation("MandateTerminator")
   disclosuresSet       MandateDisclosure[]       @relation("MandateDisclosureEditor")
+  notificationsSent    NotificationDelivery[]    @relation("NotificationDeliveryProfile")
 
   @@map("profiles")
 }
@@ -1580,4 +1581,31 @@ model MandateDisclosure {
   editor  Profile @relation("MandateDisclosureEditor", fields: [updatedBy], references: [id], onDelete: Restrict)
 
   @@map("mandate_disclosures")
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
+/// Chain announcement deliveries (Phase 2 Task 8, ADR-041). Unique per
+/// recipient, event, dedupe key and channel, so nobody is told the same thing
+/// twice. Outcome only, never the message.
+model NotificationDelivery {
+  id        String                     @id @db.Uuid
+  profileId String                     @db.Uuid
+  eventKey  String
+  dedupeKey String
+  channel   String                     @default("email")
+  status    NotificationDeliveryStatus @default(PENDING)
+  createdAt DateTime                   @default(now())
+  updatedAt DateTime                   @updatedAt
+
+  profile Profile @relation("NotificationDeliveryProfile", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, eventKey, dedupeKey, channel], map: "notification_deliveries_dedupe_key")
+  @@index([createdAt])
+  @@map("notification_deliveries")
 }
