@@ -12,21 +12,21 @@ last Phase 0 item (ADR-020). **Phase 0 stays open** until the owner reports the
 manual authentication test (steps 1–3, part of 4, 6 and 7); Phase 1 cannot exit
 before then.
 
-| Phase 1 task                           | State       |
-| -------------------------------------- | ----------- |
-| 1. Roles and schema                    | Done        |
-| 2. Public registration rules           | Done        |
-| 3. Agent invitations and announcements | Done        |
-| 4. Companies House check               | Done        |
-| 5. Existing agents migration           | Done        |
-| 6. KYC/AML provider                    | Done        |
-| 7. Blue tick                           | Done        |
-| 8. Profiles                            | Done        |
-| 9. Suspend/reinstate                   | Done        |
-| 10. Notification preferences           | Done        |
-| 11. MFA                                | Done        |
-| 12. Secure upload pipeline             | Done        |
-| 13. Permission-matrix harness          | Not started |
+| Phase 1 task                           | State |
+| -------------------------------------- | ----- |
+| 1. Roles and schema                    | Done  |
+| 2. Public registration rules           | Done  |
+| 3. Agent invitations and announcements | Done  |
+| 4. Companies House check               | Done  |
+| 5. Existing agents migration           | Done  |
+| 6. KYC/AML provider                    | Done  |
+| 7. Blue tick                           | Done  |
+| 8. Profiles                            | Done  |
+| 9. Suspend/reinstate                   | Done  |
+| 10. Notification preferences           | Done  |
+| 11. MFA                                | Done  |
+| 12. Secure upload pipeline             | Done  |
+| 13. Permission-matrix harness          | Done  |
 
 **2026-11-16 Phase 0 progress:** development reconciliation completed
 (inspector 221/0, schema up to date); automated auth checks passed after three

@@ -42,8 +42,12 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   files / 1,341 tests pass.
 - **Task 8 (profiles) done** (ADR-032): profiles for every account, anonymous
   public IDs, investors private by default, server-computed track record, photos
-  via the secure pipeline. Full suite 107 files / 1,369 tests pass. Phase 1 tasks
-  done: 1–12 of 13.
+  via the secure pipeline. Full suite 107 files / 1,369 tests pass.
+- **Task 13 (permission-matrix harness) done** (ADR-033). **All 13 Phase 1 tasks
+  are implemented**; full suite 108 files / 1,432 tests pass. Phase 1 has not
+  exited: it waits on the Phase 0 manual auth test, applying the Phase 1
+  migrations to development and running the browser tests, and the pending
+  keys/decisions (see the Phase 1 report's exit-gate table).
 - Phase 0 is unchanged: only the owner's manual authentication test remains.
 
 ## 2026-11-16 update

@@ -273,6 +273,9 @@ The complete one-line policy rationale is in
   (self/Admin full; private Investor hidden; public Investor anonymous; project Agent via
   `isProjectAgentFor()`, implemented in Phase 4). Track record computed at read time.
   Photos via the upload pipeline and 5-minute signed links. UI `/account/profile`, `/u/<id>`.
+- **Permission matrix (Phase 1, ADR-033):** `src/lib/authz/permissionMatrix.ts` is the section 5
+  matrix as data; `tests/unit/permission-matrix.test.ts` checks every cell through the real
+  routes/actions. Undelivered capabilities must deny everyone until their phase flips them.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

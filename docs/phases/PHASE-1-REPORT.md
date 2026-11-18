@@ -11,21 +11,21 @@ development Supabase project (see the Phase 0 report).
 
 ## Task progress
 
-| Task                                   | State       | Notes                                |
-| -------------------------------------- | ----------- | ------------------------------------ |
-| 1. Roles and schema                    | **Done**    | ADR-021; details below               |
-| 2. Public registration rules           | **Done**    | ADR-022; details below               |
-| 3. Agent invitations and announcements | **Done**    | ADR-023; acceptance needs OD-18 key  |
-| 4. Companies House check               | **Done**    | ADR-024; live key pending (BLOCKERS) |
-| 5. Existing agents migration           | **Done**    | ADR-025                              |
-| 6. KYC/AML provider                    | **Done**    | ADR-026; provider choice OD-20       |
-| 7. Blue tick                           | **Done**    | ADR-027                              |
-| 8. Profiles                            | **Done**    | ADR-032; project-Agent rule Phase 4  |
-| 9. Suspend/reinstate                   | **Done**    | ADR-028; fixed actor-ID defect       |
-| 10. Notification preferences           | **Done**    | ADR-029                              |
-| 11. MFA                                | **Done**    | ADR-030; Admin login needs TOTP      |
-| 12. Secure upload pipeline             | **Done**    | ADR-031; S3 + ClamAV pending         |
-| 13. Permission-matrix harness          | Not started |                                      |
+| Task                                   | State    | Notes                                |
+| -------------------------------------- | -------- | ------------------------------------ |
+| 1. Roles and schema                    | **Done** | ADR-021; details below               |
+| 2. Public registration rules           | **Done** | ADR-022; details below               |
+| 3. Agent invitations and announcements | **Done** | ADR-023; acceptance needs OD-18 key  |
+| 4. Companies House check               | **Done** | ADR-024; live key pending (BLOCKERS) |
+| 5. Existing agents migration           | **Done** | ADR-025                              |
+| 6. KYC/AML provider                    | **Done** | ADR-026; provider choice OD-20       |
+| 7. Blue tick                           | **Done** | ADR-027                              |
+| 8. Profiles                            | **Done** | ADR-032; project-Agent rule Phase 4  |
+| 9. Suspend/reinstate                   | **Done** | ADR-028; fixed actor-ID defect       |
+| 10. Notification preferences           | **Done** | ADR-029                              |
+| 11. MFA                                | **Done** | ADR-030; Admin login needs TOTP      |
+| 12. Secure upload pipeline             | **Done** | ADR-031; S3 + ClamAV pending         |
+| 13. Permission-matrix harness          | **Done** | ADR-033                              |
 
 ## Task 1 — Roles and schema (2026-11-16)
 
@@ -517,3 +517,46 @@ exist yet for any service; it is not built here.
   lint clean.
 - Open: the "project's Agent sees a private investor" row is implemented in
   Phase 4 with projects.
+
+## Task 13 — Permission-matrix harness (2026-11-18)
+
+**Delivered** (ADR-033)
+
+- `src/lib/authz/permissionMatrix.ts`: the section 5 matrix (10 capabilities ×
+  6 roles) with targets, delivering phase and conditions.
+- `tests/unit/permission-matrix.test.ts`: 60 cell tests through the real entry
+  points (sign-up intents; badge and company-override actions; offer and
+  viewing routes); undelivered rows deny everyone; guard rails ensure every
+  delivered row has a checker and every undelivered row has none.
+- Runs in CI through `npm run test`.
+
+**Verification**
+
+- Harness: **63 tests pass** (60 cells + 3 structural checks).
+- Full suite: **108 files, 1,432 tests pass**; typecheck and lint clean.
+
+## Phase 1 exit gate (2026-11-18)
+
+| Exit-gate item                                                                | Status                     | Evidence                                                                                                 |
+| ----------------------------------------------------------------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Direct API agent self-registration rejected                                   | **Pass**                   | Task 2 unit/database tests; harness `self_register` row                                                  |
+| Invite token replay / expiry / wrong-email tests pass                         | **Pass**                   | `agent-invites.test.ts`, `agent-invites-db.test.ts`                                                      |
+| Companies House adapter tested with the mock and a documented live smoke test | **Partial**                | Mock and stubbed-API tests pass; `scripts/smoke-companies-house.mjs` documented but **not run** (no key) |
+| KYC webhook forgery and replay tests pass                                     | **Pass**                   | `kyc-provider*.test.ts`, `kyc-provider-webhook.test.ts` (real database)                                  |
+| RLS matrix for profiles (public/private/co-investor/agent/admin)              | **Pass**, one row deferred | Server-only tables + `viewProfile` matrix; the project-Agent row needs Phase 4 projects                  |
+| Admin cannot reach `/admin` without MFA                                       | **Pass** (unit)            | `mfa.test.ts`, `admin-a1-layout-shell.test.ts`; not yet browser-verified                                 |
+| EICAR and wrong-magic-byte uploads rejected; clean image only via signed URL  | **Pass** (mock scanner)    | `secure-uploads.test.ts` incl. fake clamd; real ClamAV not run                                           |
+| Permission-matrix harness runs in CI                                          | **Pass**                   | `permission-matrix.test.ts` in `npm run test`                                                            |
+| Phase report and credential docs written                                      | **Pass**                   | This report; `docs/credentials/{companies-house,kyc-provider,malware-scanning}.md`                       |
+
+**Phase 1 cannot exit yet.** Remaining before exit:
+
+1. **Phase 0 gate** (ADR-020): the owner's manual authentication test. Admin
+   sign-in now includes setting up an authenticator app (Task 11).
+2. **Apply the Phase 1 migrations to the development database** (none applied
+   outside the disposable test database), then run the written Playwright
+   specs: agent invites, company check, agent migration, KYC provider.
+3. **Credentials/owner decisions** for the live checks: Companies House key,
+   OD-18 (service-role key), OD-20 (KYC provider) with Sumsub sandbox keys, S3
+   buckets and ClamAV. See BLOCKERS.
+4. A TOTP helper for the Admin Playwright specs.
