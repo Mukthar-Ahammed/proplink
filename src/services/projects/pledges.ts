@@ -24,6 +24,7 @@ import {
   sharePpm,
   formatPpm,
 } from "@/services/projects/shares";
+import { isProjectSolicitor } from "@/services/projects/solicitors";
 
 /**
  * Pledges (Phase 4 Task 4, ADR-045; TRD INV-3, acceptance criterion 8). A
@@ -308,18 +309,23 @@ export async function myPledge(investorId: string, projectId: string, capital: b
   return { ...pledge, share: formatPpm(sharePpm(pledge.amountGBP, capital)) };
 }
 
-/** Pledges for the project's Agent or Admin (names: Q4 allows the project Agent). */
+/**
+ * Pledges with investor names for the project's Agent (Q4 allows the project
+ * Agent), its ACTIVE Solicitor (they prepare the agreement) and Admin.
+ */
 export async function listProjectPledges(actor: Actor, projectId: string) {
   if (!z.uuid().safeParse(projectId).success) return null;
+  let scope: { agentId?: string };
+  if (actor.role === Role.AGENT) scope = { agentId: actor.profileId };
+  else if (actor.role === Role.ADMIN) scope = {};
+  else if (
+    actor.role === Role.SOLICITOR &&
+    (await isProjectSolicitor(actor, projectId))
+  ) {
+    scope = {};
+  } else return null;
   const project = await db.investorProject.findFirst({
-    where: {
-      id: projectId,
-      ...(actor.role === Role.AGENT
-        ? { agentId: actor.profileId }
-        : actor.role === Role.ADMIN
-          ? {}
-          : { id: "00000000-0000-0000-0000-000000000000" }),
-    },
+    where: { id: projectId, ...scope },
     select: { capitalRequiredGBP: true },
   });
   if (!project) return null;

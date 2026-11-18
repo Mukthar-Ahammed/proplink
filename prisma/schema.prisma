@@ -286,6 +286,9 @@ model Profile {
   projectQuestions     ProjectQuestion[]         @relation("ProjectQuestionAsker")
   projectAnswers       ProjectQuestion[]         @relation("ProjectQuestionAnswerer")
   projectQuestionsHidden ProjectQuestion[]       @relation("ProjectQuestionModerator")
+  solicitorAppointment ProjectSolicitor?         @relation("ProjectSolicitorProfile")
+  solicitorsInvited    ProjectSolicitor[]        @relation("ProjectSolicitorInviter")
+  solicitorsEnded      ProjectSolicitor[]        @relation("ProjectSolicitorEnder")
 
   @@map("profiles")
 }
@@ -1937,6 +1940,7 @@ model InvestorProject {
   pledges     ProjectPledge[]
   favourites  ProjectFavourite[]
   questions   ProjectQuestion[]
+  solicitors  ProjectSolicitor[]
 
   @@index([status, publishedAt])
   @@index([agentId])
@@ -2065,4 +2069,42 @@ model ProjectQuestion {
   @@index([projectId, status, createdAt])
   @@index([askerId])
   @@map("project_questions")
+}
+
+// ── Phase 4 Task 5: Solicitor accounts (ADR-047) ──
+
+enum ProjectSolicitorStatus {
+  INVITED
+  ACTIVE
+  CLOSED
+  REVOKED
+}
+
+/// One Solicitor account per project (Admin-created, expiring single-use
+/// invitation, mandatory MFA). The profile is bound to this one project.
+model ProjectSolicitor {
+  id          String                 @id @db.Uuid
+  projectId   String                 @db.Uuid
+  profileId   String?                @unique @db.Uuid
+  email       String
+  name        String
+  firm        String
+  status      ProjectSolicitorStatus @default(INVITED)
+  tokenHash   String                 @unique
+  expiresAt   DateTime
+  invitedBy   String                 @db.Uuid
+  invitedAt   DateTime               @default(now())
+  acceptedAt  DateTime?
+  endedAt     DateTime?
+  endedBy     String?                @db.Uuid
+  endedReason String?
+  updatedAt   DateTime               @updatedAt
+
+  project InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  profile Profile?        @relation("ProjectSolicitorProfile", fields: [profileId], references: [id], onDelete: Restrict)
+  inviter Profile         @relation("ProjectSolicitorInviter", fields: [invitedBy], references: [id], onDelete: Restrict)
+  ender   Profile?        @relation("ProjectSolicitorEnder", fields: [endedBy], references: [id], onDelete: Restrict)
+
+  @@index([email])
+  @@map("project_solicitors")
 }

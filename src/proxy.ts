@@ -27,6 +27,7 @@ const GATES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/account-pending", roles: ["LANDLORD", "SOLICITOR", "ADVERTISER"] },
   { prefix: "/verify", roles: ["LANDLORD", "INVESTOR"] },
   { prefix: "/landlord", roles: ["LANDLORD"] },
+  { prefix: "/solicitor", roles: ["SOLICITOR"] },
 ];
 
 /**

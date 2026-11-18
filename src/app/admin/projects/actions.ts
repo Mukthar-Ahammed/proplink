@@ -9,6 +9,11 @@ import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
 import { announceSafely, type Actor } from "@/services/projects/common";
 import { hideProjectQuestion } from "@/services/projects/community";
+import {
+  endSolicitor,
+  inviteSolicitor,
+  resendSolicitorInvite,
+} from "@/services/projects/solicitors";
 import { announceProjectOpen, decideNomination } from "@/services/projects/lead";
 import { announceProject, publishProject } from "@/services/projects/projects";
 
@@ -93,4 +98,44 @@ export async function hideQuestionAction(
   if (!result.ok) return { kind: "error", message: result.error };
   revalidatePath(`/admin/projects/${text(formData, "projectId")}`);
   return { kind: "done", message: "Hidden." };
+}
+
+/** Task 5: appoint, re-invite or end the project's Solicitor (audited). */
+export async function solicitorAction(
+  _previous: ProjectFormState,
+  formData: FormData,
+): Promise<ProjectFormState> {
+  const admin = await adminActor();
+  if (!admin) return { kind: "error", message: "Admin access required" };
+  const projectId = text(formData, "projectId");
+  const intent = text(formData, "intent");
+  if (intent === "end") {
+    const ended = await endSolicitor(
+      admin,
+      text(formData, "solicitorId"),
+      text(formData, "reason"),
+    );
+    if (!ended.ok) return { kind: "error", message: ended.error };
+    revalidatePath(`/admin/projects/${projectId}`);
+    return { kind: "done", message: "Ended." };
+  }
+  const result =
+    intent === "invite"
+      ? await inviteSolicitor(admin, projectId, {
+          email: text(formData, "email"),
+          name: text(formData, "name"),
+          firm: text(formData, "firm"),
+        })
+      : await resendSolicitorInvite(admin, text(formData, "solicitorId"));
+  if (!result.ok) return { kind: "error", message: result.error };
+  revalidatePath(`/admin/projects/${projectId}`);
+  const link = result.data.devInviteUrl
+    ? ` Development link: ${result.data.devInviteUrl}`
+    : "";
+  return {
+    kind: "done",
+    message: result.data.emailed
+      ? `Invitation sent.${link}`
+      : `Saved, but the email could not be sent; use Re-send.${link}`,
+  };
 }

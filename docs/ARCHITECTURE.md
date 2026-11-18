@@ -1165,6 +1165,16 @@ of the boundary.
 - Schema (migration `20261119020000`): `proplink_project_member`,
   `project_favourites`, `project_questions` (guard), chat guard admitting
   PROJECT threads with membership checks.
+- `solicitors.ts` (Task 5, ADR-047): Admin appoints/re-sends/ends; the
+  invitation (`/invite/solicitor`, token in the fragment) and acceptance via
+  the account provisioner and a database claim; `isProjectSolicitor`,
+  `getSolicitorProject`. Portal `/solicitor` (proxy gate SOLICITOR, MFA
+  required).
+- Schema (migration `20261119030000`): `project_solicitors` (one per project,
+  one project per account, guard), `private.solicitor_invite_claims`, the
+  profile trigger's Solicitor branch, `proplink_solicitor_project()` and
+  read-only RLS policies (`authenticated`) on `investor_projects` and
+  `project_pledges`.
 - No money moves through the app; pledges are expressions of interest until
   signed.
 

@@ -8,6 +8,7 @@ import type { MetadataRoute } from "next";
  */
 export const PRIVATE_CRAWL_PREFIXES = [
   "/landlord",
+  "/solicitor",
   "/admin",
   "/agent",
   "/investor",

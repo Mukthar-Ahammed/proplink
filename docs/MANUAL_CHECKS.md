@@ -142,6 +142,13 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
 - [ ] **Landlord project view.** As the Landlord of a published listing open
       Projects: lifecycle and status only, no investor names or amounts.
 
+- [ ] **Solicitor account (needs the service-role key, OD-18).** As Admin on
+      a project page, "Invite the Solicitor" with a new email; open the link
+      from the email (or the development link), set a password, set up the
+      authenticator at `/mfa`, and land on `/solicitor` showing only that
+      project and its pledges. As Admin "Close account": the Solicitor then
+      sees "No active project". Try the old invitation link: refused.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

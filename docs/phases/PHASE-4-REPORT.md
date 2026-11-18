@@ -73,7 +73,7 @@ provider (default Dropbox Sign, alternative DocuSign).
 | 3. Investor portal            | Done                                             | ADR-046 |
 | 3a. Landlord project view     | Done (costs, milestones, updates with Tasks 5/7) | ADR-046 |
 | 4. Pledge flow                | Done                                             | ADR-045 |
-| 5. Solicitor accounts         | Not started                                      |         |
+| 5. Solicitor accounts         | Done (acceptance needs the OD-18 key)            | ADR-047 |
 | 6. Agreements and e-signature | Not started                                      |         |
 | 7. Funds tracking             | Not started                                      |         |
 | 8. Sale and ledger            | Not started                                      |         |
@@ -88,10 +88,10 @@ provider (default Dropbox Sign, alternative DocuSign).
 - [x] The Landlord's project view leaks no investor data.
 - [x] Over-subscription impossible under concurrency (50 parallel pledges).
 - [ ] Ledger immutability proven by tests (direct SQL as the app role fails).
-- [ ] Solicitor scope isolation proven by an RLS matrix.
+- [x] Solicitor scope isolation proven by an RLS matrix.
 - [ ] E-sign flow works with the mock; live smoke test documented.
 - [x] Sensitive documents inaccessible before KYC approval.
-- [ ] No code path can create a payment for investments (grep + test).
+- [x] No code path can create a payment for investments (grep + test).
 - [ ] Phase report and credential docs written.
 
 ## Tasks 1-2 — Publish to investors; Lead / Co-Investor model (2026-11-18)
@@ -213,3 +213,35 @@ provider (default Dropbox Sign, alternative DocuSign).
   investors and unknown ids get nothing**.
 - Phase 3 chat database test unchanged and passing (project threads with
   unknown projects still refused).
+
+## Task 5 — Solicitor accounts (2026-11-18)
+
+**Delivered** (ADR-047; TRD SO-1 to SO-4; Q19-Q22; ADR-030)
+
+- Migration `20261119030000_phase4_solicitors` (with `rollback.sql`,
+  rehearsed): appointments with guard (Admin only, one per project, one
+  project per account, no reopening), invitation claims, the profile
+  trigger's Solicitor branch, `proplink_solicitor_project()` and read-only
+  RLS policies for Solicitor sessions.
+- Admin (project page): invite (name, firm, new email), re-send (rotates the
+  link), revoke, close on completion, all audited. Development shows the
+  link when emails are mocked.
+- `/invite/solicitor`: token in the URL fragment; accepting creates the
+  account, signs in and sends the Solicitor to `/mfa` first.
+- `/solicitor` portal: the one project, its parties and pledges; "No active
+  project" once closed. Portal home, proxy gate, private headers and
+  robots updated.
+
+**Verification**
+
+- `tests/integration/solicitors-db.test.ts` (3, disposable database):
+  Admin-only, one per project, existing-account emails refused; re-send
+  kills the old link; expired and revoked links refused; acceptance creates
+  exactly one SOLICITOR profile bound to the project and the link works
+  once; a forged nonce gives BUYER; the database refuses non-Admin
+  appointments and moving an appointment; **RLS matrix: Solicitor A's
+  session reads only project A's row and pledges, Solicitor B only B;
+  investors, Agent, Admin, Landlord, Lead and anonymous sessions read
+  nothing, and nobody writes or reads appointments through the Data API**;
+  closing ends access in the service and RLS and cannot be undone.
+- Unit suite updated for the Solicitor portal home.

@@ -10,8 +10,9 @@ import { ActionButton } from "@/components/projects/ActionButton";
 import { QuestionList } from "@/components/projects/QuestionList";
 import { listProjectQuestions } from "@/services/projects/community";
 import { listProjectPledges } from "@/services/projects/pledges";
+import { listProjectSolicitors } from "@/services/projects/solicitors";
 
-import { hideQuestionAction } from "../actions";
+import { hideQuestionAction, solicitorAction } from "../actions";
 import { getManagedProject } from "@/services/projects/projects";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,10 @@ export default async function AdminProjectPage({
   if (!project) notFound();
   const pledges = (await listProjectPledges(admin, project.id)) ?? [];
   const questions = (await listProjectQuestions(admin, project.id)) ?? [];
+  const solicitors = await listProjectSolicitors(project.id);
+  const current = solicitors.find(
+    (row) => row.status === "INVITED" || row.status === "ACTIVE",
+  );
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -66,6 +71,88 @@ export default async function AdminProjectPage({
             </li>
           ))}
         </ul>
+      </section>
+      <section>
+        <h2 className="text-lg font-semibold text-primary">Solicitor</h2>
+        <p className="text-sm text-muted">
+          One Solicitor account per project, created once the Solicitor is agreed. The
+          invitation expires after 7 days; MFA is required. Close the account when the
+          project completes.
+        </p>
+        <ul className="mt-2 space-y-2 text-sm" data-testid="project-solicitors">
+          {solicitors.map((row) => (
+            <li key={row.id} className="rounded-lg border border-line bg-white p-3">
+              <p className="text-body">
+                {row.name} ({row.firm}) · {row.email} ·{" "}
+                {row.expired ? "INVITATION EXPIRED" : row.status}
+                {row.acceptedAt ? ` · accepted ${day(row.acceptedAt)}` : ""}
+                {row.endedReason ? ` · ${row.endedReason}` : ""}
+              </p>
+              {(row.status === "INVITED" || row.status === "ACTIVE") && (
+                <div className="mt-2 flex flex-wrap gap-4">
+                  {row.status === "INVITED" && (
+                    <ActionButton
+                      action={solicitorAction}
+                      hidden={{
+                        intent: "resend",
+                        solicitorId: row.id,
+                        projectId: project.id,
+                      }}
+                      label="Re-send invitation"
+                      tone="secondary"
+                    />
+                  )}
+                  <ActionButton
+                    action={solicitorAction}
+                    hidden={{ intent: "end", solicitorId: row.id, projectId: project.id }}
+                    label={
+                      row.status === "INVITED" ? "Revoke invitation" : "Close account"
+                    }
+                    tone="danger"
+                  >
+                    <input
+                      name="reason"
+                      required
+                      placeholder="Reason (e.g. project completed)"
+                      className="w-64 rounded-lg border border-line px-2 py-1 text-sm"
+                    />
+                  </ActionButton>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+        {!current && (
+          <div className="mt-3 max-w-xl">
+            <ActionButton
+              action={solicitorAction}
+              hidden={{ intent: "invite", projectId: project.id }}
+              label="Invite the Solicitor"
+            >
+              <div className="grid gap-2 sm:grid-cols-3">
+                <input
+                  name="name"
+                  required
+                  placeholder="Solicitor's name"
+                  className="rounded-lg border border-line px-2 py-1 text-sm"
+                />
+                <input
+                  name="firm"
+                  required
+                  placeholder="Firm"
+                  className="rounded-lg border border-line px-2 py-1 text-sm"
+                />
+                <input
+                  name="email"
+                  type="email"
+                  required
+                  placeholder="Email (new to PropLink)"
+                  className="rounded-lg border border-line px-2 py-1 text-sm"
+                />
+              </div>
+            </ActionButton>
+          </div>
+        )}
       </section>
       <section>
         <h2 className="text-lg font-semibold text-primary">Questions and answers</h2>

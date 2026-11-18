@@ -321,6 +321,21 @@ export async function sendAgentInviteEmail(params: {
   });
 }
 
+// Phase 4 Task 5 — a project's Solicitor account (ADR-047).
+export async function sendSolicitorInviteEmail(params: {
+  to: string;
+  inviteUrl: string;
+  expiresAt: Date;
+  projectTitle: string;
+}) {
+  const expires = params.expiresAt.toUTCString();
+  await mailer.send({
+    to: params.to,
+    subject: `PropLink UK: your Solicitor account for "${params.projectTitle}"`,
+    text: `PropLink UK has appointed you as the Solicitor for the project "${params.projectTitle}" and invites you to create its Solicitor account.\n\nAccept the invitation and set your password here:\n${params.inviteUrl}\n\nThe account gives access to this one project only. Two-factor authentication is required before you can use it.\n\nThis link works once, only for this email address, and expires on ${expires}.\n\nIf you were not expecting this invitation, ignore this email.`,
+  });
+}
+
 /** True when emails are only logged (development): nothing is actually sent. */
 export function isMockMailer(): boolean {
   return env.EMAIL_PROVIDER !== "resend";

@@ -64,7 +64,8 @@ describe("Phase 1 Task 1: roles cannot be self-assigned", () => {
       expect(PORTAL_HOME[role]).toMatch(/^\/[a-z-]+$/);
     }
     expect(PORTAL_HOME.LANDLORD).toBe("/landlord");
-    expect(PORTAL_HOME.SOLICITOR).toBe("/account-pending");
+    // Phase 4 Task 5 (ADR-047): the Solicitor portal.
+    expect(PORTAL_HOME.SOLICITOR).toBe("/solicitor");
     expect(PORTAL_HOME.ADVERTISER).toBe("/account-pending");
   });
 });
