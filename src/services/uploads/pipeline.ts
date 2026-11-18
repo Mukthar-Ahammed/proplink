@@ -399,3 +399,71 @@ export async function readDownload(
     disposition: inline ? "inline" : "attachment",
   };
 }
+
+// ── Profile photos (Task 8) ───────────────────────────────────────────────
+
+type PhotoPayload = { f: string; e: number; k: "photo" };
+
+/**
+ * A 5-minute signed image link for a profile photo. The caller issues it only
+ * after `viewProfile` allowed the viewer to see that profile; anonymous
+ * visitors may hold it, so it is not bound to a user.
+ */
+export function createProfilePhotoUrl(fileId: string, now = Date.now()): string {
+  const payload: PhotoPayload = {
+    f: fileId,
+    e: Math.floor(now / 1000) + DOWNLOAD_TTL_SECONDS,
+    k: "photo",
+  };
+  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return `/api/profiles/photo?token=${body}.${sign(body)}`;
+}
+
+/** Serves a photo only while it is still a clean image attached to a profile. */
+export async function readProfilePhoto(
+  token: string,
+  now = Date.now(),
+): Promise<
+  { ok: true; bytes: Uint8Array; contentType: string } | { ok: false; status: number }
+> {
+  const [body, signature] = token.split(".");
+  if (!body || !signature || token.length > 1000) return { ok: false, status: 403 };
+  const expected = Buffer.from(sign(body));
+  const received = Buffer.from(signature);
+  if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+    return { ok: false, status: 403 };
+  }
+  let payload: PhotoPayload;
+  try {
+    payload = JSON.parse(Buffer.from(body, "base64url").toString("utf8"));
+  } catch {
+    return { ok: false, status: 403 };
+  }
+  if (payload.k !== "photo" || payload.e * 1000 < now) return { ok: false, status: 403 };
+  const file = await db.uploadedFile.findUnique({
+    where: { id: payload.f },
+    select: {
+      status: true,
+      previewable: true,
+      purpose: true,
+      storageKey: true,
+      detectedType: true,
+    },
+  });
+  const attached = await db.userProfile.count({ where: { photoFileId: payload.f } });
+  if (
+    !file ||
+    attached === 0 ||
+    file.status !== UploadStatus.AVAILABLE ||
+    !file.previewable ||
+    file.purpose !== "profile_photo" ||
+    !file.detectedType
+  ) {
+    return { ok: false, status: 404 };
+  }
+  return {
+    ok: true,
+    bytes: await getStore().get("private", file.storageKey),
+    contentType: file.detectedType,
+  };
+}

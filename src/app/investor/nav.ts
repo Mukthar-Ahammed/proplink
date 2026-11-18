@@ -8,6 +8,7 @@ export function getInvestorNav(investorType: InvestorType | null): PortalNavItem
     return [
       ...base,
       { href: "/investor/kyc", label: "Identity & Verification" },
+      { href: "/account/profile", label: "My profile" },
       { href: "/account/notifications", label: "Notifications" },
     ];
   }
@@ -21,6 +22,7 @@ export function getInvestorNav(investorType: InvestorType | null): PortalNavItem
   }
 
   base.push({ href: "/investor/kyc", label: "Identity & Verification" });
+  base.push({ href: "/account/profile", label: "My profile" });
   base.push({ href: "/account/notifications", label: "Notifications" });
   return base;
 }

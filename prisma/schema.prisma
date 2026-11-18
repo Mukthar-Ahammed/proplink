@@ -253,6 +253,7 @@ model Profile {
   mfaRecoveryCodes     MfaRecoveryCode[]         @relation("MfaRecoveryCodeProfile")
   mfaRecoverySessions  MfaRecoverySession[]      @relation("MfaRecoverySessionProfile")
   uploadedFiles        UploadedFile[]            @relation("UploadedFileOwner")
+  userProfile          UserProfile?              @relation("UserProfileProfile")
 
   @@map("profiles")
 }
@@ -1250,4 +1251,32 @@ model UploadSettings {
   updatedBy      String?  @db.Uuid
 
   @@map("upload_settings")
+}
+
+/// Phase 1 Task 8 (ADR-032). Investor profile visibility (business Q4).
+enum ProfileVisibility {
+  /// Anonymous platform ID and general metrics only.
+  PUBLIC
+  /// Hidden; full details only to the project's Agent (Phase 4), self, Admin.
+  PRIVATE
+}
+
+/// LinkedIn-style profile for every account. Track record is computed by the
+/// server and never stored here. Email and phone are never part of it.
+model UserProfile {
+  profileId   String            @id @db.Uuid
+  /// Anonymous platform ID used in public URLs, e.g. PL-7K3M9Q2X.
+  publicId    String            @unique
+  headline    String?
+  bio         String?
+  location    String?
+  specialisms String[]
+  experience  String?
+  photoFileId String?           @db.Uuid
+  visibility  ProfileVisibility @default(PUBLIC)
+  updatedAt   DateTime          @updatedAt
+
+  profile Profile @relation("UserProfileProfile", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
 }

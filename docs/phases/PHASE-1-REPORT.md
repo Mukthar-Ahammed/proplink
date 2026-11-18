@@ -20,7 +20,7 @@ development Supabase project (see the Phase 0 report).
 | 5. Existing agents migration           | **Done**    | ADR-025                              |
 | 6. KYC/AML provider                    | **Done**    | ADR-026; provider choice OD-20       |
 | 7. Blue tick                           | **Done**    | ADR-027                              |
-| 8. Profiles                            | Not started | Needs Task 12 for photo uploads      |
+| 8. Profiles                            | **Done**    | ADR-032; project-Agent rule Phase 4  |
 | 9. Suspend/reinstate                   | **Done**    | ADR-028; fixed actor-ID defect       |
 | 10. Notification preferences           | **Done**    | ADR-029                              |
 | 11. MFA                                | **Done**    | ADR-030; Admin login needs TOTP      |
@@ -482,3 +482,38 @@ exist yet for any service; it is not built here.
 - Rollback rehearsed. Full suite: **105 files, 1,341 tests pass**; typecheck and
   lint clean.
 - Not exercised: real S3 and ClamAV (BLOCKERS).
+
+## Task 8 — LinkedIn-style profiles (2026-11-18)
+
+**Delivered** (ADR-032)
+
+- Migration `20261118060000_phase1_user_profiles` (with `rollback.sql`):
+  server-only `user_profiles` with an anonymous `PL-XXXXXXXX` ID; trigger
+  allows `PRIVATE` only for Investors and a photo only from the owner's own
+  clean, previewable profile-photo upload.
+- `src/services/profiles/userProfiles.ts`: `ensureUserProfile` (Investors
+  start private), `viewProfile` (single visibility decision; never email or
+  phone), server-computed track record, `updateOwnProfile` (cleaned text,
+  limits, photo ownership, Investor-only privacy), `isProjectAgentFor` Phase 4
+  hook (false until projects exist).
+- Photos through the Task 12 pipeline; 5-minute signed links issued after the
+  visibility check; `/api/profiles/photo` serves verified images inline in a
+  sandbox.
+- UI: `/account/profile` (edit, photo upload, visibility) and `/u/<publicId>`;
+  "My profile" in the Agent, Investor and Buyer portals.
+
+**Verification**
+
+- `tests/unit/user-profiles.test.ts`: visibility matrix (private investor ×
+  self/admin/co-investor/agent/buyer/anonymous; public investor ×
+  co-investor/anonymous; agent and landlord public), anonymous view leaks no
+  name/bio/location/specialisms/contact, Admin/inactive/malformed hidden,
+  server-computed agent track record, private-by-default investors, distinct
+  IDs, text cleaning and limits, track record not editable, Investor-only
+  privacy, photo ownership/purpose/status/preview checks.
+- `tests/integration/user-profiles-db.test.ts`: Investor-only private, photo
+  ownership and state, ID format and text limits, no Data API access.
+- Rollback rehearsed. Full suite: **107 files, 1,369 tests pass**; typecheck and
+  lint clean.
+- Open: the "project's Agent sees a private investor" row is implemented in
+  Phase 4 with projects.

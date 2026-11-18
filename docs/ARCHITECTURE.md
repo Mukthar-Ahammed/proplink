@@ -268,6 +268,11 @@ The complete one-line policy rationale is in
   Downloads: `createDownloadLink` (access check) → HMAC-signed 5-minute link →
   `GET /api/files/download` (same user; attachment, nosniff, no-store, sandbox CSP; inline
   only for verified images). Service `src/services/uploads/pipeline.ts`.
+- **Profiles (Phase 1, ADR-032):** server-only `user_profiles` with an anonymous `publicId`;
+  `viewProfile()` (`src/services/profiles/userProfiles.ts`) is the single visibility decision
+  (self/Admin full; private Investor hidden; public Investor anonymous; project Agent via
+  `isProjectAgentFor()`, implemented in Phase 4). Track record computed at read time.
+  Photos via the upload pipeline and 5-minute signed links. UI `/account/profile`, `/u/<id>`.
 - **Investor capabilities (Phase 1, ADR-021):** `public.investor_capabilities`
   (`LEAD_INVESTOR`, `CO_INVESTOR`; one investor may hold both) is server-only (RLS
   on, all Data API privileges revoked). Triggers allow rows only for INVESTOR

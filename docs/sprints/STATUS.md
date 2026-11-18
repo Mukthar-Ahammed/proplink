@@ -21,7 +21,7 @@ before then.
 | 5. Existing agents migration           | Done        |
 | 6. KYC/AML provider                    | Done        |
 | 7. Blue tick                           | Done        |
-| 8. Profiles                            | Not started |
+| 8. Profiles                            | Done        |
 | 9. Suspend/reinstate                   | Done        |
 | 10. Notification preferences           | Done        |
 | 11. MFA                                | Done        |

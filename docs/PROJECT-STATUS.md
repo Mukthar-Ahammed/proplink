@@ -39,7 +39,11 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 - **Task 12 (secure upload pipeline) done** (ADR-031): quarantine, magic-byte
   check, ClamAV/mock scan, private storage, 5-minute signed downloads, Admin
   limits. Production uploads stay off until S3 and ClamAV exist. Full suite 105
-  files / 1,341 tests pass. Phase 1 tasks done: 1–7 and 9–12 of 13.
+  files / 1,341 tests pass.
+- **Task 8 (profiles) done** (ADR-032): profiles for every account, anonymous
+  public IDs, investors private by default, server-computed track record, photos
+  via the secure pipeline. Full suite 107 files / 1,369 tests pass. Phase 1 tasks
+  done: 1–12 of 13.
 - Phase 0 is unchanged: only the owner's manual authentication test remains.
 
 ## 2026-11-16 update
