@@ -13,6 +13,7 @@ vi.mock("@/lib/db", () => {
     },
     uploadedFile: { findFirst: vi.fn() },
     mandateDisclosure: { findUnique: vi.fn(), upsert: vi.fn() },
+    investorProject: { findFirst: vi.fn() },
     profile: { findUnique: vi.fn() },
     $transaction: vi.fn(),
   };
@@ -376,6 +377,26 @@ describe("ending a mandate", () => {
     expect(mockDb.mandate.updateMany.mock.calls[0][0].data).toEqual({
       status: "CLOSED",
       closedAt: NOW,
+    });
+  });
+
+  it("refuses to end a mandate while its investor project is live (Phase 4)", async () => {
+    mockDb.mandate.findFirst.mockResolvedValue({
+      ...active,
+      endsAt: new Date("2026-11-01T00:00:00Z"),
+    } as never);
+    mockDb.investorProject.findFirst.mockResolvedValue({ id: "p" } as never);
+    expect(
+      await terminateMandate(AGENT, MANDATE, "Landlord stopped responding.", NOW),
+    ).toMatchObject({ ok: false, status: 409 });
+    expect(await closeMandate(LANDLORD, MANDATE, NOW)).toMatchObject({
+      ok: false,
+      status: 409,
+    });
+    expect(mockDb.mandate.updateMany).not.toHaveBeenCalled();
+    expect(mockDb.investorProject.findFirst.mock.calls[0][0]?.where).toEqual({
+      mandateId: MANDATE,
+      status: { notIn: ["SOLD", "CLOSED"] },
     });
   });
 });

@@ -159,8 +159,14 @@ export default async function AgentMandatePage({
       {active && mandate.disclosure && mandate.investorPreview && (
         <PortalSection title="What investors will see">
           <p className="text-sm text-muted">
-            When you publish this property to investors (coming with the Investor Portal),
-            only the details you tick are shown.
+            When you publish this property to investors, only the details you tick are
+            shown.{" "}
+            <Link
+              href={`/agent/projects/new?mandate=${mandate.id}`}
+              className="font-semibold text-primary underline"
+            >
+              Publish to investors
+            </Link>
           </p>
           <div className="mt-4 grid gap-6 lg:grid-cols-2">
             <DisclosureForm

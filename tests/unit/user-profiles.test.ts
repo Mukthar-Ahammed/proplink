@@ -11,6 +11,10 @@ vi.mock("@/lib/db", () => ({
     },
     uploadedFile: { findUnique: vi.fn() },
     property: { count: vi.fn() },
+    investorProject: {
+      count: vi.fn().mockResolvedValue(0),
+      findFirst: vi.fn().mockResolvedValue(null),
+    },
   },
 }));
 

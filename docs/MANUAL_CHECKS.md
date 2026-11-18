@@ -108,6 +108,22 @@ and complete the mock identity check at `/verify`.
 localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       card 4242 4242 4242 4242, then use the Customer Portal to cancel.
 
+## Phase 4 — Investor projects, pledges, Solicitor, agreements, ledger
+
+- [ ] **Publish and Lead.** As `agent@` with an active mandate: Mandates →
+      tick what investors see → "Publish to investors"; fill the terms and
+      publish. As a KYC-approved, subscribed investor, open Projects, check
+      the property shows only what was ticked (no landlord name or street by
+      default) and press "I'm interested". As the Agent, nominate that
+      investor as Lead; as the investor, accept; as Admin at
+      `/admin/projects`, approve. The project shows "Open for investment" and
+      the investor sees "You are this project's Lead Investor".
+- [ ] **Admin publishes for an Agent.** At `/admin/projects` → "Publish for an
+      Agent"; the project belongs to the Agent and the audit log records it.
+- [ ] **Documents before KYC.** With "Other documents" ticked on the mandate,
+      an investor without approved KYC sees "Documents are available once…"
+      and no links; after KYC approval the links appear.
+
 ## Later phases
 
 Each phase adds its section here when its build is complete.

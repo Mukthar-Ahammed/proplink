@@ -4,6 +4,7 @@ import { randomInt } from "node:crypto";
 import { z } from "zod";
 
 import {
+  InvestorProjectStatus,
   ProfileVisibility,
   PropertyStatus,
   Role,
@@ -67,16 +68,43 @@ export async function ensureUserProfile(profileId: string, role: Role) {
 }
 
 /**
- * Phase 4 hook: whether `agentProfileId` is the Agent working under the
- * Solicitor on a project this investor is part of. No projects exist yet.
+ * Whether `agentProfileId` is the Agent on a project this investor is part
+ * of (Lead, nominee or interested; pledges from Phase 4 Task 4). Such an
+ * Agent sees the investor's full profile (Q4).
  */
 export async function isProjectAgentFor(
-  _agentProfileId: string,
-  _investorProfileId: string,
+  agentProfileId: string,
+  investorProfileId: string,
 ): Promise<boolean> {
-  void _agentProfileId;
-  void _investorProfileId;
-  return false;
+  const project = await db.investorProject.findFirst({
+    where: {
+      agentId: agentProfileId,
+      OR: [
+        { leadInvestorId: investorProfileId },
+        { interests: { some: { investorId: investorProfileId, withdrawnAt: null } } },
+        { nominations: { some: { investorId: investorProfileId } } },
+      ],
+    },
+    select: { id: true },
+  });
+  return Boolean(project);
+}
+
+const COMPLETED_PROJECT = [
+  InvestorProjectStatus.COMPLETED,
+  InvestorProjectStatus.LISTED_FOR_SALE,
+  InvestorProjectStatus.SOLD,
+];
+
+/** Completed Phase 4 projects: as the Agent, or as the Lead Investor. */
+async function completedProjects(profileId: string, role: Role): Promise<number> {
+  if (role !== Role.AGENT && role !== Role.INVESTOR) return 0;
+  return db.investorProject.count({
+    where: {
+      status: { in: COMPLETED_PROJECT },
+      ...(role === Role.AGENT ? { agentId: profileId } : { leadInvestorId: profileId }),
+    },
+  });
 }
 
 export type TrackRecordItem = { label: string; value: string };
@@ -103,8 +131,12 @@ export async function trackRecord(target: {
     label: "Member since",
     value: String(target.createdAt.getUTCFullYear()),
   };
+  const completed = await completedProjects(target.id, target.role);
   const projectFigures: TrackRecordItem[] = [
-    { label: "Completed refurbishments / builds", value: NO_PROJECTS_YET },
+    {
+      label: "Completed refurbishments / builds",
+      value: completed > 0 ? String(completed) : NO_PROJECTS_YET,
+    },
     { label: "Average project completion time", value: NOT_ENOUGH_DATA },
   ];
   if (target.role === Role.AGENT) {

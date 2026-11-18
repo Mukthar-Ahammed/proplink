@@ -31,6 +31,10 @@ const SERVICE_USERS = [
   // threads whose participants already know the listing, and reuses the
   // preference-aware email helper.
   "src/services/chat/",
+  // Phase 4 (ADR-044): investor projects show investors only the mandate's
+  // disclosure (buildInvestorView), never the raw listing; documents only
+  // after KYC approval. Pages use the projects service, not this one.
+  "src/services/projects/",
 ];
 /** Download links that skip the owner/Admin check: Landlord service only. */
 const GRANTED_LINK_CALL = /createGrantedDownloadLink\s*\(/;
@@ -80,7 +84,12 @@ describe("private Landlord listings: code boundary", () => {
 
   it("issues pre-authorised download links only from the Landlord and chat services", () => {
     // Chat (Phase 3 Task 4): links only after threadAccess allowed reading.
-    const allowedCallers = ["src/services/landlord/", "src/services/chat/"];
+    // Projects (Phase 4): only files the disclosure exposes, documents after KYC.
+    const allowedCallers = [
+      "src/services/landlord/",
+      "src/services/chat/",
+      "src/services/projects/",
+    ];
     const callers = files
       .filter(
         ({ rel, text }) =>

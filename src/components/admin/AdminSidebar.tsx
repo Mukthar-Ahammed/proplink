@@ -28,6 +28,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
         status: "active",
       },
       { label: "Chats", href: "/admin/chats", status: "active" },
+      { label: "Investor Projects", href: "/admin/projects", status: "active" },
       { label: "Moderation", href: "/admin/moderation", status: "active" },
       { label: "Flipper Resales", href: "/admin/resales", status: "active" },
     ],

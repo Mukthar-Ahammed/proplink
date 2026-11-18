@@ -1129,6 +1129,26 @@ of the boundary.
   server; clients also poll; offline outbox with idempotent retries.
 - `src/services/esign/`: `ESignProvider` interface (Phase 4 implements).
 
+## Investor projects (Phase 4, ADR-044 onwards)
+
+- `src/services/projects/`: `common.ts` (actor type, lifecycle labels, the
+  AG-6 responsibility notice, `databaseRule` to read trigger refusals),
+  `projects.ts` (publish from an ACTIVE mandate, edit terms while
+  published, interest, announcements), `lead.ts` (OD-13 nominate → accept →
+  Admin approves; one Lead per project), `portal.ts` (the investor read
+  side: redacted view from the mandate disclosure, documents after KYC,
+  Lead stats, search and filters).
+- Pages: `/agent/projects` (+ `new`, `[id]`), `/admin/projects` (+ `new`,
+  `[id]`), `/investor/projects` (+ `[id]`). Shared components in
+  `src/components/projects/`.
+- Schema (migration `20261119000000`): `investor_projects` (lifecycle and
+  terms trigger; one per mandate; one live per listing), `project_interests`,
+  `project_lead_nominations` (one in progress and one APPROVED per project),
+  `proplink_refuse_change()` shared refusal trigger, mandate guard against
+  ending with a live project. Server-only (RLS on, no grants).
+- No money moves through the app; pledges are expressions of interest until
+  signed (later tasks).
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers

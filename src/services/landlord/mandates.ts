@@ -6,6 +6,7 @@ import { z } from "zod";
 
 import {
   AgentProposalStatus,
+  InvestorProjectStatus,
   KycStatus,
   LandlordListingStatus,
   MandateStatus,
@@ -197,6 +198,21 @@ export async function chooseAgent(
 
 class ConflictError extends Error {}
 
+const LIVE_PROJECT_MESSAGE =
+  "This mandate has a live investor project. Ask PropLink to close the project first.";
+
+/** Phase 4 (ADR-044): investors rely on the Agent while a project is live. */
+async function hasLiveProject(mandateId: string): Promise<boolean> {
+  const project = await db.investorProject.findFirst({
+    where: {
+      mandateId,
+      status: { notIn: [InvestorProjectStatus.SOLD, InvestorProjectStatus.CLOSED] },
+    },
+    select: { id: true },
+  });
+  return Boolean(project);
+}
+
 /** Withdraw an offer the Agent has not answered; the proposal reopens. */
 export async function withdrawOffer(
   landlord: LandlordActor,
@@ -261,6 +277,7 @@ export async function closeMandate(
     select: { agentId: true, endsAt: true, listing: { select: { title: true } } },
   });
   if (!mandate) return bad("This mandate can't be closed now", 409);
+  if (await hasLiveProject(mandateId)) return bad(LIVE_PROJECT_MESSAGE, 409);
   if (!mandate.endsAt || mandate.endsAt > now) {
     return bad(
       "The contract period has not ended yet. To end it early, terminate it with a reason.",
@@ -489,6 +506,7 @@ export async function terminateMandate(
     },
   });
   if (!mandate) return bad("This mandate can't be terminated now", 409);
+  if (await hasLiveProject(mandateId)) return bad(LIVE_PROJECT_MESSAGE, 409);
   const updated = await db.mandate.updateMany({
     where: { id: mandateId, status: MandateStatus.ACTIVE },
     data: {

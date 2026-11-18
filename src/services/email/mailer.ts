@@ -335,3 +335,69 @@ export async function sendAgentMigrationNotice(params: { to: string; name: strin
     text: `Hello ${params.name},\n\nPropLink UK now admits agents by invitation. Your existing account stays active, but you need to confirm it so PropLink can authorise it for new features.\n\nSign in and confirm your account here:\n${BASE_URL}/agent/confirm\n\nIt takes less than a minute. If you no longer use PropLink, you can ignore this email.`,
   });
 }
+
+// Phase 4 — investor projects. Plain notices; details are only in PropLink.
+
+export type ProjectNotice =
+  | "published"
+  | "lead_nominated"
+  | "lead_accepted"
+  | "lead_declined"
+  | "lead_withdrawn"
+  | "lead_approved"
+  | "lead_rejected"
+  | "project_open"
+  | "update";
+
+const PROJECT_COPY: Record<ProjectNotice, { subject: string; body: string }> = {
+  published: {
+    subject: "A new investment project is open for interest",
+    body: "An agent published a project you can review. Pledges are expressions of interest until an agreement is signed; capital is at risk.",
+  },
+  lead_nominated: {
+    subject: "You were nominated as Lead Investor",
+    body: "The project's agent nominated you as its Lead Investor. Accept or decline in PropLink; PropLink then reviews the nomination.",
+  },
+  lead_accepted: {
+    subject: "Your Lead Investor nominee accepted",
+    body: "The investor you nominated accepted. PropLink will review and confirm the Lead.",
+  },
+  lead_declined: {
+    subject: "Your Lead Investor nominee declined",
+    body: "The investor you nominated declined. You can nominate another interested investor.",
+  },
+  lead_withdrawn: {
+    subject: "A Lead Investor nomination was withdrawn",
+    body: "The agent withdrew your nomination as Lead Investor.",
+  },
+  lead_approved: {
+    subject: "The Lead Investor is confirmed",
+    body: "PropLink confirmed the project's Lead Investor. The project is now open for co-investor pledges.",
+  },
+  lead_rejected: {
+    subject: "A Lead Investor nomination was not approved",
+    body: "PropLink did not approve the Lead Investor nomination. The agent can nominate another investor.",
+  },
+  project_open: {
+    subject: "A project you follow is open for pledges",
+    body: "A project you expressed interest in confirmed its Lead Investor and is open for pledges (expressions of interest until signed).",
+  },
+  update: {
+    subject: "There is an update on your project",
+    body: "There is a new update on a project you are part of.",
+  },
+};
+
+export async function sendProjectEmail(params: {
+  to: string;
+  notice: ProjectNotice;
+  projectTitle: string;
+  path: string;
+}) {
+  const copy = PROJECT_COPY[params.notice];
+  await mailer.send({
+    to: params.to,
+    subject: `${copy.subject}: "${params.projectTitle}"`,
+    text: `${copy.body}\n\n"${params.projectTitle}": ${BASE_URL}${params.path}`,
+  });
+}

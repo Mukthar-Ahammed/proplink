@@ -274,6 +274,13 @@ model Profile {
   chatMessagesSent     ChatThreadMessage[]       @relation("ChatThreadMessageSender")
   chatReportsMade      ChatReport[]              @relation("ChatReportReporter")
   chatReportsResolved  ChatReport[]              @relation("ChatReportResolver")
+  projectsAsAgent      InvestorProject[]         @relation("InvestorProjectAgent")
+  projectsAsLead       InvestorProject[]         @relation("InvestorProjectLead")
+  projectsPublished    InvestorProject[]         @relation("InvestorProjectPublisher")
+  projectInterests     ProjectInterest[]         @relation("ProjectInterestInvestor")
+  leadNominations      ProjectLeadNomination[]   @relation("LeadNominationInvestor")
+  leadNominationsMade  ProjectLeadNomination[]   @relation("LeadNominationNominator")
+  leadNominationsDecided ProjectLeadNomination[] @relation("LeadNominationDecider")
 
   @@map("profiles")
 }
@@ -1371,6 +1378,7 @@ model LandlordListing {
   reviews LandlordListingReview[]
   proposals AgentProposal[]
   mandates  Mandate[]
+  projects  InvestorProject[]
 
   @@index([ownerId, status])
   @@index([status, submittedAt])
@@ -1562,6 +1570,7 @@ model Mandate {
   terminator Profile?        @relation("MandateTerminator", fields: [terminatedBy], references: [id], onDelete: Restrict)
   termsFile  UploadedFile?   @relation("MandateTermsFile", fields: [termsFileId], references: [id], onDelete: Restrict)
   disclosure MandateDisclosure?
+  project    InvestorProject?
 
   @@index([listingId, status])
   @@index([agentId, status])
@@ -1854,4 +1863,115 @@ model ChatReport {
 
   @@index([status, createdAt])
   @@map("chat_reports")
+}
+
+// ── Phase 4 Tasks 1-2: investor projects and Lead assignment (ADR-044) ──
+
+enum InvestorProjectStatus {
+  PUBLISHED
+  OPEN_FOR_INVESTMENT
+  FUNDED
+  IN_WORKS
+  COMPLETED
+  LISTED_FOR_SALE
+  SOLD
+  CLOSED
+}
+
+enum InvestorProjectMode {
+  REFURBISHMENT
+  DEVELOPMENT_JV
+}
+
+enum LeadNominationStatus {
+  NOMINATED
+  ACCEPTED
+  APPROVED
+  DECLINED
+  REJECTED
+  WITHDRAWN
+}
+
+/// A project published to investors from an ACTIVE mandate (TRD AG-5). The
+/// investor page is built from the mandate's disclosure (ADR-040), never from
+/// the raw listing. Money in pence. Guarded by triggers (transitions, terms
+/// fixed once open, Lead set once from an approved nomination).
+model InvestorProject {
+  id                 String                @id @db.Uuid
+  mandateId          String                @unique @db.Uuid
+  listingId          String                @db.Uuid
+  agentId            String                @db.Uuid
+  mode               InvestorProjectMode   @default(REFURBISHMENT)
+  status             InvestorProjectStatus @default(PUBLISHED)
+  title              String
+  summary            String
+  capitalRequiredGBP BigInt
+  minimumPledgeGBP   BigInt
+  fundingDeadline    DateTime
+  purchaseGBP        BigInt
+  marketValueGBP     BigInt
+  /// Shown only when FINANCIAL_PROMOTIONS_REVIEWED is true.
+  expectedProfitGBP  BigInt?
+  expectedMonths     Int?
+  leadInvestorId     String?               @db.Uuid
+  leadConfirmedAt    DateTime?
+  publishedBy        String                @db.Uuid
+  publishedAt        DateTime              @default(now())
+  statusChangedAt    DateTime              @default(now())
+  closedReason       String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  mandate     Mandate                 @relation(fields: [mandateId], references: [id], onDelete: Restrict)
+  listing     LandlordListing         @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  agent       Profile                 @relation("InvestorProjectAgent", fields: [agentId], references: [id], onDelete: Restrict)
+  lead        Profile?                @relation("InvestorProjectLead", fields: [leadInvestorId], references: [id], onDelete: Restrict)
+  publisher   Profile                 @relation("InvestorProjectPublisher", fields: [publishedBy], references: [id], onDelete: Restrict)
+  interests   ProjectInterest[]
+  nominations ProjectLeadNomination[]
+
+  @@index([status, publishedAt])
+  @@index([agentId])
+  @@index([leadInvestorId])
+  @@map("investor_projects")
+}
+
+model ProjectInterest {
+  id          String    @id @db.Uuid
+  projectId   String    @db.Uuid
+  investorId  String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  withdrawnAt DateTime?
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investor Profile         @relation("ProjectInterestInvestor", fields: [investorId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, investorId])
+  @@index([investorId])
+  @@map("project_interests")
+}
+
+/// OD-13: Agent nominates → nominee accepts → Admin approves. One live
+/// nomination and one APPROVED per project (partial unique indexes).
+model ProjectLeadNomination {
+  id          String               @id @db.Uuid
+  projectId   String               @db.Uuid
+  investorId  String               @db.Uuid
+  nominatedBy String               @db.Uuid
+  status      LeadNominationStatus @default(NOMINATED)
+  nominatedAt DateTime             @default(now())
+  respondedAt DateTime?
+  decidedAt   DateTime?
+  decidedBy   String?              @db.Uuid
+  reason      String?
+  updatedAt   DateTime             @updatedAt
+
+  project   InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investor  Profile         @relation("LeadNominationInvestor", fields: [investorId], references: [id], onDelete: Restrict)
+  nominator Profile         @relation("LeadNominationNominator", fields: [nominatedBy], references: [id], onDelete: Restrict)
+  decider   Profile?        @relation("LeadNominationDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@index([investorId])
+  @@index([status, nominatedAt])
+  @@map("project_lead_nominations")
 }

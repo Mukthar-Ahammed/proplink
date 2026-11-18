@@ -66,25 +66,25 @@ provider (default Dropbox Sign, alternative DocuSign).
 
 ## Task progress
 
-| Task                          | State       | Notes |
-| ----------------------------- | ----------- | ----- |
-| 1. Publish to investors       | Not started |       |
-| 2. Lead / Co-Investor model   | Not started |       |
-| 3. Investor portal            | Not started |       |
-| 3a. Landlord project view     | Not started |       |
-| 4. Pledge flow                | Not started |       |
-| 5. Solicitor accounts         | Not started |       |
-| 6. Agreements and e-signature | Not started |       |
-| 7. Funds tracking             | Not started |       |
-| 8. Sale and ledger            | Not started |       |
-| 9. Edge cases                 | Not started |       |
+| Task                          | State       | Notes   |
+| ----------------------------- | ----------- | ------- |
+| 1. Publish to investors       | Done        | ADR-044 |
+| 2. Lead / Co-Investor model   | Done        | ADR-044 |
+| 3. Investor portal            | Not started |         |
+| 3a. Landlord project view     | Not started |         |
+| 4. Pledge flow                | Not started |         |
+| 5. Solicitor accounts         | Not started |         |
+| 6. Agreements and e-signature | Not started |         |
+| 7. Funds tracking             | Not started |         |
+| 8. Sale and ledger            | Not started |         |
+| 9. Edge cases                 | Not started |         |
 
 ## Exit gate
 
 - [ ] Acceptance criterion 8: a pledge auto-calculates the share; over-subscription blocked.
 - [ ] Acceptance criterion 9: after a (mock) sale, per-party distributions match the agreement shares.
-- [ ] Acceptance criterion 5 (publish half): an Agent with an active mandate publishes to the Investor Portal.
-- [ ] Lead assignment yields exactly one Lead per project under concurrency.
+- [x] Acceptance criterion 5 (publish half): an Agent with an active mandate publishes to the Investor Portal.
+- [x] Lead assignment yields exactly one Lead per project under concurrency.
 - [ ] The Landlord's project view leaks no investor data.
 - [ ] Over-subscription impossible under concurrency (50 parallel pledges).
 - [ ] Ledger immutability proven by tests (direct SQL as the app role fails).
@@ -93,3 +93,50 @@ provider (default Dropbox Sign, alternative DocuSign).
 - [ ] Sensitive documents inaccessible before KYC approval.
 - [ ] No code path can create a payment for investments (grep + test).
 - [ ] Phase report and credential docs written.
+
+## Tasks 1-2 — Publish to investors; Lead / Co-Investor model (2026-11-18)
+
+**Delivered** (ADR-044; TRD AG-5 to AG-7, INV-1 to INV-4; OD-13)
+
+- Migration `20261119000000_phase4_investor_projects` (with `rollback.sql`,
+  rehearsed): projects, interests, Lead nominations; lifecycle and fixed-terms
+  trigger; one project per mandate and one live per listing; one nomination
+  in progress and exactly one approved Lead per project; mandates with a
+  live project cannot end.
+- Publishing by the mandated Agent (`/agent/projects`, link from the
+  mandate) or by Admin on the Agent's behalf (`/admin/projects`, audited).
+  Terms editable until the project opens. AG-6 notice reworded for the
+  Solicitor and shown on every project page.
+- Investor Portal (`/investor/projects`): search, town, stage, type and
+  minimum-pledge filters; the property exactly as disclosed; documents
+  only after KYC; expected figures hidden while
+  `FINANCIAL_PROMOTIONS_REVIEWED` is false; Lead stats with private
+  profiles respected.
+- Lead workflow: interest (KYC) → Agent nominates (KYC, subscription,
+  interest) → nominee accepts → Admin approves (reason to reject) → project
+  open, Lead set once, `LEAD_INVESTOR` granted; emails along the chain;
+  interested investors told when it opens.
+- Navigation: Projects and Messages for every investor; the legacy Flipper
+  workspace only when `FLIPPER_FLOWS_ENABLED`; Syndicate Deals replaced.
+  Agents: "Investor projects". Admin: "Investor Projects".
+- Phase 1 hooks filled: `isProjectAgentFor` and completed-project counts in
+  track records.
+
+**Verification**
+
+- `tests/integration/projects-db.test.ts` (10, disposable database): publish
+  once by the mandated Agent (pence stored), refused for other Agents,
+  Landlords, bad terms, terminated mandates and non-Admin publishers
+  (database); Admin publish audited; one announcement per investor; the
+  investor view leaks no Landlord name, street, postcode, title or
+  ownership document; documents only after KYC (IDs never reach the page
+  before); filters; the full Lead workflow with audit trail and capability;
+  decline, withdraw, reject (reason required); direct SQL cannot open a
+  project without a Lead, approve without an Admin, change the Lead or the
+  terms; **8 concurrent nominations create one, 5 concurrent approvals
+  approve one, the database holds one APPROVED row**; mandates with a live
+  project cannot end (service and SQL).
+- Unit: mandate termination/close refused with a live project; investor
+  navigation (Flipper hidden while the flag is off); profile tests with
+  project counts; boundary test lists the projects service as a deliberate
+  reader of disclosed listing data.
