@@ -30,7 +30,9 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   scope (ADR-047), agreements and e-signature (ADR-048), funds status, costs
   and changes (ADR-049), sale and append-only ledger (ADR-050), project
   decisions (ADR-051). Every exit-gate item is proven by tests; owner checks
-  and the Dropbox Sign live smoke test are pending. The owner does every manual
+  and the Dropbox Sign live smoke test are pending.
+- **Phase 5 started** on `phase-5-sale-buyers` (re-listing completed projects,
+  buyer experience, reviews, trust features). The owner does every manual
   check after the last phase; the running list is `docs/MANUAL_CHECKS.md`.
 
 ## 2026-11-17 update

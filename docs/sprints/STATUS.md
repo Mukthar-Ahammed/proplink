@@ -6,9 +6,9 @@
 > `docs/phases/PHASE-N-REPORT.md`. The 12-week sprint plan and the sprint
 > sections below are the historical baseline (superseded, ADR-019).
 
-**Current focus → Phase 4 — Investor Projects, Pledges, Solicitor, Agreements
-and Ledger**, on `phase-4-investor-projects` (started 2026-11-18, branched from
-Phase 3; see `docs/phases/PHASE-4-REPORT.md`): all nine tasks and 3a built (ADR-044 to ADR-051); waiting for the owner checks like Phases 1-3. **Phase 3:** all eight tasks
+**Current focus → Phase 5 — Final Sale, Retail Buyer Experience, Reviews and
+Trust Features**, on `phase-5-sale-buyers` (started 2026-11-18, branched from
+Phase 4; see `docs/phases/PHASE-5-REPORT.md`). **Phase 4:** all nine tasks and 3a built (ADR-044 to ADR-051); waiting for the owner checks like Phases 1-3. **Phase 3:** all eight tasks
 built (`docs/phases/PHASE-3-REPORT.md`); waiting for the owner checks like Phases 1-2. **Phase 0 closed 2026-11-18.**
 **Phases 1 and 2:** built and tested; the owner does all manual checks after the
 last phase (`docs/MANUAL_CHECKS.md`). No phase is closed or merged to `main`
