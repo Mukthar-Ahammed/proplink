@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { PortalSection } from "@/components/portal/PortalShell";
+import {
+  AlertIcon,
+  ArrowIcon,
+  ChartIcon,
+  IconChip,
+  InvestorSectionTitle,
+  ScaleIcon,
+  StatStrip,
+  StatusPill,
+} from "@/components/investor/InvestorUi";
 import { day } from "@/components/projects/format";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { signAgreementAction } from "@/components/projects/agreementActions";
@@ -14,11 +23,17 @@ import { Lifecycle } from "@/components/projects/ProjectSummary";
 import { listAgreements } from "@/services/projects/agreements";
 import { Role } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
-import { formatPence, PROJECT_RESPONSIBILITY_NOTICE } from "@/services/projects/common";
+import {
+  formatPence,
+  PROJECT_RESPONSIBILITY_NOTICE,
+  statusLabel,
+} from "@/services/projects/common";
 import { getLandlordProject } from "@/services/projects/landlordView";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Landlord — Project", robots: { index: false } };
+
+const CARD = "rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-7";
 
 /**
  * The Landlord's project view (Phase 4 Task 3a): the lifecycle and progress
@@ -48,96 +63,127 @@ export default async function LandlordProjectPage({
     // Only the Solicitor sees the settlement plan (every party's amounts).
     Promise.resolve(null),
   ]);
+  const path = `/landlord/projects/${project.id}`;
+
   return (
-    <PortalSection
-      title={project.listing.title}
-      action={
+    <div className="space-y-10" data-testid="landlord-project">
+      <div className="space-y-4">
         <Link
           href="/landlord/projects"
-          className="text-sm font-semibold text-primary underline"
+          className="group inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-accent-strong"
         >
+          <ArrowIcon className="h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-0.5" />
           All projects
         </Link>
-      }
-    >
-      <div className="space-y-4" data-testid="landlord-project">
-        <Lifecycle status={project.status} />
-        <dl className="grid gap-4 sm:grid-cols-3">
-          <div>
-            <dt className="text-xs font-medium tracking-wide text-muted uppercase">
-              Project type
-            </dt>
-            <dd className="mt-0.5 text-sm text-body">
-              {project.mode === "DEVELOPMENT_JV"
-                ? "Development joint venture (you are a party where the agreement names you)"
-                : "Refurbishment / build"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium tracking-wide text-muted uppercase">
-              Agent
-            </dt>
-            <dd className="mt-0.5 text-sm text-body">
-              {project.agent.name ?? "Your agent"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium tracking-wide text-muted uppercase">
-              Capital to raise
-            </dt>
-            <dd className="mt-0.5 text-sm text-body">
-              {formatPence(project.capitalRequiredGBP)} ·{" "}
-              {project.funded
-                ? "fully funded"
-                : `funding by ${day(project.fundingDeadline)}`}
-            </dd>
-          </div>
-        </dl>
-        {project.closedReason && (
-          <p className="text-sm text-warning">Closed: {project.closedReason}</p>
-        )}
-        <p className="rounded-lg border border-line bg-surface p-3 text-xs text-muted">
-          {PROJECT_RESPONSIBILITY_NOTICE}
+        <div className="flex flex-wrap items-center gap-3">
+          <IconChip>
+            <ChartIcon />
+          </IconChip>
+          <h2 className="font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-primary sm:text-[1.75rem]">
+            {project.listing.title}
+          </h2>
+          <StatusPill tone="accent">{statusLabel(project.status)}</StatusPill>
+        </div>
+      </div>
+
+      <div className={CARD}>
+        <p className="mb-4 text-xs font-semibold tracking-[0.14em] text-muted uppercase">
+          Where the project is
         </p>
-        {works && (
-          <WorksPanel
-            view={works}
-            projectId={project.id}
-            projectStatus={project.status}
-            path={`/landlord/projects/${project.id}`}
-          />
-        )}
-        {ledger && (
-          <LedgerPanel
-            view={ledger}
-            plan={plan}
-            projectId={project.id}
-            projectStatus={project.status}
-            path={`/landlord/projects/${project.id}`}
-          />
-        )}
-        {agreements.length > 0 && (
-          <div>
-            <h3 className="mb-2 text-sm font-semibold text-primary">Your agreement</h3>
-            <AgreementList
-              agreements={agreements}
-              renderActions={(agreement) =>
-                agreement.status === "SENT" &&
-                agreement.mine?.signerStatus === "PENDING" ? (
-                  <ActionButton
-                    action={signAgreementAction}
-                    hidden={{
-                      agreementId: agreement.id,
-                      path: `/landlord/projects/${project.id}`,
-                    }}
-                    label="Sign the agreement"
-                  />
-                ) : null
-              }
-            />
-          </div>
+        <Lifecycle status={project.status} />
+        {project.closedReason && (
+          <p className="mt-4 flex items-start gap-2.5 text-sm text-warning">
+            <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            Closed: {project.closedReason}
+          </p>
         )}
       </div>
-    </PortalSection>
+
+      <StatStrip
+        items={[
+          {
+            value: project.mode === "DEVELOPMENT_JV" ? "Development JV" : "Refurbishment",
+            label: "Project type",
+            hint:
+              project.mode === "DEVELOPMENT_JV"
+                ? "You are a party where the agreement names you"
+                : "Refurbishment / build",
+          },
+          { value: project.agent.name ?? "Your agent", label: "Agent" },
+          {
+            value: formatPence(project.capitalRequiredGBP),
+            label: "Capital to raise",
+            hint: project.funded
+              ? "Fully funded"
+              : `Funding by ${day(project.fundingDeadline)}`,
+          },
+        ]}
+      />
+
+      <div className="flex items-start gap-3 rounded-3xl border border-accent/20 bg-pale/70 p-5 sm:p-6">
+        <IconChip>
+          <ScaleIcon />
+        </IconChip>
+        <p className="text-sm leading-relaxed text-body">
+          {PROJECT_RESPONSIBILITY_NOTICE}
+        </p>
+      </div>
+
+      {works && (
+        <section className="space-y-5">
+          <InvestorSectionTitle
+            title="Works and"
+            tail="updates"
+            description="Milestones, itemised costs and updates addressed to you."
+          />
+          <div className={CARD}>
+            <WorksPanel
+              view={works}
+              projectId={project.id}
+              projectStatus={project.status}
+              path={path}
+            />
+          </div>
+        </section>
+      )}
+
+      {ledger && (
+        <section className="space-y-5">
+          <InvestorSectionTitle
+            title="Sale and"
+            tail="settlement"
+            description="Recorded by the project Solicitor. PropLink never holds or moves the money."
+          />
+          <div className={CARD}>
+            <LedgerPanel
+              view={ledger}
+              plan={plan}
+              projectId={project.id}
+              projectStatus={project.status}
+              path={path}
+            />
+          </div>
+        </section>
+      )}
+
+      {agreements.length > 0 && (
+        <section className="space-y-5">
+          <InvestorSectionTitle title="Your" tail="agreement" />
+          <AgreementList
+            agreements={agreements}
+            renderActions={(agreement) =>
+              agreement.status === "SENT" &&
+              agreement.mine?.signerStatus === "PENDING" ? (
+                <ActionButton
+                  action={signAgreementAction}
+                  hidden={{ agreementId: agreement.id, path }}
+                  label="Sign the agreement"
+                />
+              ) : null
+            }
+          />
+        </section>
+      )}
+    </div>
   );
 }

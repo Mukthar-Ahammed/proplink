@@ -3,13 +3,9 @@
 import { useActionState, useState } from "react";
 
 import { chooseAgentAction, mandateAction, type FormState } from "../../actions";
+import { BUTTON_SM, DANGER_SM, INPUT, SECONDARY_SM } from "../../ui";
 
 const IDLE: FormState = { kind: "idle" };
-const BUTTON =
-  "rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white disabled:opacity-60";
-const SECONDARY =
-  "rounded-lg border border-line px-3 py-1.5 text-sm font-semibold text-primary disabled:opacity-60";
-const INPUT = "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body";
 
 function Feedback({ state, done }: { state: FormState; done: string }) {
   if (state.kind === "error") {
@@ -46,16 +42,19 @@ export function ChooseAgent({
   }
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className={BUTTON}>
+      <button type="button" onClick={() => setOpen(true)} className={BUTTON_SM}>
         Choose this agent
       </button>
     );
   }
   return (
-    <form action={action} className="space-y-2">
+    <form
+      action={action}
+      className="space-y-3 rounded-2xl border border-accent/25 bg-pale/60 p-4"
+    >
       <input type="hidden" name="listingId" value={listingId} />
       <input type="hidden" name="proposalId" value={proposalId} />
-      <p className="text-sm text-body">
+      <p className="text-sm leading-relaxed text-body">
         This offers {agentName} an <strong>exclusive</strong> mandate on the terms in
         their proposal. No other agent can work on this property while it lasts.
       </p>
@@ -64,10 +63,10 @@ export function ChooseAgent({
         <textarea name="renewalTerms" maxLength={1000} rows={2} className={INPUT} />
       </label>
       <div className="flex flex-wrap items-center gap-2">
-        <button disabled={pending} className={BUTTON}>
+        <button disabled={pending} className={BUTTON_SM}>
           {pending ? "Sending…" : "Offer the mandate"}
         </button>
-        <button type="button" onClick={() => setOpen(false)} className={SECONDARY}>
+        <button type="button" onClick={() => setOpen(false)} className={SECONDARY_SM}>
           Cancel
         </button>
       </div>
@@ -101,7 +100,12 @@ export function LandlordMandateControls({
     return (
       <form action={action} className="flex flex-wrap items-center gap-2">
         {hidden}
-        <button name="intent" value="withdraw" disabled={pending} className={SECONDARY}>
+        <button
+          name="intent"
+          value="withdraw"
+          disabled={pending}
+          className={SECONDARY_SM}
+        >
           Withdraw the offer
         </button>
         <Feedback state={state} done="" />
@@ -113,13 +117,16 @@ export function LandlordMandateControls({
       {contractEnded && (
         <form action={action} className="flex flex-wrap items-center gap-2">
           {hidden}
-          <button name="intent" value="close" disabled={pending} className={BUTTON}>
+          <button name="intent" value="close" disabled={pending} className={BUTTON_SM}>
             Close the mandate (contract ended)
           </button>
         </form>
       )}
       {terminating ? (
-        <form action={action} className="space-y-2">
+        <form
+          action={action}
+          className="space-y-3 rounded-2xl border border-danger/30 bg-danger/5 p-4"
+        >
           {hidden}
           <input type="hidden" name="intent" value="terminate" />
           <label className="block space-y-1 text-sm font-medium text-primary">
@@ -134,20 +141,20 @@ export function LandlordMandateControls({
             />
           </label>
           <div className="flex flex-wrap gap-2">
-            <button disabled={pending} className={SECONDARY}>
+            <button disabled={pending} className={DANGER_SM}>
               Terminate the mandate
             </button>
             <button
               type="button"
               onClick={() => setTerminating(false)}
-              className={SECONDARY}
+              className={SECONDARY_SM}
             >
               Cancel
             </button>
           </div>
         </form>
       ) : (
-        <button type="button" onClick={() => setTerminating(true)} className={SECONDARY}>
+        <button type="button" onClick={() => setTerminating(true)} className={DANGER_SM}>
           Terminate early…
         </button>
       )}

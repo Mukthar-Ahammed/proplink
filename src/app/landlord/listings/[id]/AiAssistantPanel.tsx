@@ -3,11 +3,9 @@
 import { useState, useTransition, type RefObject } from "react";
 
 import { draftWithAiAction } from "../actions";
+import { BUTTON_SM, INPUT, LABEL, SECONDARY_SM } from "../ui";
 
 type Draft = { description: string; defects: string; requiredWork: string };
-
-const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
 
 /**
  * Optional helper inside the listing form (business Q5). The Landlord types
@@ -68,8 +66,14 @@ export function AiAssistantPanel({
   }
 
   return (
-    <details className="rounded-lg border border-line bg-surface p-4">
-      <summary className="cursor-pointer text-sm font-semibold text-primary">
+    <details className="group rounded-2xl border border-accent/25 bg-pale/50 p-5 open:bg-pale/60">
+      <summary className="flex cursor-pointer list-none items-center gap-3 text-sm font-semibold text-primary [&::-webkit-details-marker]:hidden">
+        <span
+          aria-hidden
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-accent shadow-sm"
+        >
+          ✦
+        </span>
         Draft the description with the AI assistant (optional)
       </summary>
       <div className="mt-4 space-y-3">
@@ -95,7 +99,7 @@ export function AiAssistantPanel({
             ["Work needed", work, setWork, "e.g. new kitchen, rewire, replace windows"],
           ] as const
         ).map(([label, value, set, placeholder]) => (
-          <label key={label} className="block space-y-1 text-sm font-medium text-primary">
+          <label key={label} className={`${LABEL} space-y-1.5`}>
             {label}
             <input
               value={value}
@@ -106,7 +110,7 @@ export function AiAssistantPanel({
             />
           </label>
         ))}
-        <label className="block space-y-1 text-sm font-medium text-primary">
+        <label className={`${LABEL} space-y-1.5`}>
           Anything else
           <textarea
             value={extra}
@@ -120,7 +124,7 @@ export function AiAssistantPanel({
           type="button"
           onClick={generate}
           disabled={pending}
-          className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary disabled:opacity-60"
+          className={SECONDARY_SM}
         >
           {pending ? "Writing…" : "Write a draft"}
         </button>
@@ -130,7 +134,7 @@ export function AiAssistantPanel({
           </p>
         )}
         {draft && (
-          <div className="space-y-3 rounded-lg border border-line bg-white p-3">
+          <div className="space-y-3 rounded-2xl border border-line bg-white p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted">
               AI draft: review before using
             </p>
@@ -149,17 +153,13 @@ export function AiAssistantPanel({
                 </div>
               ))}
             <div className="flex flex-wrap gap-3">
-              <button
-                type="button"
-                onClick={applyDraft}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
-              >
+              <button type="button" onClick={applyDraft} className={BUTTON_SM}>
                 Put this draft into the form
               </button>
               <button
                 type="button"
                 onClick={() => setDraft(null)}
-                className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary"
+                className={SECONDARY_SM}
               >
                 Discard
               </button>

@@ -117,7 +117,12 @@ export function StatStrip({
   items: { value: string | number; label: string; hint?: string }[];
 }) {
   return (
-    <dl className="grid overflow-hidden rounded-3xl border border-line bg-white shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+    <dl
+      className={cn(
+        "grid overflow-hidden rounded-3xl border border-line bg-white shadow-sm sm:grid-cols-2",
+        items.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4",
+      )}
+    >
       {items.map((item, index) => (
         <div
           key={item.label}

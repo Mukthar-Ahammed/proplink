@@ -1,7 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { PortalSection } from "@/components/portal/PortalShell";
+import {
+  ArrowIcon,
+  CheckIcon,
+  ClockIcon,
+  FileIcon,
+  IconChip,
+  InvestorEmpty,
+  InvestorSectionTitle,
+  StatusPill,
+} from "@/components/investor/InvestorUi";
 import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
 import { AgentProposalStatus, Role } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
@@ -44,6 +53,11 @@ const STATUS: Record<string, string> = {
   DECLINED: "Declined",
   SELECTED: "Chosen",
 };
+const STATUS_TONE: Record<string, "accent" | "neutral" | "success"> = {
+  SUBMITTED: "accent",
+  DECLINED: "neutral",
+  SELECTED: "success",
+};
 
 /**
  * Side-by-side comparison of Agent proposals on the Landlord's own listing
@@ -76,25 +90,71 @@ export default async function ListingProposalsPage({
   const canChoose = !live && listing.status === "APPROVED";
 
   return (
-    <>
+    <div className="space-y-10">
+      <div className="space-y-4">
+        <Link
+          href={`/landlord/listings/${listing.id}`}
+          className="group inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-accent-strong"
+        >
+          <ArrowIcon className="h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-0.5" />
+          Back to the listing
+        </Link>
+        <InvestorSectionTitle
+          title="Proposals for"
+          tail={listing.title}
+          description="Compare agents side by side, ask questions, then choose one agent for an exclusive mandate."
+        />
+      </div>
+
       {(live || mandates.history.length > 0) && (
-        <PortalSection title="Exclusive mandate">
+        <section className="space-y-5">
+          <InvestorSectionTitle title="Exclusive" tail="mandate" />
           {live ? (
-            <div className="space-y-3 rounded-lg border border-line bg-white p-4 text-sm">
-              <p className="font-semibold text-primary" data-testid="mandate-status">
-                {live.agent.name ?? "Your agent"}: {MANDATE_STATUS[live.status]}
-              </p>
-              <p className="text-body">
-                Valuation {formatPence(live.valuationGBP)} · fee {formatFee(live)} ·{" "}
-                {live.contractMonths} months
-                {live.status === "ACTIVE" &&
-                  ` · accepted ${day(live.acceptedAt)} · contract ends ${day(live.endsAt)}`}
-              </p>
+            <div className="space-y-4 rounded-3xl border border-line bg-white p-6 text-sm shadow-sm sm:p-7">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <IconChip tone={live.status === "ACTIVE" ? "success" : "warning"}>
+                    {live.status === "ACTIVE" ? <CheckIcon /> : <ClockIcon />}
+                  </IconChip>
+                  <p className="font-semibold text-primary" data-testid="mandate-status">
+                    {live.agent.name ?? "Your agent"}: {MANDATE_STATUS[live.status]}
+                  </p>
+                </div>
+                <StatusPill tone={live.status === "ACTIVE" ? "success" : "warning"}>
+                  {live.status === "ACTIVE" ? "Active" : "Waiting for the agent"}
+                </StatusPill>
+              </div>
+              <dl className="grid gap-4 border-t border-line pt-4 sm:grid-cols-3">
+                <div>
+                  <dt className="text-xs text-muted">Valuation</dt>
+                  <dd className="mt-0.5 font-semibold text-primary tabular-nums">
+                    {formatPence(live.valuationGBP)}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted">Fee</dt>
+                  <dd className="mt-0.5 font-semibold text-primary">{formatFee(live)}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted">Contract</dt>
+                  <dd className="mt-0.5 font-semibold text-primary">
+                    {live.contractMonths} months
+                  </dd>
+                </div>
+              </dl>
+              {live.status === "ACTIVE" && (
+                <p className="text-body">
+                  Accepted {day(live.acceptedAt)} · contract ends {day(live.endsAt)}
+                </p>
+              )}
               {live.renewalTerms && (
                 <p className="text-body">Renewal: {live.renewalTerms}</p>
               )}
               {live.status === "ACTIVE" && mandates.disclosure && (
-                <p className="text-body" data-testid="landlord-disclosure">
+                <p
+                  className="rounded-2xl border border-accent/20 bg-pale/60 p-4 leading-relaxed text-body"
+                  data-testid="landlord-disclosure"
+                >
                   Your agent will show investors:{" "}
                   {DISCLOSURE_FIELDS.filter((field) => mandates.disclosure![field.key])
                     .map((field) => field.label.toLowerCase())
@@ -103,9 +163,13 @@ export default async function ListingProposalsPage({
                 </p>
               )}
               {live.status === "ACTIVE" && (
-                <>
+                <div className="space-y-3">
                   {mandates.contractUrl && (
-                    <a href={mandates.contractUrl} className="text-primary underline">
+                    <a
+                      href={mandates.contractUrl}
+                      className="inline-flex items-center gap-1.5 font-semibold text-accent hover:text-accent-strong"
+                    >
+                      <FileIcon className="h-4 w-4" />
                       Signed contract
                     </a>
                   )}
@@ -114,66 +178,66 @@ export default async function ListingProposalsPage({
                     attach={attachMandateContractAction}
                     hasContract={Boolean(mandates.contractUrl)}
                   />
-                </>
+                </div>
               )}
-              <LandlordMandateControls
-                listingId={listing.id}
-                mandateId={live.id}
-                status={live.status as "OFFERED" | "ACTIVE"}
-                contractEnded={Boolean(live.endsAt && live.endsAt <= new Date())}
-              />
+              <div className="border-t border-line pt-4">
+                <LandlordMandateControls
+                  listingId={listing.id}
+                  mandateId={live.id}
+                  status={live.status as "OFFERED" | "ACTIVE"}
+                  contractEnded={Boolean(live.endsAt && live.endsAt <= new Date())}
+                />
+              </div>
             </div>
           ) : (
-            <p className="text-sm text-muted">
+            <p className="rounded-2xl border border-dashed border-line bg-surface/60 px-5 py-6 text-center text-sm text-muted">
               No agent holds a mandate now; you can choose another proposal below.
             </p>
           )}
           {mandates.history.length > 0 && (
-            <ul className="mt-4 space-y-2 text-sm text-muted">
+            <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white text-sm">
               {mandates.history.map((mandate) => (
-                <li key={mandate.id}>
-                  {mandate.agent.name ?? "Agent"}: {MANDATE_STATUS[mandate.status]}{" "}
-                  (offered {day(mandate.offeredAt)})
+                <li key={mandate.id} className="px-5 py-3 text-muted">
+                  <span className="font-semibold text-primary">
+                    {mandate.agent.name ?? "Agent"}
+                  </span>
+                  : {MANDATE_STATUS[mandate.status]} (offered {day(mandate.offeredAt)})
                   {mandate.terminationReason && ` · reason: ${mandate.terminationReason}`}
                 </li>
               ))}
             </ul>
           )}
-        </PortalSection>
+        </section>
       )}
-      <PortalSection
-        title={`Proposals for ${listing.title}`}
-        action={
-          <Link
-            href={`/landlord/listings/${listing.id}`}
-            className="text-sm font-semibold text-primary underline"
-          >
-            Back to the listing
-          </Link>
-        }
-      >
+
+      <section className="space-y-5">
+        <InvestorSectionTitle
+          title="Agent"
+          tail="proposals"
+          description={
+            proposals.length === 0
+              ? undefined
+              : `${open.length} open ${open.length === 1 ? "proposal" : "proposals"}.`
+          }
+        />
         {proposals.length === 0 ? (
-          <p className="text-sm text-muted">
+          <InvestorEmpty title="No proposals yet">
             {listing.status === "APPROVED"
-              ? "No proposals yet. Verified agents can now see your property; we will email you when one arrives."
+              ? "Verified agents can now see your property; we will email you when one arrives."
               : "Agents can send proposals once PropLink approves your listing."}
-          </p>
+          </InvestorEmpty>
         ) : (
-          <>
-            <p className="text-sm text-muted">
-              {open.length} open {open.length === 1 ? "proposal" : "proposals"}. Compare
-              them, ask questions, then choose one agent for an exclusive mandate.
-            </p>
-            <div className="mt-6 overflow-x-auto">
+          <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-sm">
+            <div className="overflow-x-auto">
               <table
                 className="w-full min-w-[640px] text-left text-sm"
                 aria-label="Proposals side by side"
               >
-                <thead>
+                <thead className="border-b border-line bg-surface/70">
                   <tr className="align-top">
                     <th
                       scope="row"
-                      className="w-36 py-2 pr-4 text-xs tracking-wide text-muted uppercase"
+                      className="w-36 px-5 py-4 text-xs font-semibold tracking-[0.1em] text-muted uppercase"
                     >
                       Agent
                     </th>
@@ -187,9 +251,9 @@ export default async function ListingProposalsPage({
                         <th
                           key={proposal.id}
                           scope="col"
-                          className="py-2 pr-4 font-semibold text-primary"
+                          className="px-5 py-4 font-semibold text-primary"
                         >
-                          <span className="flex items-center gap-1">
+                          <span className="flex items-center gap-1.5">
                             {proposal.agent.name ?? "Agent"}
                             {proposal.agent.verificationBadge && <VerifiedBadge />}
                           </span>
@@ -204,15 +268,17 @@ export default async function ListingProposalsPage({
                               {verified ? " · verified" : ""}
                             </span>
                           )}
-                          <span className="mt-1 block text-xs font-normal text-muted">
-                            {STATUS[proposal.status]}
+                          <span className="mt-2 block">
+                            <StatusPill tone={STATUS_TONE[proposal.status] ?? "neutral"}>
+                              {STATUS[proposal.status]}
+                            </StatusPill>
                           </span>
                         </th>
                       );
                     })}
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-line">
                   {(
                     [
                       ["Valuation", (p) => formatPence(p.valuationGBP)],
@@ -230,38 +296,45 @@ export default async function ListingProposalsPage({
                       (p: (typeof proposals)[number]) => string,
                     ])[]
                   ).map(([label, value]) => (
-                    <tr key={label} className="border-t border-line align-top">
+                    <tr key={label} className="align-top">
                       <th
                         scope="row"
-                        className="py-3 pr-4 text-xs tracking-wide text-muted uppercase"
+                        className="px-5 py-4 text-xs font-semibold tracking-[0.1em] text-muted uppercase"
                       >
                         {label}
                       </th>
                       {proposals.map((proposal) => (
                         <td
                           key={proposal.id}
-                          className="py-3 pr-4 whitespace-pre-line text-body"
+                          className={`px-5 py-4 whitespace-pre-line ${
+                            label === "Valuation"
+                              ? "font-semibold text-primary tabular-nums"
+                              : "text-body"
+                          }`}
                         >
                           {value(proposal)}
                         </td>
                       ))}
                     </tr>
                   ))}
-                  <tr className="border-t border-line align-top">
+                  <tr className="align-top">
                     <th
                       scope="row"
-                      className="py-3 pr-4 text-xs tracking-wide text-muted uppercase"
+                      className="px-5 py-4 text-xs font-semibold tracking-[0.1em] text-muted uppercase"
                     >
                       Questions
                     </th>
                     {proposals.map((proposal) => (
-                      <td key={proposal.id} className="space-y-3 py-3 pr-4">
+                      <td key={proposal.id} className="space-y-4 px-5 py-4">
                         {proposal.questions.map((question) => (
-                          <div key={question.id}>
+                          <div
+                            key={question.id}
+                            className="rounded-2xl border border-line bg-surface/60 p-3"
+                          >
                             <p className="font-medium text-primary">
                               {question.question}
                             </p>
-                            <p className="text-body">
+                            <p className="mt-1 text-body">
                               {question.answer ?? (
                                 <span className="text-muted">Waiting for an answer</span>
                               )}
@@ -293,9 +366,9 @@ export default async function ListingProposalsPage({
                 </tbody>
               </table>
             </div>
-          </>
+          </div>
         )}
-      </PortalSection>
-    </>
+      </section>
+    </div>
   );
 }
