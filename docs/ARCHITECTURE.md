@@ -1404,3 +1404,9 @@ npx next dev --port 3100`. `DataTable` is a focusable named region.
   `20261121030000` lets the Lead add milestones and post updates); shortfall
   release/close needs `partiesConsulted`; KPIs list Solicitor accounts to
   close.
+
+- Deployment readiness (Task 7, ADR-070): a production build may run as
+  `PROPLINK_ENV` staging or production (never development);
+  `poweredByHeader: false`; `scripts/check-headers.mjs` verifies security
+  headers on any URL; Sentry events carry environment and release. See
+  `docs/deployment/DEPLOYMENT.md` and `docs/runbooks/`.

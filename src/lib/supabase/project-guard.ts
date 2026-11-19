@@ -15,8 +15,13 @@ export function resolvePropLinkEnvironment(
   ) {
     throw new Error("PROPLINK_ENV must be development, staging, or production.");
   }
+  // A production build (NODE_ENV=production) runs as staging or production,
+  // never against the development project; a development server never runs
+  // as production. Deployed staging is a production build (Vercel sets
+  // NODE_ENV=production), so it must be allowed (Phase 7 Task 7). Each
+  // environment is still pinned to its own approved project reference.
   if (
-    (nodeEnv === "production" && environment !== "production") ||
+    (nodeEnv === "production" && environment === "development") ||
     (nodeEnv !== "production" && environment === "production")
   ) {
     throw new Error(

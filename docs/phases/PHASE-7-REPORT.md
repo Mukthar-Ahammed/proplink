@@ -26,16 +26,16 @@ secret store, backups and restore on the real database, and every open
 
 ## Task progress
 
-| Task                           | State                                                        | Notes           |
-| ------------------------------ | ------------------------------------------------------------ | --------------- |
-| 1. Security review             | Done (local); pen test and staging scans are H7.1/H7.2       | THREAT-MODEL.md |
-| 2. RLS and authorisation audit | Done (local); Security Advisor is H7.2                       | ADR-063         |
-| 3. Rate-limit and abuse        | Done (local); staging load test is H7.2                      | ADR-064         |
-| 4. Privacy and compliance      | Done (local); legal review is H7.4                           | ADR-065         |
-| 5. Resilience and performance  | Done (local); real backups and staging timings are H7.5/H7.2 | ADR-066         |
-| 6. Quality gates               | Done (local); real devices are owner checks                  | ADR-067         |
-| 7. Deployment readiness        | In progress                                                  |                 |
-| 8. Final documentation         | Not started                                                  |                 |
+| Task                           | State                                                          | Notes           |
+| ------------------------------ | -------------------------------------------------------------- | --------------- |
+| 1. Security review             | Done (local); pen test and staging scans are H7.1/H7.2         | THREAT-MODEL.md |
+| 2. RLS and authorisation audit | Done (local); Security Advisor is H7.2                         | ADR-063         |
+| 3. Rate-limit and abuse        | Done (local); staging load test is H7.2                        | ADR-064         |
+| 4. Privacy and compliance      | Done (local); legal review is H7.4                             | ADR-065         |
+| 5. Resilience and performance  | Done (local); real backups and staging timings are H7.5/H7.2   | ADR-066         |
+| 6. Quality gates               | Done (local); real devices are owner checks                    | ADR-067         |
+| 7. Deployment readiness        | Done (local); hosting, alerts and staging checks are H7.6/H7.2 | ADR-070         |
+| 8. Final documentation         | In progress                                                    |                 |
 
 ## Final exit gate (launch checklist)
 
@@ -224,3 +224,26 @@ rehearsed); the Admin closes Solicitor accounts, prompted by a KPI queue
 (OD-32). Seed and dev database: the seeded Agent is authorised; the
 agent-migration E2E uses its own pre-invite Agent. Vitest 161 files, 1,892
 tests; affected Playwright specs 33 passed.
+
+## Task 7 — Deployment readiness (2026-11-19)
+
+**Delivered** (ADR-070). Nothing deployed.
+
+- `docs/deployment/DEPLOYMENT.md`: environment matrix (separate Supabase
+  projects and keys per environment), secrets only in the platform store,
+  CI required checks, security-header evidence, monitoring and alerting,
+  logging retention.
+- Runbooks in `docs/runbooks/`: incident response (ICO 72 hours), key
+  rotation per key, deploy and rollback (code and migrations), restore,
+  provider outages.
+- Production build served locally (`next start`, `PROPLINK_ENV=staging`,
+  placeholder keys): `scripts/check-headers.mjs` passed on 9 paths (HSTS one
+  year, CSP nonce, DENY, nosniff, policies, private pages no-store and
+  noindex). It found two defects, fixed: a deployed staging site could not
+  start (environment guard), and `X-Powered-By` was sent.
+- Sentry events tagged with environment and release.
+- `docs/EXTERNAL_SERVICES.md`: real status of every provider; none
+  `configured-prod`; Stripe's purpose corrected (subscriptions only).
+
+**Not done here:** Vercel projects, branch protection, Sentry alerts, log
+drain (H7.6); the header check on real staging HTTPS (H7.2).

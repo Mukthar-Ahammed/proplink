@@ -301,6 +301,12 @@ Each phase adds its section here when its build is complete.
 - [ ] **Retention job.** After deployment, call `/api/jobs/retention` with
       the cron secret (or wait for 03:30 UTC): the response lists the counts
       deleted; without the secret it is refused.
+- [ ] **Staging deployment (with your approval).** Deploy to staging per
+      `docs/runbooks/DEPLOY-AND-ROLLBACK.md`; `/api/health` returns ok;
+      `node scripts/check-headers.mjs https://<staging-host>` passes; sign in
+      as each role; roll back to the previous deployment and forward again.
+- [ ] **Runbooks read-through.** Read `docs/runbooks/` once and add your
+      own contact details and escalation names to the incident runbook.
 - [ ] **Owner decisions OD-27 to OD-32.** (a) A newly notified existing
       Agent sees "wait for PropLink to authorise it" on Landlord listings until
       you authorise them at Admin → Agents → Migration. (b) When an Agent

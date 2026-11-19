@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Phase 7 Task 7: do not advertise the framework (X-Powered-By).
+  poweredByHeader: false,
   // Phase 5 Task 6 (ADR-057): the optimiser serves only allowlisted sources
   // (src/lib/images.ts mirrors this list; the CSP img-src matches it).
   images: {

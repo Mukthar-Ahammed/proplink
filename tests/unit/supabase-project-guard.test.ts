@@ -16,6 +16,11 @@ describe("Supabase project guard", () => {
     expect(() => resolvePropLinkEnvironment("development", "production")).toThrow(
       /must agree with NODE_ENV/,
     );
+    // Phase 7 Task 7: deployed staging is a production build.
+    expect(resolvePropLinkEnvironment("production", "staging")).toBe("staging");
+    expect(() => resolvePropLinkEnvironment("production", "development")).toThrow(
+      /must agree with NODE_ENV/,
+    );
   });
 
   it("accepts only the approved project for the selected environment", () => {

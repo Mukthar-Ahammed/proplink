@@ -9,6 +9,9 @@ export async function register() {
 
   Sentry.init({
     dsn: env.SENTRY_DSN,
+    // Phase 7 Task 7: keep staging and production errors (and alerts) apart.
+    environment: process.env.PROPLINK_ENV ?? env.NODE_ENV,
+    release: process.env.VERCEL_GIT_COMMIT_SHA,
     tracesSampleRate: 0.1,
     enableLogs: true,
     sendDefaultPii: false,
