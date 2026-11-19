@@ -1368,3 +1368,6 @@ of the boundary.
   revokes all client writes and `User` reads; remaining reads are
   policy-backed and pinned in `tests/integration/rls-audit-db.test.ts`, which
   replaces the PostgREST parity scripts. Security docs in `docs/security/`.
+- Rate limits (Task 3, ADR-064): request-layer classes fail closed on a
+  Redis outage except read-only classes (`DEGRADE_OPEN_CLASSES`); see
+  `docs/security/RATE-LIMITS.md`.

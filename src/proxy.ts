@@ -119,6 +119,15 @@ export async function proxy(request: NextRequest) {
       contentSecurityPolicy,
     );
   }
+  if (rateLimit?.degraded) {
+    console.warn(
+      JSON.stringify({
+        event: "security.rate_limit_degraded",
+        requestId,
+        routeClass: rateLimit.routeClass,
+      }),
+    );
+  }
   if (rateLimit && !rateLimit.allowed) {
     void recordSecurityEvent("RATE_LIMITED");
     console.warn(
