@@ -62,6 +62,11 @@ production stay on Vercel ([`DEPLOYMENT.md`](../deployment/DEPLOYMENT.md)).
 - No scheduled jobs (alerts, retention, mandate expiry).
 - If the build fails while bundling the proxy/middleware, check the Netlify
   build and Next.js runtime versions (Deploy log → "Next.js Runtime").
+  "Failed to load external module pg-…" means the proxy's database driver
+  was left external: `next.config.ts` bundles `pg` and `@prisma/adapter-pg`
+  when `NETLIFY=true` (Netlify sets it on every build).
+- `netlify build` does not work on Windows without symlink rights (EPERM in
+  `@netlify/plugin-nextjs`); test builds on Netlify itself.
 
 ## Take it down
 
