@@ -1,14 +1,26 @@
+import { SubmitButton } from "@/components/ui/submit-button";
 import { revalidatePath } from "next/cache";
 import { notFound } from "next/navigation";
 
+import { isDemoMode } from "@/env";
+import { requirePageRole } from "@/lib/authz";
 import { clearOutbox, isDevOutboxEnabled, readOutbox } from "@/services/email/devOutbox";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Dev mail inbox", robots: { index: false } };
 
+/**
+ * The hosted demo (ADR-076) is on the public internet and its emails carry
+ * invitation links, so there the inbox is for signed-in Admins only.
+ */
+async function guardInbox() {
+  if (!isDevOutboxEnabled()) notFound();
+  if (isDemoMode()) await requirePageRole("ADMIN");
+}
+
 async function clearAction() {
   "use server";
-  if (!isDevOutboxEnabled()) return;
+  await guardInbox();
   await clearOutbox();
   revalidatePath("/dev/mail");
 }
@@ -34,17 +46,18 @@ function Linkified({ text }: { text: string }) {
 /**
  * TEMPORARY development inbox (until Resend is configured). Shows every
  * email the app has "sent" while the mock mailer is active. 404 in
- * production or whenever a real email provider is configured.
+ * production or whenever a real email provider is configured; Admin-only in
+ * the hosted demo.
  */
 export default async function DevMailPage() {
-  if (!isDevOutboxEnabled()) notFound();
+  await guardInbox();
   const mails = await readOutbox();
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-10 sm:px-6">
       <div className="rounded-lg border border-warning/40 bg-warning/10 p-4 text-sm">
         <p className="font-semibold text-warning">
-          Development only: emails are not really sent.
+          Development and demo only: emails are not really sent.
         </p>
         <p className="mt-1 text-muted">
           This page shows what the app would have emailed. It disappears when a real email
@@ -55,12 +68,12 @@ export default async function DevMailPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-primary">Mail inbox ({mails.length})</h1>
         <form action={clearAction}>
-          <button
+          <SubmitButton
             type="submit"
             className="rounded-2xl border border-line px-3 py-1.5 text-sm font-semibold text-primary"
           >
             Clear
-          </button>
+          </SubmitButton>
         </form>
       </div>
       {mails.length === 0 ? (

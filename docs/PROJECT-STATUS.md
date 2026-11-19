@@ -7,6 +7,16 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 
 **Last Phase 0 implementation commit:** `67ad6c5` (2026-11-16).
 
+## 2026-11-19 hosted client demo (ADR-076, branch `design-refresh`)
+
+- Netlify demo prepared: `PROPLINK_ENV=demo` (production build, mock
+  providers, staging database), `netlify.toml`, `config/netlify-demo.env`,
+  demo banner, noindex, Admin-only `/dev/mail`, database-backed demo mail and
+  upload stores (migration `20261122000000_demo_hosted_stores`, not yet
+  applied to staging). Unit tests pass; a local demo-mode production build
+  starts and passes the banner, robots, header and mail-gate checks.
+- Owner steps: `docs/runbooks/NETLIFY-DEMO.md` (H7.7). Not deployed.
+
 ## 2026-11-18 update
 
 - **Phase 1** pushed; PR #1 (Phase 0 + Phase 1 into `main`) open. Three

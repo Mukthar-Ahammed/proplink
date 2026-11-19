@@ -3,18 +3,23 @@
 import { useActionState, useState } from "react";
 
 import {
+  BUTTON,
+  BUTTON_SM,
+  DANGER_SM,
+  INPUT,
+  LABEL,
+  SECONDARY,
+  SECONDARY_SM,
+} from "@/app/landlord/listings/ui";
+
+import {
   answerQuestionAction,
   submitProposalAction,
   withdrawProposalAction,
   type ProposalState,
 } from "../actions";
 
-const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
-const BUTTON =
-  "rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
-const SECONDARY =
-  "rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary disabled:opacity-60";
+const FIELD = `${LABEL} space-y-1.5`;
 const IDLE: ProposalState = { kind: "idle" };
 
 function Feedback({ state }: { state: ProposalState }) {
@@ -52,10 +57,10 @@ export function ProposalForm({
   const [state, action, pending] = useActionState(submitProposalAction, IDLE);
   const [feeType, setFeeType] = useState(defaults.feeType);
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-5">
       <input type="hidden" name="listingId" value={listingId} />
       <div className="grid gap-4 sm:grid-cols-3">
-        <label className="block space-y-1 text-sm font-medium text-primary">
+        <label className={FIELD}>
           <span className="block">Your valuation (£)</span>
           <input
             name="valuation"
@@ -66,14 +71,14 @@ export function ProposalForm({
             className={INPUT}
           />
         </label>
-        <fieldset className="space-y-1">
-          <legend className="text-sm font-medium text-primary">Your fee</legend>
+        <fieldset className="space-y-1.5">
+          <legend className={LABEL}>Your fee</legend>
           <div className="flex gap-2">
             <select
               name="feeType"
               value={feeType}
               onChange={(event) => setFeeType(event.target.value as "PERCENT" | "FIXED")}
-              className="rounded-lg border border-line bg-white px-2 py-2 text-sm"
+              className="shrink-0 rounded-xl border border-line bg-white px-2.5 py-2.5 text-sm text-body focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none"
               aria-label="Fee type"
             >
               <option value="PERCENT">%</option>
@@ -104,7 +109,7 @@ export function ProposalForm({
             )}
           </div>
         </fieldset>
-        <label className="block space-y-1 text-sm font-medium text-primary">
+        <label className={FIELD}>
           <span className="block">Contract period (months)</span>
           <input
             name="contractMonths"
@@ -117,7 +122,7 @@ export function ProposalForm({
           />
         </label>
       </div>
-      <label className="block space-y-1 text-sm font-medium text-primary">
+      <label className={FIELD}>
         <span className="block">Proposed terms</span>
         <textarea
           name="terms"
@@ -130,7 +135,7 @@ export function ProposalForm({
           placeholder="How you would market or develop it, timescales, what you need from the landlord"
         />
       </label>
-      <label className="block space-y-1 text-sm font-medium text-primary">
+      <label className={FIELD}>
         <span className="block">Short pitch</span>
         <textarea
           name="pitch"
@@ -143,13 +148,13 @@ export function ProposalForm({
           placeholder="Why you are the right agent for this property"
         />
       </label>
-      <div className="flex flex-wrap items-center gap-4">
+      <div className="flex flex-wrap items-center gap-4 border-t border-line pt-5">
         <button disabled={pending} className={BUTTON}>
           {pending ? "Sending…" : editing ? "Update proposal" : "Send proposal"}
         </button>
         <Feedback state={state} />
       </div>
-      <p className="text-xs text-muted">
+      <p className="text-xs leading-relaxed text-muted">
         The landlord sees your name, agency, verified company and this proposal. Further
         discussion moves to chat once PropLink authorises it.
       </p>
@@ -174,16 +179,19 @@ export function WithdrawProposal({
     );
   }
   return (
-    <form action={action} className="flex flex-wrap items-center gap-3">
+    <form
+      action={action}
+      className="flex flex-wrap items-center gap-3 rounded-2xl border border-danger/30 bg-danger/5 p-4"
+    >
       <input type="hidden" name="listingId" value={listingId} />
       <input type="hidden" name="proposalId" value={proposalId} />
       <span className="text-sm text-body">
         Withdraw it? The landlord will no longer see it.
       </span>
-      <button disabled={pending} className={SECONDARY}>
+      <button disabled={pending} className={DANGER_SM}>
         Yes, withdraw
       </button>
-      <button type="button" onClick={() => setConfirming(false)} className={SECONDARY}>
+      <button type="button" onClick={() => setConfirming(false)} className={SECONDARY_SM}>
         Keep it
       </button>
       <Feedback state={state} />
@@ -201,7 +209,7 @@ export function AnswerForm({
   const [state, action, pending] = useActionState(answerQuestionAction, IDLE);
   if (state.kind === "done") return <Feedback state={state} />;
   return (
-    <form action={action} className="mt-2 space-y-2">
+    <form action={action} className="mt-3 space-y-3">
       <input type="hidden" name="listingId" value={listingId} />
       <input type="hidden" name="questionId" value={questionId} />
       <textarea
@@ -213,8 +221,8 @@ export function AnswerForm({
         className={INPUT}
         aria-label="Your answer"
       />
-      <div className="flex items-center gap-3">
-        <button disabled={pending} className={BUTTON}>
+      <div className="flex flex-wrap items-center gap-3">
+        <button disabled={pending} className={BUTTON_SM}>
           {pending ? "Sending…" : "Answer"}
         </button>
         <Feedback state={state} />

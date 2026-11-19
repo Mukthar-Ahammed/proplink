@@ -16,5 +16,5 @@ What the app does on its own, and what to do.
 | Companies House            | Agent company check unavailable                                              | Agents cannot verify a company until it returns                                    | Wait                                                                   |
 | Sentry                     | No error reports                                                             | App unaffected                                                                     | Check logs directly                                                    |
 
-Provider status for the current environment: Admin → KPIs & System →
+Provider status for the current environment: Admin → System & settings → KPIs →
 Integrations health.

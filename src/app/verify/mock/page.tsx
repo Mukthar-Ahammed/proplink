@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/ui/submit-button";
 import { notFound } from "next/navigation";
 
 import { Role } from "@/generated/prisma/enums";
@@ -28,22 +29,22 @@ export default async function MockVerificationPage() {
         send as a signed webhook.
       </p>
       <form action={completeMockVerificationAction} className="mt-6 flex flex-wrap gap-3">
-        <button
+        <SubmitButton
           type="submit"
           name="decision"
           value="APPROVED"
           className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
         >
           Approve
-        </button>
-        <button
+        </SubmitButton>
+        <SubmitButton
           type="submit"
           name="decision"
           value="REJECTED"
           className="rounded-lg border border-danger px-4 py-2 text-sm font-semibold text-danger"
         >
           Reject
-        </button>
+        </SubmitButton>
       </form>
     </main>
   );

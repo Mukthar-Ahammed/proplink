@@ -17,24 +17,24 @@ business model and are **superseded** (ADR-019).
 
 ## Read this first — document map
 
-| Document                                   | What it holds                                                                                  | Read when                               |
-| ------------------------------------------ | ---------------------------------------------------------------------------------------------- | --------------------------------------- |
-| `docs/business/*.pdf`                      | Business source of truth: TRD v1.0, Clarification Questions Q1–Q44, Clarification Answers v1.2 | When a business rule is in doubt        |
-| `docs/PROPLINK_PHASE_PROMPTS.md`           | Current roadmap: master rules, Phases 0–7, exit gates, PDF → phase traceability (Appendix C)   | Before starting or planning any phase   |
-| `docs/CONTEXT.md`                          | Product/domain context: roles, pipeline, compliance constraints, current phase                 | Always, first                           |
-| `docs/PROJECT-STATUS.md`                   | Status snapshot across all areas                                                               | Start of every session                  |
-| `docs/phases/PHASE-N-REPORT.md`            | Per-phase report: what was built, verification results, exit-gate checklist                    | When working in that phase              |
-| `docs/OPEN_DECISIONS.md`                   | Unresolved owner/legal decisions and the safe default used meanwhile                           | Before building anything marked [OWNER] |
-| `docs/ARCHITECTURE.md`                     | Tech stack, repo structure, data model, auth, search, service-layer rules                      | Before writing any code                 |
-| `docs/sprints/STATUS.md`                   | Live tracker for the current phase plus the historical sprint baseline                         | Start of every session                  |
-| `docs/sprints/SPRINT-NN.md`                | Historical per-sprint logs (Sprints 1–3)                                                       | When questioning pre-phase work         |
-| `docs/BLOCKERS.md`                         | What is blocked on human-task outputs, and which mock covers it                                | Start of every phase                    |
-| `docs/MANUAL_CHECKS.md`                    | Every owner check still to do, per phase; the owner does them all after the last phase         | When a phase's build finishes           |
-| `docs/HUMAN_TASKS.md`                      | Every manual task the human must do (accounts, keys, legal)                                    | When the human asks "what do I owe?"    |
-| `docs/adr/`                                | Architecture Decision Records — one file per significant decision                              | When questioning "why is X like this?"  |
+| Document                                   | What it holds                                                                                   | Read when                               |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `docs/business/*.pdf`                      | Business source of truth: TRD v1.0, Clarification Questions Q1–Q44, Clarification Answers v1.2  | When a business rule is in doubt        |
+| `docs/PROPLINK_PHASE_PROMPTS.md`           | Current roadmap: master rules, Phases 0–7, exit gates, PDF → phase traceability (Appendix C)    | Before starting or planning any phase   |
+| `docs/CONTEXT.md`                          | Product/domain context: roles, pipeline, compliance constraints, current phase                  | Always, first                           |
+| `docs/PROJECT-STATUS.md`                   | Status snapshot across all areas                                                                | Start of every session                  |
+| `docs/phases/PHASE-N-REPORT.md`            | Per-phase report: what was built, verification results, exit-gate checklist                     | When working in that phase              |
+| `docs/OPEN_DECISIONS.md`                   | Unresolved owner/legal decisions and the safe default used meanwhile                            | Before building anything marked [OWNER] |
+| `docs/ARCHITECTURE.md`                     | Tech stack, repo structure, data model, auth, search, service-layer rules                       | Before writing any code                 |
+| `docs/sprints/STATUS.md`                   | Live tracker for the current phase plus the historical sprint baseline                          | Start of every session                  |
+| `docs/sprints/SPRINT-NN.md`                | Historical per-sprint logs (Sprints 1–3)                                                        | When questioning pre-phase work         |
+| `docs/BLOCKERS.md`                         | What is blocked on human-task outputs, and which mock covers it                                 | Start of every phase                    |
+| `docs/MANUAL_CHECKS.md`                    | Every owner check still to do, per phase; the owner does them all after the last phase          | When a phase's build finishes           |
+| `docs/HUMAN_TASKS.md`                      | Every manual task the human must do (accounts, keys, legal)                                     | When the human asks "what do I owe?"    |
+| `docs/adr/`                                | Architecture Decision Records — one file per significant decision                               | When questioning "why is X like this?"  |
 | `docs/design/WEBSITE-DESIGN-SPEC.md`       | Website redesign spec (draft): colours, type, layout, chrome, every page; refs in `references/` | Before any UI/design work               |
-| `docs/PropLink_UK_Master_Document.md`      | **Superseded** original master plan (earlier business model)                                   | Historical reference only               |
-| `docs/PropLink_Sprint_Plan_Claude_Code.md` | **Superseded** 12-week build brief; Sprints 1–3 acceptance criteria still describe built code  | Historical reference only               |
+| `docs/PropLink_UK_Master_Document.md`      | **Superseded** original master plan (earlier business model)                                    | Historical reference only               |
+| `docs/PropLink_Sprint_Plan_Claude_Code.md` | **Superseded** 12-week build brief; Sprints 1–3 acceptance criteria still describe built code   | Historical reference only               |
 
 ## 📌 The living-docs rule (non-negotiable)
 

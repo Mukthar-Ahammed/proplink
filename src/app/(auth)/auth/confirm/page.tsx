@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/ui/submit-button";
 import Link from "next/link";
 
 import { confirmAuthToken } from "@/app/(auth)/actions";
@@ -35,9 +36,9 @@ export default async function ConfirmPage({
     >
       {!message && tokenHash && validType ? (
         <form action={action}>
-          <button type="submit" className={AUTH_BUTTON}>
+          <SubmitButton type="submit" className={AUTH_BUTTON}>
             {type === "recovery" ? "Continue to reset password" : "Confirm email"}
-          </button>
+          </SubmitButton>
         </form>
       ) : (
         <div className="space-y-4">

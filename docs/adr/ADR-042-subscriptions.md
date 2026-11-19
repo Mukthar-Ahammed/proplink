@@ -37,6 +37,13 @@
    limits) is left untouched; the new model is `BillingSubscription`
    (table `subscriptions`).
 
+## Amendment (2026-11-19, OD-34)
+
+Subscriptions gate **chat only**, matching the business PDFs. The pledge and
+Lead-nomination subscription checks added in Phase 4 were removed. Outside
+production, unpriced plans show labelled demo prices so the subscribe flow
+can be reviewed before the owner sets prices (OD-01).
+
 ## Consequences
 
 - Phase 3 chat uses `subscriptionState` / `requireSubscription` on every send.

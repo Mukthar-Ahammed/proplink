@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdminPagePermission } from "@/lib/authz";
 import { listAnnouncementsForAdmin } from "@/services/announcements/announcements";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
@@ -74,12 +75,12 @@ export default async function AdminAnnouncementsPage() {
                       {state !== "ARCHIVED" && (
                         <form action={archiveAnnouncementAction}>
                           <input type="hidden" name="id" value={item.id} />
-                          <button
+                          <SubmitButton
                             type="submit"
                             className="text-sm font-semibold text-danger underline"
                           >
                             Archive
-                          </button>
+                          </SubmitButton>
                         </form>
                       )}
                     </div>

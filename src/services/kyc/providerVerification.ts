@@ -273,7 +273,7 @@ export async function processKycWebhook(
 
 export function isMockFlowAvailable(): boolean {
   const env = getServerEnv();
-  return env.NODE_ENV !== "production" && env.KYC_PROVIDER === "mock";
+  return env.ALLOW_MOCKS && env.KYC_PROVIDER === "mock";
 }
 
 /**

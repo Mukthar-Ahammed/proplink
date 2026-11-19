@@ -25,7 +25,7 @@ export function getKycProvider(): KycProvider {
       levelName: env.SUMSUB_LEVEL_NAME,
     });
   }
-  if (env.NODE_ENV === "production") {
+  if (!env.ALLOW_MOCKS) {
     throw new Error("The mock KYC provider cannot be used in production");
   }
   return new MockKycProvider(env.APP_ORIGIN ?? "http://localhost:3000");

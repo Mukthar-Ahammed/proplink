@@ -453,13 +453,6 @@ export default async function AdminDashboardPage({
             description="What PropLink charges for: subscriptions only"
             status="active"
           />
-          <QuickNavCard
-            href="/admin/audit"
-            label="Audit Logs"
-            icon="📋"
-            description="Full event trail of all Admin actions"
-            status="soon"
-          />
         </div>
       </section>
     </div>

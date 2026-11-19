@@ -450,9 +450,9 @@ export default async function PropertyDetailPage({ params }: PageProps) {
           data-testid="ag6-notice"
         >
           Conveyancing, legal agreements and contract responsibilities for this sale are
-          handled by the listing agent. Where a property was refurbished through a PropLink
-          investment project, the investment side is handled by that project&apos;s
-          Solicitor. PropLink does not hold or move purchase money.
+          handled by the listing agent. Where a property was refurbished through a
+          PropLink investment project, the investment side is handled by that
+          project&apos;s Solicitor. PropLink does not hold or move purchase money.
         </p>
 
         {/* Phase 6 Task 3 (ADR-059): signed-in members may report a listing. */}

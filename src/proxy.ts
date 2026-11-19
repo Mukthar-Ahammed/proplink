@@ -317,6 +317,10 @@ function secureResponse(
   if (pathname === "/auth/confirm" || pathname === "/reset-password") {
     response.headers.set("Referrer-Policy", "no-referrer");
   }
+  // ADR-076: the hosted demo holds test data only and is never indexed.
+  if (process.env.PROPLINK_ENV === "demo") {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
   return response;
 }
 

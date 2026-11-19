@@ -13,7 +13,7 @@ import { usePathname } from "next/navigation";
  *   so the public chrome is hidden there too rather than stacked above it.
  * - **Overlay routes** open on a coloured hero that should run up behind the
  *   floating header pill, so the header takes no layout space there (ADR-071).
- *   The landing page and the buyer, investor and landlord portals (whose mastheads carry
+ *   The landing page and the agent, buyer, investor and landlord portals (whose mastheads carry
  *   a photo banner); elsewhere the pill sits in flow above the page.
  *
  * A client gate because `<SiteHeader>` is an async server component rendered by
@@ -42,7 +42,7 @@ const SHELL_PREFIXES = ["/admin"];
 
 const OVERLAY_ROUTES = ["/"];
 /** Every page under these opens on a banner masthead (`<PortalShell banner>`). */
-const OVERLAY_PREFIXES = ["/buy", "/investor", "/landlord"];
+const OVERLAY_PREFIXES = ["/agent", "/buy", "/investor", "/landlord"];
 
 export function ChromeGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

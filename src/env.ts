@@ -33,10 +33,21 @@ const booleanEnv = z.preprocess((value) => {
   return value;
 }, z.boolean().optional());
 
+/**
+ * A production build that is not the hosted demo (ADR-076). Mock providers,
+ * the dev mail inbox and demo prices are refused when this is true.
+ */
+function isStrictProduction(
+  nodeEnv: string | undefined,
+  propLinkEnv: string | undefined,
+) {
+  return nodeEnv === "production" && propLinkEnv !== "demo";
+}
+
 const serverEnvSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-    PROPLINK_ENV: optionalEnum(["development", "staging", "production"]),
+    PROPLINK_ENV: optionalEnum(["development", "staging", "production", "demo"]),
     PROPLINK_LOCAL_SUPABASE_PROJECT_REF: optionalString,
     DATABASE_URL: optionalString,
     DIRECT_URL: optionalString,
@@ -99,21 +110,20 @@ const serverEnvSchema = z
     SYNDICATE_PAYMENTS_ENABLED: booleanEnv,
   })
   .superRefine((env, ctx) => {
+    // ADR-076: the hosted demo is a production build that may use mock
+    // providers. Every other production build refuses them.
+    const strictProduction = isStrictProduction(env.NODE_ENV, env.PROPLINK_ENV);
     const rateLimitProvider =
-      env.RATE_LIMIT_PROVIDER ?? (env.NODE_ENV === "production" ? "upstash" : "memory");
-    const emailProvider =
-      env.EMAIL_PROVIDER ?? (env.NODE_ENV === "production" ? "resend" : "mock");
-    const storageProvider =
-      env.STORAGE_PROVIDER ?? (env.NODE_ENV === "production" ? "s3" : "mock");
-    const turnstileEnabled = env.TURNSTILE_ENABLED ?? env.NODE_ENV === "production";
+      env.RATE_LIMIT_PROVIDER ?? (strictProduction ? "upstash" : "memory");
+    const emailProvider = env.EMAIL_PROVIDER ?? (strictProduction ? "resend" : "mock");
+    const storageProvider = env.STORAGE_PROVIDER ?? (strictProduction ? "s3" : "mock");
+    const turnstileEnabled = env.TURNSTILE_ENABLED ?? strictProduction;
     const turnstileProvider =
-      env.TURNSTILE_PROVIDER ?? (env.NODE_ENV === "production" ? "cloudflare" : "mock");
+      env.TURNSTILE_PROVIDER ?? (strictProduction ? "cloudflare" : "mock");
     const companiesHouseProvider =
-      env.COMPANIES_HOUSE_PROVIDER ??
-      (env.NODE_ENV === "production" ? "companies_house" : "mock");
+      env.COMPANIES_HOUSE_PROVIDER ?? (strictProduction ? "companies_house" : "mock");
 
-    const kycProvider =
-      env.KYC_PROVIDER ?? (env.NODE_ENV === "production" ? "sumsub" : "mock");
+    const kycProvider = env.KYC_PROVIDER ?? (strictProduction ? "sumsub" : "mock");
     if (kycProvider === "sumsub") {
       for (const key of [
         "SUMSUB_APP_TOKEN",
@@ -129,7 +139,7 @@ const serverEnvSchema = z
         }
       }
     }
-    if (env.NODE_ENV === "production" && kycProvider === "mock") {
+    if (strictProduction && kycProvider === "mock") {
       ctx.addIssue({
         code: "custom",
         path: ["KYC_PROVIDER"],
@@ -138,8 +148,7 @@ const serverEnvSchema = z
     }
 
     // Phase 3 Task 1 (ADR-042): subscriptions only; never live keys outside production.
-    const stripeProvider =
-      env.STRIPE_PROVIDER ?? (env.NODE_ENV === "production" ? "stripe" : "mock");
+    const stripeProvider = env.STRIPE_PROVIDER ?? (strictProduction ? "stripe" : "mock");
     if (stripeProvider === "stripe") {
       for (const key of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] as const) {
         if (!env[key]) {
@@ -152,8 +161,7 @@ const serverEnvSchema = z
       }
     }
     const productionDeployment =
-      env.NODE_ENV === "production" &&
-      (env.PROPLINK_ENV ?? "production") === "production";
+      strictProduction && (env.PROPLINK_ENV ?? "production") === "production";
     const liveKey = [env.STRIPE_SECRET_KEY, env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY].some(
       (key) => key !== undefined && /^(sk|rk|pk)_live_/.test(key),
     );
@@ -183,7 +191,7 @@ const serverEnvSchema = z
     }
     // Phase 4 Task 6 (ADR-048): mock signatures have no legal effect.
     const esignProvider =
-      env.ESIGN_PROVIDER ?? (env.NODE_ENV === "production" ? "dropbox_sign" : "mock");
+      env.ESIGN_PROVIDER ?? (strictProduction ? "dropbox_sign" : "mock");
     if (esignProvider === "dropbox_sign") {
       for (const key of ["ESIGN_API_KEY", "ESIGN_CLIENT_ID"] as const) {
         if (!env[key]) {
@@ -195,7 +203,7 @@ const serverEnvSchema = z
         }
       }
     }
-    if (env.NODE_ENV === "production" && esignProvider === "mock") {
+    if (strictProduction && esignProvider === "mock") {
       ctx.addIssue({
         code: "custom",
         path: ["ESIGN_PROVIDER"],
@@ -209,7 +217,7 @@ const serverEnvSchema = z
         message: "Production signatures must not be test-mode signatures",
       });
     }
-    if (env.NODE_ENV === "production" && stripeProvider === "mock") {
+    if (strictProduction && stripeProvider === "mock") {
       ctx.addIssue({
         code: "custom",
         path: ["STRIPE_PROVIDER"],
@@ -217,8 +225,7 @@ const serverEnvSchema = z
       });
     }
 
-    const aiProvider =
-      env.AI_PROVIDER ?? (env.NODE_ENV === "production" ? "anthropic" : "mock");
+    const aiProvider = env.AI_PROVIDER ?? (strictProduction ? "anthropic" : "mock");
     if (aiProvider === "anthropic" && !env.ANTHROPIC_API_KEY) {
       ctx.addIssue({
         code: "custom",
@@ -226,7 +233,7 @@ const serverEnvSchema = z
         message: "Required when the Anthropic AI provider is enabled",
       });
     }
-    if (env.NODE_ENV === "production" && aiProvider === "mock") {
+    if (strictProduction && aiProvider === "mock") {
       ctx.addIssue({
         code: "custom",
         path: ["AI_PROVIDER"],
@@ -355,6 +362,22 @@ const serverEnvSchema = z
           });
         }
       }
+    }
+
+    // ADR-076: the demo never produces legally binding signatures.
+    if (
+      !strictProduction &&
+      env.NODE_ENV === "production" &&
+      env.ESIGN_TEST_MODE === false
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ESIGN_TEST_MODE"],
+        message: "The demo deployment must keep e-signatures in test mode",
+      });
+    }
+
+    if (strictProduction) {
       if (rateLimitProvider !== "upstash") {
         ctx.addIssue({
           code: "custom",
@@ -404,37 +427,35 @@ export type ServerEnv = z.infer<typeof serverEnvSchema>;
 
 export function parseServerEnv(source: NodeJS.ProcessEnv) {
   const parsed = serverEnvSchema.parse(source);
+  const strictProduction = isStrictProduction(parsed.NODE_ENV, parsed.PROPLINK_ENV);
   return {
     ...parsed,
+    /** The hosted demo (ADR-076): a production build that allows mock providers. */
+    DEMO_MODE: parsed.NODE_ENV === "production" && parsed.PROPLINK_ENV === "demo",
+    /**
+     * Mock providers, demo prices and the dev mail inbox may run: always
+     * outside production builds, and in the hosted demo.
+     */
+    ALLOW_MOCKS: !strictProduction,
     RATE_LIMIT_PROVIDER:
-      parsed.RATE_LIMIT_PROVIDER ??
-      (parsed.NODE_ENV === "production" ? "upstash" : "memory"),
-    EMAIL_PROVIDER:
-      parsed.EMAIL_PROVIDER ?? (parsed.NODE_ENV === "production" ? "resend" : "mock"),
+      parsed.RATE_LIMIT_PROVIDER ?? (strictProduction ? "upstash" : "memory"),
+    EMAIL_PROVIDER: parsed.EMAIL_PROVIDER ?? (strictProduction ? "resend" : "mock"),
     TURNSTILE_PROVIDER:
-      parsed.TURNSTILE_PROVIDER ??
-      (parsed.NODE_ENV === "production" ? "cloudflare" : "mock"),
-    STORAGE_PROVIDER:
-      parsed.STORAGE_PROVIDER ?? (parsed.NODE_ENV === "production" ? "s3" : "mock"),
+      parsed.TURNSTILE_PROVIDER ?? (strictProduction ? "cloudflare" : "mock"),
+    STORAGE_PROVIDER: parsed.STORAGE_PROVIDER ?? (strictProduction ? "s3" : "mock"),
     COMPANIES_HOUSE_PROVIDER:
-      parsed.COMPANIES_HOUSE_PROVIDER ??
-      (parsed.NODE_ENV === "production" ? "companies_house" : "mock"),
-    KYC_PROVIDER:
-      parsed.KYC_PROVIDER ?? (parsed.NODE_ENV === "production" ? "sumsub" : "mock"),
+      parsed.COMPANIES_HOUSE_PROVIDER ?? (strictProduction ? "companies_house" : "mock"),
+    KYC_PROVIDER: parsed.KYC_PROVIDER ?? (strictProduction ? "sumsub" : "mock"),
     SUMSUB_LEVEL_NAME: parsed.SUMSUB_LEVEL_NAME ?? "basic-kyc-level",
-    STRIPE_PROVIDER:
-      parsed.STRIPE_PROVIDER ?? (parsed.NODE_ENV === "production" ? "stripe" : "mock"),
-    AI_PROVIDER:
-      parsed.AI_PROVIDER ?? (parsed.NODE_ENV === "production" ? "anthropic" : "mock"),
+    STRIPE_PROVIDER: parsed.STRIPE_PROVIDER ?? (strictProduction ? "stripe" : "mock"),
+    AI_PROVIDER: parsed.AI_PROVIDER ?? (strictProduction ? "anthropic" : "mock"),
     AI_MODEL: parsed.AI_MODEL ?? "claude-opus-5-5",
-    ESIGN_PROVIDER:
-      parsed.ESIGN_PROVIDER ??
-      (parsed.NODE_ENV === "production" ? "dropbox_sign" : "mock"),
+    ESIGN_PROVIDER: parsed.ESIGN_PROVIDER ?? (strictProduction ? "dropbox_sign" : "mock"),
     // Test mode unless explicitly turned off (only production deployments may).
-    ESIGN_TEST_MODE: parsed.ESIGN_TEST_MODE ?? parsed.NODE_ENV !== "production",
+    ESIGN_TEST_MODE: parsed.ESIGN_TEST_MODE ?? !strictProduction,
     AI_DAILY_TOKEN_BUDGET_PER_USER: parsed.AI_DAILY_TOKEN_BUDGET_PER_USER ?? 40_000,
     AI_GLOBAL_DAILY_BUDGET: parsed.AI_GLOBAL_DAILY_BUDGET ?? 1_000_000,
-    TURNSTILE_ENABLED: parsed.TURNSTILE_ENABLED ?? parsed.NODE_ENV === "production",
+    TURNSTILE_ENABLED: parsed.TURNSTILE_ENABLED ?? strictProduction,
     UPLOADS_ENABLED: parsed.UPLOADS_ENABLED ?? false,
     FINANCIAL_PROMOTIONS_REVIEWED: parsed.FINANCIAL_PROMOTIONS_REVIEWED ?? false,
     FLIPPER_FLOWS_ENABLED: parsed.FLIPPER_FLOWS_ENABLED ?? false,
@@ -472,4 +493,9 @@ export function isFinancialPromotionsReviewed(): boolean {
 export function areFlipperFlowsEnabled(): boolean {
   const env = getServerEnv();
   return env.FLIPPER_FLOWS_ENABLED === true && env.FINANCIAL_PROMOTIONS_REVIEWED === true;
+}
+
+/** The hosted demo deployment (ADR-076): shows the demo banner and noindex. */
+export function isDemoMode(): boolean {
+  return getServerEnv().DEMO_MODE;
 }

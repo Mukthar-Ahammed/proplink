@@ -5,6 +5,7 @@ import { createHash, randomBytes, randomUUID, timingSafeEqual } from "node:crypt
 import { z } from "zod";
 
 import { ProjectSolicitorStatus, Role } from "@/generated/prisma/enums";
+import { getServerEnv } from "@/env";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
 import { getAgentAccountProvisioner } from "@/services/auth/agentAccountProvisioner";
@@ -106,7 +107,7 @@ async function sendInvite(
   } catch {
     emailed = false;
   }
-  const revealLink = isMockMailer() && process.env.NODE_ENV !== "production";
+  const revealLink = isMockMailer() && getServerEnv().ALLOW_MOCKS;
   return { solicitorId, emailed, ...(revealLink ? { devInviteUrl: url } : {}) };
 }
 

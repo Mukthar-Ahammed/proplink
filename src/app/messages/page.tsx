@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { SubscriptionBanner } from "@/components/billing/SubscriptionGate";
 import { auth } from "@/lib/auth";
 import { listThreadsFor } from "@/services/chat/threads";
 
@@ -35,6 +36,9 @@ export default async function MessagesPage() {
         One-to-one conversations about a property. A chat opens once PropLink authorises
         it (buyer enquiries open straight away).
       </p>
+      <div className="mt-6">
+        <SubscriptionBanner />
+      </div>
       {threads.length === 0 ? (
         <p className="mt-8 text-sm text-muted">No conversations yet.</p>
       ) : (

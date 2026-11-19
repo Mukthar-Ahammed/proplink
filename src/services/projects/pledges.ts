@@ -14,7 +14,6 @@ import { getServerEnv, isFinancialPromotionsReviewed } from "@/env";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
 import { consumeRateLimits, type LimitSpec } from "@/services/auth/supabaseAuthService";
-import { allowsPaidFeatures, subscriptionState } from "@/services/billing/subscriptions";
 import type { ServiceResult } from "@/services/landlord/listings";
 import { poundsToPence } from "@/services/landlord/marketplace";
 import { bad, databaseRule, type Actor } from "@/services/projects/common";
@@ -158,13 +157,8 @@ export async function createPledge(
   if (!me?.active || me.kycStatus !== KycStatus.APPROVED) {
     return bad("Complete identity verification (KYC) before pledging", 403);
   }
-  const subscription = await subscriptionState({
-    profileId: investor.profileId,
-    role: Role.INVESTOR,
-  });
-  if (!allowsPaidFeatures(subscription)) {
-    return bad("An active Lead or Co-Investor subscription is needed to pledge", 402);
-  }
+  // No subscription check: the business model ties subscriptions to chat only
+  // (Clarification Answers §A, §D, Q10; OD-34). Pledging needs KYC, not a plan.
   if (!project) return bad("This project is not open for pledges", 409);
   if (project.fundingDeadline < new Date()) {
     return bad("The funding deadline has passed", 409);

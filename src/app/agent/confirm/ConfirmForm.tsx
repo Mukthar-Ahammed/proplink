@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
+import { BUTTON } from "@/app/landlord/listings/ui";
+
 import { confirmAccountAction, type ConfirmFormState } from "./actions";
 
 export function ConfirmForm() {
@@ -12,7 +14,10 @@ export function ConfirmForm() {
 
   if (state.kind === "done") {
     return (
-      <p role="status" className="text-sm text-success">
+      <p
+        role="status"
+        className="rounded-2xl border border-success/25 bg-success/10 p-4 text-sm leading-relaxed text-success"
+      >
         Thank you. Your account is confirmed and is now waiting for PropLink to authorise
         it. Your listings and leads keep working in the meantime.
       </p>
@@ -21,7 +26,7 @@ export function ConfirmForm() {
 
   return (
     <form action={formAction} className="space-y-4">
-      <label className="flex items-start gap-3 text-sm text-body">
+      <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-line bg-white px-4 py-3 text-sm text-body transition-colors hover:border-accent/50 has-[:checked]:border-accent has-[:checked]:bg-pale/60">
         <input
           type="checkbox"
           name="acceptTerms"
@@ -30,17 +35,16 @@ export function ConfirmForm() {
         />
         <span>
           I confirm these details are mine and I accept the{" "}
-          <Link href="/terms" className="text-accent underline">
+          <Link
+            href="/terms"
+            className="font-semibold text-accent underline underline-offset-2 hover:text-accent-strong"
+          >
             terms of service
           </Link>
           .
         </span>
       </label>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-      >
+      <button type="submit" disabled={pending} className={BUTTON}>
         {pending ? "Confirming…" : "Confirm my account"}
       </button>
       {state.kind === "error" && (

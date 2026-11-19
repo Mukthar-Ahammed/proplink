@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requirePageRole } from "@/lib/authz";
 import { getOwnedListing } from "@/services/listings/listingService";
 import { ListingServiceError } from "@/services/listings/errors";
@@ -7,6 +6,12 @@ import {
   penceToPoundsInput,
   type WizardFormState,
 } from "@/components/listings/wizardTypes";
+import {
+  ArrowLink,
+  InvestorEmpty,
+  InvestorSectionTitle,
+  PrimaryLink,
+} from "@/components/investor/InvestorUi";
 
 export const metadata = { title: "Agent — Edit listing" };
 
@@ -40,13 +45,12 @@ function toWizardState(listing: OwnedListing): WizardFormState {
 
 function NoticeCard({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-2xl border border-line bg-white p-6 text-sm text-body">
-      <p className="font-semibold text-primary">{title}</p>
-      <p className="mt-1 text-muted">{body}</p>
-      <Link href="/agent/listings" className="mt-3 inline-block text-accent underline">
-        Back to your listings
-      </Link>
-    </div>
+    <InvestorEmpty
+      title={title}
+      action={<PrimaryLink href="/agent/listings">Back to your listings</PrimaryLink>}
+    >
+      {body}
+    </InvestorEmpty>
   );
 }
 
@@ -88,11 +92,19 @@ export default async function EditListingPage({
   }
 
   return (
-    <ListingWizard
-      agentProfiles={[
-        { id: listing.agentProfile.id, agencyName: listing.agentProfile.agencyName },
-      ]}
-      initial={toWizardState(listing)}
-    />
+    <section className="space-y-8">
+      <InvestorSectionTitle
+        title="Edit"
+        tail="draft"
+        description={listing.title}
+        action={<ArrowLink href="/agent/listings">Your listings</ArrowLink>}
+      />
+      <ListingWizard
+        agentProfiles={[
+          { id: listing.agentProfile.id, agencyName: listing.agentProfile.agencyName },
+        ]}
+        initial={toWizardState(listing)}
+      />
+    </section>
   );
 }

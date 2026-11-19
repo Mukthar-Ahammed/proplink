@@ -1,6 +1,6 @@
 import projectRefs from "../../../config/supabase-projects.json";
 
-export type PropLinkEnvironment = "development" | "staging" | "production";
+export type PropLinkEnvironment = "development" | "staging" | "production" | "demo";
 
 export function resolvePropLinkEnvironment(
   nodeEnv: string | undefined,
@@ -11,9 +11,15 @@ export function resolvePropLinkEnvironment(
   if (
     environment !== "development" &&
     environment !== "staging" &&
-    environment !== "production"
+    environment !== "production" &&
+    environment !== "demo"
   ) {
-    throw new Error("PROPLINK_ENV must be development, staging, or production.");
+    throw new Error("PROPLINK_ENV must be development, staging, production, or demo.");
+  }
+  // The hosted demo (ADR-076) is a production build that may use mock
+  // providers. It is never a development server.
+  if (nodeEnv !== "production" && environment === "demo") {
+    throw new Error("PROPLINK_ENV=demo runs only as a production build.");
   }
   // A production build (NODE_ENV=production) runs as staging or production,
   // never against the development project; a development server never runs
@@ -58,6 +64,7 @@ export function assertExpectedSupabaseProject(input: {
   let expectedRef: string | null | undefined;
   if (input.environment === "staging") expectedRef = projectRefs.staging;
   if (input.environment === "production") expectedRef = projectRefs.production;
+  if (input.environment === "demo") expectedRef = projectRefs.demo;
   if (input.environment === "development") {
     expectedRef = projectRefs.development;
     if (input.localProjectRef !== expectedRef) {

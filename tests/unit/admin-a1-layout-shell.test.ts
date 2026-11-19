@@ -46,10 +46,12 @@ describe("Phase A1 — Secure Admin Shell & Layout Gate (SEC-01)", () => {
     vi.clearAllMocks();
   });
 
-  it("sends an Admin without a second factor to /mfa (Phase 1 Task 11)", async () => {
+  it("sends an Admin without a second factor back to the sign-in code card", async () => {
     mocks.headers.mockReturnValue(new Headers({ "x-pathname": "/admin" }));
     mocks.auth.mockResolvedValue(sessionFor(Role.ADMIN, true, "aal1"));
-    await expect(AdminLayout({ children: "Dashboard" })).rejects.toThrow("redirect:/mfa");
+    await expect(AdminLayout({ children: "Dashboard" })).rejects.toThrow(
+      "redirect:/admin/login",
+    );
   });
 
   it("allows /admin/login to render without requiring authentication or session redirect", async () => {

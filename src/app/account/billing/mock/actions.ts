@@ -9,7 +9,10 @@ import { db } from "@/lib/db";
 import { requireUser } from "@/lib/authz";
 import { isMockBillingAvailable } from "@/services/billing";
 import { mockBillingEvent, readMockToken } from "@/services/billing/mockBillingProvider";
-import { processBillingWebhook } from "@/services/billing/subscriptions";
+import {
+  EMBEDDED_RETURN_PATHS,
+  processBillingWebhook,
+} from "@/services/billing/subscriptions";
 import { toAudience, type BillingEvent } from "@/services/billing/types";
 
 /**
@@ -43,12 +46,27 @@ export async function mockCheckoutAction(formData: FormData): Promise<void> {
   const user = await currentUser();
   const data = readMockToken(String(formData.get("token") ?? ""));
   if (!data || data.profileId !== user.authUserId) throw new Error("Invalid checkout");
-  if (formData.get("outcome") !== "pay") redirect("/account/billing?checkout=cancelled");
+  // Where the popup's test checkout returns to: an allowlist, never free text.
+  const next = (EMBEDDED_RETURN_PATHS as readonly unknown[]).includes(
+    formData.get("next"),
+  )
+    ? String(formData.get("next"))
+    : "/account/billing";
+  if (formData.get("outcome") !== "pay") redirect(`${next}?checkout=cancelled`);
 
   const plan = await db.subscriptionPlan.findUnique({
     where: { providerPriceId: data.priceId },
   });
-  if (!plan) throw new Error("Unknown price");
+  // A demo price (OD-01 placeholder) has no stored row; its interval travels
+  // in the signed token instead.
+  const demoInterval =
+    data.demoInterval === BillingInterval.YEAR
+      ? BillingInterval.YEAR
+      : data.demoInterval === BillingInterval.MONTH
+        ? BillingInterval.MONTH
+        : null;
+  const interval = plan?.interval ?? demoInterval;
+  if (!interval) throw new Error("Unknown price");
   const subscriptionId = `sub_mock_${randomUUID()}`;
   await send("checkout.session.completed", {
     kind: "checkout_completed",
@@ -63,11 +81,12 @@ export async function mockCheckoutAction(formData: FormData): Promise<void> {
     profileId: user.authUserId,
     audience: toAudience(data.audience),
     status: SubscriptionStatus.ACTIVE,
-    priceId: plan.providerPriceId,
-    currentPeriodEnd: nextPeriodEnd(plan.interval),
+    priceId: data.priceId,
+    interval,
+    currentPeriodEnd: nextPeriodEnd(interval),
     cancelAtPeriodEnd: false,
   });
-  redirect("/account/billing?checkout=success");
+  redirect(`${next}?checkout=success`);
 }
 
 /** Mock Customer Portal: simulate what Stripe would report. */

@@ -68,7 +68,7 @@ test("an Agent subscribes, then a renewal fails into the grace period", async ({
     timeout: 20_000,
   });
   await page.waitForLoadState("networkidle");
-  await page.getByRole("button", { name: "Pay (test)" }).click();
+  await page.getByRole("button", { name: "Subscribe (test, no charge)" }).click();
   await expect(page).toHaveURL(/checkout=success/, { timeout: 20_000 });
   await expect(page.getByTestId("subscription-state")).toContainText("Active");
 

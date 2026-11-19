@@ -185,8 +185,7 @@ describe("PHASE 3 — Investor Subtype Onboarding & Entry UI", () => {
         { href: "/investor/projects", label: "Projects" },
         { href: "/messages", label: "Messages" },
         { href: "/investor/kyc", label: "Identity & Verification" },
-        // Phase 3 Task 1: Investors subscribe as Lead or Co-Investors.
-        { href: "/account/billing", label: "Billing" },
+        // No Billing tab: subscribing starts from the chat prompts and popup.
         { href: "/account/reviews", label: "Reviews" },
         { href: "/investor/profile", label: "My profile" },
         { href: "/account/notifications", label: "Notifications" },

@@ -30,6 +30,16 @@ export async function login(
     await page.locator('input[type="password"]').fill(password);
     await page.locator('button[type="submit"]').click();
 
+    if (audience === "ADMIN") {
+      // Admin stays on /admin/login: the card switches to the second factor.
+      await expect(
+        page.getByRole("heading", {
+          name: /Enter authentication code|Set up two-step verification/,
+        }),
+      ).toBeVisible({ timeout: 20_000 });
+      return;
+    }
+
     await expect(page).not.toHaveURL(
       new RegExp(`${loginPath.replace("/", "\\/")}(?:\\?|$)`),
       { timeout: 20_000 },

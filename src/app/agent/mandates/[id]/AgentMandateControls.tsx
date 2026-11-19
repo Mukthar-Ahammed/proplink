@@ -2,13 +2,18 @@
 
 import { useActionState, useState } from "react";
 
+import {
+  BUTTON,
+  DANGER_SM,
+  INPUT,
+  LABEL,
+  SECONDARY,
+  SECONDARY_SM,
+} from "@/app/landlord/listings/ui";
+
 import { agentMandateAction, type MandateState } from "../actions";
 
 const IDLE: MandateState = { kind: "idle" };
-const BUTTON =
-  "rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
-const SECONDARY =
-  "rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary disabled:opacity-60";
 
 function Feedback({ state }: { state: MandateState }) {
   if (state.kind === "idle") return null;
@@ -45,16 +50,19 @@ export function TerminateMandate({ mandateId }: { mandateId: string }) {
   if (state.kind === "done") return <Feedback state={state} />;
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className={SECONDARY}>
+      <button type="button" onClick={() => setOpen(true)} className={DANGER_SM}>
         Terminate early…
       </button>
     );
   }
   return (
-    <form action={action} className="space-y-2">
+    <form
+      action={action}
+      className="space-y-3 rounded-2xl border border-danger/30 bg-danger/5 p-4"
+    >
       <input type="hidden" name="mandateId" value={mandateId} />
       <input type="hidden" name="intent" value="terminate" />
-      <label className="block space-y-1 text-sm font-medium text-primary">
+      <label className={`${LABEL} space-y-1.5`}>
         <span className="block">Why are you ending it? (shared with the landlord)</span>
         <textarea
           name="reason"
@@ -62,14 +70,14 @@ export function TerminateMandate({ mandateId }: { mandateId: string }) {
           minLength={10}
           maxLength={500}
           rows={3}
-          className="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body"
+          className={INPUT}
         />
       </label>
-      <div className="flex flex-wrap gap-3">
-        <button disabled={pending} className={SECONDARY}>
+      <div className="flex flex-wrap gap-2">
+        <button disabled={pending} className={DANGER_SM}>
           Terminate the mandate
         </button>
-        <button type="button" onClick={() => setOpen(false)} className={SECONDARY}>
+        <button type="button" onClick={() => setOpen(false)} className={SECONDARY_SM}>
           Cancel
         </button>
       </div>

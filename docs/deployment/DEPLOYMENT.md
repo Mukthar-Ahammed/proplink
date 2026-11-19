@@ -7,6 +7,11 @@ Runbooks: [`docs/runbooks/`](../runbooks/).
 
 ## Environment matrix
 
+A fourth environment, the **hosted client demo** (`PROPLINK_ENV=demo`, Netlify,
+staging database, mock providers, never indexed), is described in ADR-076 and
+[`docs/runbooks/NETLIFY-DEMO.md`](../runbooks/NETLIFY-DEMO.md). It is not a
+step towards production.
+
 |                  | Development                       | Staging                               | Production                                                          |
 | ---------------- | --------------------------------- | ------------------------------------- | ------------------------------------------------------------------- |
 | Purpose          | Local building and tests          | Owner checks, scans, load test        | Live service                                                        |
@@ -79,7 +84,7 @@ private portals, `/admin`). Two defects found and fixed:
   error rate above 1% for 5 minutes; any `security.rate_limit_degraded`,
   `security.csrf_rejected` spike or `notification.delivery_failed` burst in
   logs; uptime monitor on `/api/health` (H7.5).
-- Admin → KPIs & System shows queues, failed emails, webhooks and security
+- Admin → System & settings → KPIs shows queues, failed emails, webhooks and security
   events inside the app.
 
 ## Logging and retention

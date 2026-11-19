@@ -11,6 +11,9 @@ export function buildContentSecurityPolicy(
     "https://*.sentry.io",
     "https://maps.googleapis.com",
     "https://challenges.cloudflare.com",
+    // Stripe Embedded Checkout in the subscription popup (subscriptions only).
+    "https://api.stripe.com",
+    "https://checkout.stripe.com",
   ];
   if (supabaseOrigin) connectSources.push(supabaseOrigin);
 
@@ -20,6 +23,7 @@ export function buildContentSecurityPolicy(
     "'strict-dynamic'",
     "https://challenges.cloudflare.com",
     "https://maps.googleapis.com",
+    "https://js.stripe.com",
   ];
   if (development) scriptSources.push("'unsafe-eval'");
 
@@ -27,10 +31,10 @@ export function buildContentSecurityPolicy(
     "default-src 'self'",
     `script-src ${scriptSources.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://images.unsplash.com",
+    "img-src 'self' data: blob: https://*.supabase.co https://maps.googleapis.com https://maps.gstatic.com https://images.unsplash.com https://*.stripe.com",
     "font-src 'self' data: https://fonts.gstatic.com",
     `connect-src ${connectSources.join(" ")}`,
-    "frame-src 'self' https://challenges.cloudflare.com https://*.supabase.co",
+    "frame-src 'self' https://challenges.cloudflare.com https://*.supabase.co https://js.stripe.com https://*.js.stripe.com https://checkout.stripe.com https://hooks.stripe.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self' https://*.supabase.co",

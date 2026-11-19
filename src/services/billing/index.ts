@@ -23,7 +23,7 @@ export function getBillingProvider(): BillingProvider {
       env.STRIPE_WEBHOOK_SECRET ?? "",
     );
   }
-  if (env.NODE_ENV === "production") {
+  if (!env.ALLOW_MOCKS) {
     throw new Error("The mock billing provider cannot be used in production");
   }
   return new MockBillingProvider();
@@ -32,5 +32,5 @@ export function getBillingProvider(): BillingProvider {
 /** The development-only mock checkout/portal pages exist only with the mock provider. */
 export function isMockBillingAvailable(): boolean {
   const env = getServerEnv();
-  return env.STRIPE_PROVIDER === "mock" && env.NODE_ENV !== "production";
+  return env.STRIPE_PROVIDER === "mock" && env.ALLOW_MOCKS;
 }

@@ -24,7 +24,7 @@ export function getAiProvider(): AiProvider | null {
     // The env schema already requires the key for this provider.
     return new AnthropicAiProvider(env.ANTHROPIC_API_KEY ?? "", env.AI_MODEL);
   }
-  if (env.NODE_ENV === "production") {
+  if (!env.ALLOW_MOCKS) {
     throw new Error("The mock AI provider cannot be used in production");
   }
   return new MockAiProvider();

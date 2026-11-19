@@ -25,6 +25,13 @@ MFA enforcement.
   returns 403 `{ mfa: "/mfa" }`; `requirePageRole()` and the Admin layout
   redirect to `/mfa`. The `/mfa` page and its actions use `auth()` directly so
   an `aal1` Admin can reach them.
+- **Admin sign-in is one card** (amended 2026-11-19): an `aal1` Admin is sent
+  to `/admin/login` (not `/mfa`), where the card changes in place from
+  email/password to "Enter authentication code" (or authenticator set-up the
+  first time, or a recovery code), reusing the `/mfa` server actions. The page
+  is chrome-free, so the navbar and sign-out appear only once the Admin is
+  fully signed in. "Start again" signs the password-only session out.
+  `/mfa?reauth=1` is unchanged.
 - **Recovery codes**: 10 single-use Crockford-base32 codes (`XXXXX-XXXXX`, 50
   bits each), shown once after enrolment; only `SHA-256(profileId:code)` is
   stored (`mfa_recovery_codes`). Redeeming one is atomic and grants MFA to

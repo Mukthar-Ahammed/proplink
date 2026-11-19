@@ -26,6 +26,8 @@ export type BillingEventData =
       audience: SubscriptionAudience | null;
       status: SubscriptionStatus;
       priceId: string;
+      /** Set by the mock for demo plans, which have no stored price row. */
+      interval?: BillingInterval;
       currentPeriodEnd: Date | null;
       cancelAtPeriodEnd: boolean;
     }
@@ -53,10 +55,29 @@ export interface BillingProvider {
     audience: SubscriptionAudience;
     email: string;
     customerId: string | null;
-    priceId: string;
+    /** A stored provider price, or a demo price (non-production only, OD-01). */
+    price:
+      | { kind: "stored"; priceId: string }
+      | { kind: "demo"; amountPence: number; interval: BillingInterval };
     successUrl: string;
     cancelUrl: string;
   }): Promise<{ url: string }>;
+  /**
+   * The same subscription Checkout, mounted inside the app's subscription
+   * popup instead of a redirect (Stripe Embedded Checkout). Returns the
+   * session's client secret; the mock returns a signed token that the popup's
+   * test checkout submits. Card data still never reaches the app.
+   */
+  createEmbeddedCheckoutSession(input: {
+    profileId: string;
+    audience: SubscriptionAudience;
+    email: string;
+    customerId: string | null;
+    price:
+      | { kind: "stored"; priceId: string }
+      | { kind: "demo"; amountPence: number; interval: BillingInterval };
+    returnUrl: string;
+  }): Promise<{ clientSecret: string }>;
   createPortalSession(input: {
     customerId: string;
     returnUrl: string;

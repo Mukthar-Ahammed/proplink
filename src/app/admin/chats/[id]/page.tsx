@@ -1,3 +1,5 @@
+import Form from "next/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -43,7 +45,7 @@ export default async function AdminReadChatPage({
           description="Your access is recorded with the reason you give."
           action={back}
         />
-        <form method="get" className="max-w-lg space-y-3">
+        <Form action="" className="max-w-lg space-y-3">
           <label className="block text-sm font-medium text-primary">
             Why do you need to read this chat?
             <input
@@ -54,10 +56,10 @@ export default async function AdminReadChatPage({
               className="mt-1 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm"
             />
           </label>
-          <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
+          <SubmitButton className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
             Read (logged)
-          </button>
-        </form>
+          </SubmitButton>
+        </Form>
       </div>
     );
   }

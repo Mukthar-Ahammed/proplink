@@ -25,6 +25,7 @@ import {
   getBillingProvider,
   type BillingEvent,
 } from "@/services/billing";
+import { listPlanOffers } from "@/services/billing/demoPlans";
 import { sendPaymentFailedEmail } from "@/services/email/mailer";
 import { shouldNotify } from "@/services/notifications/preferences";
 
@@ -239,10 +240,17 @@ export function checkoutLimits(profileId: string): LimitSpec[] {
   return [{ kind: "user", identifier: profileId, windowSeconds: 60, limit: 10 }];
 }
 
-export async function startCheckout(
+/**
+ * Where an embedded (in-popup) checkout lands once paid. An allowlist, never
+ * a caller-supplied URL, so the return cannot leave the site.
+ */
+export const EMBEDDED_RETURN_PATHS = ["/messages", "/account/billing"] as const;
+
+/** Every check a checkout needs, shared by the hosted and embedded flows. */
+async function prepareCheckout(
   actor: Actor,
   input: { audience: unknown; interval: unknown },
-): Promise<{ ok: true; url: string } | { ok: false; error: string; status: number }> {
+) {
   const allowed = audiencesFor(actor.role);
   if (allowed.length === 0) return bad("Your account does not need a subscription", 403);
   // OD-27 (Q2): an existing (pre-invite) Agent subscribes once PropLink has
@@ -267,10 +275,12 @@ export async function startCheckout(
       409,
     );
   }
-  const plan = await db.subscriptionPlan.findFirst({
-    where: { audience: audience.data, interval: interval.data, active: true },
-  });
-  if (!plan) return bad("This plan is not available yet", 409);
+  // A real Admin price for the active provider, else (outside production
+  // only) the demo placeholder price (OD-01; demoPlans.ts).
+  const offer = (await listPlanOffers()).find(
+    (o) => o.audience === audience.data && o.interval === interval.data,
+  );
+  if (!offer) return bad("This plan is not available yet", 409);
   const customer = await db.billingCustomer.findUnique({
     where: { profileId: actor.profileId },
   });
@@ -283,18 +293,73 @@ export async function startCheckout(
       })
     )?.legacyUser?.email ??
     "";
-  const origin = getServerEnv().APP_ORIGIN ?? "http://localhost:3000";
-  try {
-    const session = await getBillingProvider().createCheckoutSession({
+  return {
+    ok: true as const,
+    origin: getServerEnv().APP_ORIGIN ?? "http://localhost:3000",
+    session: {
       profileId: actor.profileId,
       audience: audience.data,
       email,
       customerId: customer?.providerCustomerId ?? null,
-      priceId: plan.providerPriceId,
+      price: offer.priceId
+        ? ({ kind: "stored", priceId: offer.priceId } as const)
+        : ({
+            kind: "demo",
+            amountPence: offer.amountGBP,
+            interval: offer.interval,
+          } as const),
+    },
+  };
+}
+
+export async function startCheckout(
+  actor: Actor,
+  input: { audience: unknown; interval: unknown },
+): Promise<{ ok: true; url: string } | { ok: false; error: string; status: number }> {
+  const prepared = await prepareCheckout(actor, input);
+  if (!prepared.ok) return prepared;
+  const { origin, session: base } = prepared;
+  try {
+    const session = await getBillingProvider().createCheckoutSession({
+      ...base,
       successUrl: `${origin}/account/billing?checkout=success`,
       cancelUrl: `${origin}/account/billing?checkout=cancelled`,
     });
     return { ok: true, url: session.url };
+  } catch (error) {
+    if (error instanceof BillingUnavailableError) {
+      return bad("The payment provider is unavailable; try again shortly", 503);
+    }
+    throw error;
+  }
+}
+
+/**
+ * The same checkout, mounted inside the subscription popup (Stripe Embedded
+ * Checkout; the mock's test checkout in development). Same rules as
+ * `startCheckout`; only where the payment page renders differs.
+ */
+export async function startEmbeddedCheckout(
+  actor: Actor,
+  input: { audience: unknown; interval: unknown; returnPath?: unknown },
+): Promise<
+  | { ok: true; provider: "stripe" | "mock"; clientSecret: string; returnPath: string }
+  | { ok: false; error: string; status: number }
+> {
+  const prepared = await prepareCheckout(actor, input);
+  if (!prepared.ok) return prepared;
+  const returnPath = (EMBEDDED_RETURN_PATHS as readonly unknown[]).includes(
+    input.returnPath,
+  )
+    ? (input.returnPath as string)
+    : "/account/billing";
+  const provider = getBillingProvider();
+  try {
+    const { clientSecret } = await provider.createEmbeddedCheckoutSession({
+      ...prepared.session,
+      returnUrl: `${prepared.origin}${returnPath}?checkout=success`,
+    });
+    return { ok: true, provider: provider.name, clientSecret, returnPath };
   } catch (error) {
     if (error instanceof BillingUnavailableError) {
       return bad("The payment provider is unavailable; try again shortly", 503);
@@ -455,7 +520,8 @@ async function applyEvent(
       const fields = {
         status: data.status,
         providerPriceId: data.priceId,
-        interval: plan?.interval ?? existing?.interval ?? BillingInterval.MONTH,
+        interval:
+          plan?.interval ?? data.interval ?? existing?.interval ?? BillingInterval.MONTH,
         currentPeriodEnd: data.currentPeriodEnd,
         cancelAtPeriodEnd: data.cancelAtPeriodEnd,
         pastDueSince: dunning ? (existing?.pastDueSince ?? event.created) : null,

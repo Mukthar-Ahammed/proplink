@@ -1,3 +1,5 @@
+import Form from "next/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import { isRecentlyAuthenticated, REAUTH_MESSAGE } from "@/services/auth/mfa";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
@@ -89,8 +91,8 @@ export default async function AdminUsersPage({
         description="Inspect registered accounts, manage role permissions, and control account activation states."
       />
 
-      <form
-        method="get"
+      <Form
+        action=""
         className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4 shadow-xs"
       >
         <div className="flex-1 min-w-[200px]">
@@ -186,19 +188,19 @@ export default async function AdminUsersPage({
             <option value="REJECTED">Rejected</option>
           </select>
         </div>
-        <button
+        <SubmitButton
           type="submit"
           className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong transition-colors"
         >
           Filter
-        </button>
+        </SubmitButton>
         <Link
           href="/admin/users"
           className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-secondary hover:border-brand"
         >
           Clear filters
         </Link>
-      </form>
+      </Form>
 
       <DataTable
         label="Users"

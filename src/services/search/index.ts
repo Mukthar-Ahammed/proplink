@@ -23,7 +23,17 @@ export { DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE } from "@/services/search/queryBuilder
  * fall back to. The `SearchService` interface exists so a Meilisearch/Elastic
  * swap stays a one-line change here (ARCHITECTURE.md: no Elasticsearch in this
  * build).
+ *
+ * Created on first use so importing this module never reads the environment
+ * (`next build` imports every route while collecting page data).
  */
-export const searchService: SearchService = new PostgresSearchService(
-  isFinancialPromotionsReviewed(),
-);
+let active: SearchService | undefined;
+function activeService(): SearchService {
+  active ??= new PostgresSearchService(isFinancialPromotionsReviewed());
+  return active;
+}
+
+export const searchService: SearchService = {
+  search: (params) => activeService().search(params),
+  count: (params) => activeService().count(params),
+};

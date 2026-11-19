@@ -261,7 +261,7 @@ export async function enforceRequestRateLimit(
   const memoryKey = `${rule.routeClass}:${identifier}`;
 
   if (env.RATE_LIMIT_PROVIDER === "memory") {
-    if (env.NODE_ENV === "production") throw new RateLimitBackendUnavailableError();
+    if (!env.ALLOW_MOCKS) throw new RateLimitBackendUnavailableError();
     return consumeMemoryLimit(memoryKey, rule, Date.now());
   }
 

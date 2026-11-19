@@ -41,7 +41,7 @@ export function getCompaniesHouseProvider(): CompaniesHouseProvider {
     // The env schema already requires the key for this provider.
     return new CompaniesHouseApiProvider(env.COMPANIES_HOUSE_API_KEY ?? "");
   }
-  if (env.NODE_ENV === "production") {
+  if (!env.ALLOW_MOCKS) {
     throw new Error("The mock Companies House provider cannot be used in production");
   }
   return new MockCompaniesHouseProvider();

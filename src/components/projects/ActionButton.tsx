@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 
+import { Spinner } from "@/components/ui/spinner";
 import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
 
 const IDLE: ProjectFormState = { kind: "idle" };
@@ -41,8 +42,10 @@ export function ActionButton({
       <div className="flex flex-wrap items-center gap-3">
         <button
           disabled={pending}
-          className={`rounded-lg px-3 py-1.5 text-sm font-semibold disabled:opacity-60 ${style}`}
+          aria-busy={pending || undefined}
+          className={`inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold disabled:opacity-60 ${style}`}
         >
+          {pending && <Spinner size="xs" />}
           {pending ? pendingLabel : label}
         </button>
         {state.kind !== "idle" && (

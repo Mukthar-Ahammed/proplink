@@ -73,15 +73,40 @@ export class MockBillingProvider implements BillingProvider {
     profileId: string;
     audience: string;
     customerId: string | null;
-    priceId: string;
+    price:
+      | { kind: "stored"; priceId: string }
+      | { kind: "demo"; amountPence: number; interval: string };
   }) {
+    const price: Record<string, string> =
+      input.price.kind === "stored"
+        ? { priceId: input.price.priceId }
+        : {
+            priceId: `price_demo_${input.audience.toLowerCase()}_${input.price.interval.toLowerCase()}`,
+            demoAmount: String(input.price.amountPence),
+            demoInterval: input.price.interval,
+          };
     return {
       url: `/account/billing/mock?checkout=${token({
         profileId: input.profileId,
         audience: input.audience,
-        priceId: input.priceId,
+        ...price,
         customerId: input.customerId ?? `cus_mock_${input.profileId.slice(0, 8)}`,
       })}`,
+    };
+  }
+
+  /** The popup's test checkout submits this signed token to `mockCheckoutAction`. */
+  async createEmbeddedCheckoutSession(input: {
+    profileId: string;
+    audience: string;
+    customerId: string | null;
+    price:
+      | { kind: "stored"; priceId: string }
+      | { kind: "demo"; amountPence: number; interval: string };
+  }) {
+    const { url } = await this.createCheckoutSession(input);
+    return {
+      clientSecret: new URL(url, "http://mock").searchParams.get("checkout") ?? "",
     };
   }
 

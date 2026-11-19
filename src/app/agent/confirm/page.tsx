@@ -1,7 +1,12 @@
 import { redirect } from "next/navigation";
 
 import { requirePageRole } from "@/lib/authz";
-import { PortalSection } from "@/components/portal/PortalShell";
+import {
+  ClockIcon,
+  IconChip,
+  InvestorSectionTitle,
+  ShieldIcon,
+} from "@/components/investor/InvestorUi";
 import { getAgentAccessState } from "@/services/agents/agentMigration";
 import { listActiveAgentProfiles } from "@/services/listings/listingService";
 
@@ -9,6 +14,8 @@ import { ConfirmForm } from "./ConfirmForm";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Agent — Confirm your account" };
+
+const EYEBROW = "text-xs font-semibold tracking-[0.14em] text-muted uppercase";
 
 /**
  * Phase 1 Task 5 (ADR-025, Q2): an Agent who registered before invite-only
@@ -22,42 +29,62 @@ export default async function AgentConfirmPage() {
   const profiles = await listActiveAgentProfiles(session.user.id);
 
   return (
-    <PortalSection title="Confirm your account">
+    <section className="space-y-5">
+      <InvestorSectionTitle title="Confirm your" tail="account" />
       {state.kind === "awaiting_authorisation" ? (
-        <p role="status" className="text-sm text-muted" data-testid="migration-state">
-          You have confirmed your account. PropLink will authorise it shortly. Your
-          listings and leads keep working in the meantime.
-        </p>
-      ) : (
-        <div className="space-y-5" data-testid="migration-state">
-          <p className="text-sm leading-relaxed text-muted">
-            PropLink now admits agents by invitation. Your account stays active. Please
-            confirm the details below so PropLink can authorise your account for new
-            features such as landlord chat and investor publishing.
+        <div
+          role="status"
+          className="flex items-start gap-3 rounded-3xl border border-accent/20 bg-pale/70 p-6 sm:p-7"
+          data-testid="migration-state"
+        >
+          <IconChip>
+            <ClockIcon />
+          </IconChip>
+          <p className="text-sm leading-relaxed text-body">
+            You have confirmed your account. PropLink will authorise it shortly. Your
+            listings and leads keep working in the meantime.
           </p>
-          <dl className="grid gap-3 rounded-2xl border border-line bg-white p-5 text-sm sm:grid-cols-2">
+        </div>
+      ) : (
+        <div
+          className="space-y-6 rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-7"
+          data-testid="migration-state"
+        >
+          <div className="flex items-start gap-3">
+            <IconChip>
+              <ShieldIcon />
+            </IconChip>
+            <p className="text-sm leading-relaxed text-muted">
+              PropLink now admits agents by invitation. Your account stays active. Please
+              confirm the details below so PropLink can authorise your account for new
+              features such as landlord chat and investor publishing.
+            </p>
+          </div>
+          <dl className="grid gap-4 rounded-2xl border border-line bg-surface/60 p-5 text-sm sm:grid-cols-2">
             <div>
-              <dt className="text-xs tracking-wide text-muted uppercase">Name</dt>
-              <dd className="font-medium text-primary">{session.user.name ?? "—"}</dd>
+              <dt className={EYEBROW}>Name</dt>
+              <dd className="mt-1 font-semibold text-primary">
+                {session.user.name ?? "—"}
+              </dd>
             </div>
             <div>
-              <dt className="text-xs tracking-wide text-muted uppercase">Email</dt>
-              <dd className="break-all">{session.user.email}</dd>
+              <dt className={EYEBROW}>Email</dt>
+              <dd className="mt-1 break-all text-body">{session.user.email}</dd>
             </div>
             <div className="sm:col-span-2">
-              <dt className="text-xs tracking-wide text-muted uppercase">
-                Agency profiles
-              </dt>
-              <dd>
+              <dt className={EYEBROW}>Agency profiles</dt>
+              <dd className="mt-1 text-body">
                 {profiles.length === 0
                   ? "None"
                   : profiles.map((profile) => profile.agencyName).join(", ")}
               </dd>
             </div>
           </dl>
-          <ConfirmForm />
+          <div className="border-t border-line pt-6">
+            <ConfirmForm />
+          </div>
         </div>
       )}
-    </PortalSection>
+    </section>
   );
 }

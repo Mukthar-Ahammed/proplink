@@ -1,3 +1,4 @@
+import { SubscriptionBanner } from "@/components/billing/SubscriptionGate";
 import { AdSlot } from "@/components/ads/AdSlot";
 import Link from "next/link";
 import { requirePageRole, hasInvestorCapability } from "@/lib/authz";
@@ -87,6 +88,7 @@ export default async function InvestorPage() {
 
   return (
     <div className="space-y-12">
+      <SubscriptionBanner />
       {/* ------------------------------------------------ status + compliance
           The EOI statement comes before any figure that implies money
           (docs/CONTEXT.md §1; tests/e2e/portals.spec.ts). */}

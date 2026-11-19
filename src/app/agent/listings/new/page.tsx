@@ -1,9 +1,14 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { requirePageRole } from "@/lib/authz";
 import { listActiveAgentProfiles } from "@/services/listings/listingService";
 import { ListingWizard } from "@/components/listings/ListingWizard";
 import { emptyWizardState } from "@/components/listings/wizardTypes";
+import {
+  ArrowLink,
+  InvestorEmpty,
+  InvestorSectionTitle,
+  PrimaryLink,
+} from "@/components/investor/InvestorUi";
 import {
   ACTIVE_AGENT_PROFILE_COOKIE,
   resolveActiveAgentProfileId,
@@ -17,16 +22,13 @@ export default async function NewListingPage() {
 
   if (profiles.length === 0) {
     return (
-      <div className="rounded-2xl border border-line bg-white p-6 text-sm text-body">
-        <p className="font-semibold text-primary">No agency profile yet</p>
-        <p className="mt-1 text-muted">
-          You need an active agency profile before you can create a listing. Agency
-          profile management arrives with Task 2.4 — until then, contact an admin.
-        </p>
-        <Link href="/agent" className="mt-3 inline-block text-accent underline">
-          Back to agent portal
-        </Link>
-      </div>
+      <InvestorEmpty
+        title="No agency profile yet"
+        action={<PrimaryLink href="/agent/profile">Set up agency profile</PrimaryLink>}
+      >
+        Listings are published under an agency profile. Set yours up first; it takes a
+        minute.
+      </InvestorEmpty>
     );
   }
 
@@ -41,9 +43,17 @@ export default async function NewListingPage() {
     ) ?? profiles[0].id;
 
   return (
-    <ListingWizard
-      agentProfiles={profiles.map((p) => ({ id: p.id, agencyName: p.agencyName }))}
-      initial={emptyWizardState(activeId)}
-    />
+    <section className="space-y-8">
+      <InvestorSectionTitle
+        title="New"
+        tail="listing"
+        description="Five short steps. Save a draft at any point; it reaches PropLink review only when you submit it."
+        action={<ArrowLink href="/agent/listings">Your listings</ArrowLink>}
+      />
+      <ListingWizard
+        agentProfiles={profiles.map((p) => ({ id: p.id, agencyName: p.agencyName }))}
+        initial={emptyWizardState(activeId)}
+      />
+    </section>
   );
 }

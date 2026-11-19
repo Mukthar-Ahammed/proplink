@@ -4,6 +4,7 @@ import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 
 import { AgentInviteStatus, Role } from "@/generated/prisma/enums";
+import { getServerEnv } from "@/env";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
 import { getAgentAccountProvisioner } from "@/services/auth/agentAccountProvisioner";
@@ -154,7 +155,7 @@ export async function createAgentInvite(
     meta: { emailed },
   });
 
-  const revealLink = isMockMailer() && process.env.NODE_ENV !== "production";
+  const revealLink = isMockMailer() && getServerEnv().ALLOW_MOCKS;
   return {
     ok: true,
     inviteId: invite.id,

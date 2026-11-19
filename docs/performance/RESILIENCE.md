@@ -59,7 +59,7 @@ which show as unavailable.
   2 s, otherwise 503 `{status: "unavailable"}`. Public, rate limited as a
   public read, `no-store`, no hostnames or error text. Point the uptime
   monitor at it (H7.5).
-- Admin → KPIs & System → Integrations health shows each provider as live,
+- Admin → System & settings → Integrations health shows each provider as live,
   mock or off (Phase 6).
 
 ## Queues, retries and webhooks

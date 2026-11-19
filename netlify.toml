@@ -1,0 +1,20 @@
+# Hosted client demo on Netlify (ADR-076). Not staging, not production: those
+# stay on Vercel (docs/deployment/DEPLOYMENT.md). Runbook:
+# docs/runbooks/NETLIFY-DEMO.md.
+#
+# Netlify detects Next.js and adds its Next.js runtime (OpenNext) by itself;
+# no plugin entry is needed.
+#
+# Environment variables: NOT here. Values in [build.environment] reach the
+# build but not the server functions at runtime, so every app variable is set
+# in Netlify → Site configuration → Environment variables (scope: all). The
+# non-secret demo switches are in config/netlify-demo.env, ready for
+# "Import from a .env file"; secrets are added by hand.
+
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "22"
+  NEXT_TELEMETRY_DISABLED = "1"

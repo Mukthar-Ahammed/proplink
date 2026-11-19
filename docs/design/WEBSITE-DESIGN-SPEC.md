@@ -394,15 +394,15 @@ screen with a photo card on the right was dropped.)
 
 ### 8.4 Role portals (sidebar items)
 
-| Role                     | Sidebar                                                                                                                            | Key pages                                                                                                                                 |
-| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| **Landlord** (P2)        | Overview · My properties · Proposals · Mandate · Projects (P4) · Messages · Profile                                                | Listing wizard with the AI description assistant (shows AI draft → user edits), side-by-side proposal comparison, mandate status timeline |
-| **Agent** `/agent`       | Overview · Private marketplace (P2) · My mandates · Listings · Leads · Projects (P4) · Messages · Company · Profile · Billing      | Proposal form (valuation, terms, fee, pitch), existing listing wizard (Address → Details → Distress → Media → Review), leads table        |
-| **Investor** `/investor` | Overview · Browse projects (P4) · My pledges · Saved · Syndicates · Verify identity (KYC) · Messages · Billing                     | Project detail, pledge calculator (EOI wording, risk notice, KYC gate), agreement signing status, ledger and statements                   |
-| **Buyer** `/buy`         | Overview · Saved · Enquiries · Viewings · Offers · Messages                                                                        | Deal tracker, offer history with statuses, viewing slots                                                                                  |
-| **Solicitor** (P4)       | Project overview · Documents · Agreements · Funds status · Ledger · Settlement                                                     | Project-scoped. Shows a clear "Access ends when the project closes" notice                                                                |
-| **Advertiser** (P6)      | Campaigns · Apply for placement · Performance                                                                                      | Creative upload with preview inside the real slot                                                                                         |
-| **Admin** `/admin`       | Current `AdminSidebar` groups, plus Chat authorisations (P3), Projects & Funding (P4), Reviews (P5), Disputes and Admin roles (P6) | Queues with SLA timers, claim/assign, bulk actions, audit trail panels                                                                    |
+| Role                     | Sidebar                                                                                                                          | Key pages                                                                                                                                 |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| **Landlord** (P2)        | Overview · My properties · Proposals · Mandate · Projects (P4) · Messages · Profile                                              | Listing wizard with the AI description assistant (shows AI draft → user edits), side-by-side proposal comparison, mandate status timeline |
+| **Agent** `/agent`       | Overview · Private marketplace (P2) · My mandates · Listings · Leads · Projects (P4) · Messages · Company · Profile · Billing    | Proposal form (valuation, terms, fee, pitch), existing listing wizard (Address → Details → Distress → Media → Review), leads table        |
+| **Investor** `/investor` | Overview · Browse projects (P4) · My pledges · Saved · Syndicates · Verify identity (KYC) · Messages · Billing                   | Project detail, pledge calculator (EOI wording, risk notice, KYC gate), agreement signing status, ledger and statements                   |
+| **Buyer** `/buy`         | Overview · Saved · Enquiries · Viewings · Offers · Messages                                                                      | Deal tracker, offer history with statuses, viewing slots                                                                                  |
+| **Solicitor** (P4)       | Project overview · Documents · Agreements · Funds status · Ledger · Settlement                                                   | Project-scoped. Shows a clear "Access ends when the project closes" notice                                                                |
+| **Advertiser** (P6)      | Campaigns · Apply for placement · Performance                                                                                    | Creative upload with preview inside the real slot                                                                                         |
+| **Admin** `/admin`       | Overview · Review queues · Deals & chats · People · Support & compliance · Revenue & marketing · System & settings (collapsible) | Queues with SLA timers, claim/assign, bulk actions, audit trail panels                                                                    |
 
 **Dashboard pattern (every role):** a greeting with any required action ("Finish
 identity check"), a stat row (3–4 tiles), the role's main list (e.g. My properties),
@@ -427,6 +427,17 @@ lifecycle card, figures strip and carded works / settlement / agreement sections
 Proposals with a mandate card and the side-by-side table in a rounded card (accent
 pill to choose, red-outline decline and terminate); the AI assistant as a teal-mist
 disclosure inside the listing form.
+
+_Built — agent portal (2026-11-19):_ photo-banner masthead
+(`public/banners/agent banner.png`) with the agency name (or the profile switcher)
+as a pill on the band. The dashboard opens with warning-tone prompts for account
+confirmation and the company check, then the stat strip (live, awaiting review,
+drafts, new leads), a latest-leads card with status pills beside a teal-mist
+"Verified record" card, and shortcuts to landlord listings, mandates and investor
+projects. Listings, leads, offers, landlord listings, mandates, projects, profile,
+company and confirm pages use the same cards, pills, serif-tail headings and the
+landlord form styles (`src/app/landlord/listings/ui.ts`). Design only: no
+behaviour changed.
 
 ---
 

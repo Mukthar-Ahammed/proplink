@@ -19,7 +19,7 @@
    build to production in Vercel.
 4. Check after deploy: `/api/health` 200;
    `node scripts/check-headers.mjs https://<host>`; sign in as each role on
-   staging; Admin → KPIs & System shows integrations live and no failures.
+   staging; Admin → System & settings → KPIs shows integrations live and no failures.
 
 ## Roll back the code
 

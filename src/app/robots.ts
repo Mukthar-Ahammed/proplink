@@ -28,6 +28,10 @@ export const PRIVATE_CRAWL_PREFIXES = [
 ] as const;
 
 export default function robots(): MetadataRoute.Robots {
+  // ADR-076: the hosted demo holds test data only and is never crawled.
+  if (process.env.PROPLINK_ENV === "demo") {
+    return { rules: { userAgent: "*", disallow: "/" } };
+  }
   return {
     rules: {
       userAgent: "*",

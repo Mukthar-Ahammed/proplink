@@ -29,6 +29,14 @@ import { cn } from "@/lib/cn";
 export interface PortalNavItem {
   href: string;
   label: string;
+  /** A subscription feature: the tab carries a gold crown. */
+  premium?: boolean;
+  /**
+   * The viewer has no active subscription: clicking opens the subscription
+   * popup (`OPEN_SUBSCRIPTION_EVENT`) instead of navigating. The target page
+   * and every server action still enforce the rule themselves.
+   */
+  locked?: boolean;
 }
 
 export function PortalShell({

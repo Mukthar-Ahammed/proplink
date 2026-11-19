@@ -17,7 +17,7 @@ import {
 export type StoreArea = "quarantine" | "private";
 
 export interface ObjectStore {
-  readonly name: "memory" | "local" | "s3";
+  readonly name: "memory" | "local" | "s3" | "database";
   put(
     area: StoreArea,
     key: string,

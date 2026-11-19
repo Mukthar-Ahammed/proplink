@@ -8,10 +8,7 @@ import {
   InvestorType,
 } from "@/generated/prisma/enums";
 
-import {
-  KYC_REJECTION_REASONS,
-  type KycRejectionReasonCode,
-} from "./kycConstants";
+import { KYC_REJECTION_REASONS, type KycRejectionReasonCode } from "./kycConstants";
 export { KYC_REJECTION_REASONS, type KycRejectionReasonCode };
 
 export const rejectKycSchema = z.object({
@@ -41,8 +38,7 @@ export type AdminCaller = {
 };
 
 export type KycAdminServiceResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+  { ok: true; data: T } | { ok: false; error: string };
 
 // ─── Guard ────────────────────────────────────────────────────────────────────
 
@@ -140,8 +136,8 @@ export async function getAdminKycQueue(
     params?.status && params.status !== "ALL"
       ? { status: params.status }
       : params?.status === "ALL"
-      ? {}
-      : { status: KycSubmissionStatus.SUBMITTED }; // Default queue shows pending SUBMITTED
+        ? {}
+        : { status: KycSubmissionStatus.SUBMITTED }; // Default queue shows pending SUBMITTED
 
   const investorTypeFilter =
     params?.investorType && params.investorType !== "ALL"
@@ -330,16 +326,18 @@ export async function getAdminKycSubmissionDetail(
   if (!sub) return { ok: false, error: "Submission not found" };
 
   const allUserSubmissions = sub.user.kycSubmissions;
-  const attemptsHistory: AdminKycAttemptHistoryItem[] = allUserSubmissions.map((s, idx) => ({
-    id: s.id,
-    attemptNumber: idx + 1,
-    status: s.status,
-    submittedAt: s.submittedAt,
-    reviewedAt: s.reviewedAt,
-    rejectionReason: s.rejectionReason,
-    documentCount: s.documents.length,
-    isCurrent: s.id === sub.id,
-  }));
+  const attemptsHistory: AdminKycAttemptHistoryItem[] = allUserSubmissions.map(
+    (s, idx) => ({
+      id: s.id,
+      attemptNumber: idx + 1,
+      status: s.status,
+      submittedAt: s.submittedAt,
+      reviewedAt: s.reviewedAt,
+      rejectionReason: s.rejectionReason,
+      documentCount: s.documents.length,
+      isCurrent: s.id === sub.id,
+    }),
+  );
 
   const currentAttemptIndex = allUserSubmissions.findIndex((s) => s.id === sub.id);
   const attemptNumber = currentAttemptIndex >= 0 ? currentAttemptIndex + 1 : 1;
@@ -401,20 +399,26 @@ export async function approveKycSubmission(
   }
 
   // Account Active Check
-  const isActive = submission.user.active && (submission.user.authProfile?.active ?? true);
+  const isActive =
+    submission.user.active && (submission.user.authProfile?.active ?? true);
   if (!isActive) {
-    return { ok: false, error: "Investor account is inactive. Cannot approve KYC for an inactive user." };
+    return {
+      ok: false,
+      error: "Investor account is inactive. Cannot approve KYC for an inactive user.",
+    };
   }
 
   // State Invariant: Must be SUBMITTED and Profile PENDING
-  const currentProfileStatus = submission.user.authProfile?.kycStatus ?? submission.user.kycStatus;
+  const currentProfileStatus =
+    submission.user.authProfile?.kycStatus ?? submission.user.kycStatus;
   if (
     submission.status !== KycSubmissionStatus.SUBMITTED ||
     currentProfileStatus !== KycStatus.PENDING
   ) {
     return {
       ok: false,
-      error: "Submission is no longer pending review (only SUBMITTED attempts with PENDING profiles can be approved)",
+      error:
+        "Submission is no longer pending review (only SUBMITTED attempts with PENDING profiles can be approved)",
     };
   }
 
@@ -512,14 +516,16 @@ export async function rejectKycSubmission(
 
   if (!submission) return { ok: false, error: "Submission not found" };
 
-  const currentProfileStatus = submission.user.authProfile?.kycStatus ?? submission.user.kycStatus;
+  const currentProfileStatus =
+    submission.user.authProfile?.kycStatus ?? submission.user.kycStatus;
   if (
     submission.status !== KycSubmissionStatus.SUBMITTED ||
     currentProfileStatus !== KycStatus.PENDING
   ) {
     return {
       ok: false,
-      error: "Submission is no longer pending review (only SUBMITTED attempts with PENDING profiles can be rejected)",
+      error:
+        "Submission is no longer pending review (only SUBMITTED attempts with PENDING profiles can be rejected)",
     };
   }
 
@@ -615,4 +621,3 @@ export async function presignAdminKycDocumentView(
   const viewUrl = `/uploads/dev/${doc.storageKey}`;
   return { ok: true, data: { url: viewUrl } };
 }
-

@@ -145,7 +145,8 @@ export async function requirePageRole(...roles: Role[]): Promise<AppSession> {
   }
   if (!hasAllowedRole(session.user, roles)) redirect("/403");
   if (requiresMfa(session.user.role) && !(await isMfaSatisfied(session.user))) {
-    redirect("/mfa");
+    // Admins give their second factor on the Admin sign-in card (no chrome).
+    redirect(session.user.role === Role.ADMIN ? "/admin/login" : "/mfa");
   }
   return session;
 }

@@ -3047,3 +3047,30 @@ model SecurityEventCount {
   @@index([bucket], map: "security_event_counts_bucket")
   @@map("security_event_counts")
 }
+
+/// ADR-076: hosted demo only. The demo's mail inbox (/dev/mail), kept in the
+/// database because serverless functions share no disk. Never written in
+/// production or staging.
+model DemoMailOutbox {
+  id      String   @id @db.Uuid
+  to      String
+  subject String
+  text    String
+  sentAt  DateTime @default(now())
+
+  @@index([sentAt], map: "demo_mail_outbox_sent_at")
+  @@map("demo_mail_outbox")
+}
+
+/// ADR-076: hosted demo only. Uploaded files for the demo's mock object store
+/// (no S3 in the demo). Never written in production or staging.
+model DemoStoredObject {
+  area        String
+  key         String
+  bytes       Bytes
+  contentType String
+  createdAt   DateTime @default(now())
+
+  @@id([area, key])
+  @@map("demo_stored_objects")
+}

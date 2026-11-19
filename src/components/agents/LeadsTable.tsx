@@ -3,8 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { DataTable } from "@/components/ui/data-table";
+import { cn } from "@/lib/cn";
 import { Select } from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 
@@ -25,10 +24,16 @@ const STATUS_OPTIONS = [
   { value: "CLOSED", label: "Closed" },
 ];
 
-const STATUS_TONE: Record<string, "warning" | "success" | "default"> = {
-  NEW: "warning",
-  RESPONDED: "success",
-  CLOSED: "default",
+/**
+ * `StatusPill` look (src/components/investor/InvestorUi.tsx), inlined: that
+ * module imports server-only services, so this client component cannot.
+ */
+const PILL =
+  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold";
+const STATUS_TONE: Record<string, string> = {
+  NEW: "border-accent/25 bg-pale text-accent",
+  RESPONDED: "border-success/25 bg-success/10 text-success",
+  CLOSED: "border-line bg-surface text-secondary",
 };
 
 /**
@@ -66,71 +71,95 @@ export function LeadsTable({ leads }: { leads: LeadRow[] }) {
     }
   }
 
+  if (leads.length === 0) {
+    return (
+      <p className="rounded-3xl border border-dashed border-line bg-surface/60 px-6 py-12 text-center text-sm text-muted">
+        No enquiries yet for this agency. Leads appear here the moment a buyer contacts
+        you about a live listing.
+      </p>
+    );
+  }
+
   return (
-    <DataTable
-      rows={leads}
-      rowKey={(l) => l.id}
-      emptyMessage="No enquiries yet for this agency."
-      columns={[
-        {
-          key: "from",
-          header: "Enquirer",
-          render: (l) => (
-            <div>
-              <div className="font-medium text-body">{l.fromName}</div>
-              <a
-                href={`mailto:${l.fromEmail}`}
-                className="text-xs text-accent hover:underline"
-              >
-                {l.fromEmail}
-              </a>
-            </div>
-          ),
-        },
-        {
-          key: "listing",
-          header: "Listing",
-          render: (l) => (
-            <Link
-              href={`/marketplace/${l.propertyId}`}
-              className="text-sm text-accent hover:underline"
-            >
-              {l.propertyTitle}
-            </Link>
-          ),
-        },
-        {
-          key: "message",
-          header: "Message",
-          render: (l) => (
-            <p className="max-w-md whitespace-pre-wrap text-sm text-body">{l.message}</p>
-          ),
-        },
-        {
-          key: "created",
-          header: "Received",
-          render: (l) => (
-            <span className="text-xs text-muted">{l.createdAt.slice(0, 10)}</span>
-          ),
-        },
-        {
-          key: "status",
-          header: "Status",
-          render: (l) => (
-            <div className="flex items-center gap-2">
-              <Badge tone={STATUS_TONE[l.status] ?? "default"}>{l.status}</Badge>
-              <Select
-                aria-label={`Status for ${l.fromName}'s enquiry`}
-                options={STATUS_OPTIONS}
-                value={l.status}
-                disabled={pendingId === l.id}
-                onChange={(e) => changeStatus(l.id, e.target.value)}
-                className="mt-0 w-36"
-              />
-            </div>
-          ),
-        },
-      ]}
-    />
+    <div className="overflow-hidden rounded-3xl border border-line bg-white shadow-sm">
+      {/* Focusable named region: on a phone the table scrolls sideways, and a
+          keyboard user must be able to reach it (axe: scrollable-region-focusable). */}
+      <div
+        role="region"
+        aria-label="Enquiries"
+        tabIndex={0}
+        className="relative overflow-x-auto focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-inset"
+      >
+        <table className="w-full min-w-max text-left text-sm">
+          <thead className="border-b border-line bg-surface/70 text-xs font-semibold tracking-[0.1em] text-muted uppercase">
+            <tr>
+              <th className="px-6 py-3">Enquirer</th>
+              <th className="px-4 py-3">Listing</th>
+              <th className="px-4 py-3">Message</th>
+              <th className="px-4 py-3">Received</th>
+              <th className="px-6 py-3">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {leads.map((l) => (
+              <tr key={l.id} className="align-top transition-colors hover:bg-pale/40">
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-3">
+                    <span
+                      aria-hidden
+                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-pale text-sm font-semibold text-accent"
+                    >
+                      {l.fromName.trim().charAt(0).toUpperCase() || "?"}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-primary">{l.fromName}</p>
+                      <a
+                        href={`mailto:${l.fromEmail}`}
+                        className="text-xs text-accent hover:underline"
+                      >
+                        {l.fromEmail}
+                      </a>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-4">
+                  <Link
+                    href={`/marketplace/${l.propertyId}`}
+                    className="font-medium text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
+                  >
+                    {l.propertyTitle}
+                  </Link>
+                </td>
+                <td className="px-4 py-4">
+                  <p className="max-w-md text-sm leading-relaxed whitespace-pre-wrap text-body">
+                    {l.message}
+                  </p>
+                </td>
+                <td className="px-4 py-4 text-xs whitespace-nowrap text-muted">
+                  {l.createdAt.slice(0, 10)}
+                </td>
+                <td className="px-6 py-4">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(PILL, STATUS_TONE[l.status] ?? STATUS_TONE.CLOSED)}
+                    >
+                      {l.status}
+                    </span>
+                    <Select
+                      aria-label={`Status for ${l.fromName}'s enquiry`}
+                      options={STATUS_OPTIONS}
+                      value={l.status}
+                      disabled={pendingId === l.id}
+                      onChange={(e) => changeStatus(l.id, e.target.value)}
+                      className="mt-0 w-36 rounded-full py-2 disabled:opacity-60"
+                    />
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 }

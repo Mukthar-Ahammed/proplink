@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/ui/submit-button";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -271,12 +272,12 @@ export default async function LandlordListingPage({
                     <form action={detachFileAction}>
                       <input type="hidden" name="listingId" value={listing.id} />
                       <input type="hidden" name="fileId" value={file.fileId} />
-                      <button
+                      <SubmitButton
                         type="submit"
                         className="text-xs font-semibold text-danger hover:underline"
                       >
                         Remove
-                      </button>
+                      </SubmitButton>
                     </form>
                   )}
                 </span>

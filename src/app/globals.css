@@ -35,6 +35,10 @@
   --color-intel: #0099a8;
   --color-warning: #a05a00;
   --color-danger: #c0152a;
+  /* Paid-feature gold: the crown on subscription-only items (e.g. Messages).
+     Decorative mark, always beside a text label; not a text colour. */
+  --color-premium: #c8961e;
+  --color-premium-soft: #fbf3dc;
 
   --font-sans:
     var(--font-figtree), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;

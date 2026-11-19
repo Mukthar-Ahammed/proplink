@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 
+import { BUTTON, BUTTON_SM, INPUT, LABEL } from "@/app/landlord/listings/ui";
 import type { CompanySummary } from "@/services/companiesHouse/types";
 
 import {
@@ -10,11 +11,6 @@ import {
   type ConfirmState,
   type SearchState,
 } from "./actions";
-
-const INPUT =
-  "w-full rounded-2xl border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
-const BUTTON =
-  "rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
 
 function statusLabel(status: string): string {
   const label = status.replace(/-/g, " ");
@@ -28,15 +24,25 @@ function ResultRow({ company }: { company: CompanySummary }) {
   const active = company.status.toLowerCase() === "active";
 
   return (
-    <li className="border-b border-line py-4 last:border-b-0">
+    <li className="py-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="font-semibold text-primary">{company.companyName}</p>
-          <p className="text-xs text-muted">
-            Company number {company.companyNumber} ·{" "}
-            <span className={active ? "text-success" : "text-warning"}>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="font-semibold break-words text-primary">
+              {company.companyName}
+            </p>
+            <span
+              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${
+                active
+                  ? "border-success/25 bg-success/10 text-success"
+                  : "border-warning/25 bg-warning/10 text-warning"
+              }`}
+            >
               {statusLabel(company.status)}
             </span>
+          </div>
+          <p className="mt-1 text-xs text-muted">
+            Company number {company.companyNumber}
             {company.incorporatedOn ? ` · Incorporated ${company.incorporatedOn}` : ""}
           </p>
           {company.address && (
@@ -48,7 +54,7 @@ function ResultRow({ company }: { company: CompanySummary }) {
           <button
             type="submit"
             disabled={pending}
-            className={BUTTON}
+            className={BUTTON_SM}
             aria-label={`This is my company: ${company.companyName}`}
           >
             {pending ? "Checking…" : "This is my company"}
@@ -79,10 +85,10 @@ export function CompanyLookup() {
   return (
     <div className="space-y-4">
       <form action={formAction} className="space-y-2" role="search">
-        <label htmlFor="company-query" className="block text-sm font-medium text-primary">
+        <label htmlFor="company-query" className={LABEL}>
           Company name or number
         </label>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <input
             id="company-query"
             name="query"
@@ -93,7 +99,11 @@ export function CompanyLookup() {
             aria-describedby="company-query-hint"
             className={INPUT}
           />
-          <button type="submit" disabled={pending} className={BUTTON}>
+          <button
+            type="submit"
+            disabled={pending}
+            className={`${BUTTON} shrink-0 justify-center`}
+          >
             {pending ? "Searching…" : "Search register"}
           </button>
         </div>
@@ -111,11 +121,11 @@ export function CompanyLookup() {
         )}
         {state.kind === "results" &&
           (state.results.length === 0 ? (
-            <p className="text-sm text-muted">
+            <p className="rounded-2xl border border-dashed border-line bg-surface/60 px-5 py-6 text-center text-sm text-muted">
               No companies match “{state.query}”. Try the company number instead.
             </p>
           ) : (
-            <ul className="rounded-2xl border border-line bg-white px-4">
+            <ul className="divide-y divide-line rounded-2xl border border-line bg-white px-5">
               {state.results.map((company) => (
                 <ResultRow key={company.companyNumber} company={company} />
               ))}

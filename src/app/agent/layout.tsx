@@ -5,22 +5,35 @@ import { ActiveProfileSwitcher } from "@/components/agents/ActiveProfileSwitcher
 import { PortalShell } from "@/components/portal/PortalShell";
 import { AGENT_NAV } from "@/app/agent/nav";
 import {
+  SubscriptionGate,
+  needsSubscriptionPopup,
+} from "@/components/billing/SubscriptionGate";
+import {
   ACTIVE_AGENT_PROFILE_COOKIE,
   resolveActiveAgentProfileId,
 } from "@/lib/activeAgentProfile";
 
 /**
- * The agent portal's frame (ADR-016). Role gating is `src/middleware.ts`
+ * The agent portal's frame (ADR-016; banner masthead per ADR-071, like the
+ * buyer, investor and landlord portals). Role gating is `src/middleware.ts`
  * (AGENT/ADMIN) plus per-action `requireRole`.
  *
  * It carries the portal's single `<h1>` and its sub-nav, so every page below
  * contributes `<h2>`s only. The profile switcher rides on the masthead as
  * `aside` — an agent can hold several agency profiles and needs to see which one
  * the page is showing without leaving it.
+ *
+ * Messages is a subscription feature: its tab wears a gold crown, and while
+ * the agent has no active subscription the tab opens the subscription popup
+ * (rendered here once, button-less) instead of navigating. /messages and every
+ * chat action still enforce the subscription server-side.
  */
 export default async function AgentLayout({ children }: { children: React.ReactNode }) {
   const session = await requirePageRole("AGENT");
-  const profiles = await listActiveAgentProfiles(session.user.id);
+  const [profiles, locked] = await Promise.all([
+    listActiveAgentProfiles(session.user.id),
+    needsSubscriptionPopup(),
+  ]);
   const cookieStore = await cookies();
   const activeId = resolveActiveAgentProfileId(
     profiles,
@@ -32,7 +45,11 @@ export default async function AgentLayout({ children }: { children: React.ReactN
       eyebrow="Agent portal"
       title="Your stock,"
       titleTail="your record"
-      nav={AGENT_NAV}
+      standfirst="Private landlord stock, verified mandates and investor projects, in one place."
+      nav={AGENT_NAV.map((item) =>
+        item.href === "/messages" ? { ...item, premium: true, locked } : item,
+      )}
+      banner={{ src: "/banners/agent%20banner.png" }}
       aside={
         profiles.length > 1 && activeId ? (
           <ActiveProfileSwitcher
@@ -40,11 +57,14 @@ export default async function AgentLayout({ children }: { children: React.ReactN
             activeId={activeId}
           />
         ) : profiles.length === 1 ? (
-          <span className="text-sm font-medium text-muted">{profiles[0].agencyName}</span>
+          <span className="inline-flex items-center rounded-full border border-line bg-white/80 px-4 py-1.5 text-sm font-medium text-primary backdrop-blur-sm">
+            {profiles[0].agencyName}
+          </span>
         ) : null
       }
     >
       {children}
+      {locked && <SubscriptionGate hideTrigger openOnEvent returnPath="/messages" />}
     </PortalShell>
   );
 }

@@ -28,7 +28,9 @@ function row(
   keys: string[],
   note?: string,
 ): IntegrationRow {
-  const production = process.env.NODE_ENV === "production";
+  // The hosted demo (ADR-076) is a production build whose defaults are mocks.
+  const production =
+    process.env.NODE_ENV === "production" && process.env.PROPLINK_ENV !== "demo";
   const chosen = provider ?? (production ? liveValue : "mock");
   const live = chosen === liveValue;
   const missing = live ? keys.filter((key) => !has(key)) : [];

@@ -75,14 +75,33 @@ export class StripeBillingProvider implements BillingProvider {
     audience: SubscriptionAudience;
     email: string;
     customerId: string | null;
-    priceId: string;
+    price:
+      | { kind: "stored"; priceId: string }
+      | { kind: "demo"; amountPence: number; interval: BillingInterval };
     successUrl: string;
     cancelUrl: string;
   }) {
+    // A demo price (non-production, before the Admin sets real ones) is sent
+    // inline, so Stripe test-mode Checkout opens without a stored price.
+    const lineItem =
+      input.price.kind === "stored"
+        ? { price: input.price.priceId, quantity: 1 }
+        : {
+            quantity: 1,
+            price_data: {
+              currency: "gbp",
+              unit_amount: input.price.amountPence,
+              recurring: {
+                interval: (input.price.interval === "YEAR" ? "year" : "month") as
+                  "year" | "month",
+              },
+              product_data: { name: `${AUDIENCE_NAME[input.audience]} (demo price)` },
+            },
+          };
     const session = await this.call(() =>
       this.stripe.checkout.sessions.create({
         mode: "subscription",
-        line_items: [{ price: input.priceId, quantity: 1 }],
+        line_items: [lineItem],
         ...(input.customerId
           ? { customer: input.customerId }
           : { customer_email: input.email }),
@@ -97,6 +116,52 @@ export class StripeBillingProvider implements BillingProvider {
     );
     if (!session.url) throw new BillingUnavailableError("no_checkout_url");
     return { url: session.url };
+  }
+
+  /** Embedded Checkout: the same subscription session, mounted in the popup. */
+  async createEmbeddedCheckoutSession(input: {
+    profileId: string;
+    audience: SubscriptionAudience;
+    email: string;
+    customerId: string | null;
+    price:
+      | { kind: "stored"; priceId: string }
+      | { kind: "demo"; amountPence: number; interval: BillingInterval };
+    returnUrl: string;
+  }) {
+    const lineItem =
+      input.price.kind === "stored"
+        ? { price: input.price.priceId, quantity: 1 }
+        : {
+            quantity: 1,
+            price_data: {
+              currency: "gbp",
+              unit_amount: input.price.amountPence,
+              recurring: {
+                interval: (input.price.interval === "YEAR" ? "year" : "month") as
+                  "year" | "month",
+              },
+              product_data: { name: `${AUDIENCE_NAME[input.audience]} (demo price)` },
+            },
+          };
+    const session = await this.call(() =>
+      this.stripe.checkout.sessions.create({
+        mode: "subscription",
+        ui_mode: "embedded_page",
+        line_items: [lineItem],
+        ...(input.customerId
+          ? { customer: input.customerId }
+          : { customer_email: input.email }),
+        client_reference_id: input.profileId,
+        subscription_data: {
+          metadata: { profileId: input.profileId, audience: input.audience },
+        },
+        metadata: { profileId: input.profileId, audience: input.audience },
+        return_url: input.returnUrl,
+      }),
+    );
+    if (!session.client_secret) throw new BillingUnavailableError("no_client_secret");
+    return { clientSecret: session.client_secret };
   }
 
   async createPortalSession(input: { customerId: string; returnUrl: string }) {

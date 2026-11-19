@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { SubscriptionGate } from "@/components/billing/SubscriptionGate";
 import { PortalSection } from "@/components/portal/PortalShell";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { PledgeCalculator } from "@/components/projects/PledgeCalculator";
@@ -347,39 +348,46 @@ export default async function InvestorProjectPage({
         <PortalSection title="Messages">
           <p className="mb-3 text-sm text-muted">
             Project chats open once PropLink authorises them, and need an active
-            subscription on both sides.
+            subscription on both sides. Pledging does not need one.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <ActionButton
-              action={projectChatAction}
-              hidden={{ projectId: project.id, with: "agent" }}
-              label="Message the agent"
-              tone="secondary"
-            />
-            {project.lead && !project.lead.isMe && (
+          <SubscriptionGate reason="Project chats need an active Lead Investor or Co-Investor subscription, and PropLink's authorisation for each chat. Browsing, questions and pledging stay free.">
+            <div className="flex flex-wrap gap-3">
               <ActionButton
                 action={projectChatAction}
-                hidden={{ projectId: project.id, with: "lead" }}
-                label="Message the Lead Investor"
+                hidden={{ projectId: project.id, with: "agent" }}
+                label="Message the agent"
                 tone="secondary"
               />
-            )}
-          </div>
+              {project.lead && !project.lead.isMe && (
+                <ActionButton
+                  action={projectChatAction}
+                  hidden={{ projectId: project.id, with: "lead" }}
+                  label="Message the Lead Investor"
+                  tone="secondary"
+                />
+              )}
+            </div>
+          </SubscriptionGate>
           {coInvestors.length > 0 && (
             <ul className="mt-4 space-y-2 text-sm" data-testid="co-investors">
               {coInvestors.map((co) => (
                 <li key={co.investorId} className="flex flex-wrap items-center gap-3">
                   <span className="text-body">{co.label}</span>
-                  <ActionButton
-                    action={projectChatAction}
-                    hidden={{
-                      projectId: project.id,
-                      with: "investor",
-                      investorId: co.investorId,
-                    }}
-                    label="Message"
-                    tone="secondary"
-                  />
+                  <SubscriptionGate
+                    triggerLabel="Subscribe to message"
+                    triggerTone="secondary"
+                  >
+                    <ActionButton
+                      action={projectChatAction}
+                      hidden={{
+                        projectId: project.id,
+                        with: "investor",
+                        investorId: co.investorId,
+                      }}
+                      label="Message"
+                      tone="secondary"
+                    />
+                  </SubscriptionGate>
                 </li>
               ))}
             </ul>

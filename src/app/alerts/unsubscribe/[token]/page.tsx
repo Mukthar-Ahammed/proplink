@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/ui/submit-button";
 import { unsubscribeAction } from "@/components/buy/savedSearchActions";
 import { searchNameForToken } from "@/services/buyers/savedSearches";
 
@@ -32,9 +33,9 @@ export default async function UnsubscribePage({
             Stop email alerts for your saved search &ldquo;{name}&rdquo;?
           </p>
           <input type="hidden" name="token" value={token} />
-          <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
+          <SubmitButton className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
             Stop these alerts
-          </button>
+          </SubmitButton>
         </form>
       ) : (
         <p className="mt-4 text-sm text-muted">This link is not valid any more.</p>

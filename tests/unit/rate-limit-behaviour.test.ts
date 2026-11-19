@@ -4,9 +4,10 @@ vi.mock("server-only", () => ({}));
 const state = vi.hoisted(() => ({
   env: {
     NODE_ENV: "test",
+    ALLOW_MOCKS: true,
     RATE_LIMIT_PROVIDER: "memory",
     AUTH_SECURITY_SECRET: "test-secret-for-rate-limit-hashing-000000",
-  } as Record<string, string>,
+  } as Record<string, string | boolean>,
 }));
 vi.mock("@/env", () => ({ getServerEnv: () => state.env }));
 // A Redis client whose every call fails: the limiter backend is down.
@@ -47,6 +48,7 @@ beforeEach(() => {
   resetMemoryRateLimitsForTests();
   state.env = {
     NODE_ENV: "test",
+    ALLOW_MOCKS: true,
     RATE_LIMIT_PROVIDER: "memory",
     AUTH_SECURITY_SECRET: "test-secret-for-rate-limit-hashing-000000",
   };
@@ -55,7 +57,9 @@ beforeEach(() => {
 describe("under load (memory backend)", () => {
   it("lets exactly 5 of 1,000 concurrent sign-in attempts from one address through", async () => {
     const decisions = await Promise.all(
-      Array.from({ length: 1000 }, () => enforceRequestRateLimit(request("/login", "POST"))),
+      Array.from({ length: 1000 }, () =>
+        enforceRequestRateLimit(request("/login", "POST")),
+      ),
     );
     expect(decisions.filter((d) => d?.allowed)).toHaveLength(5);
     const refused = decisions.filter((d) => d && !d.allowed);
@@ -66,9 +70,14 @@ describe("under load (memory backend)", () => {
   });
 
   it("keeps addresses and signed-in users independent", async () => {
-    for (let i = 0; i < 5; i += 1) await enforceRequestRateLimit(request("/login", "POST", "198.51.100.1"));
-    expect((await enforceRequestRateLimit(request("/login", "POST", "198.51.100.1")))?.allowed).toBe(false);
-    expect((await enforceRequestRateLimit(request("/login", "POST", "198.51.100.2")))?.allowed).toBe(true);
+    for (let i = 0; i < 5; i += 1)
+      await enforceRequestRateLimit(request("/login", "POST", "198.51.100.1"));
+    expect(
+      (await enforceRequestRateLimit(request("/login", "POST", "198.51.100.1")))?.allowed,
+    ).toBe(false);
+    expect(
+      (await enforceRequestRateLimit(request("/login", "POST", "198.51.100.2")))?.allowed,
+    ).toBe(true);
   });
 
   it("allows 60 public searches a minute, then refuses", async () => {
@@ -81,10 +90,10 @@ describe("under load (memory backend)", () => {
   });
 
   it("refuses the memory backend in production", async () => {
-    state.env = { ...state.env, NODE_ENV: "production" };
-    await expect(enforceRequestRateLimit(request("/login", "POST"))).rejects.toBeInstanceOf(
-      RateLimitBackendUnavailableError,
-    );
+    state.env = { ...state.env, NODE_ENV: "production", ALLOW_MOCKS: false };
+    await expect(
+      enforceRequestRateLimit(request("/login", "POST")),
+    ).rejects.toBeInstanceOf(RateLimitBackendUnavailableError);
   });
 });
 
@@ -118,7 +127,10 @@ describe("limiter backend down (Upstash unreachable)", () => {
     ["/api/listings", true],
   ] as const)("%s keeps serving reads, marked degraded", async (path, signedIn) => {
     state.env = { ...state.env, RATE_LIMIT_PROVIDER: "upstash" };
-    const decision = await enforceRequestRateLimit(request(path), signedIn ? "user-1" : undefined);
+    const decision = await enforceRequestRateLimit(
+      request(path),
+      signedIn ? "user-1" : undefined,
+    );
     expect(decision).toMatchObject({ allowed: true, degraded: true });
   });
 });

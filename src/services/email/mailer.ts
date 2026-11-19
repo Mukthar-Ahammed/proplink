@@ -14,8 +14,13 @@ export interface Mailer {
   send(mail: Mail): Promise<void>;
 }
 
-const env = getServerEnv();
-const FROM = env.EMAIL_FROM ?? "PropLink UK <onboarding@resend.dev>";
+// The environment is read on first use, not at import: `next build` imports
+// every route while collecting page data, and a module-level parse there
+// fails the build when production keys are absent (they are checked at
+// runtime instead, where they matter).
+function emailFrom(): string {
+  return getServerEnv().EMAIL_FROM ?? "PropLink UK <onboarding@resend.dev>";
+}
 
 class ResendMailer implements Mailer {
   constructor(private apiKey: string) {}
@@ -28,7 +33,7 @@ class ResendMailer implements Mailer {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: FROM,
+        from: emailFrom(),
         to: [mail.to],
         subject: mail.subject,
         text: mail.text,
@@ -58,6 +63,7 @@ class MockMailer implements Mailer {
 }
 
 function createMailer(): Mailer {
+  const env = getServerEnv();
   if (env.EMAIL_PROVIDER === "resend") {
     if (!env.RESEND_API_KEY) {
       throw new Error("RESEND_API_KEY is required for the Resend email provider");
@@ -67,12 +73,22 @@ function createMailer(): Mailer {
   return new MockMailer();
 }
 
-export const mailer = createMailer();
+let cachedMailer: Mailer | undefined;
 
-const BASE_URL = env.APP_ORIGIN ?? "http://localhost:3000";
+/** Created on the first send, so importing this module never reads the environment. */
+export const mailer: Mailer = {
+  send(mail) {
+    cachedMailer ??= createMailer();
+    return cachedMailer.send(mail);
+  },
+};
+
+function baseUrl(): string {
+  return getServerEnv().APP_ORIGIN ?? "http://localhost:3000";
+}
 
 export async function sendVerificationEmail(to: string, token: string) {
-  const url = `${BASE_URL}/verify-email?token=${token}`;
+  const url = `${baseUrl()}/verify-email?token=${token}`;
   await mailer.send({
     to,
     subject: "Verify your PropLink UK email",
@@ -81,7 +97,7 @@ export async function sendVerificationEmail(to: string, token: string) {
 }
 
 export async function sendPasswordResetEmail(to: string, token: string) {
-  const url = `${BASE_URL}/reset-password?token=${token}`;
+  const url = `${baseUrl()}/reset-password?token=${token}`;
   await mailer.send({
     to,
     subject: "Reset your PropLink UK password",
@@ -122,7 +138,7 @@ export async function sendLandlordListingApprovedEmail(params: {
   await mailer.send({
     to: params.to,
     subject: `Your property "${params.listingTitle}" passed review`,
-    text: `Good news: PropLink has reviewed "${params.listingTitle}" and approved it.\n\nVerified agents can now see it and send you proposals. It stays private: it never appears in public search.\n\nView it: ${BASE_URL}/landlord/listings/${params.listingId}`,
+    text: `Good news: PropLink has reviewed "${params.listingTitle}" and approved it.\n\nVerified agents can now see it and send you proposals. It stays private: it never appears in public search.\n\nView it: ${baseUrl()}/landlord/listings/${params.listingId}`,
   });
 }
 
@@ -135,7 +151,7 @@ export async function sendLandlordListingRejectedEmail(params: {
   await mailer.send({
     to: params.to,
     subject: `Your property "${params.listingTitle}" needs changes`,
-    text: `PropLink reviewed "${params.listingTitle}" and could not approve it yet.\n\nWhat to change: ${params.reason}\n\nEdit it and submit it again: ${BASE_URL}/landlord/listings/${params.listingId}`,
+    text: `PropLink reviewed "${params.listingTitle}" and could not approve it yet.\n\nWhat to change: ${params.reason}\n\nEdit it and submit it again: ${baseUrl()}/landlord/listings/${params.listingId}`,
   });
 }
 
@@ -150,7 +166,7 @@ export async function sendNewProposalEmail(params: {
   await mailer.send({
     to: params.to,
     subject: `New agent proposal for "${params.listingTitle}"`,
-    text: `A verified agent sent a proposal for "${params.listingTitle}".\n\nCompare proposals side by side and ask questions: ${BASE_URL}/landlord/listings/${params.listingId}/proposals`,
+    text: `A verified agent sent a proposal for "${params.listingTitle}".\n\nCompare proposals side by side and ask questions: ${baseUrl()}/landlord/listings/${params.listingId}/proposals`,
   });
 }
 
@@ -162,7 +178,7 @@ export async function sendProposalQuestionEmail(params: {
   await mailer.send({
     to: params.to,
     subject: `The landlord asked about your proposal for "${params.listingTitle}"`,
-    text: `The landlord has a question about your proposal for "${params.listingTitle}".\n\nAnswer it here: ${BASE_URL}/agent/marketplace/${params.listingId}`,
+    text: `The landlord has a question about your proposal for "${params.listingTitle}".\n\nAnswer it here: ${baseUrl()}/agent/marketplace/${params.listingId}`,
   });
 }
 
@@ -174,7 +190,7 @@ export async function sendProposalAnswerEmail(params: {
   await mailer.send({
     to: params.to,
     subject: `An agent answered your question about "${params.listingTitle}"`,
-    text: `An agent answered your question about their proposal for "${params.listingTitle}".\n\nRead it: ${BASE_URL}/landlord/listings/${params.listingId}/proposals`,
+    text: `An agent answered your question about their proposal for "${params.listingTitle}".\n\nRead it: ${baseUrl()}/landlord/listings/${params.listingId}/proposals`,
   });
 }
 
@@ -242,7 +258,7 @@ export async function sendMandateEmail(params: {
   await mailer.send({
     to: params.to,
     subject: `${copy.subject}: "${params.listingTitle}"`,
-    text: `${copy.body}\n\n"${params.listingTitle}": ${BASE_URL}${params.path}`,
+    text: `${copy.body}\n\n"${params.listingTitle}": ${baseUrl()}${params.path}`,
   });
 }
 
@@ -265,7 +281,7 @@ export async function sendPrivateListingEmail(params: {
       params.returned
         ? "A landlord's property is open to proposals again after a mandate ended."
         : "A landlord's property passed PropLink review and is open to verified agents."
-    }\n\nSee it and send a proposal: ${BASE_URL}/agent/marketplace/${params.listingId}`,
+    }\n\nSee it and send a proposal: ${baseUrl()}/agent/marketplace/${params.listingId}`,
   });
 }
 
@@ -275,7 +291,7 @@ export async function sendPaymentFailedEmail(params: { to: string; graceDays: nu
   await mailer.send({
     to: params.to,
     subject: "Your PropLink subscription payment failed",
-    text: `We could not take your latest subscription payment. Our payment provider will retry automatically.\n\nPlease update your payment details within ${params.graceDays} days to keep chatting without interruption. After that, your chats become read-only until the subscription is renewed.\n\nManage billing: ${BASE_URL}/account/billing`,
+    text: `We could not take your latest subscription payment. Our payment provider will retry automatically.\n\nPlease update your payment details within ${params.graceDays} days to keep chatting without interruption. After that, your chats become read-only until the subscription is renewed.\n\nManage billing: ${baseUrl()}/account/billing`,
   });
 }
 
@@ -285,7 +301,7 @@ export async function sendChatAuthorisedEmail(params: { to: string; threadId: st
   await mailer.send({
     to: params.to,
     subject: "PropLink opened a conversation for you",
-    text: `PropLink authorised a new conversation for you.\n\nOpen it: ${BASE_URL}/messages/${params.threadId}`,
+    text: `PropLink authorised a new conversation for you.\n\nOpen it: ${baseUrl()}/messages/${params.threadId}`,
   });
 }
 
@@ -293,7 +309,7 @@ export async function sendNewChatMessageEmail(params: { to: string; threadId: st
   await mailer.send({
     to: params.to,
     subject: "You have a new message on PropLink",
-    text: `You have a new message. For privacy, messages are shown only in PropLink.\n\nRead it: ${BASE_URL}/messages/${params.threadId}`,
+    text: `You have a new message. For privacy, messages are shown only in PropLink.\n\nRead it: ${baseUrl()}/messages/${params.threadId}`,
   });
 }
 
@@ -349,7 +365,7 @@ export async function sendSolicitorInviteEmail(params: {
 
 /** True when emails are only logged (development): nothing is actually sent. */
 export function isMockMailer(): boolean {
-  return env.EMAIL_PROVIDER !== "resend";
+  return getServerEnv().EMAIL_PROVIDER !== "resend";
 }
 
 // Phase 1 Task 5 — existing (pre-invite) Agents are asked to sign in and
@@ -358,7 +374,7 @@ export async function sendAgentMigrationNotice(params: { to: string; name: strin
   await mailer.send({
     to: params.to,
     subject: "Action needed: confirm your PropLink UK agent account",
-    text: `Hello ${params.name},\n\nPropLink UK now admits agents by invitation. Your existing account stays active, but you need to confirm it so PropLink can authorise it for new features.\n\nSign in and confirm your account here:\n${BASE_URL}/agent/confirm\n\nIt takes less than a minute. If you no longer use PropLink, you can ignore this email.`,
+    text: `Hello ${params.name},\n\nPropLink UK now admits agents by invitation. Your existing account stays active, but you need to confirm it so PropLink can authorise it for new features.\n\nSign in and confirm your account here:\n${baseUrl()}/agent/confirm\n\nIt takes less than a minute. If you no longer use PropLink, you can ignore this email.`,
   });
 }
 
@@ -434,7 +450,7 @@ export async function sendProjectEmail(params: {
   await mailer.send({
     to: params.to,
     subject: `${copy.subject}: "${params.projectTitle}"`,
-    text: `${copy.body}\n\n"${params.projectTitle}": ${BASE_URL}${params.path}`,
+    text: `${copy.body}\n\n"${params.projectTitle}": ${baseUrl()}${params.path}`,
   });
 }
 
@@ -448,11 +464,11 @@ export async function sendSavedSearchAlertEmail(params: {
   unsubscribeToken: string;
 }) {
   const lines = params.listings
-    .map((l) => `- ${l.title}, ${l.city}: ${BASE_URL}/marketplace/${l.id}`)
+    .map((l) => `- ${l.title}, ${l.city}: ${baseUrl()}/marketplace/${l.id}`)
     .join("\n");
   await mailer.send({
     to: params.to,
     subject: `New listings for "${params.searchName}"`,
-    text: `New properties match your saved search "${params.searchName}" on PropLink UK:\n\n${lines}\n\nStop these alerts: ${BASE_URL}/alerts/unsubscribe/${params.unsubscribeToken}`,
+    text: `New properties match your saved search "${params.searchName}" on PropLink UK:\n\n${lines}\n\nStop these alerts: ${baseUrl()}/alerts/unsubscribe/${params.unsubscribeToken}`,
   });
 }

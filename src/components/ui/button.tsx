@@ -1,4 +1,5 @@
 import { cn } from "@/lib/cn";
+import { Spinner } from "@/components/ui/spinner";
 
 type Variant = "primary" | "secondary" | "outline" | "danger" | "ghost";
 type Size = "sm" | "md" | "lg";
@@ -27,16 +28,23 @@ const SIZES: Record<Size, string> = {
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: Variant;
   size?: Size;
+  /** Shows a spinner and disables the button (ADR-077). */
+  loading?: boolean;
 }
 
 export function Button({
   variant = "primary",
   size = "md",
+  loading = false,
   className,
+  disabled,
+  children,
   ...props
 }: ButtonProps) {
   return (
     <button
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       className={cn(
         "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
         VARIANTS[variant],
@@ -44,6 +52,9 @@ export function Button({
         className,
       )}
       {...props}
-    />
+    >
+      {loading && <Spinner size="sm" />}
+      {children}
+    </button>
   );
 }

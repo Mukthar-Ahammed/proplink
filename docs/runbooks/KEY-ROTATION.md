@@ -10,7 +10,7 @@ check, then production.
 1. Create the new key in the provider's dashboard (keep the old one active).
 2. Put it in the Vercel environment variable for that environment
    (Sensitive), then redeploy that environment.
-3. Check: `/api/health` is ok; Admin → KPIs & System → Integrations shows
+3. Check: `/api/health` is ok; Admin → System & settings → Integrations shows
    the provider live and configured; run the provider's smoke check below.
 4. Revoke the old key in the provider's dashboard.
 5. Record the date and who rotated it in the owner's private operations

@@ -2,6 +2,8 @@
 
 import { useActionState } from "react";
 
+import { BUTTON, LABEL } from "@/app/landlord/listings/ui";
+
 import { updateDisclosureAction, type MandateState } from "../actions";
 
 const IDLE: MandateState = { kind: "idle" };
@@ -26,31 +28,36 @@ export function DisclosureForm({
 }) {
   const [state, action, pending] = useActionState(updateDisclosureAction, IDLE);
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} className="space-y-5">
       <input type="hidden" name="mandateId" value={mandateId} />
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-primary">
-          Show investors (when you publish)
-        </legend>
+      <fieldset className="space-y-2.5">
+        <legend className={`${LABEL} mb-3`}>Show investors (when you publish)</legend>
         {fields.map((field) => (
-          <label key={field.key} className="flex items-center gap-2 text-sm text-body">
-            <input type="checkbox" name={field.key} defaultChecked={field.checked} />
+          <label
+            key={field.key}
+            className="flex cursor-pointer flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-line bg-white px-4 py-3 text-sm text-body transition-colors hover:border-accent/50 has-[:checked]:border-accent has-[:checked]:bg-pale/60 has-[:checked]:text-primary"
+          >
+            <input
+              type="checkbox"
+              name={field.key}
+              defaultChecked={field.checked}
+              className="h-4 w-4 accent-accent"
+            />
             {field.label}
             {field.personal && (
-              <span className="text-xs text-warning">Landlord&apos;s personal data</span>
+              <span className="rounded-full border border-warning/25 bg-warning/10 px-2.5 py-0.5 text-xs font-semibold text-warning">
+                Landlord&apos;s personal data
+              </span>
             )}
           </label>
         ))}
       </fieldset>
-      <p className="text-xs text-muted">
+      <p className="text-xs leading-relaxed text-muted">
         Never shown to investors: the landlord&apos;s contact details and ownership
         documents. Town and postcode district are always shown.
       </p>
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          disabled={pending}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-        >
+      <div className="flex flex-wrap items-center gap-3 border-t border-line pt-5">
+        <button disabled={pending} className={BUTTON}>
           {pending ? "Saving…" : "Save what investors see"}
         </button>
         {state.kind !== "idle" && (

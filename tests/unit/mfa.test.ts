@@ -232,9 +232,9 @@ describe("guards enforce MFA (exit gate: no /admin without MFA)", () => {
     await expect(requireUser()).resolves.toMatchObject({ ok: false });
   });
 
-  it("redirects an aal1 Admin page visit to /mfa", async () => {
+  it("redirects an aal1 Admin page visit to the Admin sign-in code card", async () => {
     mocks.auth.mockResolvedValue(sessionFor(Role.ADMIN, "aal1", null));
-    await expect(requirePageRole(Role.ADMIN)).rejects.toThrow("redirect:/mfa");
+    await expect(requirePageRole(Role.ADMIN)).rejects.toThrow("redirect:/admin/login");
   });
 
   it("lets an aal2 Admin and an aal1 Buyer through", async () => {

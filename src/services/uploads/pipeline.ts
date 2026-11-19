@@ -12,6 +12,7 @@ import {
   S3ObjectStore,
   type ObjectStore,
 } from "@/services/uploads/objectStore";
+import { DatabaseObjectStore } from "@/services/uploads/databaseObjectStore";
 import {
   ClamdScanner,
   MalwareScannerUnavailableError,
@@ -57,7 +58,7 @@ export function setUploadBackendsForTests(
 
 export function uploadsEnabled(): boolean {
   const env = getServerEnv();
-  return env.UPLOADS_ENABLED || env.NODE_ENV !== "production";
+  return env.UPLOADS_ENABLED || env.ALLOW_MOCKS;
 }
 
 function getStore(): ObjectStore {
@@ -73,7 +74,9 @@ function getStore(): ObjectStore {
       process.env.AWS_REGION ?? "eu-west-2",
     );
   }
-  if (env.NODE_ENV === "production") {
+  // ADR-076: the hosted demo has no S3 and no shared disk; files go to Postgres.
+  if (env.DEMO_MODE) return new DatabaseObjectStore();
+  if (!env.ALLOW_MOCKS) {
     throw new Error("Production uploads need private S3 quarantine and file buckets");
   }
   return new LocalDiskObjectStore();
@@ -85,7 +88,7 @@ function getScanner(): MalwareScanProvider {
   if (env.MALWARE_SCANNER_PROVIDER === "clamav" && env.MALWARE_SCANNER_URL) {
     return ClamdScanner.fromUrl(env.MALWARE_SCANNER_URL);
   }
-  if (env.NODE_ENV === "production") {
+  if (!env.ALLOW_MOCKS) {
     throw new Error("Production uploads need the ClamAV scanner");
   }
   return new MockMalwareScanner();
@@ -528,7 +531,13 @@ export async function readAdCreative(
 ): Promise<{ ok: true; bytes: Uint8Array; contentType: string } | { ok: false }> {
   const file = await db.uploadedFile.findUnique({
     where: { id: fileId },
-    select: { status: true, previewable: true, purpose: true, storageKey: true, detectedType: true },
+    select: {
+      status: true,
+      previewable: true,
+      purpose: true,
+      storageKey: true,
+      detectedType: true,
+    },
   });
   if (
     !file ||

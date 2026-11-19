@@ -14,7 +14,6 @@ import {
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
 import { consumeRateLimits } from "@/services/auth/supabaseAuthService";
-import { allowsPaidFeatures, subscriptionState } from "@/services/billing/subscriptions";
 import { sendProjectEmail, type ProjectNotice } from "@/services/email/mailer";
 import type { ServiceResult } from "@/services/landlord/listings";
 import {
@@ -53,8 +52,8 @@ export async function leadEligibility(
   if (profile.kycStatus !== KycStatus.APPROVED) {
     return { ok: false, reason: "Identity verification (KYC) not approved" };
   }
-  const state = await subscriptionState({ profileId: investorId, role: Role.INVESTOR });
-  if (!allowsPaidFeatures(state)) return { ok: false, reason: "No active subscription" };
+  // No subscription check (OD-34): subscriptions gate chat only. The Lead still
+  // needs one to chat with the Agent and Co-Investors.
   return { ok: true };
 }
 

@@ -1,31 +1,14 @@
 import { notFound, redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
-import {
-  audiencesFor,
-  listActivePlans,
-  subscriptionState,
-} from "@/services/billing/subscriptions";
+import { PLAN_COPY as AUDIENCE } from "@/components/billing/planCopy";
+import { listPlanOffers } from "@/services/billing/demoPlans";
+import { audiencesFor, subscriptionState } from "@/services/billing/subscriptions";
 
 import { ManageBillingButton, SubscribeButton } from "./BillingForms";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Billing — PropLink UK", robots: { index: false } };
-
-const AUDIENCE: Record<string, { title: string; body: string }> = {
-  AGENT: {
-    title: "Agent",
-    body: "Chat with landlords once PropLink authorises it, and later publish projects to investors.",
-  },
-  LEAD_INVESTOR: {
-    title: "Lead Investor",
-    body: "Lead projects and chat with the agent and co-investors.",
-  },
-  CO_INVESTOR: {
-    title: "Co-Investor",
-    body: "Join projects as a co-investor and chat with the lead investor.",
-  },
-};
 
 const pounds = (pence: number) =>
   `£${(pence / 100).toLocaleString("en-GB", { minimumFractionDigits: pence % 100 ? 2 : 0 })}`;
@@ -48,7 +31,7 @@ export default async function BillingPage({
   const { checkout } = await searchParams;
   const [state, plans] = await Promise.all([
     subscriptionState({ profileId: session.user.authUserId, role: session.user.role }),
-    listActivePlans(),
+    listPlanOffers(),
   ]);
 
   return (
@@ -114,6 +97,7 @@ export default async function BillingPage({
             );
             const saving =
               monthly && yearly ? monthly.amountGBP * 12 - yearly.amountGBP : 0;
+            const demo = Boolean(monthly?.demo || yearly?.demo);
             return (
               <div
                 key={audience}
@@ -123,6 +107,11 @@ export default async function BillingPage({
                   {AUDIENCE[audience].title}
                 </h2>
                 <p className="text-sm text-muted">{AUDIENCE[audience].body}</p>
+                {demo && (
+                  <p className="text-xs font-semibold text-warning">
+                    Demo price: the real price is not set yet.
+                  </p>
+                )}
                 {!monthly && !yearly && (
                   <p className="text-sm text-muted">Prices are not available yet.</p>
                 )}

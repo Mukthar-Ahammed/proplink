@@ -36,8 +36,8 @@
   so production startup fails closed.
 - At Node.js startup, the runtime prints the Supabase project reference
   (never a key) and fails closed unless the Supabase URL and any configured
-  database URLs match the approved environment. Development and staging
-  references live in `config/supabase-projects.json`; local development must
+  database URLs match the approved environment. Development, staging and
+  demo (= staging, ADR-076) references live in `config/supabase-projects.json`; local development must
   set `PROPLINK_LOCAL_SUPABASE_PROJECT_REF` to the approved development ref.
   Prisma
   migration/seed commands and database-writing scripts use the same project
@@ -258,7 +258,9 @@ The complete one-line policy rationale is in
 - **MFA (Phase 1, ADR-030):** Supabase TOTP; `auth()` exposes `mfa.aal`, `sessionId`,
   `lastAuthAt` (Admin/Solicitor claims via signature-verified `getClaims()`). Admin and
   Solicitor need `aal2` in `requireUser()`, `requirePageRole()` and the Admin layout (403 or
-  redirect to `/mfa`). Hashed single-use recovery codes grant MFA to one session for up to
+  redirect to `/mfa`; an Admin is sent back to `/admin/login`, whose card switches in place
+  from password to authenticator code or set-up, so no site chrome or sign-out shows before
+  both steps pass). Hashed single-use recovery codes grant MFA to one session for up to
   12 h. Sensitive Admin actions need an authentication within 15 minutes
   (`isRecentlyAuthenticated`). Service `src/services/auth/mfa.ts`; UI `/mfa`.
 - **Secure uploads (Phase 1, ADR-031):** `POST /api/uploads/files` (capped body, quota) →
@@ -468,6 +470,13 @@ DRAFT, extraData: { rejectionReason: reason })`, an `AuditLog` row (`action:
   server has already deemed eligible; otherwise an explanation
   (`WRONG_ROLE`/`NOT_QUALIFIED`/`ALREADY_REVIEWED`) or a login prompt — the
   POST itself is re-checked server-side regardless of what the page shows.
+- **Agency profile set-up (ADR-074)**: `createOwnAgencyProfile`
+  (`src/services/agents/agencyProfileSetup.ts`) lets an Agent create their own
+  `AgentProfile` on `/agent/profile` (name pre-filled from the Companies House
+  check, server-generated `PL-AG-XXXXXX` compliance code, max 5 per Agent).
+  Refused after an Admin company rejection or profile suspension; audited as
+  `AGENT_PROFILE_CREATED`. With no profile, `/agent/profile` shows the set-up
+  form; otherwise an "Add another agency profile" panel under the cards.
 - `/agent/profile` — one card per owned `AgentProfile` with a
   `<CaseStudyManager>` (`src/components/agents/`, client): add/inline-edit/
   delete, pounds↔pence at the fetch boundary via the same
@@ -591,7 +600,10 @@ cookieValue)` is a pure function (cookie value if it's one of the user's
 
 `npm run db:seed` builds the full demo dataset: 8 users, 3 agency profiles, 40
 listings across 12 UK cities, 3 case studies, 5 appraisals, 9 enquiries and 12
-saved listings. Conventions worth keeping if you extend it:
+saved listings, plus 4 approved private Landlord listings with no Agent mandate
+(fixed IDs) so `/agent/marketplace` has something to browse. Buyer viewings and
+offers that have append-only history (`ViewingEvent`/`OfferEvent`) are kept on
+re-seed rather than deleted. Conventions worth keeping if you extend it:
 
 - **The catalogue is pure data** (`prisma/seedListings.ts`); `prisma/seed.ts` is
   a thin writer. Everything is deterministic — no `Math.random()`, so re-seeding
@@ -855,7 +867,8 @@ masthead then runs up behind the header pill and lays the photo under
 fades to `background`) and `hero-grid`. The buyer portal uses
 `public/banners/buyer portal banner.png`, the investor portal
 `public/banners/investor portal banner.png` and the landlord portal
-`public/banners/landloard portal banner.png` (filename as supplied); the route must also be listed in
+`public/banners/landloard portal banner.png` and the agent portal
+`public/banners/agent banner.png` (filenames as supplied); the route must also be listed in
 `ChromeGate`'s `OVERLAY_PREFIXES`.
 
 **Investor portal content (2026-11-19).** Built from
@@ -1133,6 +1146,36 @@ ADR-009/012/014) are superseded; their ADRs remain as history.
 - Pages: `/account/billing` (Agents and Investors only), mock checkout and
   portal at `/account/billing/mock` (development), `/admin/billing`; webhook
   `POST /api/webhooks/stripe`.
+- **What needs a subscription (OD-34): chat only**, as the business PDFs say
+  (Clarification Answers §A, §D, Q10). Pledging and Lead nomination need KYC,
+  not a subscription; the earlier checks in `projects/pledges.ts` and
+  `projects/lead.ts` were removed.
+- **Demo prices** (`demoPlans.ts`, OD-01): outside production, any plan the
+  Admin has not priced shows a placeholder price (Agent £49/£490, Lead
+  Investor £29/£290, Co-Investor £19/£190 a month/year), labelled "Demo price".
+  `listPlanOffers()` returns real plans for the active provider first (plans
+  priced for another provider are skipped). A demo checkout sends the price
+  inline: Stripe test mode gets `price_data`; the mock carries amount and
+  interval in its signed token, and its webhook carries the interval.
+- **Subscribe prompts** (`src/components/billing/`): `SubscriptionGate`
+  wraps a chat action and, for an unsubscribed Agent or Investor, renders a
+  "Subscribe to chat" button that opens `SubscriptionDialog` (native
+  `<dialog>`: plans, monthly/yearly switch, Subscribe → hosted checkout);
+  `SubscriptionBanner` is the same as a notice. Used on the Agent and
+  Investor home pages, `/messages`, a read-only conversation (the popup
+  opens on arrival), and the "Message" buttons on project pages. The server
+  still enforces the rule on every send. Without Stripe keys the mock checkout
+  page is laid out like a checkout (order summary, disabled card fields).
+  The Agent and Investor portal tabs have no Billing entry (2026-11-19): the
+  popup never scrolls (compacts on short and narrow screens), and
+  `/account/billing` stays reachable by URL for managing a subscription.
+- **Checkout in the popup** (ADR-075): Purchase swaps the popup's plans for
+  Stripe Embedded Checkout (`startEmbeddedCheckout`, `ui_mode:
+"embedded_page"`), or the mock's test checkout without keys. In the agent
+  portal the Messages tab wears a gold crown (`premium`, `--color-premium`)
+  and, without a subscription, is `locked`: it opens the popup via
+  `OPEN_SUBSCRIPTION_EVENT` instead of navigating. The CSP allows Stripe's
+  Checkout hosts.
 
 ## Chat (Phase 3 Tasks 2-8, ADR-043)
 
@@ -1434,7 +1477,33 @@ npx next dev --port 3100`. `DataTable` is a focusable named region.
   close.
 
 - Deployment readiness (Task 7, ADR-070): a production build may run as
-  `PROPLINK_ENV` staging or production (never development);
+  `PROPLINK_ENV` staging, production or demo (never development);
   `poweredByHeader: false`; `scripts/check-headers.mjs` verifies security
   headers on any URL; Sentry events carry environment and release. See
   `docs/deployment/DEPLOYMENT.md` and `docs/runbooks/`.
+
+- Hosted client demo (ADR-076): `PROPLINK_ENV=demo` is a production build
+  (Netlify, `netlify.toml`) pinned to the staging Supabase project. In
+  `src/env.ts`, `isStrictProduction` (production and not demo) drives
+  provider defaults and mock refusals; the parsed env exposes `DEMO_MODE` and
+  `ALLOW_MOCKS`, and services check `ALLOW_MOCKS`, not `NODE_ENV`. Live Stripe
+  keys, binding signatures and investment payments stay refused. On
+  serverless, `/dev/mail` (Admin-only in the demo) reads `demo_mail_outbox`,
+  and the secure upload pipeline stores files in `demo_stored_objects`
+  (`DatabaseObjectStore`). Migration `20261122000000_demo_hosted_stores`.
+  The demo shows `DemoBanner` on every page and is never indexed (robots
+  `Disallow: /`, `X-Robots-Tag` on every response). Runbook:
+  `docs/runbooks/NETLIFY-DEMO.md`.
+
+## Loading states (ADR-077)
+
+- **Route loaders:** `src/app/loading.tsx` covers the whole site. Each portal
+  (`admin`, `agent`, `investor`, `landlord`, `buy`, `solicitor`) has its own
+  `loading.tsx`, which keeps the portal frame on screen. All of them render
+  `PageLoader` (`src/components/ui/page-loader.tsx`).
+- **Spinner:** `Spinner` (`src/components/ui/spinner.tsx`) is the only spinner.
+  It takes `currentColor`.
+- **Forms:** inside server-component forms, use `SubmitButton`
+  (`src/components/ui/submit-button.tsx`, based on `useFormStatus`) instead of a
+  raw `<button>`. GET filter/search forms use `next/form`. Client forms pass
+  `loading={pending}` to `Button`.

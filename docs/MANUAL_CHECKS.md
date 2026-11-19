@@ -37,6 +37,12 @@ deploy`).
       Admin, authorise. Expect: the Agent keeps working without re-verifying.
 - [ ] **Admin needs MFA.** Sign in at `/admin/login`: you must set up or use
       your authenticator before any `/admin` page opens.
+- [ ] **Admin code on the same card.** At `/admin/login`, enter email and
+      password. Expect: the URL stays `/admin/login`, the card changes to
+      "Enter authentication code" (or set-up the first time), and there is no
+      navbar or Sign out until the code is accepted. Opening `/admin` in
+      between returns to the code card; "Start again" goes back to the
+      password card.
 - [ ] **With real credentials (when you have them):** Companies House live
       smoke test (`scripts/smoke-companies-house.mjs`); real ClamAV upload test
       (`docs/credentials/malware-scanning.md`); Sumsub sandbox verification
@@ -258,7 +264,7 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       resolve with a resolution, close it. Report a chat and a review: each
       opens a case. A chat case's link asks for a reason before showing the
       chat.
-- [ ] **Data requests.** At Admin → Data Requests record a request for
+- [ ] **Data requests.** At Admin → Support & compliance → Data requests record a request for
       `buyer@`; you cannot approve your own; a second case manager
       approves; the JSON downloads (account, messages, offers, viewings…).
 
@@ -269,7 +275,7 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
       pages, messages, offers and project pages never show an ad. Pause it:
       it disappears. An image banner needs an image that passes the scan.
 
-- [ ] **Admin system pages.** At Admin → KPIs & System: queue sizes and
+- [ ] **Admin system pages.** At Admin → System & settings → KPIs: queue sizes and
       ages look right. Integrations health lists each provider as live,
       mock or off and names missing settings, with no secret values
       anywhere on the page (view source). Sign in with a wrong password a
@@ -293,7 +299,7 @@ Each phase adds its section here when its build is complete.
       longer reaches any data, and Admin → Users shows "Erased User". As an
       Agent with an active mandate, try the same: it is refused and the
       reason names the mandate.
-- [ ] **Admin erasure request.** At Admin → Data Requests record an
+- [ ] **Admin erasure request.** At Admin → Support & compliance → Data requests record an
       "Erasure" request for a member; you cannot approve your own; a second
       Admin approves it: the member is erased and the request shows the
       erased date, with no download link. A request for a member with an
@@ -305,6 +311,14 @@ Each phase adds its section here when its build is complete.
       `docs/runbooks/DEPLOY-AND-ROLLBACK.md`; `/api/health` returns ok;
       `node scripts/check-headers.mjs https://<staging-host>` passes; sign in
       as each role; roll back to the previous deployment and forward again.
+- [ ] **Hosted demo on Netlify (ADR-076).** Follow
+      `docs/runbooks/NETLIFY-DEMO.md`: migrate and seed staging, create the
+      Netlify site, set the variables, deploy. Then: `/api/health` 200; the
+      demo banner shows on every page, the login screen included;
+      `/robots.txt` shows `Disallow: /`; `/dev/mail` sends you to Admin login
+      when signed out and lists emails once signed in as Admin; the Landlord
+      ownership-document upload and "Pay (test)" both work; run the
+      walkthrough end to end on the Netlify URL.
 - [ ] **Runbooks read-through.** Read `docs/runbooks/` once and add your
       own contact details and escalation names to the incident runbook.
 - [ ] **Owner decisions OD-27 to OD-32.** (a) A newly notified existing
@@ -318,7 +332,7 @@ Each phase adds its section here when its build is complete.
       runs daily (reminders 7 days before a mandate ends; ends it after).
 - [ ] **Health check and delivery panel.** Open `/api/health` signed out: it
       shows `"status":"ok"` and nothing else about the system. At Admin →
-      KPIs & System the "Emails and alerts" and "Webhooks received" panels
+      System & settings → KPIs the "Emails and alerts" and "Webhooks received" panels
       show counts; a failed email shows in red.
 - [ ] **Real phone and Safari.** On an iPhone (Safari) and an Android phone
       (Chrome): sign in as `buyer@`, search, open a listing, save it; as
@@ -329,3 +343,10 @@ Each phase adds its section here when its build is complete.
       a listing, and as an Admin approve a listing in the Review Studio: focus
       is always visible, the approve and reject windows can be completed and
       closed, and wide tables can be scrolled after tabbing to them.
+- [ ] **Admin sidebar groups (design refresh).** As a super-admin, the
+      sidebar shows Overview and six groups: Review queues, Deals & chats,
+      People, Support & compliance, Revenue & marketing, System & settings.
+      Click a group title to open or close it; the group for the page you
+      are on stays open. Every link opens a working page (no "Soon" items).
+      Sign in as an Admin with fewer permissions: groups they can't open
+      are hidden.

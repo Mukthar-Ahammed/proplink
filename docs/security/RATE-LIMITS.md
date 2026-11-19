@@ -13,22 +13,22 @@ Phase 7 Task 3 (ADR-064). Two independent layers:
 
 ## Request-layer classes
 
-| Class               | Applies to                                              | Limit       | Redis down       |
-| ------------------- | ------------------------------------------------------- | ----------- | ---------------- |
-| login               | POST `/login`, `/admin/login`                           | 5 / 15 min  | **fails closed** |
-| password_reset      | POST `/forgot-password`, `/reset-password`              | 5 / 15 min  | **fails closed** |
-| registration        | POST `/register`, `/api/invites`                        | 5 / hour    | **fails closed** |
-| email_resend        | POST resend confirmation                                | 3 / hour    | **fails closed** |
-| file_upload         | POST `/api/uploads`                                     | 10 / 10 min | **fails closed** |
-| kyc_submit          | POST `/api/kyc/*/submit`                                | 5 / hour    | **fails closed** |
-| chat_message        | POST `/api/chat`, `/api/messages`                       | 20 / min    | **fails closed** |
-| admin               | `/admin`, `/api/admin`                                  | 60 / min    | **fails closed** |
-| transaction         | writes to offers, viewings, enquiries, Flipper APIs     | 10 / min    | **fails closed** |
-| webhook             | POST `/api/webhooks/*`                                  | 300 / min   | **fails closed** |
-| authenticated_write | other signed-in writes (server actions: pledges, …)     | 30 / min    | **fails closed** |
-| public_write        | other anonymous writes (advertiser application, …)      | 10 / min    | **fails closed** |
-| public_search       | GET `/`, `/marketplace`, `/api/search`, other public API reads | 60 / min | degraded-safe (served, logged `security.rate_limit_degraded`) |
-| authenticated_read  | other signed-in API reads                               | 120 / min   | degraded-safe    |
+| Class               | Applies to                                                     | Limit       | Redis down                                                    |
+| ------------------- | -------------------------------------------------------------- | ----------- | ------------------------------------------------------------- |
+| login               | POST `/login`, `/admin/login`                                  | 5 / 15 min  | **fails closed**                                              |
+| password_reset      | POST `/forgot-password`, `/reset-password`                     | 5 / 15 min  | **fails closed**                                              |
+| registration        | POST `/register`, `/api/invites`                               | 5 / hour    | **fails closed**                                              |
+| email_resend        | POST resend confirmation                                       | 3 / hour    | **fails closed**                                              |
+| file_upload         | POST `/api/uploads`                                            | 10 / 10 min | **fails closed**                                              |
+| kyc_submit          | POST `/api/kyc/*/submit`                                       | 5 / hour    | **fails closed**                                              |
+| chat_message        | POST `/api/chat`, `/api/messages`                              | 20 / min    | **fails closed**                                              |
+| admin               | `/admin`, `/api/admin`                                         | 60 / min    | **fails closed**                                              |
+| transaction         | writes to offers, viewings, enquiries, Flipper APIs            | 10 / min    | **fails closed**                                              |
+| webhook             | POST `/api/webhooks/*`                                         | 300 / min   | **fails closed**                                              |
+| authenticated_write | other signed-in writes (server actions: pledges, …)            | 30 / min    | **fails closed**                                              |
+| public_write        | other anonymous writes (advertiser application, …)             | 10 / min    | **fails closed**                                              |
+| public_search       | GET `/`, `/marketplace`, `/api/search`, other public API reads | 60 / min    | degraded-safe (served, logged `security.rate_limit_degraded`) |
+| authenticated_read  | other signed-in API reads                                      | 120 / min   | degraded-safe                                                 |
 
 "Fails closed" returns 503 "Service temporarily unavailable" until Redis
 recovers. Production refuses the in-memory backend.

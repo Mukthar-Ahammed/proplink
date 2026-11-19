@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
+import { SubscriptionGate } from "@/components/billing/SubscriptionGate";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { listMessages } from "@/services/chat/messages";
@@ -54,6 +55,18 @@ export default async function ConversationPage({
         {titles.get(`${thread.contextType}:${thread.contextId}`) ?? "Conversation"}
       </h1>
       <p className="text-sm text-muted">With {counterpartName}</p>
+      {result.access.blocked === "your_subscription" && (
+        <div
+          data-testid="chat-subscribe"
+          className="mt-6 flex flex-col gap-3 rounded-2xl border border-accent/30 bg-pale/60 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <p className="text-sm text-body">
+            You need an active subscription to send messages in this chat.
+          </p>
+          {/* Opens the popup straight away: this is the moment it is needed. */}
+          <SubscriptionGate autoOpen />
+        </div>
+      )}
       <div className="mt-6">
         <ChatWindow
           threadId={thread.id}

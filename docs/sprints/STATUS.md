@@ -14,6 +14,9 @@ built (`docs/phases/PHASE-3-REPORT.md`); waiting for the owner checks like Phase
 last phase (`docs/MANUAL_CHECKS.md`). No phase is closed or merged to `main`
 before its checks pass. PR #1 (Phases 0-1) is open with green CI.
 
+**Hosted demo (ADR-076, 2026-11-19):** Netlify demo mode built and tested
+locally; deployment waits on the owner (H7.7, `docs/runbooks/NETLIFY-DEMO.md`).
+
 **Phase 2:** Task 1 (Landlord module), Task 2 (AI listing assistant, mock
 until the Anthropic key exists), Task 3 (Admin review queue with SLA
 metrics), Task 4 (private-listing hardening and leakage crawl), Task 5 (Agent

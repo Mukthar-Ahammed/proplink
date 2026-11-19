@@ -1,3 +1,5 @@
+import Form from "next/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import Link from "next/link";
 import { requireAdminPagePermission } from "@/lib/authz";
 import { listAgents } from "@/services/admin/agents";
@@ -64,8 +66,8 @@ export default async function AdminAgentsPage({
           </CardBody>
         </Card>
       </div>
-      <form
-        method="get"
+      <Form
+        action=""
         className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4"
       >
         <div className="min-w-[240px] flex-1">
@@ -101,19 +103,19 @@ export default async function AdminAgentsPage({
             <option value="false">Inactive</option>
           </select>
         </div>
-        <button
+        <SubmitButton
           className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
           type="submit"
         >
           Search
-        </button>
+        </SubmitButton>
         <Link
           href="/admin/agents"
           className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-secondary"
         >
           Clear
         </Link>
-      </form>
+      </Form>
       <DataTable
         label="Agents"
         rows={result.agents}

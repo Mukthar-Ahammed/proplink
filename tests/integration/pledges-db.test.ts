@@ -206,16 +206,17 @@ describe.skipIf(!hasDb)("pledges (acceptance criterion 8)", () => {
     ).toMatchObject({ ok: false, status: 409 });
   });
 
-  it("enforces KYC, subscription, the minimum and the project's state", async () => {
+  it("enforces KYC, the minimum and the project's state (no subscription needed)", async () => {
     const { projectId } = await openProject();
     const unverified = await person(client, "INVESTOR", { kyc: false });
     expect(
       await createPledge(as(unverified, Role.INVESTOR), projectId, "2000", key()),
     ).toMatchObject({ ok: false, status: 403 });
+    // OD-34: subscriptions gate chat only, so an unsubscribed investor may pledge.
     const unsubscribed = await person(client, "INVESTOR", { subscribed: false });
     expect(
       await createPledge(as(unsubscribed, Role.INVESTOR), projectId, "2000", key()),
-    ).toMatchObject({ ok: false, status: 402 });
+    ).toMatchObject({ ok: true });
     const investor = await person(client, "INVESTOR");
     expect(
       await createPledge(as(investor, Role.INVESTOR), projectId, "999.99", key()),

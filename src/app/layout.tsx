@@ -5,6 +5,7 @@ import { ChromeGate } from "@/components/layout/ChromeGate";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { CookieBanner } from "@/components/layout/CookieBanner";
+import { DemoBanner } from "@/components/layout/DemoBanner";
 import { ToastProvider } from "@/components/ui/toast";
 import { SITE_URL } from "@/lib/siteUrl";
 
@@ -53,6 +54,8 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <ToastProvider>
+          {/* ADR-076: the hosted demo's banner shows on every page. */}
+          <DemoBanner />
           {/* The `(auth)` routes carry their own full-bleed shell and suppress
               the global chrome — see `<ChromeGate>`. The cookie banner is not
               gated: consent has to be offered on every page. */}

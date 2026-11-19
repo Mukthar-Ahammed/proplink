@@ -23,7 +23,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     redirect("/admin/login");
   }
   // Phase 1 Task 11 (ADR-030): Admin never sees /admin without a second factor.
-  if (!(await isMfaSatisfied(session.user))) redirect("/mfa");
+  // The code is asked for on the Admin sign-in card itself, without site chrome.
+  if (!(await isMfaSatisfied(session.user))) redirect("/admin/login");
 
   const permissions = [...(await adminPermissionsOf(session.user.authUserId))];
   return (

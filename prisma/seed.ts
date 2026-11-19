@@ -626,25 +626,33 @@ async function seedBuyerActivity() {
 
   const [first, second] = listings;
 
-  await db.viewing.deleteMany({ where: { buyerUserId: buyer.id } });
-  await db.viewing.create({
-    data: {
-      propertyId: first.id,
-      buyerUserId: buyer.id,
-      slotStart: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      slotEnd: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
-    },
-  });
+  // Viewings with history (`ViewingEvent`, append-only, FK Restrict) are kept:
+  // only history-free ones are reset, and the demo viewing is added only when
+  // the buyer has none left, so a re-seed after E2E runs still succeeds.
+  await db.viewing.deleteMany({ where: { buyerUserId: buyer.id, events: { none: {} } } });
+  if ((await db.viewing.count({ where: { buyerUserId: buyer.id } })) === 0) {
+    await db.viewing.create({
+      data: {
+        propertyId: first.id,
+        buyerUserId: buyer.id,
+        slotStart: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        slotEnd: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+      },
+    });
+  }
 
-  await db.offer.deleteMany({ where: { buyerUserId: buyer.id } });
-  await db.offer.create({
-    data: {
-      propertyId: (second ?? first).id,
-      buyerUserId: buyer.id,
-      // A little under asking, as a real offer on distressed stock would be.
-      amountGBP: Math.round((second ?? first).askingPriceGBP * 0.92),
-    },
-  });
+  // Same rule for offers with history (`OfferEvent`).
+  await db.offer.deleteMany({ where: { buyerUserId: buyer.id, events: { none: {} } } });
+  if ((await db.offer.count({ where: { buyerUserId: buyer.id } })) === 0) {
+    await db.offer.create({
+      data: {
+        propertyId: (second ?? first).id,
+        buyerUserId: buyer.id,
+        // A little under asking, as a real offer on distressed stock would be.
+        amountGBP: Math.round((second ?? first).askingPriceGBP * 0.92),
+      },
+    });
+  }
 
   const agentUserId = first.agentProfile?.userId;
   let messages = 0;
@@ -723,6 +731,115 @@ async function seedAgentAuthorisation() {
   `;
 }
 
+/**
+ * Approved private Landlord listings with no Agent mandate yet, so the Agent
+ * marketplace (`/agent/marketplace`) has something to browse and propose on.
+ * Fixed IDs keep it idempotent; a re-seed restores each listing to APPROVED
+ * but leaves any proposals or mandates made against it alone.
+ */
+const SEED_LANDLORD_LISTINGS = [
+  {
+    id: "5eed0001-0000-4000-8000-000000000001",
+    title: "Fire-damaged mid-terrace, Leeds",
+    addressLine1: "14 Harehills Avenue",
+    city: "Leeds",
+    postcode: "LS8 4EU",
+    propertyKind: "PROPERTY",
+    propertyType: "Terraced house",
+    description:
+      "Three-bed mid-terrace. Kitchen fire in 2025; tenants moved out and the insurer has settled.",
+    defects:
+      "Smoke damage throughout ground floor, kitchen gutted, roof timbers above kitchen charred.",
+    requiredWork:
+      "Strip-out, new kitchen, partial roof replacement, rewire, replaster and redecorate.",
+    landAreaSqm: null,
+    desiredOutcome: "REFURBISHMENT",
+  },
+  {
+    id: "5eed0001-0000-4000-8000-000000000002",
+    title: "Probate semi with subsidence, Birmingham",
+    addressLine1: "62 Wellington Road",
+    city: "Birmingham",
+    postcode: "B20 2QH",
+    propertyKind: "PROPERTY",
+    propertyType: "Semi-detached house",
+    description:
+      "Inherited 1930s semi, empty for two years. Executors want a quick, managed sale or refurbishment.",
+    defects: "Stepped cracking to rear elevation, rising damp, dated services.",
+    requiredWork:
+      "Structural survey and underpinning, damp-proofing, new heating and full refurbishment.",
+    landAreaSqm: null,
+    desiredOutcome: "REFURBISHMENT",
+  },
+  {
+    id: "5eed0001-0000-4000-8000-000000000003",
+    title: "Former garage site, Bristol",
+    addressLine1: "Land rear of 3 Mill Lane",
+    city: "Bristol",
+    postcode: "BS5 9JH",
+    propertyKind: "LAND",
+    propertyType: "Brownfield plot",
+    description:
+      "Disused lock-up garages on a level plot with road frontage. Pre-app suggests 4–6 homes.",
+    defects:
+      "Asbestos garage roofs, possible ground contamination from former workshop use.",
+    requiredWork:
+      "Asbestos removal, demolition, ground investigation and a planning application.",
+    landAreaSqm: 1150,
+    desiredOutcome: "DEVELOPMENT_JV",
+  },
+  {
+    id: "5eed0001-0000-4000-8000-000000000004",
+    title: "Flood-damaged ground-floor flat, York",
+    addressLine1: "Flat 1, 9 Skeldergate",
+    city: "York",
+    postcode: "YO1 6DH",
+    propertyKind: "PROPERTY",
+    propertyType: "Flat",
+    description:
+      "Two-bed riverside flat, uninhabitable since the last flood. Long leasehold, 98 years left.",
+    defects: "Water damage to floors, walls and electrics; mould.",
+    requiredWork:
+      "Dry-out, flood-resilient floors and plaster, raised sockets, new kitchen and bathroom.",
+    landAreaSqm: null,
+    desiredOutcome: "REFURBISHMENT",
+  },
+] as const;
+
+async function seedLandlordListings() {
+  const [landlord, admin] = await Promise.all([
+    db.profile.findFirstOrThrow({
+      where: { legacyUser: { email: "landlord@proplink.test" } },
+      select: { id: true },
+    }),
+    db.profile.findFirstOrThrow({
+      where: { legacyUser: { email: "admin@proplink.test" } },
+      select: { id: true },
+    }),
+  ]);
+  const now = Date.now();
+  for (const [i, listing] of SEED_LANDLORD_LISTINGS.entries()) {
+    const reviewedAt = new Date(now - (i + 1) * 86_400_000);
+    const data = {
+      ...listing,
+      status: "APPROVED" as const,
+      submittedAt: new Date(reviewedAt.getTime() - 86_400_000),
+      reviewedAt,
+      reviewedBy: admin.id,
+      claimedBy: null,
+      claimedAt: null,
+      withdrawnAt: null,
+      rejectionReason: null,
+    };
+    await db.landlordListing.upsert({
+      where: { id: listing.id },
+      create: { ...data, ownerId: landlord.id, createdBy: landlord.id },
+      update: data,
+    });
+  }
+  return SEED_LANDLORD_LISTINGS.length;
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash("Password123!", 10);
 
@@ -744,13 +861,15 @@ async function main() {
   const savedCount = await seedSavedProperties();
   const comparableCount = await seedComparableSales();
   const buyerActivity = await seedBuyerActivity();
+  const landlordListingCount = await seedLandlordListings();
 
   console.log(
     `Seeded ${userCount} users, ${profiles.length} agent profiles, ` +
       `${SEED_LISTING_COUNT} listings, ${caseStudyCount} case studies, ` +
       `${appraisalCount} appraisals, ${enquiryCount} enquiries, ${savedCount} saved listings, ` +
       `${comparableCount} SAMPLE comparable sales (not Land Registry data — ADR-017), ` +
-      `${buyerActivity.viewings} viewing, ${buyerActivity.offers} offer, ${buyerActivity.messages} messages.`,
+      `${buyerActivity.viewings} viewing, ${buyerActivity.offers} offer, ${buyerActivity.messages} messages, ` +
+      `${landlordListingCount} private landlord listings.`,
   );
 }
 

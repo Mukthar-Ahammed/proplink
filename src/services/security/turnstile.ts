@@ -18,7 +18,7 @@ export async function verifyTurnstileToken(
 ): Promise<TurnstileVerification> {
   const env = getServerEnv();
   if (!env.TURNSTILE_ENABLED || env.TURNSTILE_PROVIDER === "mock") {
-    if (env.NODE_ENV === "production" && env.TURNSTILE_ENABLED) {
+    if (!env.ALLOW_MOCKS && env.TURNSTILE_ENABLED) {
       throw new Error("The mock Turnstile provider cannot be used in production");
     }
     return { ok: true, provider: "mock" };

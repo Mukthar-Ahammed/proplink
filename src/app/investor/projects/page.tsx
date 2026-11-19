@@ -1,3 +1,5 @@
+import Form from "next/form";
+import { SubmitButton } from "@/components/ui/submit-button";
 import Link from "next/link";
 
 import { PortalSection } from "@/components/portal/PortalShell";
@@ -28,7 +30,7 @@ export default async function InvestorProjectsPage({
   const projects = params.saved === "1" ? all.filter((p) => saved.has(p.id)) : all;
   return (
     <PortalSection title="Investment projects">
-      <form className="mb-5 flex flex-wrap items-end gap-3" role="search">
+      <Form action="" className="mb-5 flex flex-wrap items-end gap-3" role="search">
         <label className="text-sm text-primary">
           Search
           <input name="q" defaultValue={params.q} className={`${input} mt-1 block`} />
@@ -86,14 +88,14 @@ export default async function InvestorProjectsPage({
           />
           Saved only
         </label>
-        <button className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
+        <SubmitButton className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white">
           Filter
-        </button>
-      </form>
+        </SubmitButton>
+      </Form>
       {projects.length === 0 ? (
         <p className="text-sm text-muted">No projects match.</p>
       ) : (
-        <form action="/investor/projects/compare" className="space-y-3">
+        <Form action="/investor/projects/compare" className="space-y-3">
           <p className="text-sm text-muted">
             Tick up to {MAX_COMPARE} projects to compare them side by side.
           </p>
@@ -124,10 +126,10 @@ export default async function InvestorProjectsPage({
               </li>
             ))}
           </ul>
-          <button className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary">
+          <SubmitButton className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary">
             Compare selected
-          </button>
-        </form>
+          </SubmitButton>
+        </Form>
       )}
     </PortalSection>
   );

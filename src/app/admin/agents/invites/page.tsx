@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/ui/submit-button";
 import { requireAdminPagePermission } from "@/lib/authz";
 import { listAgentInvites } from "@/services/agents/agentInvites";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
@@ -80,12 +81,12 @@ export default async function AdminAgentInvitesPage() {
                             {invite.state === "PENDING" && (
                               <form action={revokeInviteAction}>
                                 <input type="hidden" name="inviteId" value={invite.id} />
-                                <button
+                                <SubmitButton
                                   type="submit"
                                   className="text-sm font-semibold text-danger underline"
                                 >
                                   Revoke
-                                </button>
+                                </SubmitButton>
                               </form>
                             )}
                           </div>

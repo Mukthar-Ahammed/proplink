@@ -280,11 +280,8 @@ describe.skipIf(!hasDb)("Lead Investor assignment (OD-13)", () => {
     expect(
       await expressInterest(as(unverified, Role.INVESTOR), chain.projectId),
     ).toMatchObject({ ok: false, status: 403 });
-    // Not subscribed: interested but cannot be nominated.
-    const unsubscribed = await interestedInvestor(chain.projectId, { subscribed: false });
-    expect(
-      await nominateLead(agent, chain.projectId, unsubscribed.profileId),
-    ).toMatchObject({ ok: false, status: 409 });
+    // OD-34: no subscription is needed to be nominated (subscriptions gate chat
+    // only), so an unsubscribed nominee is not tested as a refusal here.
 
     const nominated = await nominateLead(agent, chain.projectId, nominee.profileId);
     expect(nominated.ok).toBe(true);

@@ -39,6 +39,9 @@ export default async function MfaPage({
   const required = requiresMfa(user.role);
 
   if (hasFactor && satisfied && !reauth && required) redirect(next);
+  // An Admin's sign-in second factor is taken on the Admin sign-in card, so
+  // the site chrome (and its sign-out) never shows before both steps pass.
+  if (user.role === "ADMIN" && !satisfied && !reauth) redirect("/admin/login");
 
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-12 sm:px-6">

@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/ui/submit-button";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { logoutAction } from "@/app/(auth)/actions";
@@ -68,7 +69,7 @@ export async function SiteHeader() {
                 {/* The one signed-in link: the portal this role owns (ADR-016). */}
                 <Link
                   href={PORTAL_HOME[user.role]}
-                  className="rounded-full bg-pale px-3.5 py-2 text-sm font-semibold whitespace-nowrap text-accent transition-colors hover:bg-accent hover:text-white sm:px-4"
+                  className="rounded-full bg-pale px-3 py-2 text-sm font-semibold whitespace-nowrap text-accent transition-colors hover:bg-accent hover:text-white sm:px-4"
                 >
                   {PORTAL_LABEL[user.role]}
                 </Link>
@@ -90,12 +91,12 @@ export async function SiteHeader() {
                   </span>
                 </span>
                 <form action={logoutAction}>
-                  <button
+                  <SubmitButton
                     type="submit"
-                    className="rounded-full bg-primary px-3.5 py-2 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-accent sm:px-4"
+                    className="rounded-full bg-primary px-3 py-2 text-sm font-medium whitespace-nowrap text-white transition-colors hover:bg-accent sm:px-4"
                   >
                     Sign out
-                  </button>
+                  </SubmitButton>
                 </form>
               </>
             ) : (
