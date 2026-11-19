@@ -158,6 +158,7 @@ export default async function PropertyDetailPage({ params }: PageProps) {
         <script
           type="application/ld+json"
           data-testid="listing-jsonld"
+          // nosemgrep: react-dangerouslysetinnerhtml -- JSON-LD from public fields, serialised with < and line separators escaped (ADR-057); reviewed Phase 7.
           dangerouslySetInnerHTML={{
             __html: serializeJsonLd(
               listingStructuredData(

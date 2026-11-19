@@ -57,6 +57,20 @@ jobs:
           ESIGN_API_KEY: ci-placeholder
           ESIGN_CLIENT_ID: ci-placeholder
 
+  # Phase 7 Task 1: static analysis. Fails on ERROR-severity findings; the
+  # reviewed exceptions carry a nosemgrep comment with the reason.
+  sast:
+    name: Static analysis (Semgrep)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.97.0
+    steps:
+      - uses: actions/checkout@v4
+      - run: >-
+          semgrep scan --metrics=off --error --severity ERROR
+          --config p/typescript --config p/nextjs --config p/react
+          --config p/secrets --config p/owasp-top-ten src
+
   secrets:
     name: Secret scanning
     runs-on: ubuntu-latest

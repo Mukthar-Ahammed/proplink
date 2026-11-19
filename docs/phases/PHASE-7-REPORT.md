@@ -26,16 +26,16 @@ secret store, backups and restore on the real database, and every open
 
 ## Task progress
 
-| Task                           | State       | Notes |
-| ------------------------------ | ----------- | ----- |
-| 1. Security review             | In progress |       |
-| 2. RLS and authorisation audit | Not started |       |
-| 3. Rate-limit and abuse        | Not started |       |
-| 4. Privacy and compliance      | Not started |       |
-| 5. Resilience and performance  | Not started |       |
-| 6. Quality gates               | Not started |       |
-| 7. Deployment readiness        | Not started |       |
-| 8. Final documentation         | Not started |       |
+| Task                           | State                                                  | Notes           |
+| ------------------------------ | ------------------------------------------------------ | --------------- |
+| 1. Security review             | Done (local); pen test and staging scans are H7.1/H7.2 | THREAT-MODEL.md |
+| 2. RLS and authorisation audit | In progress                                            |                 |
+| 3. Rate-limit and abuse        | Not started                                            |                 |
+| 4. Privacy and compliance      | Not started                                            |                 |
+| 5. Resilience and performance  | Not started                                            |                 |
+| 6. Quality gates               | Not started                                            |                 |
+| 7. Deployment readiness        | Not started                                            |                 |
+| 8. Final documentation         | Not started                                            |                 |
 
 ## Final exit gate (launch checklist)
 
@@ -48,3 +48,21 @@ secret store, backups and restore on the real database, and every open
 - [ ] All [OWNER] decisions recorded and confirmed
 - [ ] Every external service documented, keys only through the secret store
 - [ ] Backups, rollback, monitoring and incident runbooks tested
+
+## Task 1 — Security review (2026-11-19)
+
+**Delivered**
+
+- `docs/security/THREAT-MODEL.md`: STRIDE over 13 modules plus cross-cutting
+  controls, with evidence and residual risks.
+- `docs/security/PENTEST-CHECKLIST.md`: scope and test list for an
+  independent tester (H7.1).
+- `docs/security/SCAN-RESULTS.md`: dependency audit (0 high/critical),
+  full-history secret scan (clean), Semgrep over 647 files (one reviewed
+  warning, annotated), manual review of raw SQL, server-side fetches and
+  unguarded routes and actions (all public by design).
+- CI: new Semgrep job failing on error-severity findings; `.semgrepignore`
+  for generated code. Existing audit and gitleaks gates kept.
+
+**Not done here:** OWASP ZAP and the Supabase Security Advisor need a staging
+deployment (H7.2); the penetration test is H7.1.
