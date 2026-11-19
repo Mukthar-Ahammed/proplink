@@ -8,6 +8,7 @@ import {
   LandlordDesiredOutcome,
   LandlordListingFileKind,
   LandlordListingStatus,
+  MandateStatus,
   LandlordPropertyKind,
   Role,
   UploadStatus,
@@ -132,6 +133,40 @@ export async function createDraft(
     entityId: id,
   });
   return { ok: true, data: { id } };
+}
+
+/**
+ * Titles only, for chat thread lists (Phase 3, ADR-043). Callers show them
+ * only to that thread's participants (the Landlord, or an Agent who sent a
+ * proposal), who may already see the title.
+ */
+/**
+ * How many listings a Landlord has submitted (anything past draft and
+ * Admin-created-awaiting-confirmation). A count only: the profile track
+ * record (Phase 5 Task 5, ADR-055) needs no listing data.
+ */
+export async function countSubmittedListings(ownerId: string): Promise<number> {
+  return db.landlordListing.count({
+    where: {
+      ownerId,
+      status: {
+        notIn: [
+          LandlordListingStatus.DRAFT,
+          LandlordListingStatus.AWAITING_LANDLORD_CONFIRMATION,
+        ],
+      },
+    },
+  });
+}
+
+export async function listingTitles(ids: string[]): Promise<Map<string, string>> {
+  const valid = ids.filter((id) => z.uuid().safeParse(id).success);
+  if (valid.length === 0) return new Map();
+  const rows = await db.landlordListing.findMany({
+    where: { id: { in: valid } },
+    select: { id: true, title: true },
+  });
+  return new Map(rows.map((row) => [row.id, row.title]));
 }
 
 /** The Landlord's own listing, or nothing (same answer for "not yours"). */
@@ -309,7 +344,15 @@ export async function withdrawOwnListing(
   id: string,
 ): Promise<ServiceResult> {
   const result = await db.landlordListing.updateMany({
-    where: { id, ownerId: actor.profileId, status: { in: [...WITHDRAWABLE] } },
+    where: {
+      id,
+      ownerId: actor.profileId,
+      status: { in: [...WITHDRAWABLE] },
+      // OD-22: never while a mandate is offered or active (also a database trigger).
+      mandates: {
+        none: { status: { in: [MandateStatus.OFFERED, MandateStatus.ACTIVE] } },
+      },
+    },
     data: { status: LandlordListingStatus.WITHDRAWN, withdrawnAt: new Date() },
   });
   if (result.count === 0) return bad("This listing can't be withdrawn now", 409);

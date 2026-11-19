@@ -29,6 +29,7 @@ business model and are **superseded** (ADR-019).
 | `docs/sprints/STATUS.md`                   | Live tracker for the current phase plus the historical sprint baseline                         | Start of every session                  |
 | `docs/sprints/SPRINT-NN.md`                | Historical per-sprint logs (Sprints 1–3)                                                       | When questioning pre-phase work         |
 | `docs/BLOCKERS.md`                         | What is blocked on human-task outputs, and which mock covers it                                | Start of every phase                    |
+| `docs/MANUAL_CHECKS.md`                    | Every owner check still to do, per phase; the owner does them all after the last phase         | When a phase's build finishes           |
 | `docs/HUMAN_TASKS.md`                      | Every manual task the human must do (accounts, keys, legal)                                    | When the human asks "what do I owe?"    |
 | `docs/adr/`                                | Architecture Decision Records — one file per significant decision                              | When questioning "why is X like this?"  |
 | `docs/design/WEBSITE-DESIGN-SPEC.md`       | Website redesign spec (draft): colours, type, layout, chrome, every page; refs in `references/` | Before any UI/design work               |

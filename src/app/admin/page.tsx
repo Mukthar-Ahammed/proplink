@@ -77,7 +77,7 @@ function KpiCard({
       </div>
       <Link
         href={href}
-        className="mt-auto inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline underline-offset-2 transition-colors"
+        className="mt-auto inline-flex items-center gap-1.5 text-xs font-semibold text-primary underline underline-offset-2 transition-colors hover:text-secondary hover:decoration-2"
       >
         {cta}
         <svg
@@ -154,7 +154,7 @@ function AttentionRow({ item, index }: { item: AttentionItem; index: number }) {
       </div>
 
       {/* Age */}
-      <span className="shrink-0 text-[11px] font-medium text-muted/70 tabular-nums">
+      <span className="shrink-0 text-[11px] font-medium text-muted tabular-nums">
         {age}
       </span>
 
@@ -205,7 +205,10 @@ function QuickNavCard({
 
   if (disabled) {
     return (
-      <div className="flex items-start gap-3 rounded-2xl border border-line/50 bg-white/50 p-4 opacity-50 cursor-not-allowed select-none">
+      <div
+        className="flex items-start gap-3 rounded-2xl border border-dashed border-line bg-surface/60 p-4 cursor-not-allowed select-none"
+        aria-disabled="true"
+      >
         <span className="text-xl" role="img" aria-label={label}>
           {icon}
         </span>
@@ -263,8 +266,25 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ denied?: string }>;
+}) {
+  // Any Admin may open the overview; each area checks its own permission (ADR-058).
   await requirePageRole("ADMIN");
+  const denied = (await searchParams)?.denied;
+  const deniedNotice =
+    denied && /^[A-Z_]{3,40}$/.test(denied) ? (
+      <p
+        role="alert"
+        data-testid="permission-denied"
+        className="rounded-lg border border-danger/30 bg-danger/5 p-3 text-sm text-danger"
+      >
+        Your Admin account does not have the {denied.replaceAll("_", " ").toLowerCase()}{" "}
+        permission. Ask a super-admin.
+      </p>
+    ) : null;
 
   let kpis: Awaited<ReturnType<typeof getDashboardKpis>>;
   let attentionItems: Awaited<ReturnType<typeof getAttentionItems>>;
@@ -303,6 +323,7 @@ export default async function AdminDashboardPage() {
             : { label: "All clear", tone: "success" }
         }
       />
+      {deniedNotice}
 
       {/* ── Section 1: Review Queues ─────────────────────────────────── */}
       <section aria-label="Review queue KPI cards">

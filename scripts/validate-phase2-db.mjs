@@ -43,7 +43,9 @@ async function expectDenied(label, subjectId, targetId) {
     process.exitCode = 1;
   } catch (error) {
     const code = error && typeof error === "object" ? error.code : undefined;
-    console.log(`${label}=${code === "42501" ? "PASS denied (42501)" : `FAIL ${code ?? "unknown"}`}`);
+    console.log(
+      `${label}=${code === "42501" ? "PASS denied (42501)" : `FAIL ${code ?? "unknown"}`}`,
+    );
     if (code !== "42501") process.exitCode = 1;
   } finally {
     await client.query("ROLLBACK");
@@ -117,12 +119,8 @@ try {
       console.log(
         `client_table_grants=${clientGrantCount === 0 ? "PASS none" : `FAIL count=${clientGrantCount}`}`,
       );
-      console.log(
-        `trigger_security_definer=${securityDefiner ? "PASS" : "FAIL"}`,
-      );
-      console.log(
-        `trigger_search_path=${emptySearchPath ? "PASS empty" : "FAIL"}`,
-      );
+      console.log(`trigger_security_definer=${securityDefiner ? "PASS" : "FAIL"}`);
+      console.log(`trigger_search_path=${emptySearchPath ? "PASS empty" : "FAIL"}`);
       console.log(
         `user_metadata_role_source=${ignoresUserMetadata ? "PASS absent" : "FAIL present"}`,
       );

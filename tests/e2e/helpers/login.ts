@@ -12,16 +12,29 @@ export async function login(
     window.localStorage.setItem("proplink-cookie-consent", "essential");
   });
   await page.context().clearCookies();
+  // The request-layer sign-in limit (5 per 15 minutes) is keyed on the client
+  // address. Locally every test shares one, so a full run tripped it. Each
+  // sign-in gets its own documentation-range address (RFC 5737); the limiter
+  // itself is covered by tests/unit/rate-limit-behaviour.test.ts.
+  await page.context().setExtraHTTPHeaders({
+    "x-forwarded-for": `198.51.100.${1 + Math.floor(Math.random() * 254)}`,
+  });
 
   const loginPath = audience === "ADMIN" ? "/admin/login" : "/login";
   await expect(async () => {
     await page.goto(loginPath);
+    // Submitting before hydration posts a plain form and loses the attempt;
+    // a cold dev server can also take seconds to compile the portal page.
+    await page.waitForLoadState("networkidle");
     await page.locator('input[type="email"]').fill(email);
     await page.locator('input[type="password"]').fill(password);
     await page.locator('button[type="submit"]').click();
 
-    await expect(page).not.toHaveURL(new RegExp(`${loginPath.replace("/", "\\/")}(?:\\?|$)`));
+    await expect(page).not.toHaveURL(
+      new RegExp(`${loginPath.replace("/", "\\/")}(?:\\?|$)`),
+      { timeout: 20_000 },
+    );
     const response = await page.request.get("/portal");
     expect(new URL(response.url()).pathname).not.toBe("/login");
-  }).toPass({ timeout: 20_000 });
+  }).toPass({ timeout: 60_000 });
 }

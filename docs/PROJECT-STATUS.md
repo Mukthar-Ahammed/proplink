@@ -12,8 +12,52 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 - **Phase 1** pushed; PR #1 (Phase 0 + Phase 1 into `main`) open. Three
   credential-dependent checks carried forward; exit waits on the owner's hand
   check of three Admin flows.
-- **Phase 2 started** on `phase-2-landlord-pipeline` (Landlord listings, Admin
-  queue, Agent proposals, exclusive mandates). See `docs/phases/PHASE-2-REPORT.md`.
+- **Phase 2 build complete** on `phase-2-landlord-pipeline` (see
+  `docs/phases/PHASE-2-REPORT.md`). All eight tasks done: Landlord module
+  (ADR-034), AI listing assistant (ADR-036; mock until `ANTHROPIC_API_KEY`
+  exists), Admin review queue (ADR-037), private-listing hardening and
+  leakage crawl, Agent marketplace and proposals (ADR-038), exclusive mandate
+  (ADR-039), Landlord data exposure (ADR-040), chain notifications (ADR-041).
+  Exit waits on the owner checks listed at the end of the Phase 2 report.
+  PR #1's CI is green.
+- **Phase 3 build complete** on `phase-3-subscriptions-chat`: Stripe
+  subscriptions (ADR-042), Admin-authorised one-to-one chat with private
+  Realtime, attachments, notifications, Buyer ↔ Agent migration and Admin
+  tools (ADR-043).
+- **Phase 4 build complete** on `phase-4-investor-projects`: investor projects
+  and one Lead per project (ADR-044), race-safe pledges (ADR-045), portal,
+  project chats and Landlord view (ADR-046), Solicitor accounts with RLS
+  scope (ADR-047), agreements and e-signature (ADR-048), funds status, costs
+  and changes (ADR-049), sale and append-only ledger (ADR-050), project
+  decisions (ADR-051). Every exit-gate item is proven by tests; owner checks
+  and the Dropbox Sign live smoke test are pending.
+- **Phase 7 started** (2026-11-19) on `phase-7-hardening`: hardening, compliance,
+  performance and release readiness (`docs/phases/PHASE-7-REPORT.md`). Production
+  rollout stays deferred. Tasks 1-4 done locally: security review, client roles
+  deny-by-default (ADR-063), rate-limit outage behaviour (ADR-064), erasure with
+  legal holds, retention job and compliance drafts in `docs/compliance/`
+  (ADR-065). Task 5 done locally: rollback rehearsal of all 45 roadmap
+  migrations, restore drill, `/api/health`, delivery and webhook panels, p95
+  measured (ADR-066). Task 6 done: every journey on desktop and phone,
+  cross-browser smoke, visual baselines, accessibility fixes; 115 browser
+  tests and 1,884 unit/database tests passing (ADR-067). Pen test, staging
+  scans, legal review and real backups are H7.1-H7.5. Business-flow review
+  against the three PDFs (`docs/BUSINESS-FLOW-REVIEW.md`): flow correct, 5
+  defects fixed (ADR-068); owner decisions OD-27 to OD-32 taken and built
+  (ADR-069). Task 7 done locally: environment matrix, runbooks, headers
+  verified on a production build, staging start-up defect fixed (ADR-070).
+- **Phase 6 built** (2026-11-19) on `phase-6-admin-ads`: Admin permissions with
+  maker-checker (ADR-058), cases and disputes with two-person GDPR exports
+  (ADR-059), advertising in designated slots (ADR-060), KPIs, integrations
+  health and security events (ADR-061), agencies and the Admin A5
+  verification (ADR-062). Every exit-gate item is proven by tests; owner
+  checks pending (`docs/phases/PHASE-6-REPORT.md`).
+- **Phase 5 built** (2026-11-19) on `phase-5-sale-buyers` (re-listing completed projects,
+  buyer experience, reviews, trust features). Built so far: re-listing and
+  sale handoff (ADR-052), offers and viewings (ADR-053), reviews from
+  qualifying interactions with Admin moderation, and the verified badge and
+  stars on listing cards (ADR-054), and the server-computed track record with historical ROI behind an Admin flag (ADR-055), and saved searches with daily email alerts plus the maps provider switch (ADR-056), and the for-sale sitemap, structured data and image allowlist (ADR-057). Every exit-gate item is proven by tests (buyer journey E2E on phone and desktop, axe checks, full suite green); owner checks pending. The owner does every manual
+  check after the last phase; the running list is `docs/MANUAL_CHECKS.md`.
 
 ## 2026-11-18 website redesign (branch `design-refresh`)
 
@@ -150,7 +194,7 @@ check:client-secrets` passed. The report records actual command output.
 | Maps and commute                 | Incomplete / blocked                                        | Interactive map and commute-time tasks require Google Maps browser key, APIs, and quotas. Saved-search alerts are also outstanding.                                                                                                                                                    |
 | Supabase Auth and authorization  | Supabase runtime active; release gates remain               | Supabase server/browser/proxy clients, `profiles` identity bridge, server-verified roles, shared authorization guards, and RLS changes are present. Auth.js dependencies have been removed after focused flow tests; Admin/Solicitor MFA and external parity verification remain open. |
 | Investor, KYC, and Flipper flows | New implementation present; release status not established  | Local work includes investor subtype onboarding, KYC submission and review, Flipper opportunities/offers/acquisitions, refurbishment project costs/milestones, and resale workflow. Syndicate payments remain prohibited.                                                              |
-| Admin operations                 | A1/A3/A4 documented verified; A5 implemented but incomplete | Admin shell, KYC studio, listing/resale moderation, users, and agents are documented. A5 still needs authenticated browser, responsive, and accessibility verification. Agency management is not implemented.                                                                          |
+| Admin operations                 | A1/A3/A4 documented verified; A5 implemented but incomplete | Admin shell, KYC studio, listing/resale moderation, users, and agents are documented. A5 browser, responsive and accessibility verification passed in Phase 6 (ADR-062); agencies are managed as company-level groups.                                                                 |
 | AI, Stripe, intelligence, launch | Not complete per sprint tracker                             | These planned capabilities have not reached their documented sprint exit gates. Production rollout is deferred.                                                                                                                                                                        |
 
 ## Verified baseline details

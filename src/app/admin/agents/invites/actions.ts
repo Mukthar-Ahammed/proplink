@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import {
   createAgentInvite,
   resendAgentInvite,
@@ -16,7 +15,7 @@ export type InviteFormState =
   | { kind: "sent"; emailed: boolean; devInviteUrl?: string };
 
 async function adminActor() {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("VERIFICATION");
   if (!authz.ok) return null;
   return {
     profileId: authz.session.user.authUserId,

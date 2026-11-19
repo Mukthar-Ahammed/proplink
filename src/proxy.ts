@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
+import { recordSecurityEvent } from "@/services/security/securityEvents";
 import { getServerEnv } from "@/env";
 import {
   isSameOriginMutation,
@@ -28,6 +29,7 @@ const GATES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/account-pending", roles: ["LANDLORD", "SOLICITOR", "ADVERTISER"] },
   { prefix: "/verify", roles: ["LANDLORD", "INVESTOR"] },
   { prefix: "/landlord", roles: ["LANDLORD"] },
+  { prefix: "/solicitor", roles: ["SOLICITOR"] },
 ];
 
 /** Public sign-in/sign-up entry points a signed-in user is redirected away from. */
@@ -82,6 +84,7 @@ export async function proxy(request: NextRequest) {
       isApiRequest && isStateChangingMethod(request.method),
     )
   ) {
+    void recordSecurityEvent("CSRF_REJECTED");
     console.warn(
       JSON.stringify({
         event: "security.csrf_rejected",
@@ -120,7 +123,17 @@ export async function proxy(request: NextRequest) {
       contentSecurityPolicy,
     );
   }
+  if (rateLimit?.degraded) {
+    console.warn(
+      JSON.stringify({
+        event: "security.rate_limit_degraded",
+        requestId,
+        routeClass: rateLimit.routeClass,
+      }),
+    );
+  }
   if (rateLimit && !rateLimit.allowed) {
+    void recordSecurityEvent("RATE_LIMITED");
     console.warn(
       JSON.stringify({
         event: "security.rate_limit_exceeded",

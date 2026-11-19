@@ -14,7 +14,10 @@ function createClient(): PrismaClient {
       "DATABASE_URL is not set — cannot create a Prisma client. Check the environment variables for this deploy context.",
     );
   }
-  const adapter = new PrismaPg({ connectionString });
+  // Optional pool cap (the test suite sets it so parallel test files stay
+  // within the database's connection limit); unset means pg's default.
+  const max = Number(process.env.DATABASE_POOL_MAX) || undefined;
+  const adapter = new PrismaPg({ connectionString, ...(max ? { max } : {}) });
   return new PrismaClient({ adapter });
 }
 

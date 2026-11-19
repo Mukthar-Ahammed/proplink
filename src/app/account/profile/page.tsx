@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Role } from "@/generated/prisma/enums";
 import { auth } from "@/lib/auth";
 
+import { DeleteAccount } from "./DeleteAccount";
 import { ProfileEditor } from "./ProfileEditor";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,9 @@ export default async function EditProfilePage() {
         How other PropLink members see you. Your email and phone are never shown.
       </p>
       <ProfileEditor user={user} />
+      <div className="mt-12">
+        <DeleteAccount />
+      </div>
     </main>
   );
 }

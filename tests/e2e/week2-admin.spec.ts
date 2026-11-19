@@ -1,5 +1,11 @@
 import { test, expect } from "@playwright/test";
 import { login } from "./helpers/login";
+import { loginAsAdmin } from "./helpers/adminSession";
+import { closeDb } from "./helpers/db";
+
+test.afterAll(async () => {
+  await closeDb();
+});
 
 test("non-admin hitting /admin gets the 403 page", async ({ page }) => {
   await login(page, "investor@proplink.test", "Password123!");
@@ -10,14 +16,15 @@ test("non-admin hitting /admin gets the 403 page", async ({ page }) => {
 
 test("anonymous hitting /admin is sent to login", async ({ page }) => {
   await page.goto("/admin");
-  await page.waitForURL("**/login**");
-  await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+  // The Admin surface has its own sign-in page (ADR-030).
+  await page.waitForURL("**/admin/login**");
+  await expect(page.getByRole("heading", { name: "Admin sign in" })).toBeVisible();
 });
 
 test("Admin portal renders after an Admin-only Supabase login", async ({ page }) => {
-  await login(page, "admin@proplink.test", "Password123!", "ADMIN");
+  await loginAsAdmin(page);
   await page.goto("/admin");
-  await expect(page.getByRole("heading")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
 });
 
 test("/dev/ui renders every primitive", async ({ page }) => {
@@ -25,7 +32,9 @@ test("/dev/ui renders every primitive", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Design system" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Primary" })).toBeVisible();
   for (const rating of ["A", "D", "G"]) {
-    await expect(page.getByTestId("epc-badge").filter({ hasText: rating })).toBeVisible();
+    await expect(
+      page.getByTestId("epc-badge").filter({ hasText: new RegExp(`rating ${rating}$`) }),
+    ).toBeVisible();
   }
   await expect(page.getByRole("progressbar")).toBeVisible();
   // Modal opens and closes

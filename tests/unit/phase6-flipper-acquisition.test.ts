@@ -124,8 +124,14 @@ describe("Phase 6: FLIPPER Property Acquisition Workflow", () => {
 
   describe("2. KYC Gating for Flipper Acquisition Offers", () => {
     it("denies offer submission if investor kycStatus is NOT_STARTED", async () => {
-      const caller: FlipperCaller = { ...mockFlipperApproved, kycStatus: KycStatus.NOT_STARTED };
-      const res = await submitFlipperOffer(caller, { propertyId: "p1", amountGBP: 20000000 });
+      const caller: FlipperCaller = {
+        ...mockFlipperApproved,
+        kycStatus: KycStatus.NOT_STARTED,
+      };
+      const res = await submitFlipperOffer(caller, {
+        propertyId: "p1",
+        amountGBP: 20000000,
+      });
       expect(res.ok).toBe(false);
       if (!res.ok) {
         expect(res.error).toMatch(/KYC approval is required/);
@@ -133,7 +139,10 @@ describe("Phase 6: FLIPPER Property Acquisition Workflow", () => {
     });
 
     it("denies offer submission if investor kycStatus is PENDING", async () => {
-      const res = await submitFlipperOffer(mockFlipperPending, { propertyId: "p1", amountGBP: 20000000 });
+      const res = await submitFlipperOffer(mockFlipperPending, {
+        propertyId: "p1",
+        amountGBP: 20000000,
+      });
       expect(res.ok).toBe(false);
       if (!res.ok) {
         expect(res.error).toMatch(/KYC approval is required/);
@@ -141,7 +150,10 @@ describe("Phase 6: FLIPPER Property Acquisition Workflow", () => {
     });
 
     it("denies offer submission if investor kycStatus is REJECTED", async () => {
-      const res = await submitFlipperOffer(mockFlipperRejected, { propertyId: "p1", amountGBP: 20000000 });
+      const res = await submitFlipperOffer(mockFlipperRejected, {
+        propertyId: "p1",
+        amountGBP: 20000000,
+      });
       expect(res.ok).toBe(false);
       if (!res.ok) {
         expect(res.error).toMatch(/KYC approval is required/);
@@ -260,7 +272,9 @@ describe("Phase 6: FLIPPER Property Acquisition Workflow", () => {
 
       expect(res.ok).toBe(false);
       if (!res.ok) {
-        expect(res.error).toMatch(/cannot submit an acquisition offer on your own listing/);
+        expect(res.error).toMatch(
+          /cannot submit an acquisition offer on your own listing/,
+        );
       }
     });
   });
@@ -348,7 +362,9 @@ describe("Phase 6: FLIPPER Property Acquisition Workflow", () => {
       const resAccept = await acceptFlipperOffer(mockAgentB, "offer-1");
       expect(resAccept.ok).toBe(false);
       if (!resAccept.ok) {
-        expect(resAccept.error).toMatch(/Agent A cannot manage offers for Agent B's listing/);
+        expect(resAccept.error).toMatch(
+          /Agent A cannot manage offers for Agent B's listing/,
+        );
       }
 
       vi.spyOn(db.flipperOffer, "findUnique").mockResolvedValueOnce({
@@ -361,7 +377,9 @@ describe("Phase 6: FLIPPER Property Acquisition Workflow", () => {
       const resReject = await rejectFlipperOffer(mockAgentB, "offer-1", "Price too low");
       expect(resReject.ok).toBe(false);
       if (!resReject.ok) {
-        expect(resReject.error).toMatch(/Agent A cannot manage offers for Agent B's listing/);
+        expect(resReject.error).toMatch(
+          /Agent A cannot manage offers for Agent B's listing/,
+        );
       }
     });
 
@@ -381,7 +399,11 @@ describe("Phase 6: FLIPPER Property Acquisition Workflow", () => {
       vi.spyOn(db.flipperOpportunity, "update").mockResolvedValueOnce({} as never);
       const spyAudit = vi.spyOn(db.auditLog, "create").mockResolvedValue({} as never);
 
-      const res = await rejectFlipperOffer(mockAgentA, "offer-1", "Price below seller threshold");
+      const res = await rejectFlipperOffer(
+        mockAgentA,
+        "offer-1",
+        "Price below seller threshold",
+      );
       expect(res.ok).toBe(true);
       expect(spyAudit).toHaveBeenCalledWith(
         expect.objectContaining({

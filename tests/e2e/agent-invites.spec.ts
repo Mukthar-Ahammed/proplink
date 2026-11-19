@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { closeDb, hasDb, q } from "./helpers/db";
-import { login } from "./helpers/login";
+import { loginAsAdmin } from "./helpers/adminSession";
 import { runId } from "./helpers/runId";
 
 const RUN = runId("invite");
@@ -23,7 +23,7 @@ test.afterAll(async () => {
 test("Admin invites an agent; the link shows the invited email, then is rejected once revoked", async ({
   page,
 }) => {
-  await login(page, "admin@proplink.test", "Password123!", "ADMIN");
+  await loginAsAdmin(page);
   await page.goto("/admin/agents/invites");
   await page.getByLabel("Agent email").fill(email);
   await page.getByRole("button", { name: "Send invitation" }).click();
@@ -55,15 +55,31 @@ test("Admin invites an agent; the link shows the invited email, then is rejected
     .getByRole("row", { name: new RegExp(email) })
     .getByRole("button", { name: "Revoke" })
     .click();
+  // Wait for the revocation to land before reopening the link.
+  await expect
+    .poll(
+      async () =>
+        (
+          await q<{ status: string }>(
+            `SELECT status FROM public.agent_invites WHERE email = $1 ORDER BY "createdAt" DESC LIMIT 1`,
+            [email],
+          )
+        )[0]?.status,
+      { timeout: 30_000 },
+    )
+    .toBe("REVOKED");
   await inviteePage.goto("about:blank");
   await inviteePage.goto(link);
-  await expect(inviteePage.getByRole("alert")).toContainText("withdrawn");
+  await expect(
+    inviteePage.getByRole("alert").filter({ hasText: "withdrawn" }),
+  ).toBeVisible();
   await invitee.close();
 });
 
 test("an unknown token shows a generic message", async ({ page }) => {
   await page.goto("/invite/agent#token=" + "x".repeat(43));
-  await expect(page.getByRole("alert")).toContainText("not valid");
+  // Next.js adds its own (empty) route-announcer alert; filter to ours.
+  await expect(page.getByRole("alert").filter({ hasText: "not valid" })).toBeVisible();
 });
 
 test("there is no way to register as an Agent", async ({ page }) => {

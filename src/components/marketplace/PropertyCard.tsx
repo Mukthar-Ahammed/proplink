@@ -1,6 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import { DISTRESS_TAG_OPTIONS, formatPenceGBP } from "@/components/listings/wizardTypes";
+import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
+import { StarRating } from "@/components/reviews/StarRating";
 import { Badge, EpcBadge } from "@/components/ui/badge";
+import { isOptimisableImage } from "@/lib/images";
 import type { SearchResultItem } from "@/services/search/types";
 
 const TAG_LABELS = new Map(DISTRESS_TAG_OPTIONS.map((o) => [o.value, o.label]));
@@ -42,9 +46,20 @@ export function PropertyCard({
       className="group flex flex-col rounded-3xl border border-line bg-white p-2 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-accent motion-reduce:transition-none motion-reduce:hover:translate-y-0"
     >
       <div className="relative overflow-hidden rounded-2xl">
-        {listing.imageUrl ? (
-          // Mock-storage and agent-hosted URLs are not in any configured
-          // next/image domain list — same convention as PropertyGallery.
+        {listing.imageUrl && isOptimisableImage(listing.imageUrl) ? (
+          // Allowlisted sources go through the image optimiser (ADR-057).
+          <div className="relative aspect-[4/3] w-full bg-surface">
+            <Image
+              src={listing.imageUrl}
+              alt={`${listing.title} — ${listing.city}`}
+              fill
+              sizes="(min-width: 1536px) 25vw, (min-width: 1280px) 33vw, (min-width: 640px) 50vw, 100vw"
+              className="object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            />
+          </div>
+        ) : listing.imageUrl ? (
+          // Other sources (e.g. agent-hosted URLs) are outside the optimiser's
+          // allowlist; the CSP img-src decides whether they load at all.
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={listing.imageUrl}
@@ -88,6 +103,20 @@ export function PropertyCard({
           {listing.city} · {listing.postcode}
           {listing.bedrooms > 0 && ` · ${listing.bedrooms} bed`}
         </p>
+
+        {/* Criterion 6: the agent's badge appears only once an Admin awarded it;
+            the rating counts published reviews only (ADR-054). */}
+        {(listing.agentVerified || listing.agentRatingCount > 0) && (
+          <p className="flex flex-wrap items-center gap-2" data-testid="card-agent">
+            {listing.agentVerified && <VerifiedBadge />}
+            {listing.agentRatingCount > 0 && (
+              <StarRating
+                average={listing.agentRatingAverage ?? 0}
+                count={listing.agentRatingCount}
+              />
+            )}
+          </p>
+        )}
 
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-3">
           {/* EPC on every listing — legally required in the UK (AGENTS.md). */}

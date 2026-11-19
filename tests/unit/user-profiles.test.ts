@@ -11,6 +11,14 @@ vi.mock("@/lib/db", () => ({
     },
     uploadedFile: { findUnique: vi.fn() },
     property: { count: vi.fn() },
+    investorProject: {
+      count: vi.fn().mockResolvedValue(0),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    mandate: { count: vi.fn().mockResolvedValue(0) },
+    landlordListing: { count: vi.fn().mockResolvedValue(0) },
+    trackRecordSettings: { findUnique: vi.fn().mockResolvedValue(null) },
   },
 }));
 
@@ -194,6 +202,7 @@ describe("profile visibility matrix (exit gate)", () => {
       { label: "Properties handled / listed", value: "7" },
       { label: "Completed refurbishments / builds", value: "None yet" },
       { label: "Average project completion time", value: "Not enough data yet" },
+      { label: "Success rate", value: "Not enough data yet" },
       { label: "Member since", value: "2025" },
     ]);
     expect(mockDb.property.count.mock.calls[0][0]).toMatchObject({

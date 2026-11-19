@@ -1,5 +1,4 @@
-import { Role } from "@/generated/prisma/enums";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
 
@@ -14,7 +13,7 @@ export const metadata = { title: "Admin — List for a Landlord | PropLink" };
  * submitted (Phase 2 Task 1, ADR-034).
  */
 export default async function AdminOnBehalfListingPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("LISTING_MODERATION");
   return (
     <div className="space-y-6">
       <AdminPageHeader

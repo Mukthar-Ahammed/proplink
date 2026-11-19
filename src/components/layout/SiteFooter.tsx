@@ -7,7 +7,7 @@ import { PORTAL_HOME, PORTAL_LABEL } from "@/lib/portalHome";
  * Public footer (ADR-071): a quiet surface panel with the wordmark and mission,
  * link columns that point only at pages that exist, then the compliance
  * notices and credits on a hairline. Signed in, the Account column links to the
- * viewer's own portal instead of sign-up and log-in (ADR-016, OD-23), matching
+ * viewer's own portal instead of sign-up and log-in (ADR-016, OD-33), matching
  * the header.
  */
 const COLUMNS = [

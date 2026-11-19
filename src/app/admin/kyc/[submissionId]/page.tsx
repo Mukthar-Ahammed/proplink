@@ -1,17 +1,16 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
-import { requirePageRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { getAdminKycSubmissionDetail } from "@/services/admin/kycAdminService";
 import { KycReviewStudioClient } from "./KycReviewStudioClient";
 
 export const metadata = { title: "Admin — KYC Compliance Review Studio | PropLink" };
 
-export default async function KycReviewStudioPage(
-  props: { params: Promise<{ submissionId: string }> },
-) {
-  const session = await requirePageRole(Role.ADMIN);
+export default async function KycReviewStudioPage(props: {
+  params: Promise<{ submissionId: string }>;
+}) {
+  const session = await requireAdminPagePermission("VERIFICATION");
 
   const { submissionId } = await props.params;
 

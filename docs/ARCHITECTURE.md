@@ -16,8 +16,8 @@
 | Cache/queue | Upstash Redis                                                                                                                                           | Commute-matrix cache, AI response cache, rate limiting                                                                                                                                                                                          |
 | Auth        | Supabase Auth (active)                                                                                                                                  | `@supabase/ssr` clients and the `profiles` identity bridge are active. Roles/KYC come from server-controlled profile/database fields, never client-writable metadata. Auth.js runtime has been removed; legacy identity records remain bridged. |
 | Storage     | Existing `StorageService` remains active; Supabase Storage security foundation added                                                                    | `kyc-documents` is private; `property-images` is public-delivery but not anonymously listable. Application upload wiring remains a later migration phase.                                                                                       |
-| AI          | Anthropic API — Sonnet (Advisor/AVM/Planning), Haiku (Enhancer/tagging)                                                                                 | Arrives Sprint 5; Redis-cached, budget-capped                                                                                                                                                                                                   |
-| Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active | Distance Matrix API is Legacy — do not use. Two distinct keys: `GOOGLE_MAPS_SERVER_KEY` (geocoding) and `GOOGLE_MAPS_API_KEY` (browser-restricted: static maps, Street View Static, and the Sprint 3 interactive map) — see `docs/BLOCKERS.md`  |
+| AI          | Anthropic API (`@anthropic-ai/sdk`) — Landlord listing assistant (Phase 2)                                                                              | `src/services/ai/`; mock locally; daily token budgets (ADR-036)                                                                                                                                                                                 |
+| Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active | Distance Matrix API is Legacy — do not use. `MAPS_PROVIDER=mock|google` (ADR-056). Two distinct keys: `GOOGLE_MAPS_SERVER_KEY` (geocoding) and `GOOGLE_MAPS_BROWSER_KEY` (formerly `GOOGLE_MAPS_API_KEY`; browser-restricted static maps and Street View Static) — see `docs/credentials/google-maps.md` |
 | KYC         | Sumsub (sandbox) behind `KycService` + mock                                                                                                             | Arrives Sprint 4                                                                                                                                                                                                                                |
 | Payments    | Stripe (test mode) — subscriptions ONLY (Agents, Lead Investors, Co-Investors); no boosts; ad billing undecided (OD-11)                                 | Arrives Phase 3. Investment funds never pass through the app; syndicate charges forbidden while `SYNDICATE_PAYMENTS_ENABLED=false` (ADR-019)                                                                                                    |
 | Realtime    | Supabase Realtime private Broadcast channels (RLS on `realtime.messages`)                                                                               | Arrives Phase 3 for one-to-one chat; replaces the earlier Pusher plan (ADR-019)                                                                                                                                                                 |
@@ -868,7 +868,7 @@ from `getInvestorDashboard`.
 
 **Landlord portal content (2026-11-19).** Reuses the `InvestorUi` blocks (plus
 `HomeIcon`, `FileIcon`, `UploadIcon`, `PenIcon`, `EyeIcon`) and
-`src/components/landlord/ListingCard.tsx`. Overview: identity-check card
+`src/app/landlord/listings/ListingCard.tsx` (inside the private-listing boundary). Overview: identity-check card
 (`landlord-kyc` while unverified, four-step progress, `VerifyButton`) beside a
 "Private by design" card, a stat strip, listing cards and shortcuts. Listing
 forms share styles from `src/app/landlord/listings/ui.ts` (radio choices as
@@ -958,8 +958,8 @@ redirects a signed-in, verified user with a healthy profile from `/login` or
 `/register` to `PORTAL_HOME[role]` (inactive or inconsistent profiles fall
 through to the login page, so it cannot loop with the portal gates). It also
 redirects a signed-in admin from `/` to `/admin` (ADR-073); other roles still
-see the landing page. One role per account until OD-23 is decided.
-`<ChromeGate>` hides the chrome on the auth routes and on `/admin/*` (which has
+see the landing page. One role per account until OD-33 is decided.
+`<ChromeGate>` hides the chrome on the auth routes, the `/invite/agent` and `/invite/solicitor` acceptance pages, and on `/admin/*` (which has
 its own `AdminShell` header), and floats the header transparently over the hero
 on `/` only. `SiteFooter` is a `surface` panel with link columns, the EOI/RICS
 notices, image credits and copyright.
@@ -1009,6 +1009,280 @@ ecosystem marquee were removed (ADR-071).
 Earlier palettes and decisions (navy, then ink + terracotta with a petrol band —
 ADR-009/012/014) are superseded; their ADRs remain as history.
 
+## AI listing assistant (Phase 2 Task 2, ADR-036)
+
+- `src/services/ai/`: `AiProvider` with `MockAiProvider` and
+  `AnthropicAiProvider` (official SDK, beta `messages.parse` with structured
+  JSON output, effort `low`, max 4,000 output tokens, server-side refusal
+  fallback, no tools). `AI_PROVIDER=mock|anthropic|disabled`; production
+  refuses the mock. Model from `AI_MODEL` (default `claude-opus-5-5`).
+- `listingAssistant.ts`: Landlord only; cleans each answer (control
+  characters, emails, phone numbers, links, angle brackets removed; length
+  capped); 10 per hour per user (`ai_listing_assistant` limiter); reserves
+  budget; calls the provider; cleans the output (markup, links, emails
+  removed; capped to column limits); logs `ai.usage` with token counts only.
+- `budget.ts` and table `ai_usage` (migration `20261118100000`, server-only):
+  each call reserves its worst case under one advisory lock against the
+  per-user and global UTC-day budgets, then records the actual usage. No
+  prompt or draft text is stored.
+- UI: an optional panel in the Landlord listing editor; the draft is shown
+  for review and only put into the form on request. Nothing is saved
+  automatically. Hidden when `AI_PROVIDER=disabled`.
+
+## Landlord listing review queue (Phase 2 Task 3, ADR-037)
+
+- `src/services/landlord/reviewQueue.ts`: queue views (waiting oldest first,
+  held by me, recently decided), claim / take over / release / assign,
+  approve or reject with a reason (one transaction, conditioned on the same
+  submission and holder; approval needs a KYC-approved, active Landlord),
+  SLA state (30-minute target, 60-minute limit) and SLA metrics.
+- Schema (migration `20261118110000`): `landlord_listings.claimedBy/claimedAt`
+  (trigger: Admins only; cleared when the listing leaves `SUBMITTED`);
+  append-only `landlord_listing_reviews` history (server-only).
+- Pages: `/admin/landlord-listings` (metrics and queue) and
+  `/admin/landlord-listings/[id]` (review, files via signed links, history).
+- Notifications: `listing.review_decision` email to the Landlord, gated by
+  their preferences; failures are logged and never undo a decision.
+
+## Private-listing boundary (Phase 2 Task 4)
+
+- Only `src/services/landlord/` reads `landlord_listings`,
+  `landlord_listing_files` and `landlord_listing_reviews`; only the Landlord
+  portal and `/admin/landlord-listings` import that service. Enforced by
+  `tests/unit/private-listing-boundary.test.ts`; a new reader (the Task 5
+  marketplace) is added to its allowlist deliberately.
+- `src/app/robots.ts` disallows every private area; no sitemap lists them.
+- `tests/e2e/private-listing-leakage.spec.ts` crawls the site as each role
+  and asserts no private listing data appears anywhere.
+
+## Agent marketplace and proposals (Phase 2 Task 5, ADR-038)
+
+- `src/services/landlord/marketplace.ts`: verified-Agent check (company gate,
+  OD-19), marketplace list (approved listings; filters: town or postcode,
+  type, work, outcome; postcode district only) and detail (address, photos
+  via `createGrantedDownloadLink`; never the Landlord's identity or
+  documents, OD-23); proposals (send, edit, withdraw, resubmit); Landlord
+  comparison, structured questions and decline; Agent answers. Money in
+  integer pence; fee in basis points or pence.
+- Schema (migration `20261118120000`): `agent_proposals` (one per Agent per
+  listing) and `agent_proposal_questions`, with guard triggers; server-only.
+- Pages: `/agent/marketplace`, `/agent/marketplace/[id]`,
+  `/landlord/listings/[id]/proposals`.
+- Proposal actions: 10 per minute per user (`proposal_action`).
+- Permission matrix at `CURRENT_PHASE = 2`.
+
+## Exclusive mandates (Phase 2 Task 6, ADR-039)
+
+- `src/services/landlord/mandates.ts`: choose an Agent (offer), withdraw an
+  offer, accept or decline, terminate with a reason (either party), close at
+  contract end, attach the contract; `listingStage` derives "Mandate
+  Accepted" from the live mandate.
+- Schema (migration `20261118130000`): `mandates` with a partial unique index
+  (one `OFFERED`/`ACTIVE` per listing), transition and party triggers, and a
+  listing trigger refusing status changes under a live mandate; server-only.
+- Mandated listings leave the marketplace; only the `ACTIVE` Agent sees the
+  Landlord's name and the listing's documents.
+- Pages: `/landlord/listings/[id]/proposals` (mandate panel),
+  `/agent/mandates`, `/agent/mandates/[id]`.
+
+## Landlord data exposure (Phase 2 Task 7, ADR-040)
+
+- `src/services/landlord/disclosure.ts`: `DISCLOSURE_DEFAULTS` (Landlord's
+  name, street address, full postcode and other documents hidden),
+  `disclosureFor`, `updateDisclosure` (active mandate's Agent only, audited)
+  and the pure `buildInvestorView`, which never includes contact details,
+  ownership documents or the Landlord's own title. Phase 4 publishing must
+  use it.
+- Schema (migration `20261118140000`): `mandate_disclosures` with a trigger
+  allowing only the active mandate's Agent; server-only.
+- UI: "What investors will see" (choices and live preview) on
+  `/agent/mandates/[id]`; summary on the Landlord's mandate panel.
+
+## Chain notifications (Phase 2 Task 8, ADR-041)
+
+- Every Phase 2 catalogue event has a sender (unit test guard), all through
+  `shouldNotify` and the mailer.
+- `src/services/notifications/deliveries.ts`: `deliverOnce` claims a
+  `notification_deliveries` row (unique per recipient, event, dedupe key,
+  channel) before sending; outcome only, never content.
+- `src/services/landlord/announcements.ts`: `listing.private_listing` to
+  verified Agents when a listing is approved or returns to the pool after a
+  mandate ends; five at a time, at most 500, run with `after()` from the
+  Admin decision and mandate actions. Emails carry area and kind only.
+- Schema (migration `20261118150000`): `notification_deliveries`; server-only.
+
+## Subscriptions (Phase 3 Task 1, ADR-042)
+
+- `src/services/billing/`: `BillingProvider` with `MockBillingProvider` and
+  `StripeBillingProvider` (official `stripe` SDK, API `2026-10-28.endive`;
+  hosted Checkout and Customer Portal only; events normalised so the logic is
+  provider-neutral). `STRIPE_PROVIDER=mock|stripe`; live keys refused
+  outside production.
+- `subscriptions.ts`: Admin prices (immutable provider prices: a change
+  retires the old plan), grace period, `subscriptionState` (active, grace,
+  lapsed, none, not required), checkout and portal, and
+  `processBillingWebhook`: verified, recorded and applied in one transaction
+  (replays are no-ops; failures retry), older events never overwrite newer
+  state, failed payments start the grace period and send a mandatory email.
+- `requireSubscription` (`src/lib/authz`): passes non-paying roles and paid or
+  grace subscribers; otherwise 402.
+- Schema (migration `20261118160000`): `subscription_plans`, `billing_settings`,
+  `billing_customers`, `subscriptions` (model `BillingSubscription`; the legacy
+  `Subscription` model is the earlier business model), `billing_webhook_events`;
+  trigger: only Agents and Investors hold subscriptions; all server-only.
+- Pages: `/account/billing` (Agents and Investors only), mock checkout and
+  portal at `/account/billing/mock` (development), `/admin/billing`; webhook
+  `POST /api/webhooks/stripe`.
+
+## Chat (Phase 3 Tasks 2-8, ADR-043)
+
+- `src/services/chat/threads.ts`: `threadAccess` (the single rule: participant;
+  Admin-authorised; subscriptions where required, computed read-only on
+  lapse; Buyer ↔ Agent per-sender), thread creation from proposals (Q10),
+  closure when the Agent's relationship ends (Q9), Buyer ↔ Agent threads
+  (OD-15), Admin bulk decisions and revoke.
+- `src/services/chat/messages.ts`: `sendMessage` (limits, access, cleaning,
+  idempotency, attachments, broadcast, throttled email), `listMessages`,
+  `markRead`, reports, logged Admin reads.
+- Routes: `/api/chat/threads/[id]/messages` (GET, POST), `/read`, `/report`;
+  `POST /api/chat` starts a Buyer enquiry. Pages: `/messages`,
+  `/messages/[id]`, `/admin/chats`, `/admin/chats/[id]`.
+- `requireChatAuthorization(threadId)` in `src/lib/authz`.
+- Schema (migrations `20261118170000`, `20261118180000`): `chat_threads` (pair
+  matrix check, two-people check, relationship trigger), `chat_authorizations`,
+  `chat_thread_messages` (append-only trigger, idempotency key),
+  `chat_message_attachments`, `chat_reports`, `proplink_can_join_thread` and
+  the `realtime.messages` policy (Supabase only); legacy `ChatMessage` copied.
+- Realtime: private Broadcast `thread:<id>` via `realtime.send` from the
+  server; clients also poll; offline outbox with idempotent retries.
+- `src/services/esign/`: `ESignProvider` interface (Phase 4 implements).
+
+## Investor projects (Phase 4, ADR-044 onwards)
+
+- `src/services/projects/`: `common.ts` (actor type, lifecycle labels, the
+  AG-6 responsibility notice, `databaseRule` to read trigger refusals),
+  `projects.ts` (publish from an ACTIVE mandate, edit terms while
+  published, interest, announcements), `lead.ts` (OD-13 nominate → accept →
+  Admin approves; one Lead per project), `portal.ts` (the investor read
+  side: redacted view from the mandate disclosure, documents after KYC,
+  Lead stats, search and filters).
+- Pages: `/agent/projects` (+ `new`, `[id]`), `/admin/projects` (+ `new`,
+  `[id]`), `/investor/projects` (+ `[id]`). Shared components in
+  `src/components/projects/`.
+- Schema (migration `20261119000000`): `investor_projects` (lifecycle and
+  terms trigger; one per mandate; one live per listing), `project_interests`,
+  `project_lead_nominations` (one in progress and one APPROVED per project),
+  `proplink_refuse_change()` shared refusal trigger, mandate guard against
+  ending with a live project. Server-only (RLS on, no grants).
+- `pledges.ts` (Task 4, ADR-045): `createPledge` (KYC, subscription,
+  idempotency key, friendly pre-check; the trigger is authoritative),
+  `cancelPledge` (unsigned only), funding progress, `assertNoInvestmentPayments`.
+  `shares.ts`: pure integer share maths (ppm, largest-remainder split) used
+  by the calculator (`PledgeCalculator`) and settlement.
+- Schema (migration `20261119010000`): `project_pledges`; a trigger locks the
+  project row and refuses over-subscription, below-minimum (except the final
+  slice), non-KYC investors, edits and deletes; another keeps the project
+  FUNDED exactly when fully pledged.
+- `community.ts` (Task 3, ADR-046): project membership (`isProjectMember`),
+  favourites, compare, the moderated Q&A, the Lead's anonymous co-investor
+  list. `landlordView.ts` (Task 3a): explicit-select Landlord view.
+- Chat: `ensureProjectThread` / `closeProjectThreads` / `counterpartLabel` in
+  `src/services/chat/threads.ts`; `threadAccess` re-checks project
+  membership. Pages: `/investor/projects/compare`, `/landlord/projects`
+  (+ `[id]`).
+- Schema (migration `20261119020000`): `proplink_project_member`,
+  `project_favourites`, `project_questions` (guard), chat guard admitting
+  PROJECT threads with membership checks.
+- `solicitors.ts` (Task 5, ADR-047): Admin appoints/re-sends/ends; the
+  invitation (`/invite/solicitor`, token in the fragment) and acceptance via
+  the account provisioner and a database claim; `isProjectSolicitor`,
+  `getSolicitorProject`. Portal `/solicitor` (proxy gate SOLICITOR, MFA
+  required).
+- Schema (migration `20261119030000`): `project_solicitors` (one per project,
+  one project per account, guard), `private.solicitor_invite_claims`, the
+  profile trigger's Solicitor branch, `proplink_solicitor_project()` and
+  read-only RLS policies (`authenticated`) on `investor_projects` and
+  `project_pledges`.
+- E-signature (Task 6, ADR-048): `src/services/esign/` (`ESignProvider`,
+  `DropboxSignProvider`, `MockESignProvider`; `ESIGN_PROVIDER`,
+  `ESIGN_TEST_MODE`); `agreements.ts` (prepare, shares, send, void,
+  re-issue, re-send, `processESignWebhook`, `listAgreements`,
+  `signedShares`); `POST /api/webhooks/esign`; `/esign/mock` (mock only);
+  `src/lib/pdf/simplePdf.ts` (dependency-free PDF writer);
+  `readGrantedFileBytes` in the upload pipeline.
+- Schema (migration `20261119040000`): `project_agreements` (versioned;
+  terms fixed once sent; signed PDF + SHA-256), `agreement_parties` (shares
+  in ppm, signer status), `esign_webhook_events` (append-only replay log);
+  triggers: shares 100% and every live pledge named before sending,
+  pledges binding on signature, no cancelling a pledge out for signature;
+  Solicitor RLS read policies.
+- Works (Task 7, ADR-049): `works.ts` (`projectRelation`, funds status,
+  costs with void, milestones, updates feed, Solicitor-recorded and
+  Lead-decided changes, `advanceProject`, `worksView`); UI
+  `WorksPanel` + `worksActions` on every project page.
+- Schema (migration `20261119050000`): `project_fund_statuses` (append-only),
+  `project_costs`, `project_milestones`, `project_updates` (append-only),
+  `project_changes`; `proplink_project_role()`; works need a signed agreement
+  (trigger); Solicitor RLS read policies.
+- Settlement (Task 8, ADR-050): `settlement.ts` (`recordSale`, `confirmSale`,
+  `settlementPlan`, `settleProject`, `proposeCorrection`, `decideCorrection`,
+  `ledgerView`, `partyStatement`); `GET /api/projects/[id]/statement` (PDF);
+  UI `LedgerPanel` + `settlementActions`.
+- Schema (migration `20261119060000`): `project_sales` (arithmetic CHECK,
+  guard), `distribution_ledger` (append-only incl. TRUNCATE; guard against
+  the sale, signed agreement, shares and actor; deferred balance check),
+  `ledger_corrections` (Solicitor proposes, Admin decides once); Solicitor
+  RLS read policies.
+- Decisions (Task 9, ADR-051): `decisions.ts` (`recordDecision` extend /
+  release / close, `listDecisions`, `shortfallProjects`, `isShortfall`);
+  `DecisionPanel`. Schema (migration `20261119070000`): `project_decisions`
+  (append-only; Agent or Admin only).
+- Permission matrix at `CURRENT_PHASE = 4` (ADR-051).
+- Re-listing (Phase 5 Tasks 1-1a, ADR-052): `relist.ts` (`relistProject`,
+  `markProjectSold`, `retailListingFor`); `RelistPanel`; migration
+  `20261119080000` (`ListingSource.INVESTOR_PROJECT`, `project_retail_listings`
+  with guard). AG-6 notice on `/marketplace/[id]`.
+- Negotiation (Phase 5 Task 2, ADR-053): `src/services/buyers/negotiation.ts`
+  (Agent and Buyer offer/viewing actions, counter expiry, race-safe accept,
+  history, `agentQueue`, `buyerOfferHistory`); `/agent/offers`; Buyer controls
+  on `/buy/offers` and `/buy/viewings`. Migration `20261119090000`: new
+  offer/viewing statuses, counter columns, one-accepted index,
+  `offer_events`/`viewing_events` (append-only), Buyer-only and transition
+  triggers.
+- Reviews (Phase 5 Task 4, ADR-054): `src/services/reviews/reviews.ts`
+  (`reviewOpportunities`, submit, Admin moderation, one reply, reports,
+  `ratingSummaries`, `agentRatingsByAgentProfile`); `/account/reviews` for
+  every role; `/admin/reviews`; reviews on `/u/[publicId]` and
+  `/agents/[id]`. Listing cards show the agent's verified badge and published
+  rating (computed in the search query). Migration `20261119100000`:
+  `reviews`, `review_reports`, `proplink_review_eligible()` and guard
+  triggers (qualifying pairs only; Admin-only moderation; no deletes). The
+  Sprint-era appraisal endpoint returns 410.
+- Track record (Phase 5 Task 5, ADR-055): `src/services/profiles/trackRecord.ts`
+  (properties handled, completed projects, average completion time, success
+  rate, experience; historical ROI default behind the
+  `track_record_settings` flag and `FINANCIAL_PROMOTIONS_REVIEWED`);
+  `/admin/settings/track-record`. Migration `20261119110000`.
+- Saved searches and alerts (Phase 5 Task 3, ADR-056):
+  `src/services/buyers/savedSearches.ts` (save, alerts on/off, queue, deliver,
+  unsubscribe); "Save this search" on `/buy`; saved searches on `/buy/saved`;
+  `/alerts/unsubscribe/[token]`; `GET /api/jobs/saved-search-alerts`
+  (Vercel Cron, `vercel.json`, Bearer `CRON_SECRET`). Migration
+  `20261119120000`: `SavedSearch.alertToken`/`createdAt`,
+  `saved_search_alerts` (one per search per day). Maps provider via
+  `MAPS_PROVIDER`.
+- Public SEO and safety (Phase 5 Task 6, ADR-057): `src/app/sitemap.ts` (for-sale
+  listings only, via `src/services/search/publicListings.ts`), robots points
+  at it; JSON-LD `RealEstateListing` on for-sale listing pages (public fields,
+  escaped); image optimiser allowlist (`src/lib/images.ts`, `next.config.ts`
+  `images`) matching the CSP `img-src`; boundary test keeps investor tables
+  and project services out of public surfaces.
+- Tests (Phase 5 wrap-up): Vitest projects `main` and `seeded-search`
+  (`groupOrder`), so the exact-catalogue search test runs after the database
+  tests that create live listings. Permission matrix `CURRENT_PHASE = 5`.
+- No money moves through the app; pledges are expressions of interest until
+  signed.
+
 ## Testing & CI
 
 - Unit: Vitest, `tests/unit/**` — services and pure logic; external providers
@@ -1025,8 +1299,34 @@ ADR-009/012/014) are superseded; their ADRs remain as history.
 - **Specs that write against a listing must pick a seeded one**
   (`seed-listing-*`), never "whatever sorts first" — the newest card is usually
   another spec's fixture, and writing to it is what orphans it.
-- CI (GitHub Actions): typecheck → lint → format:check → vitest; separate job
-  builds and runs Playwright. Runs once the repo is pushed to GitHub (H1.1).
+- **Without a database** (CI, a fresh checkout), `tests/setup/env.ts` sets a
+  never-connected placeholder `DATABASE_URL` so modules that import the Prisma
+  client load; integration tests recognise it and skip.
+- **Parallel database tests** (2026-11-18): every test file is its own worker
+  with its own Prisma pool, so `tests/setup/env.ts` sets
+  `DATABASE_POOL_MAX=4` (read by `src/lib/db.ts`; unset in the app, where
+  pg's default applies) to keep a full run within Postgres's connection
+  limit, and `vitest.config.ts` gives tests 30 s under that shared load.
+  Phase 4 fixtures (`tests/helpers/project-fixtures.ts`) deactivate the
+  accounts they create when a file finishes (`retirePeople`), because
+  announcement tests email every eligible member of the shared database.
+- **Known local flake (Windows):** a forked test worker occasionally exits
+  without an error ("Worker exited unexpectedly"), most often
+  `chain-notifications-db` (about 1 run in 3 alone); its tests pass whenever
+  it completes. Not reproduced with smaller pools, more pools, or closing
+  Prisma at teardown; the threads pool was worse (whole-run native crash
+  0xC0000409). Re-run the file; CI on Linux is the reference.
+- `npm run typecheck` runs `next typegen` first, so a fresh checkout (no
+  `next-env.d.ts` yet) typechecks.
+- CI (GitHub Actions, 2026-11-18), job "Typecheck, lint, unit tests, build":
+  client-secret check → `npm run audit:check` (high/critical fail unless
+  accepted with a reason and review date in `security/audit-allowlist.json`) →
+  typecheck → lint → `format:check:changed` (Prettier on files the change
+  touches; older unformatted files await one bulk reformat after the redesign
+  merges) → vitest → production build with placeholder values. Secret scanning
+  runs separately. The Playwright job runs only when the repository variable
+  `E2E_ENABLED` is `true` and the `E2E_*` secrets point at a dedicated CI
+  Supabase project (HUMAN_TASKS H7.1); otherwise it is skipped.
 
 ## Decisions log
 
@@ -1050,3 +1350,91 @@ ADR-009/012/014) are superseded; their ADRs remain as history.
 | [ADR-016](adr/ADR-016-role-portals.md)                              | Three strictly separate role portals; `/portal` role router; read-side only              |
 | [ADR-017](adr/ADR-017-buyer-portal.md)                              | Buyer portal is a marketplace; real viewing/offer/chat writes; sample price data flagged |
 | [ADR-018](adr/ADR-018-supabase-auth-and-rls-foundation.md)          | Supabase Auth UUID/CUID bridge, least-privilege RLS and Storage foundation               |
+
+## Phase 6 — Admin permissions, cases, advertising
+
+- Admin permissions (Task 2, ADR-058): `AdminPermission` enum;
+  `admin_grant_requests` and `admin_permission_grants` (migration
+  `20261120000000`, maker-checker triggers, no deletes, last super-admin
+  kept); `src/services/admin/permissions.ts`; guards
+  `requireAdminPermission`, `requireAdminPagePermission`, `adminCallerHas`
+  in `src/lib/authz`; area map `src/lib/authz/adminRoutes.ts` (also hides
+  sidebar links); `/admin/roles`. Ledger-correction decisions need
+  FINANCIAL_ADJUSTMENTS. Test fixtures grant permissions directly with
+  `grantAdminPermission` (superuser, disposable database only).
+- Cases and data requests (Task 3, ADR-059): `cases`, `case_notes`,
+  `case_evidence`, `data_export_requests` (migration `20261120010000`);
+  `src/services/admin/cases.ts` (`openOrJoinCase` used by chat and review
+  reports, `reportSubject` for listings and members) and
+  `src/services/admin/dataExport.ts`; `/admin/cases`, `/admin/cases/[id]`,
+  `/admin/privacy`, `GET /api/admin/data-exports/[id]`; `ReportPanel` on
+  listing and profile pages. E2E Admin sessions use
+  `tests/e2e/helpers/adminSession.ts` (MFA recovery grant, test only).
+- Advertising (Task 1, ADR-060): `advertiser_applications`, `advertisers`,
+  `ad_campaigns`, `ad_daily_stats` (migration `20261120020000`; enum
+  `AdPlacement`); `src/services/ads/placements.ts` (slot allowlist,
+  forbidden areas, destination checks) and `src/services/ads/ads.ts`;
+  `<AdSlot>` (`src/components/ads/AdSlot.tsx`) on the home page and the
+  Agent, Landlord and Investor dashboards only; `/advertise`;
+  `/admin/ads`; `/api/ads/click/[id]`, `/api/ads/image/[id]`; upload
+  purpose `ad_creative`.
+- Admin dashboards (Task 4, ADR-061): `/admin/system` (KPIs,
+  `src/services/admin/kpis.ts`), `/admin/system/integrations`
+  (`src/services/admin/systemHealth.ts`; modes and missing setting names,
+  never values), `/admin/system/security` (`security_event_counts`, migration
+  `20261120030000`; `recordSecurityEvent` from the proxy, sign-in,
+  webhooks and Admin permission refusals).
+- Agencies and Admin verification (Task 5, ADR-062):
+  `src/services/admin/agencies.ts` (agencies grouped by Companies House
+  company number; suspend or reactivate a whole agency);
+  `/admin/agents/agencies`; `tests/e2e/admin-a5.spec.ts` (19 Admin pages,
+  four widths, axe). Permission matrix `CURRENT_PHASE = 6`.
+
+## Phase 7 — Hardening
+
+- Client roles deny-by-default (Task 2, ADR-063): migration `20261121000000`
+  revokes all client writes and `User` reads; remaining reads are
+  policy-backed and pinned in `tests/integration/rls-audit-db.test.ts`, which
+  replaces the PostgREST parity scripts. Security docs in `docs/security/`.
+- Rate limits (Task 3, ADR-064): request-layer classes fail closed on a
+  Redis outage except read-only classes (`DEGRADE_OPEN_CLASSES`); see
+  `docs/security/RATE-LIMITS.md`.
+
+- Privacy (Task 4, ADR-065): `src/services/privacy/erasure.ts` checks legal
+  holds before `eraseUser` pseudonymises an account (self-service
+  `DELETE /api/me`, or an Admin erasure request with two-person approval,
+  `DataExportRequest.kind`); `src/services/privacy/retention.ts` runs daily
+  at `/api/jobs/retention` and deletes only short-lived operational data.
+  Compliance drafts live in `docs/compliance/`.
+
+- Resilience and performance (Task 5, ADR-066): `GET /api/health`
+  (`src/services/metrics/health.ts`, database only, 2 s timeout);
+  `src/services/admin/deliveryHealth.ts` feeds the KPIs page's email, alert
+  and webhook panels; `scripts/rehearse-rollbacks.mjs` rehearses every
+  rollback on a disposable database; `npm run test:perf`
+  (`vitest.perf.config.ts`, `tests/perf/`) measures p95 and checks plans.
+  See `docs/performance/`.
+
+- Quality gates (Task 6, ADR-067): Playwright projects `chromium` (all
+  specs), `mobile` (journeys and smoke), `firefox` and `webkit` (smoke).
+  `tests/e2e/journeys.spec.ts` walks every role's pages with heading, fit
+  and axe checks (`helpers/pageChecks.ts`); `helpers/accounts.ts` creates
+  sign-in-capable Landlord and Solicitor accounts; `visual.spec.ts` keeps
+  local screenshot baselines. Run against `APP_ORIGIN=http://localhost:3100
+npx next dev --port 3100`. `DataTable` is a focusable named region.
+
+- Owner decisions OD-27 to OD-32 (ADR-069): `isVerifiedAgent` also requires
+  `hasNewFeatureAccess` (pre-invite Agents need authorisation) and agent
+  checkout checks it; `expireMandates` / `remindMandatesEnding` run daily at
+  `/api/jobs/mandates` (04:00 UTC); mandate activation closes competing
+  chats and `returnToPool` reopens them for Admin authorisation; works
+  stages IN_WORKS and COMPLETED belong to the Lead Investor (migration
+  `20261121030000` lets the Lead add milestones and post updates); shortfall
+  release/close needs `partiesConsulted`; KPIs list Solicitor accounts to
+  close.
+
+- Deployment readiness (Task 7, ADR-070): a production build may run as
+  `PROPLINK_ENV` staging or production (never development);
+  `poweredByHeader: false`; `scripts/check-headers.mjs` verifies security
+  headers on any URL; Sentry events carry environment and release. See
+  `docs/deployment/DEPLOYMENT.md` and `docs/runbooks/`.

@@ -33,7 +33,21 @@ export type RateLimitDecision = {
   routeClass: RateLimitClass;
   retryAfterSeconds: number;
   blocked: boolean;
+  /** True when the limiter backend was unavailable and a read was let through. */
+  degraded?: boolean;
 };
+
+/**
+ * Phase 7 Task 3 (ADR-064): when the limiter backend (Upstash Redis) is down,
+ * read-only public and signed-in reads keep working ("degraded-safe") and the
+ * outage is logged; every other class — sign-in, password reset, sign-up,
+ * uploads, KYC, chat, offers and other transactions, all writes, Admin and
+ * webhooks — fails closed (503). Pledges are writes, so they fail closed.
+ */
+export const DEGRADE_OPEN_CLASSES: ReadonlySet<RateLimitClass> = new Set([
+  "public_search",
+  "authenticated_read",
+]);
 
 export class RateLimitBackendUnavailableError extends Error {
   constructor() {
@@ -69,10 +83,7 @@ export function getRateLimitRule(
     return { routeClass: "webhook", limit: 300, windowSeconds: 60 };
   }
 
-  if (
-    upperMethod === "POST" &&
-    ["/login", "/admin/login"].includes(pathname)
-  ) {
+  if (upperMethod === "POST" && ["/login", "/admin/login"].includes(pathname)) {
     return { routeClass: "login", limit: 5, windowSeconds: 15 * 60 };
   }
   if (
@@ -157,9 +168,7 @@ function hashedIdentifier(identity: string): string {
   const env = getServerEnv();
   const secret =
     env.AUTH_SECURITY_SECRET ??
-    (env.NODE_ENV === "production"
-      ? undefined
-      : "proplink-local-rate-limit-only");
+    (env.NODE_ENV === "production" ? undefined : "proplink-local-rate-limit-only");
   if (!secret) throw new RateLimitBackendUnavailableError();
   return createHmac("sha256", secret).update(identity).digest("hex");
 }
@@ -256,8 +265,21 @@ export async function enforceRequestRateLimit(
     return consumeMemoryLimit(memoryKey, rule, Date.now());
   }
 
+  const degradeOrThrow = (): RateLimitDecision => {
+    if (DEGRADE_OPEN_CLASSES.has(rule.routeClass)) {
+      return {
+        allowed: true,
+        routeClass: rule.routeClass,
+        retryAfterSeconds: 0,
+        blocked: false,
+        degraded: true,
+      };
+    }
+    throw new RateLimitBackendUnavailableError();
+  };
+
   try {
-    if (!redis) throw new RateLimitBackendUnavailableError();
+    if (!redis) return degradeOrThrow();
     const blockKey = `proplink:rate:block:${rule.routeClass}:${identifier}`;
     if (await redis.get(blockKey)) {
       return {
@@ -293,9 +315,8 @@ export async function enforceRequestRateLimit(
     }
 
     return { allowed: false, routeClass: rule.routeClass, retryAfterSeconds, blocked };
-  } catch (error) {
-    if (error instanceof RateLimitBackendUnavailableError) throw error;
-    throw new RateLimitBackendUnavailableError();
+  } catch {
+    return degradeOrThrow();
   }
 }
 

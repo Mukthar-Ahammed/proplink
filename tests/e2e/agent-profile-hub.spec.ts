@@ -58,31 +58,28 @@ test("agent adds a case study and it renders with capex/margin on the public pro
   ).toBeVisible();
 });
 
-test("an unqualified investor cannot post an appraisal (server-enforced 403)", async ({
-  page,
-}) => {
+test("appraisals are retired: no form, and the API refuses (410)", async ({ page }) => {
   const [profile] = await q<{ id: string }>(
     `SELECT id FROM "AgentProfile" WHERE "complianceCode" = $1`,
     ["PL-AG-0002"],
   );
   expect(profile).toBeTruthy();
 
-  // investor@proplink.test has no Enquiry/Deal fixtures against this agent's
-  // listings in the seed data — unqualified by construction, no setup needed.
+  // Phase 5 Task 4 (ADR-054): reviews only from completed, qualifying work,
+  // written at /account/reviews. The agency page explains the rule.
   await login(page, "investor@proplink.test", "Password123!");
   await page.goto(`/agents/${profile.id}`);
-
-  // UI: the review form is not offered, and the reason is explained instead.
-  await expect(page.getByTestId("appraisal-ineligible-reason")).toContainText(
-    "enquiry or been party to a deal",
-  );
+  await expect(page.getByTestId("review-rule")).toContainText("completed work");
   await expect(page.getByLabel("Rating")).toHaveCount(0);
 
-  // API: direct POST is rejected server-side too, not just hidden in the UI.
+  // API: the old appraisal endpoint is gone. Same-origin headers so the
+  // request passes the CSRF check and reaches the route itself.
+  const origin = new URL(page.url()).origin;
   const res = await page.request.post(`/api/agents/${profile.id}/appraisals`, {
     data: { rating: 5, review: `${RUN} — should never be created` },
+    headers: { origin, "x-proplink-request": "1" },
   });
-  expect(res.status()).toBe(403);
+  expect(res.status()).toBe(410);
 
   const rows = await q(`SELECT id FROM "Appraisal" WHERE review LIKE $1`, [`${RUN}%`]);
   expect(rows.length).toBe(0);

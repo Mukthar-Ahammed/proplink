@@ -278,6 +278,7 @@ export function ModerationQueueClient() {
               Sort Order
             </label>
             <select
+              aria-label="Sort order"
               value={sortOrder}
               onChange={(e) => handleSortChange(e.target.value as "oldest" | "newest")}
               className="w-full text-xs border border-line rounded-lg p-2 focus:ring-accent focus:border-accent"

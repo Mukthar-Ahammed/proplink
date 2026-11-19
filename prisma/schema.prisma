@@ -68,6 +68,7 @@ enum InvestorType {
 enum ListingSource {
   AGENT
   FLIPPER_RESALE
+  INVESTOR_PROJECT
 }
 
 enum PropertyStatus {
@@ -148,6 +149,9 @@ enum OfferStatus {
   ACCEPTED
   REJECTED
   WITHDRAWN
+  UNDER_REVIEW
+  COUNTER_OFFERED
+  EXPIRED
 }
 
 enum DealStage {
@@ -163,6 +167,7 @@ enum ViewingStatus {
   CONFIRMED
   DECLINED
   DONE
+  CANCELLED
 }
 
 enum PartnerCategory {
@@ -198,6 +203,7 @@ model User {
   enquiries         Enquiry[]
   savedProperties   SavedProperty[]
   savedSearches     SavedSearch[]
+  savedSearchAlerts SavedSearchAlert[]
   appraisals        Appraisal[]
   subscription      Subscription?
   offers            Offer[]
@@ -241,6 +247,28 @@ model Profile {
   agentInvitesCreated  AgentInvite[]             @relation("AgentInviteCreator")
   agentInvitesAccepted AgentInvite[]             @relation("AgentInviteAccepted")
   announcements        Announcement[]
+  reviewsWritten       Review[]                  @relation("ReviewReviewer")
+  reviewsReceived      Review[]                  @relation("ReviewSubject")
+  reviewsModerated     Review[]                  @relation("ReviewModerator")
+  reviewReports        ReviewReport[]            @relation("ReviewReporter")
+  reviewReportsResolved ReviewReport[]           @relation("ReviewReportResolver")
+  trackRecordSettings   TrackRecordSettings[]     @relation("TrackRecordSettingsEditor")
+  adminGrants           AdminPermissionGrant[]    @relation("AdminGrantHolder")
+  adminGrantRequestsFor AdminGrantRequest[]       @relation("AdminGrantTarget")
+  adminGrantRequestsBy  AdminGrantRequest[]       @relation("AdminGrantRequester")
+  adminGrantDecisions   AdminGrantRequest[]       @relation("AdminGrantDecider")
+  casesAssigned         Case[]                    @relation("CaseAssignee")
+  casesOpened           Case[]                    @relation("CaseOpener")
+  casesResolved         Case[]                    @relation("CaseResolver")
+  caseNotes             CaseNote[]                @relation("CaseNoteAuthor")
+  caseEvidence          CaseEvidence[]            @relation("CaseEvidenceAdder")
+  dataExportsAbout      DataExportRequest[]       @relation("DataExportSubject")
+  dataExportsRequested  DataExportRequest[]       @relation("DataExportRequester")
+  dataExportsDecided    DataExportRequest[]       @relation("DataExportDecider")
+  adApplicationsDecided AdvertiserApplication[]   @relation("AdApplicationDecider")
+  advertisersCreated    Advertiser[]              @relation("AdvertiserCreator")
+  adCampaignsApproved   AdCampaign[]              @relation("AdCampaignApprover")
+  adCampaignsCreated    AdCampaign[]              @relation("AdCampaignCreator")
   companyCheck         AgentCompanyCheck?        @relation("AgentCompanyCheckProfile")
   companyOverrides     AgentCompanyCheck[]       @relation("AgentCompanyCheckOverrider")
   agentMigration       AgentMigration?           @relation("AgentMigrationProfile")
@@ -256,6 +284,56 @@ model Profile {
   userProfile          UserProfile?              @relation("UserProfileProfile")
   landlordListings     LandlordListing[]         @relation("LandlordListingOwner")
   landlordListingsMade LandlordListing[]         @relation("LandlordListingCreator")
+  aiUsage              AiUsage[]                 @relation("AiUsageProfile")
+  landlordListingsHeld LandlordListing[]         @relation("LandlordListingClaimer")
+  listingReviewsMade   LandlordListingReview[]   @relation("LandlordListingReviewer")
+  agentProposals       AgentProposal[]           @relation("AgentProposalAgent")
+  proposalQuestions    AgentProposalQuestion[]   @relation("AgentProposalQuestionAsker")
+  mandatesHeld         Mandate[]                 @relation("MandateAgent")
+  mandatesEnded        Mandate[]                 @relation("MandateTerminator")
+  disclosuresSet       MandateDisclosure[]       @relation("MandateDisclosureEditor")
+  notificationsSent    NotificationDelivery[]    @relation("NotificationDeliveryProfile")
+  plansCreated         SubscriptionPlan[]        @relation("SubscriptionPlanCreator")
+  billingCustomer      BillingCustomer?          @relation("BillingCustomerProfile")
+  billingSubscriptions BillingSubscription[]     @relation("SubscriptionProfile")
+  chatThreadsAsA       ChatThread[]              @relation("ChatThreadParticipantA")
+  chatThreadsAsB       ChatThread[]              @relation("ChatThreadParticipantB")
+  chatAuthorizations   ChatAuthorization[]       @relation("ChatAuthorizationActor")
+  chatMessagesSent     ChatThreadMessage[]       @relation("ChatThreadMessageSender")
+  chatReportsMade      ChatReport[]              @relation("ChatReportReporter")
+  chatReportsResolved  ChatReport[]              @relation("ChatReportResolver")
+  projectsAsAgent      InvestorProject[]         @relation("InvestorProjectAgent")
+  projectsAsLead       InvestorProject[]         @relation("InvestorProjectLead")
+  projectsPublished    InvestorProject[]         @relation("InvestorProjectPublisher")
+  projectInterests     ProjectInterest[]         @relation("ProjectInterestInvestor")
+  leadNominations      ProjectLeadNomination[]   @relation("LeadNominationInvestor")
+  leadNominationsMade  ProjectLeadNomination[]   @relation("LeadNominationNominator")
+  leadNominationsDecided ProjectLeadNomination[] @relation("LeadNominationDecider")
+  projectPledges       ProjectPledge[]           @relation("ProjectPledgeInvestor")
+  projectFavourites    ProjectFavourite[]        @relation("ProjectFavouriteInvestor")
+  projectQuestions     ProjectQuestion[]         @relation("ProjectQuestionAsker")
+  projectAnswers       ProjectQuestion[]         @relation("ProjectQuestionAnswerer")
+  projectQuestionsHidden ProjectQuestion[]       @relation("ProjectQuestionModerator")
+  solicitorAppointment ProjectSolicitor?         @relation("ProjectSolicitorProfile")
+  solicitorsInvited    ProjectSolicitor[]        @relation("ProjectSolicitorInviter")
+  solicitorsEnded      ProjectSolicitor[]        @relation("ProjectSolicitorEnder")
+  agreementsPrepared   ProjectAgreement[]        @relation("ProjectAgreementCreator")
+  agreementParties     AgreementParty[]          @relation("AgreementPartyProfile")
+  fundStatusesRecorded ProjectFundStatus[]       @relation("ProjectFundStatusRecorder")
+  costsRecorded        ProjectCost[]             @relation("ProjectCostRecorder")
+  costsVoided          ProjectCost[]             @relation("ProjectCostVoider")
+  milestonesCreated    ProjectMilestone[]        @relation("ProjectMilestoneCreator")
+  projectUpdates       ProjectUpdate[]           @relation("ProjectUpdateAuthor")
+  changesRecorded      ProjectChange[]           @relation("ProjectChangeRecorder")
+  changesDecided       ProjectChange[]           @relation("ProjectChangeDecider")
+  salesRecorded        ProjectSale[]             @relation("ProjectSaleRecorder")
+  salesConfirmed       ProjectSale[]             @relation("ProjectSaleConfirmer")
+  ledgerEntries        DistributionLedgerEntry[] @relation("LedgerEntryParty")
+  ledgerEntriesMade    DistributionLedgerEntry[] @relation("LedgerEntryActor")
+  correctionsProposed  LedgerCorrection[]        @relation("LedgerCorrectionProposer")
+  correctionsDecided   LedgerCorrection[]        @relation("LedgerCorrectionDecider")
+  projectDecisions     ProjectDecision[]         @relation("ProjectDecisionMaker")
+  retailListingsMade   ProjectRetailListing[]    @relation("ProjectRetailListingCreator")
 
   @@map("profiles")
 }
@@ -367,6 +445,7 @@ model Property {
   flipperAcquisitions  FlipperAcquisition[]
   flipperProjects      FlipperProject[]
   flipperResales       FlipperResale[]
+  retailProject        ProjectRetailListing?
 
   @@index([status])
   @@index([agentProfileId])
@@ -503,10 +582,15 @@ model SavedSearch {
   paramsJson    Json
   alertsEnabled Boolean @default(false)
   lastAlertAt   DateTime?
+  /// Phase 5 Task 3 (ADR-056): unsubscribe links carry this random token.
+  alertToken    String?   @unique
+  createdAt     DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user   User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  alerts SavedSearchAlert[]
 
   @@index([userId])
+  @@index([alertsEnabled])
 }
 
 model CaseStudy {
@@ -572,10 +656,15 @@ model Offer {
   amountGBP   Int // pence
   status      OfferStatus @default(SUBMITTED)
   createdAt   DateTime    @default(now())
+  /// Phase 5 (ADR-053): the Agent's counter-offer, and when it lapses.
+  counterAmountGBP Int?
+  expiresAt   DateTime?
+  updatedAt   DateTime    @default(now()) @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id])
   buyer    User     @relation(fields: [buyerUserId], references: [id])
   deals    Deal[]
+  events   OfferEvent[]
 
   @@index([propertyId])
   @@index([buyerUserId])
@@ -602,9 +691,12 @@ model Viewing {
   slotStart   DateTime
   slotEnd     DateTime
   status      ViewingStatus @default(REQUESTED)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
 
   property Property @relation(fields: [propertyId], references: [id])
   buyer    User     @relation(fields: [buyerUserId], references: [id])
+  events   ViewingEvent[]
 
   @@index([propertyId])
   @@index([buyerUserId])
@@ -1239,9 +1331,14 @@ model UploadedFile {
   updatedAt       DateTime     @updatedAt
 
   owner Profile @relation("UploadedFileOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  mandateContracts Mandate[] @relation("MandateTermsFile")
+  chatAttachments ChatMessageAttachment[]
+  adCampaigns     AdCampaign[]            @relation("AdCampaignImage")
 
   @@index([ownerId, status])
   @@map("uploaded_files")
+  agreementDrafts      ProjectAgreement[]        @relation("ProjectAgreementDraft")
+  agreementsSigned     ProjectAgreement[]        @relation("ProjectAgreementSigned")
 }
 
 /// Admin-managed upload limits (single row, id = 1).
@@ -1338,15 +1435,24 @@ model LandlordListing {
   reviewedAt      DateTime?
   reviewedBy      String?                 @db.Uuid
   withdrawnAt     DateTime?
+  /// Admin holding the listing for review (Phase 2 Task 3); cleared when it leaves SUBMITTED.
+  claimedBy       String?                 @db.Uuid
+  claimedAt       DateTime?
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
 
   owner   Profile               @relation("LandlordListingOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   creator Profile               @relation("LandlordListingCreator", fields: [createdBy], references: [id])
+  claimer Profile?              @relation("LandlordListingClaimer", fields: [claimedBy], references: [id], onDelete: Restrict)
   files   LandlordListingFile[]
+  reviews LandlordListingReview[]
+  proposals AgentProposal[]
+  mandates  Mandate[]
+  projects  InvestorProject[]
 
   @@index([ownerId, status])
   @@index([status, submittedAt])
+  @@index([claimedBy])
   @@map("landlord_listings")
 }
 
@@ -1369,4 +1475,1575 @@ model LandlordListingFile {
 
   @@id([listingId, fileId])
   @@map("landlord_listing_files")
+}
+
+/// Lifecycle of one AI call's budget entry (Phase 2 Task 2, ADR-036).
+enum AiUsageStatus {
+  RESERVED
+  COMPLETED
+  FAILED
+}
+
+/// AI usage ledger: token counts only, never prompt or response text.
+/// A row reserves the call's worst case against the daily budgets, then
+/// records the actual usage.
+model AiUsage {
+  id             String        @id @db.Uuid
+  profileId      String        @db.Uuid
+  feature        String
+  provider       String
+  model          String
+  status         AiUsageStatus @default(RESERVED)
+  reservedTokens Int
+  inputTokens    Int?
+  outputTokens   Int?
+  createdAt      DateTime      @default(now())
+  completedAt    DateTime?
+
+  profile Profile @relation("AiUsageProfile", fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([profileId, createdAt])
+  @@map("ai_usage")
+}
+
+enum LandlordListingReviewDecision {
+  APPROVED
+  REJECTED
+}
+
+/// Append-only history of Admin review decisions (Phase 2 Task 3, ADR-037).
+/// `submittedAt` is copied from the listing at decision time, so the SLA
+/// history survives a reject-and-resubmit.
+model LandlordListingReview {
+  id          String                        @id @db.Uuid
+  listingId   String                        @db.Uuid
+  reviewerId  String                        @db.Uuid
+  decision    LandlordListingReviewDecision
+  reason      String?
+  submittedAt DateTime
+  decidedAt   DateTime                      @default(now())
+
+  listing  LandlordListing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  reviewer Profile         @relation("LandlordListingReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+
+  @@index([decidedAt])
+  @@index([listingId, decidedAt])
+  @@map("landlord_listing_reviews")
+}
+
+enum AgentProposalStatus {
+  SUBMITTED
+  WITHDRAWN
+  DECLINED
+  SELECTED
+}
+
+enum AgentProposalFeeType {
+  PERCENT
+  FIXED
+}
+
+/// An Agent's structured proposal on an approved Landlord listing (Phase 2
+/// Task 5, ADR-038). Money is integer pence.
+model AgentProposal {
+  id             String               @id @db.Uuid
+  listingId      String               @db.Uuid
+  agentId        String               @db.Uuid
+  status         AgentProposalStatus  @default(SUBMITTED)
+  valuationGBP   BigInt
+  feeType        AgentProposalFeeType
+  /// 150 = 1.5%, when feeType = PERCENT.
+  feeBasisPoints Int?
+  /// Pence, when feeType = FIXED.
+  feeGBP         BigInt?
+  contractMonths Int
+  terms          String
+  pitch          String
+  submittedAt    DateTime             @default(now())
+  withdrawnAt    DateTime?
+  declinedAt     DateTime?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  listing   LandlordListing         @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  agent     Profile                 @relation("AgentProposalAgent", fields: [agentId], references: [id], onDelete: Restrict)
+  questions AgentProposalQuestion[]
+  mandates  Mandate[]
+
+  @@unique([listingId, agentId])
+  @@index([listingId, status])
+  @@index([agentId])
+  @@map("agent_proposals")
+}
+
+/// Structured Q&A on a proposal: the Landlord asks, the Agent answers once.
+model AgentProposalQuestion {
+  id         String    @id @db.Uuid
+  proposalId String    @db.Uuid
+  askedBy    String    @db.Uuid
+  question   String
+  answer     String?
+  createdAt  DateTime  @default(now())
+  answeredAt DateTime?
+
+  proposal AgentProposal @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  asker    Profile       @relation("AgentProposalQuestionAsker", fields: [askedBy], references: [id], onDelete: Restrict)
+
+  @@index([proposalId, createdAt])
+  @@map("agent_proposal_questions")
+}
+
+/// Exclusive mandate lifecycle (Phase 2 Task 6, ADR-039). OFFERED: the
+/// Landlord chose this Agent's proposal; ACTIVE: the Agent accepted.
+enum MandateStatus {
+  OFFERED
+  ACTIVE
+  DECLINED
+  WITHDRAWN
+  TERMINATED
+  CLOSED
+}
+
+/// Strictly exclusive (Q8): at most one OFFERED or ACTIVE mandate per listing
+/// (partial unique index in the migration). Agreed terms are copied from the
+/// chosen proposal and never change. Money is integer pence.
+model Mandate {
+  id                String               @id @db.Uuid
+  listingId         String               @db.Uuid
+  agentId           String               @db.Uuid
+  proposalId        String               @db.Uuid
+  status            MandateStatus        @default(OFFERED)
+  valuationGBP      BigInt
+  feeType           AgentProposalFeeType
+  feeBasisPoints    Int?
+  feeGBP            BigInt?
+  contractMonths    Int
+  terms             String
+  renewalTerms      String?
+  termsFileId       String?              @db.Uuid
+  offeredAt         DateTime             @default(now())
+  respondedAt       DateTime?
+  acceptedAt        DateTime?
+  /// acceptedAt + contractMonths: the Landlord may close the mandate from then.
+  endsAt            DateTime?
+  terminatedAt      DateTime?
+  terminatedBy      String?              @db.Uuid
+  terminationReason String?
+  closedAt          DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  listing    LandlordListing @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  agent      Profile         @relation("MandateAgent", fields: [agentId], references: [id], onDelete: Restrict)
+  proposal   AgentProposal   @relation(fields: [proposalId], references: [id], onDelete: Restrict)
+  terminator Profile?        @relation("MandateTerminator", fields: [terminatedBy], references: [id], onDelete: Restrict)
+  termsFile  UploadedFile?   @relation("MandateTermsFile", fields: [termsFileId], references: [id], onDelete: Restrict)
+  disclosure MandateDisclosure?
+  project    InvestorProject?
+
+  @@index([listingId, status])
+  @@index([agentId, status])
+  @@index([proposalId])
+  @@map("mandates")
+}
+
+/// What investors will see of the Landlord's data when the mandated Agent
+/// publishes (Phase 2 Task 7, ADR-040; TRD AG-7). Defaults hide the
+/// Landlord's personal details; contact details and ownership documents have
+/// no column because they are never exposable.
+model MandateDisclosure {
+  mandateId          String   @id @db.Uuid
+  showLandlordName   Boolean  @default(false)
+  showStreetAddress  Boolean  @default(false)
+  showFullPostcode   Boolean  @default(false)
+  showDescription    Boolean  @default(true)
+  showDefects        Boolean  @default(true)
+  showRequiredWork   Boolean  @default(true)
+  showPhotos         Boolean  @default(true)
+  showOtherDocuments Boolean  @default(false)
+  updatedBy          String   @db.Uuid
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  mandate Mandate @relation(fields: [mandateId], references: [id], onDelete: Restrict)
+  editor  Profile @relation("MandateDisclosureEditor", fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@map("mandate_disclosures")
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  SKIPPED
+  FAILED
+}
+
+/// Chain announcement deliveries (Phase 2 Task 8, ADR-041). Unique per
+/// recipient, event, dedupe key and channel, so nobody is told the same thing
+/// twice. Outcome only, never the message.
+model NotificationDelivery {
+  id        String                     @id @db.Uuid
+  profileId String                     @db.Uuid
+  eventKey  String
+  dedupeKey String
+  channel   String                     @default("email")
+  status    NotificationDeliveryStatus @default(PENDING)
+  createdAt DateTime                   @default(now())
+  updatedAt DateTime                   @updatedAt
+
+  profile Profile @relation("NotificationDeliveryProfile", fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, eventKey, dedupeKey, channel], map: "notification_deliveries_dedupe_key")
+  @@index([createdAt])
+  @@map("notification_deliveries")
+}
+
+/// Who pays (Clarification Answers §D): Agents, Lead Investors, Co-Investors.
+enum SubscriptionAudience {
+  AGENT
+  LEAD_INVESTOR
+  CO_INVESTOR
+}
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+/// Mirrors the provider's subscription status (Stripe values, upper case).
+enum SubscriptionStatus {
+  INCOMPLETE
+  INCOMPLETE_EXPIRED
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  UNPAID
+  PAUSED
+}
+
+/// Admin-managed price (Phase 3 Task 1, ADR-042; OD-01). Provider prices are
+/// immutable: a change retires this row and adds a new one.
+model SubscriptionPlan {
+  id              String               @id @db.Uuid
+  audience        SubscriptionAudience
+  interval        BillingInterval
+  /// Pence.
+  amountGBP       Int
+  provider        String
+  providerPriceId String               @unique
+  active          Boolean              @default(true)
+  createdBy       String               @db.Uuid
+  createdAt       DateTime             @default(now())
+  retiredAt       DateTime?
+
+  creator Profile @relation("SubscriptionPlanCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("subscription_plans")
+}
+
+/// Singleton (id = 1): grace period after a failed payment.
+model BillingSettings {
+  id        Int      @id @default(1)
+  graceDays Int      @default(7)
+  updatedAt DateTime @updatedAt
+  updatedBy String?  @db.Uuid
+
+  @@map("billing_settings")
+}
+
+model BillingCustomer {
+  profileId          String   @id @db.Uuid
+  provider           String
+  providerCustomerId String   @unique
+  createdAt          DateTime @default(now())
+
+  profile Profile @relation("BillingCustomerProfile", fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@map("billing_customers")
+}
+
+/// Written only by the verified webhook handler. (The legacy `Subscription`
+/// model above is the earlier business model's tiered Agent plan.)
+model BillingSubscription {
+  id                     String               @id @db.Uuid
+  profileId              String               @db.Uuid
+  audience               SubscriptionAudience
+  interval               BillingInterval
+  provider               String
+  providerSubscriptionId String               @unique
+  providerPriceId        String
+  status                 SubscriptionStatus
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean              @default(false)
+  pastDueSince           DateTime?
+  lastEventAt            DateTime
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
+
+  profile Profile @relation("SubscriptionProfile", fields: [profileId], references: [id], onDelete: Restrict)
+
+  @@index([profileId, audience])
+  @@index([status])
+  @@map("subscriptions")
+}
+
+/// Webhook idempotency: recorded in the same transaction that applies it.
+model BillingWebhookEvent {
+  eventId        String   @id
+  provider       String
+  type           String
+  eventCreatedAt DateTime
+  receivedAt     DateTime @default(now())
+
+  @@map("billing_webhook_events")
+}
+
+enum ChatContextType {
+  PRIVATE_LISTING
+  PROJECT
+  RETAIL_LISTING
+}
+
+enum ChatPairType {
+  LANDLORD_AGENT
+  AGENT_INVESTOR
+  LEAD_CO_INVESTOR
+  BUYER_AGENT
+}
+
+/// Stored state. "Read-only" is computed: an AUTHORIZED thread is read-only
+/// while a participant who must pay has a lapsed subscription (ADR-043).
+enum ChatThreadStatus {
+  PENDING
+  AUTHORIZED
+  CLOSED
+}
+
+enum ChatAuthorizationAction {
+  REQUESTED
+  APPROVED
+  REJECTED
+  REVOKED
+  CLOSED
+  REOPENED
+}
+
+enum ChatReportStatus {
+  OPEN
+  RESOLVED
+}
+
+/// One-to-one, context-bound chat (Phase 3, ADR-043). The pair matrix, two
+/// distinct people and each participant's relationship to the context are
+/// enforced in the database.
+model ChatThread {
+  id                    String           @id @db.Uuid
+  contextType           ChatContextType
+  contextId             String
+  pairType              ChatPairType
+  participantA          String           @db.Uuid
+  participantB          String           @db.Uuid
+  status                ChatThreadStatus @default(PENDING)
+  requiresAuthorization Boolean          @default(true)
+  authorizedAt          DateTime?
+  closedAt              DateTime?
+  closedReason          String?
+  lastMessageAt         DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  a              Profile             @relation("ChatThreadParticipantA", fields: [participantA], references: [id], onDelete: Restrict)
+  b              Profile             @relation("ChatThreadParticipantB", fields: [participantB], references: [id], onDelete: Restrict)
+  authorizations ChatAuthorization[]
+  messages       ChatThreadMessage[]
+  reports        ChatReport[]
+
+  @@unique([contextType, contextId, participantA, participantB], map: "chat_threads_context_pair_key")
+  @@index([participantA])
+  @@index([participantB])
+  @@index([status, createdAt])
+  @@map("chat_threads")
+}
+
+/// Append-only history of who requested, approved, rejected, revoked or closed.
+model ChatAuthorization {
+  id        String                  @id @db.Uuid
+  threadId  String                  @db.Uuid
+  action    ChatAuthorizationAction
+  actorId   String?                 @db.Uuid
+  reason    String?
+  createdAt DateTime                @default(now())
+
+  thread ChatThread @relation(fields: [threadId], references: [id], onDelete: Restrict)
+  actor  Profile?   @relation("ChatAuthorizationActor", fields: [actorId], references: [id], onDelete: Restrict)
+
+  @@index([threadId, createdAt])
+  @@map("chat_authorizations")
+}
+
+/// Never edited or deleted; only the recipient's read time is set once.
+model ChatThreadMessage {
+  id              String    @id @db.Uuid
+  threadId        String    @db.Uuid
+  senderId        String    @db.Uuid
+  body            String
+  /// Client idempotency key: a retried send is the same message.
+  clientMessageId String
+  createdAt       DateTime  @default(now())
+  readAt          DateTime?
+
+  thread      ChatThread              @relation(fields: [threadId], references: [id], onDelete: Restrict)
+  sender      Profile                 @relation("ChatThreadMessageSender", fields: [senderId], references: [id], onDelete: Restrict)
+  attachments ChatMessageAttachment[]
+
+  @@unique([threadId, senderId, clientMessageId], map: "chat_thread_messages_idempotency_key")
+  @@index([threadId, createdAt])
+  @@map("chat_thread_messages")
+}
+
+model ChatMessageAttachment {
+  messageId String   @db.Uuid
+  fileId    String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  message ChatThreadMessage @relation(fields: [messageId], references: [id], onDelete: Restrict)
+  file    UploadedFile      @relation(fields: [fileId], references: [id], onDelete: Restrict)
+
+  @@id([messageId, fileId])
+  @@index([fileId])
+  @@map("chat_message_attachments")
+}
+
+model ChatReport {
+  id         String           @id @db.Uuid
+  threadId   String           @db.Uuid
+  reporterId String           @db.Uuid
+  reason     String
+  status     ChatReportStatus @default(OPEN)
+  resolution String?
+  resolvedBy String?          @db.Uuid
+  resolvedAt DateTime?
+  createdAt  DateTime         @default(now())
+
+  thread   ChatThread @relation(fields: [threadId], references: [id], onDelete: Restrict)
+  reporter Profile    @relation("ChatReportReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  resolver Profile?   @relation("ChatReportResolver", fields: [resolvedBy], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt])
+  @@map("chat_reports")
+}
+
+// ── Phase 4 Tasks 1-2: investor projects and Lead assignment (ADR-044) ──
+
+enum InvestorProjectStatus {
+  PUBLISHED
+  OPEN_FOR_INVESTMENT
+  FUNDED
+  IN_WORKS
+  COMPLETED
+  LISTED_FOR_SALE
+  SOLD
+  CLOSED
+}
+
+enum InvestorProjectMode {
+  REFURBISHMENT
+  DEVELOPMENT_JV
+}
+
+enum LeadNominationStatus {
+  NOMINATED
+  ACCEPTED
+  APPROVED
+  DECLINED
+  REJECTED
+  WITHDRAWN
+}
+
+/// A project published to investors from an ACTIVE mandate (TRD AG-5). The
+/// investor page is built from the mandate's disclosure (ADR-040), never from
+/// the raw listing. Money in pence. Guarded by triggers (transitions, terms
+/// fixed once open, Lead set once from an approved nomination).
+model InvestorProject {
+  id                 String                @id @db.Uuid
+  mandateId          String                @unique @db.Uuid
+  listingId          String                @db.Uuid
+  agentId            String                @db.Uuid
+  mode               InvestorProjectMode   @default(REFURBISHMENT)
+  status             InvestorProjectStatus @default(PUBLISHED)
+  title              String
+  summary            String
+  capitalRequiredGBP BigInt
+  minimumPledgeGBP   BigInt
+  fundingDeadline    DateTime
+  purchaseGBP        BigInt
+  marketValueGBP     BigInt
+  /// Shown only when FINANCIAL_PROMOTIONS_REVIEWED is true.
+  expectedProfitGBP  BigInt?
+  expectedMonths     Int?
+  leadInvestorId     String?               @db.Uuid
+  leadConfirmedAt    DateTime?
+  publishedBy        String                @db.Uuid
+  publishedAt        DateTime              @default(now())
+  statusChangedAt    DateTime              @default(now())
+  closedReason       String?
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  mandate     Mandate                 @relation(fields: [mandateId], references: [id], onDelete: Restrict)
+  listing     LandlordListing         @relation(fields: [listingId], references: [id], onDelete: Restrict)
+  agent       Profile                 @relation("InvestorProjectAgent", fields: [agentId], references: [id], onDelete: Restrict)
+  lead        Profile?                @relation("InvestorProjectLead", fields: [leadInvestorId], references: [id], onDelete: Restrict)
+  publisher   Profile                 @relation("InvestorProjectPublisher", fields: [publishedBy], references: [id], onDelete: Restrict)
+  interests   ProjectInterest[]
+  nominations ProjectLeadNomination[]
+  pledges     ProjectPledge[]
+  favourites  ProjectFavourite[]
+  questions   ProjectQuestion[]
+  solicitors  ProjectSolicitor[]
+  agreements  ProjectAgreement[]
+  fundStatuses ProjectFundStatus[]
+  costs       ProjectCost[]
+  milestones  ProjectMilestone[]
+  updates     ProjectUpdate[]
+  changes     ProjectChange[]
+  sale        ProjectSale?
+  ledger      DistributionLedgerEntry[]
+  corrections LedgerCorrection[]
+  decisions   ProjectDecision[]
+  retailListing ProjectRetailListing?
+
+  @@index([status, publishedAt])
+  @@index([agentId])
+  @@index([leadInvestorId])
+  @@map("investor_projects")
+}
+
+model ProjectInterest {
+  id          String    @id @db.Uuid
+  projectId   String    @db.Uuid
+  investorId  String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  withdrawnAt DateTime?
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investor Profile         @relation("ProjectInterestInvestor", fields: [investorId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, investorId])
+  @@index([investorId])
+  @@map("project_interests")
+}
+
+/// OD-13: Agent nominates → nominee accepts → Admin approves. One live
+/// nomination and one APPROVED per project (partial unique indexes).
+model ProjectLeadNomination {
+  id          String               @id @db.Uuid
+  projectId   String               @db.Uuid
+  investorId  String               @db.Uuid
+  nominatedBy String               @db.Uuid
+  status      LeadNominationStatus @default(NOMINATED)
+  nominatedAt DateTime             @default(now())
+  respondedAt DateTime?
+  decidedAt   DateTime?
+  decidedBy   String?              @db.Uuid
+  reason      String?
+  updatedAt   DateTime             @updatedAt
+
+  project   InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investor  Profile         @relation("LeadNominationInvestor", fields: [investorId], references: [id], onDelete: Restrict)
+  nominator Profile         @relation("LeadNominationNominator", fields: [nominatedBy], references: [id], onDelete: Restrict)
+  decider   Profile?        @relation("LeadNominationDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@index([investorId])
+  @@index([status, nominatedAt])
+  @@map("project_lead_nominations")
+}
+
+// ── Phase 4 Task 4: pledges (ADR-045) ──
+
+enum PledgeState {
+  PLEDGED
+  BINDING
+  CANCELLED
+  RELEASED
+}
+
+/// An expression of interest until the agreement is signed (BINDING). No money
+/// moves through the app. A trigger locks the project row on every write so
+/// live pledges never exceed the capital required; another keeps the project
+/// FUNDED exactly when they reach it.
+model ProjectPledge {
+  id             String      @id @db.Uuid
+  projectId      String      @db.Uuid
+  investorId     String      @db.Uuid
+  amountGBP      BigInt
+  status         PledgeState @default(PLEDGED)
+  idempotencyKey String
+  createdAt      DateTime    @default(now())
+  bindingAt      DateTime?
+  endedAt        DateTime?
+  endedReason    String?
+  updatedAt      DateTime    @updatedAt
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  investor Profile         @relation("ProjectPledgeInvestor", fields: [investorId], references: [id], onDelete: Restrict)
+  agreementParties AgreementParty[]
+  fundStatuses     ProjectFundStatus[]
+
+  @@unique([investorId, idempotencyKey])
+  @@index([projectId, status])
+  @@index([investorId])
+  @@map("project_pledges")
+}
+
+// ── Phase 4 Task 3: Investor Portal (ADR-046) ──
+
+model ProjectFavourite {
+  investorId String   @db.Uuid
+  projectId  String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  investor Profile         @relation("ProjectFavouriteInvestor", fields: [investorId], references: [id], onDelete: Cascade)
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+
+  @@id([investorId, projectId])
+  @@index([projectId])
+  @@map("project_favourites")
+}
+
+enum ProjectQuestionStatus {
+  OPEN
+  ANSWERED
+  HIDDEN
+}
+
+/// Project Q&A: asked by the project's investors, answered once by its Agent,
+/// visible to its investors (askers anonymous to each other); Admin may hide.
+model ProjectQuestion {
+  id           String                @id @db.Uuid
+  projectId    String                @db.Uuid
+  askerId      String                @db.Uuid
+  body         String
+  status       ProjectQuestionStatus @default(OPEN)
+  answer       String?
+  answeredBy   String?               @db.Uuid
+  answeredAt   DateTime?
+  hiddenBy     String?               @db.Uuid
+  hiddenAt     DateTime?
+  hiddenReason String?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  project   InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  asker     Profile         @relation("ProjectQuestionAsker", fields: [askerId], references: [id], onDelete: Restrict)
+  answerer  Profile?        @relation("ProjectQuestionAnswerer", fields: [answeredBy], references: [id], onDelete: Restrict)
+  moderator Profile?        @relation("ProjectQuestionModerator", fields: [hiddenBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, status, createdAt])
+  @@index([askerId])
+  @@map("project_questions")
+}
+
+// ── Phase 4 Task 5: Solicitor accounts (ADR-047) ──
+
+enum ProjectSolicitorStatus {
+  INVITED
+  ACTIVE
+  CLOSED
+  REVOKED
+}
+
+/// One Solicitor account per project (Admin-created, expiring single-use
+/// invitation, mandatory MFA). The profile is bound to this one project.
+model ProjectSolicitor {
+  id          String                 @id @db.Uuid
+  projectId   String                 @db.Uuid
+  profileId   String?                @unique @db.Uuid
+  email       String
+  name        String
+  firm        String
+  status      ProjectSolicitorStatus @default(INVITED)
+  tokenHash   String                 @unique
+  expiresAt   DateTime
+  invitedBy   String                 @db.Uuid
+  invitedAt   DateTime               @default(now())
+  acceptedAt  DateTime?
+  endedAt     DateTime?
+  endedBy     String?                @db.Uuid
+  endedReason String?
+  updatedAt   DateTime               @updatedAt
+
+  project InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  profile Profile?        @relation("ProjectSolicitorProfile", fields: [profileId], references: [id], onDelete: Restrict)
+  inviter Profile         @relation("ProjectSolicitorInviter", fields: [invitedBy], references: [id], onDelete: Restrict)
+  ender   Profile?        @relation("ProjectSolicitorEnder", fields: [endedBy], references: [id], onDelete: Restrict)
+
+  @@index([email])
+  @@map("project_solicitors")
+}
+
+// ── Phase 4 Task 6: agreements and e-signature (ADR-048) ──
+
+enum AgreementStatus {
+  DRAFT
+  SENT
+  SIGNED
+  DECLINED
+  EXPIRED
+  VOIDED
+}
+
+enum AgreementPartyRole {
+  INVESTOR
+  LANDLORD
+  AGENT
+}
+
+enum AgreementSignerStatus {
+  PENDING
+  SIGNED
+  DECLINED
+}
+
+/// A versioned project agreement prepared by the project's Solicitor. Signed
+/// through the e-signature provider; the signed PDF is stored privately with
+/// its SHA-256. Loss allocation and cancellation payment are agreement terms
+/// stored as written (OD-06), never computed.
+model ProjectAgreement {
+  id                     String          @id @db.Uuid
+  projectId              String          @db.Uuid
+  version                Int
+  title                  String
+  draftFileId            String          @db.Uuid
+  status                 AgreementStatus @default(DRAFT)
+  provider               String?
+  envelopeId             String?
+  testMode               Boolean         @default(true)
+  sentAt                 DateTime?
+  completedAt            DateTime?
+  signedFileId           String?         @db.Uuid
+  signedSha256           String?
+  lossAllocation         String
+  cancellationPaymentGBP BigInt?
+  cancellationTerms      String?
+  otherTerms             String?
+  createdBy              String          @db.Uuid
+  endedReason            String?
+  createdAt              DateTime        @default(now())
+  updatedAt              DateTime        @updatedAt
+
+  project    InvestorProject  @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  draftFile  UploadedFile     @relation("ProjectAgreementDraft", fields: [draftFileId], references: [id], onDelete: Restrict)
+  signedFile UploadedFile?    @relation("ProjectAgreementSigned", fields: [signedFileId], references: [id], onDelete: Restrict)
+  creator    Profile          @relation("ProjectAgreementCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  parties    AgreementParty[]
+  ledger     DistributionLedgerEntry[]
+
+  @@unique([projectId, version])
+  @@map("project_agreements")
+}
+
+/// A signatory. sharePpm is the party's share of the project in parts per
+/// million (0 = signs without an economic interest).
+model AgreementParty {
+  id               String                @id @db.Uuid
+  agreementId      String                @db.Uuid
+  profileId        String                @db.Uuid
+  partyRole        AgreementPartyRole
+  sharePpm         BigInt
+  pledgeId         String?               @db.Uuid
+  signerStatus     AgreementSignerStatus @default(PENDING)
+  providerSignerId String?
+  signedAt         DateTime?
+  declinedAt       DateTime?
+  createdAt        DateTime              @default(now())
+
+  agreement ProjectAgreement @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  profile   Profile          @relation("AgreementPartyProfile", fields: [profileId], references: [id], onDelete: Restrict)
+  pledge    ProjectPledge?   @relation(fields: [pledgeId], references: [id], onDelete: Restrict)
+
+  @@unique([agreementId, profileId])
+  @@index([profileId])
+  @@map("agreement_parties")
+}
+
+/// Verified e-signature events (replay protection); append-only.
+model ESignWebhookEvent {
+  id         String
+  provider   String
+  envelopeId String
+  type       String
+  occurredAt DateTime
+  receivedAt DateTime @default(now())
+
+  @@id([provider, id])
+  @@map("esign_webhook_events")
+}
+
+// ── Phase 4 Task 7: funds status, costs, milestones, updates, changes (ADR-049) ──
+
+enum FundStatus {
+  AWAITING
+  RECEIVED
+  PART_RECEIVED
+  RETURNED
+}
+
+enum ProjectCostCategory {
+  MATERIALS
+  CONTRACTOR
+  AGENT_FEES
+  LEGAL_FEES
+  TAXES
+  OTHER
+}
+
+enum ProjectMilestoneStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum ProjectUpdateAudience {
+  INVESTORS
+  INVESTORS_AND_LANDLORD
+}
+
+enum ProjectChangeKind {
+  BUDGET
+  TIMELINE
+  SCOPE
+}
+
+enum ProjectChangeStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+}
+
+/// What the Solicitor's client account received for a pledge (status only;
+/// nothing moves through PropLink). Append-only history; latest wins.
+model ProjectFundStatus {
+  id          String     @id @db.Uuid
+  projectId   String     @db.Uuid
+  pledgeId    String     @db.Uuid
+  status      FundStatus
+  receivedGBP BigInt?
+  note        String?
+  recordedBy  String     @db.Uuid
+  recordedAt  DateTime   @default(now())
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  pledge   ProjectPledge   @relation(fields: [pledgeId], references: [id], onDelete: Restrict)
+  recorder Profile         @relation("ProjectFundStatusRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+
+  @@index([pledgeId, recordedAt])
+  @@index([projectId])
+  @@map("project_fund_statuses")
+}
+
+/// An itemised cost. Never edited: voided with a reason and recorded again.
+model ProjectCost {
+  id          String              @id @db.Uuid
+  projectId   String              @db.Uuid
+  category    ProjectCostCategory
+  description String
+  amountGBP   BigInt
+  incurredOn  DateTime            @db.Date
+  recordedBy  String              @db.Uuid
+  createdAt   DateTime            @default(now())
+  voidedAt    DateTime?
+  voidedBy    String?             @db.Uuid
+  voidReason  String?
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  recorder Profile         @relation("ProjectCostRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  voider   Profile?        @relation("ProjectCostVoider", fields: [voidedBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, incurredOn])
+  @@map("project_costs")
+}
+
+model ProjectMilestone {
+  id          String                 @id @db.Uuid
+  projectId   String                 @db.Uuid
+  title       String
+  status      ProjectMilestoneStatus @default(PLANNED)
+  dueOn       DateTime?              @db.Date
+  completedAt DateTime?
+  createdBy   String                 @db.Uuid
+  createdAt   DateTime               @default(now())
+  updatedAt   DateTime               @updatedAt
+
+  project InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  creator Profile         @relation("ProjectMilestoneCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, createdAt])
+  @@map("project_milestones")
+}
+
+/// The project's in-app feed (append-only); some updates also reach the Landlord.
+model ProjectUpdate {
+  id        String                @id @db.Uuid
+  projectId String                @db.Uuid
+  authorId  String                @db.Uuid
+  audience  ProjectUpdateAudience @default(INVESTORS)
+  title     String
+  body      String
+  createdAt DateTime              @default(now())
+
+  project InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  author  Profile         @relation("ProjectUpdateAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([projectId, createdAt])
+  @@map("project_updates")
+}
+
+/// A budget, timeline or scope change: recorded by the Solicitor, decided by
+/// the Lead Investor (executive authority, Q20-Q23).
+model ProjectChange {
+  id              String              @id @db.Uuid
+  projectId       String              @db.Uuid
+  kind            ProjectChangeKind
+  summary         String
+  budgetDeltaGBP  BigInt?
+  newCompletionOn DateTime?           @db.Date
+  status          ProjectChangeStatus @default(PROPOSED)
+  recordedBy      String              @db.Uuid
+  recordedAt      DateTime            @default(now())
+  decidedBy       String?             @db.Uuid
+  decidedAt       DateTime?
+  decisionNote    String?
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  recorder Profile         @relation("ProjectChangeRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  decider  Profile?        @relation("ProjectChangeDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, recordedAt])
+  @@map("project_changes")
+}
+
+// ── Phase 4 Task 8: sale record and distribution ledger (ADR-050) ──
+
+enum ProjectSaleStatus {
+  RECORDED
+  CONFIRMED
+}
+
+enum LedgerEntryType {
+  CAPITAL_RETURN
+  PROFIT_SHARE
+  LOSS_SHARE
+  ADJUSTMENT
+}
+
+enum LedgerPartyRole {
+  INVESTOR
+  LANDLORD
+  AGENT
+}
+
+enum LedgerCorrectionStatus {
+  PROPOSED
+  APPROVED
+  REJECTED
+}
+
+/// The sale (TRD PD-1): recorded by the Agent, confirmed by the Solicitor; the
+/// input to settlement. Net profit = sale − purchase − itemised costs (CHECK).
+model ProjectSale {
+  id             String            @id @db.Uuid
+  projectId      String            @unique @db.Uuid
+  status         ProjectSaleStatus @default(RECORDED)
+  salePriceGBP   BigInt
+  purchaseGBP    BigInt
+  totalCostsGBP  BigInt
+  netProfitGBP   BigInt
+  roiBasisPoints BigInt
+  soldOn         DateTime          @db.Date
+  recordedBy     String            @db.Uuid
+  recordedAt     DateTime          @default(now())
+  confirmedBy    String?           @db.Uuid
+  confirmedAt    DateTime?
+
+  project   InvestorProject           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  recorder  Profile                   @relation("ProjectSaleRecorder", fields: [recordedBy], references: [id], onDelete: Restrict)
+  confirmer Profile?                  @relation("ProjectSaleConfirmer", fields: [confirmedBy], references: [id], onDelete: Restrict)
+  ledger    DistributionLedgerEntry[]
+
+  @@map("project_sales")
+}
+
+/// Append-only distribution ledger (no UPDATE or DELETE for any role). It
+/// records what the Solicitor pays outside PropLink under the signed agreement.
+model DistributionLedgerEntry {
+  id               String          @id @db.Uuid
+  projectId        String          @db.Uuid
+  partyId          String          @db.Uuid
+  partyRole        LedgerPartyRole
+  entryType        LedgerEntryType
+  amountGBP        BigInt
+  sharePpm         BigInt
+  agreementId      String          @db.Uuid
+  agreementVersion Int
+  saleId           String          @db.Uuid
+  correctionId     String?         @db.Uuid
+  actorId          String          @db.Uuid
+  createdAt        DateTime        @default(now())
+
+  project     InvestorProject    @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  party       Profile            @relation("LedgerEntryParty", fields: [partyId], references: [id], onDelete: Restrict)
+  agreement   ProjectAgreement   @relation(fields: [agreementId], references: [id], onDelete: Restrict)
+  sale        ProjectSale        @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  correction  LedgerCorrection?  @relation("LedgerCorrectionAdjustment", fields: [correctionId], references: [id], onDelete: Restrict)
+  actor       Profile            @relation("LedgerEntryActor", fields: [actorId], references: [id], onDelete: Restrict)
+  corrections LedgerCorrection[] @relation("LedgerCorrectionTarget")
+
+  @@index([projectId, createdAt])
+  @@index([partyId])
+  @@map("distribution_ledger")
+}
+
+/// A correction: proposed by the project's Solicitor, approved by Admin, then
+/// applied as an ADJUSTMENT entry; the original entry is kept.
+model LedgerCorrection {
+  id           String                 @id @db.Uuid
+  projectId    String                 @db.Uuid
+  entryId      String                 @db.Uuid
+  amountGBP    BigInt
+  reason       String
+  status       LedgerCorrectionStatus @default(PROPOSED)
+  proposedBy   String                 @db.Uuid
+  proposedAt   DateTime               @default(now())
+  decidedBy    String?                @db.Uuid
+  decidedAt    DateTime?
+  decisionNote String?
+
+  project     InvestorProject           @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  entry       DistributionLedgerEntry   @relation("LedgerCorrectionTarget", fields: [entryId], references: [id], onDelete: Restrict)
+  proposer    Profile                   @relation("LedgerCorrectionProposer", fields: [proposedBy], references: [id], onDelete: Restrict)
+  decider     Profile?                  @relation("LedgerCorrectionDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+  adjustments DistributionLedgerEntry[] @relation("LedgerCorrectionAdjustment")
+
+  @@index([projectId, proposedAt])
+  @@map("ledger_corrections")
+}
+
+// ── Phase 4 Task 9: project decisions (ADR-051) ──
+
+enum ProjectDecisionKind {
+  EXTEND_DEADLINE
+  CLOSE_PROJECT
+  RELEASE_PLEDGES
+}
+
+/// Q44 edge cases: the project owner's recorded choice (append-only). Money
+/// (refunds, cancellation payments) is the Solicitor's, outside PropLink.
+model ProjectDecision {
+  id               String              @id @db.Uuid
+  projectId        String              @db.Uuid
+  kind             ProjectDecisionKind
+  reason           String
+  newDeadline      DateTime?
+  previousDeadline DateTime?
+  pledgesReleased  Int                 @default(0)
+  decidedBy        String              @db.Uuid
+  decidedAt        DateTime            @default(now())
+
+  project InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  decider Profile         @relation("ProjectDecisionMaker", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@index([projectId, decidedAt])
+  @@map("project_decisions")
+}
+
+// ── Phase 5 Tasks 1 and 1a: re-listing completed projects (ADR-052) ──
+
+/// A completed investor project's retail listing (an ordinary Property, Admin
+/// reviewed), linked so the listing keeps the project's history.
+model ProjectRetailListing {
+  projectId  String   @id @db.Uuid
+  propertyId String   @unique
+  createdBy  String   @db.Uuid
+  createdAt  DateTime @default(now())
+
+  project  InvestorProject @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  property Property        @relation(fields: [propertyId], references: [id], onDelete: Restrict)
+  creator  Profile         @relation("ProjectRetailListingCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+
+  @@map("project_retail_listings")
+}
+
+// ── Phase 5 Task 2: offer and viewing history (ADR-053) ──
+
+model OfferEvent {
+  id          String   @id @db.Uuid
+  offerId     String
+  fromStatus  String?
+  toStatus    String
+  amountGBP   Int?
+  actorUserId String
+  note        String?
+  createdAt   DateTime @default(now())
+
+  offer Offer @relation(fields: [offerId], references: [id], onDelete: Restrict)
+
+  @@index([offerId, createdAt])
+  @@map("offer_events")
+}
+
+model ViewingEvent {
+  id          String    @id @db.Uuid
+  viewingId   String
+  fromStatus  String?
+  toStatus    String
+  slotStart   DateTime?
+  actorUserId String
+  note        String?
+  createdAt   DateTime  @default(now())
+
+  viewing Viewing @relation(fields: [viewingId], references: [id], onDelete: Restrict)
+
+  @@index([viewingId, createdAt])
+  @@map("viewing_events")
+}
+
+// ── Phase 5 Task 4: reviews and ratings (ADR-054) ──
+
+enum ReviewContext {
+  MANDATE
+  PROJECT
+  PURCHASE
+}
+
+enum ReviewStatus {
+  PENDING
+  PUBLISHED
+  REJECTED
+  HIDDEN
+}
+
+/// 1-5 stars and text from a qualifying, completed interaction only (TRD RV,
+/// criterion 7, OD-17); a trigger checks the pair. Admin publishes first; the
+/// reviewed party may reply once. Never deleted.
+model Review {
+  id             String        @id @db.Uuid
+  reviewerId     String        @db.Uuid
+  subjectId      String        @db.Uuid
+  contextType    ReviewContext
+  contextId      String
+  rating         Int
+  body           String
+  status         ReviewStatus  @default(PENDING)
+  moderatedBy    String?       @db.Uuid
+  moderatedAt    DateTime?
+  moderationNote String?
+  reply          String?
+  repliedAt      DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @default(now())
+
+  reviewer  Profile        @relation("ReviewReviewer", fields: [reviewerId], references: [id], onDelete: Restrict)
+  subject   Profile        @relation("ReviewSubject", fields: [subjectId], references: [id], onDelete: Restrict)
+  moderator Profile?       @relation("ReviewModerator", fields: [moderatedBy], references: [id], onDelete: Restrict)
+  reports   ReviewReport[]
+
+  @@unique([reviewerId, subjectId, contextType, contextId], map: "reviews_one_per_interaction")
+  @@index([subjectId, status], map: "reviews_subject_status")
+  @@index([status, createdAt], map: "reviews_status_created")
+  @@index([reviewerId, createdAt], map: "reviews_reviewer_created")
+  @@map("reviews")
+}
+
+model ReviewReport {
+  id         String    @id @db.Uuid
+  reviewId   String    @db.Uuid
+  reporterId String    @db.Uuid
+  reason     String
+  resolvedAt DateTime?
+  resolvedBy String?   @db.Uuid
+  createdAt  DateTime  @default(now())
+
+  review   Review   @relation(fields: [reviewId], references: [id], onDelete: Restrict)
+  reporter Profile  @relation("ReviewReporter", fields: [reporterId], references: [id], onDelete: Restrict)
+  resolver Profile? @relation("ReviewReportResolver", fields: [resolvedBy], references: [id], onDelete: Restrict)
+
+  @@unique([reviewId, reporterId], map: "review_reports_one_per_reporter")
+  @@index([resolvedAt, createdAt], map: "review_reports_open")
+  @@map("review_reports")
+}
+
+// ── Phase 5 Task 5: track record (ADR-055) ──
+
+/// Single row. Historical ROI shows only when this is on AND
+/// FINANCIAL_PROMOTIONS_REVIEWED is true (OD-07).
+model TrackRecordSettings {
+  id                Int      @id @default(1)
+  showHistoricalRoi Boolean  @default(false)
+  updatedAt         DateTime @default(now())
+  updatedBy         String?  @db.Uuid
+
+  editor Profile? @relation("TrackRecordSettingsEditor", fields: [updatedBy], references: [id], onDelete: Restrict)
+
+  @@map("track_record_settings")
+}
+
+// ── Phase 5 Task 3: saved-search alerts (ADR-056) ──
+
+enum SavedSearchAlertStatus {
+  QUEUED
+  SENT
+  SKIPPED
+  FAILED
+}
+
+/// The alert queue: at most one per saved search per day; sent with per-user
+/// limits; every email has an unsubscribe link.
+model SavedSearchAlert {
+  id            String                 @id @db.Uuid
+  savedSearchId String
+  userId        String
+  windowDay     DateTime               @db.Date
+  listingIds    String[]
+  status        SavedSearchAlertStatus @default(QUEUED)
+  createdAt     DateTime               @default(now())
+  sentAt        DateTime?
+
+  savedSearch SavedSearch @relation(fields: [savedSearchId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([savedSearchId, windowDay], map: "saved_search_alerts_one_per_day")
+  @@index([status, createdAt], map: "saved_search_alerts_status")
+  @@index([userId, windowDay], map: "saved_search_alerts_user_day")
+  @@map("saved_search_alerts")
+}
+
+// ── Phase 6 Task 2: Admin permissions with maker-checker (ADR-058) ──
+
+enum AdminPermission {
+  SUPER_ADMIN
+  VERIFICATION
+  LISTING_MODERATION
+  CHAT_AUTHORIZATION
+  REVIEW_MODERATION
+  SUSPENSION
+  FINANCIAL_ADJUSTMENTS
+  SOLICITOR_MANAGEMENT
+  ADVERTISER_MANAGEMENT
+  SUBSCRIPTION_PRICING
+  SYSTEM_INTEGRATIONS
+  PROJECT_OVERSIGHT
+  CASE_MANAGEMENT
+}
+
+enum AdminGrantAction {
+  GRANT
+  REVOKE
+}
+
+enum AdminGrantRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+/// A super-admin asks; a different super-admin decides (trigger-enforced).
+model AdminGrantRequest {
+  id          String                  @id @db.Uuid
+  targetId    String                  @db.Uuid
+  permission  AdminPermission
+  action      AdminGrantAction
+  reason      String
+  status      AdminGrantRequestStatus @default(PENDING)
+  requestedBy String                  @db.Uuid
+  decidedBy   String?                 @db.Uuid
+  decidedAt   DateTime?
+  createdAt   DateTime                @default(now())
+
+  target    Profile  @relation("AdminGrantTarget", fields: [targetId], references: [id], onDelete: Restrict)
+  requester Profile  @relation("AdminGrantRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  decider   Profile? @relation("AdminGrantDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+  grants    AdminPermissionGrant[] @relation("AdminGrantFromRequest")
+  revokes   AdminPermissionGrant[] @relation("AdminGrantRevokedBy")
+
+  @@index([status, createdAt], map: "admin_grant_requests_status")
+  @@map("admin_grant_requests")
+}
+
+/// Active while revokedAt is null. Created and revoked only via approved requests.
+model AdminPermissionGrant {
+  id              String          @id @db.Uuid
+  profileId       String          @db.Uuid
+  permission      AdminPermission
+  requestId       String?         @db.Uuid
+  grantedAt       DateTime        @default(now())
+  revokedAt       DateTime?
+  revokeRequestId String?         @db.Uuid
+
+  holder        Profile            @relation("AdminGrantHolder", fields: [profileId], references: [id], onDelete: Restrict)
+  request       AdminGrantRequest? @relation("AdminGrantFromRequest", fields: [requestId], references: [id], onDelete: Restrict)
+  revokeRequest AdminGrantRequest? @relation("AdminGrantRevokedBy", fields: [revokeRequestId], references: [id], onDelete: Restrict)
+
+  @@map("admin_permission_grants")
+}
+
+// ── Phase 6 Task 3: cases, disputes and data requests (ADR-059) ──
+
+enum CaseSubjectType {
+  CHAT
+  REVIEW
+  LISTING
+  USER
+}
+
+enum CaseStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+enum CasePriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum DataExportStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+}
+
+/// One open case per subject; further reports join it. Never deleted.
+model Case {
+  id          String          @id @db.Uuid
+  subjectType CaseSubjectType
+  subjectId   String
+  title       String
+  status      CaseStatus      @default(OPEN)
+  priority    CasePriority    @default(NORMAL)
+  assigneeId  String?         @db.Uuid
+  openedBy    String?         @db.Uuid
+  slaDueAt    DateTime
+  resolution  String?
+  resolvedBy  String?         @db.Uuid
+  resolvedAt  DateTime?
+  reportCount Int             @default(1)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @default(now())
+
+  assignee    Profile?            @relation("CaseAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+  opener      Profile?            @relation("CaseOpener", fields: [openedBy], references: [id], onDelete: Restrict)
+  resolver    Profile?            @relation("CaseResolver", fields: [resolvedBy], references: [id], onDelete: Restrict)
+  notes       CaseNote[]
+  evidence    CaseEvidence[]
+  dataExports DataExportRequest[]
+
+  @@index([status, slaDueAt], map: "cases_status_sla")
+  @@index([assigneeId, status], map: "cases_assignee")
+  @@map("cases")
+}
+
+/// Append-only. kind: NOTE (Admin), REPORT (a member's report), EVENT (history).
+model CaseNote {
+  id        String   @id @db.Uuid
+  caseId    String   @db.Uuid
+  authorId  String?  @db.Uuid
+  kind      String   @default("NOTE")
+  body      String
+  createdAt DateTime @default(now())
+
+  case   Case     @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  author Profile? @relation("CaseNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt], map: "case_notes_case")
+  @@map("case_notes")
+}
+
+/// Append-only links (same-site paths or https only).
+model CaseEvidence {
+  id        String   @id @db.Uuid
+  caseId    String   @db.Uuid
+  addedBy   String   @db.Uuid
+  label     String
+  url       String
+  createdAt DateTime @default(now())
+
+  case  Case    @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  adder Profile @relation("CaseEvidenceAdder", fields: [addedBy], references: [id], onDelete: Restrict)
+
+  @@index([caseId, createdAt], map: "case_evidence_case")
+  @@map("case_evidence")
+}
+
+/// GDPR data export: one case manager records it, a different one approves.
+model DataExportRequest {
+  id          String           @id @db.Uuid
+  subjectId   String           @db.Uuid
+  caseId      String?          @db.Uuid
+  reason      String
+  status      DataExportStatus @default(REQUESTED)
+  requestedBy String           @db.Uuid
+  decidedBy   String?          @db.Uuid
+  decidedAt   DateTime?
+  expiresAt   DateTime?
+  /// Phase 7 (ADR-065): EXPORT or ERASURE; an approved erasure records when it ran.
+  kind        String           @default("EXPORT")
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+
+  subject   Profile  @relation("DataExportSubject", fields: [subjectId], references: [id], onDelete: Restrict)
+  case      Case?    @relation(fields: [caseId], references: [id], onDelete: Restrict)
+  requester Profile  @relation("DataExportRequester", fields: [requestedBy], references: [id], onDelete: Restrict)
+  decider   Profile? @relation("DataExportDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+
+  @@index([status, createdAt], map: "data_export_requests_status")
+  @@map("data_export_requests")
+}
+
+// ── Phase 6 Task 1: advertising (ADR-060) ──
+
+enum AdPlacement {
+  HOME_PARTNERS
+  AGENT_DASHBOARD
+  LANDLORD_DASHBOARD
+  INVESTOR_DASHBOARD
+}
+
+enum AdFormat {
+  TEXT_CARD
+  IMAGE_BANNER
+}
+
+enum AdApplicationStatus {
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum AdCampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  ENDED
+}
+
+enum AdPriceModel {
+  NONE
+  FLAT_MONTHLY
+  CPM
+  CPC
+}
+
+/// A business asking to advertise, with its preferred placement and format.
+model AdvertiserApplication {
+  id              String              @id @db.Uuid
+  businessName    String
+  category        String
+  contactName     String
+  contactEmail    String
+  website         String?
+  preferredSlot   AdPlacement
+  preferredFormat AdFormat
+  message         String?
+  status          AdApplicationStatus @default(SUBMITTED)
+  decidedBy       String?             @db.Uuid
+  decidedAt       DateTime?
+  decisionNote    String?
+  createdAt       DateTime            @default(now())
+
+  decider    Profile?    @relation("AdApplicationDecider", fields: [decidedBy], references: [id], onDelete: Restrict)
+  advertiser Advertiser?
+
+  @@index([status, createdAt], map: "advertiser_applications_status")
+  @@map("advertiser_applications")
+}
+
+model Advertiser {
+  id            String   @id @db.Uuid
+  businessName  String
+  category      String
+  contactEmail  String
+  website       String?
+  applicationId String?  @unique @db.Uuid
+  active        Boolean  @default(true)
+  createdBy     String   @db.Uuid
+  createdAt     DateTime @default(now())
+
+  application AdvertiserApplication? @relation(fields: [applicationId], references: [id], onDelete: Restrict)
+  creator     Profile                @relation("AdvertiserCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  campaigns   AdCampaign[]
+
+  @@map("advertisers")
+}
+
+/// One ad in one designated slot. Live only after an approving Admin (trigger).
+model AdCampaign {
+  id             String           @id @db.Uuid
+  advertiserId   String           @db.Uuid
+  slot           AdPlacement
+  format         AdFormat
+  headline       String
+  body           String
+  imageFileId    String?          @db.Uuid
+  destinationUrl String
+  status         AdCampaignStatus @default(DRAFT)
+  startsAt       DateTime
+  endsAt         DateTime
+  priceModel     AdPriceModel     @default(NONE)
+  pricePence     BigInt?
+  approvedBy     String?          @db.Uuid
+  approvedAt     DateTime?
+  createdBy      String           @db.Uuid
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @default(now())
+
+  advertiser Advertiser     @relation(fields: [advertiserId], references: [id], onDelete: Restrict)
+  image      UploadedFile?  @relation("AdCampaignImage", fields: [imageFileId], references: [id], onDelete: Restrict)
+  approver   Profile?       @relation("AdCampaignApprover", fields: [approvedBy], references: [id], onDelete: Restrict)
+  creator    Profile        @relation("AdCampaignCreator", fields: [createdBy], references: [id], onDelete: Restrict)
+  stats      AdDailyStat[]
+
+  @@index([slot, status, startsAt, endsAt], map: "ad_campaigns_live")
+  @@map("ad_campaigns")
+}
+
+/// Private aggregate counts (no per-viewer data).
+model AdDailyStat {
+  campaignId  String   @db.Uuid
+  day         DateTime @db.Date
+  impressions Int      @default(0)
+  clicks      Int      @default(0)
+
+  campaign AdCampaign @relation(fields: [campaignId], references: [id], onDelete: Restrict)
+
+  @@id([campaignId, day])
+  @@map("ad_daily_stats")
+}
+
+// ── Phase 6 Task 4: security events (ADR-061) ──
+
+enum SecurityEventKind {
+  RATE_LIMITED
+  CSRF_REJECTED
+  LOGIN_FAILED
+  WEBHOOK_REJECTED
+  WEBHOOK_FAILED
+  ADMIN_PERMISSION_DENIED
+}
+
+/// Per-minute counts only; no personal data.
+model SecurityEventCount {
+  kind   SecurityEventKind
+  bucket DateTime
+  count  Int               @default(0)
+
+  @@id([kind, bucket])
+  @@index([bucket], map: "security_event_counts_bucket")
+  @@map("security_event_counts")
 }

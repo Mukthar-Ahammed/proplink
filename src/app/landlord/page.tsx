@@ -1,3 +1,4 @@
+import { AdSlot } from "@/components/ads/AdSlot";
 import Link from "next/link";
 
 import { KycStatus } from "@/generated/prisma/enums";
@@ -25,7 +26,7 @@ import {
   UserIcon,
 } from "@/components/investor/InvestorUi";
 
-import { ListingCard } from "@/components/landlord/ListingCard";
+import { ListingCard } from "./listings/ListingCard";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Landlord portal — PropLink UK" };
@@ -282,6 +283,9 @@ export default async function LandlordHomePage() {
           />
         </div>
       </section>
+
+      {/* Phase 6 (ADR-060): one designated sponsored slot; nothing renders without a live ad. */}
+      <AdSlot slot="LANDLORD_DASHBOARD" />
     </div>
   );
 }

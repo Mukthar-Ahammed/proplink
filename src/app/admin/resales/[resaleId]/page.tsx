@@ -1,17 +1,16 @@
 import "server-only";
 
 import { notFound } from "next/navigation";
-import { requirePageRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { getAdminResaleDetail } from "@/services/admin/flipperResaleAdminService";
 import { ResaleReviewStudioClient } from "./ResaleReviewStudioClient";
 
 export const metadata = { title: "Admin — Flipper Resale Moderation Studio | PropLink" };
 
-export default async function FlipperResaleReviewStudioPage(
-  props: { params: Promise<{ resaleId: string }> },
-) {
-  const session = await requirePageRole(Role.ADMIN);
+export default async function FlipperResaleReviewStudioPage(props: {
+  params: Promise<{ resaleId: string }>;
+}) {
+  const session = await requireAdminPagePermission("LISTING_MODERATION");
 
   const { resaleId } = await props.params;
 

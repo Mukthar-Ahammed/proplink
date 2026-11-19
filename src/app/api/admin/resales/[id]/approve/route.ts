@@ -1,15 +1,14 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPermission } from "@/lib/authz";
 import { approveFlipperResale } from "@/services/admin/flipperResaleAdminService";
 
 export async function POST(
   _request: Request,
   props: { params: Promise<{ id: string }> },
 ) {
-  const authResult = await requireRole(Role.ADMIN);
+  const authResult = await requireAdminPermission("LISTING_MODERATION");
   if (!authResult.ok) return authResult.response;
 
   const { id } = await props.params;

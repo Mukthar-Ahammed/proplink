@@ -6,11 +6,20 @@
 > `docs/phases/PHASE-N-REPORT.md`. The 12-week sprint plan and the sprint
 > sections below are the historical baseline (superseded, ADR-019).
 
-**Current focus → Phase 2 — Landlord Listings, Admin Queue, Agent Interest and
-Exclusive Mandates**, on `phase-2-landlord-pipeline` (started 2026-11-18, branched
-from Phase 1; see `docs/phases/PHASE-2-REPORT.md`). **Phase 0 closed 2026-11-18.**
-**Phase 1:** all 13 tasks implemented, PR #1 open; exit waits on the owner's hand
-check of three Admin flows. Phase 2 cannot exit before Phase 1.
+**Current focus → Phase 7 — Hardening, Compliance, Performance and Release Readiness**, on `phase-7-hardening` (started 2026-11-19; `docs/phases/PHASE-7-REPORT.md`). **Phase 6 — Advertising, Admin Roles and Permissions, Disputes and Reporting**, on `phase-6-admin-ads` (started 2026-11-19; `docs/phases/PHASE-6-REPORT.md`). **Built 2026-11-19; waiting for the owner checks like Phases 1-5.** Delivered: Admin permissions with maker-checker (ADR-058), cases and GDPR exports (ADR-059), advertising (ADR-060), KPIs, integrations and security events (ADR-061), agencies and Admin verification (ADR-062). **Phase 5 — Final Sale, Retail Buyer Experience, Reviews and
+Trust Features**, on `phase-5-sale-buyers` (started 2026-11-18, branched from
+Phase 4; see `docs/phases/PHASE-5-REPORT.md`). **Built 2026-11-19; waiting for the owner checks like Phases 1-4.** Delivered: re-listing and sale handoff (ADR-052), offer and viewing state machines (ADR-053), reviews and listing-card badges (ADR-054), track record (ADR-055), saved-search alerts and the maps switch (ADR-056), SEO and public safety (ADR-057). **Phase 4:** all nine tasks and 3a built (ADR-044 to ADR-051); waiting for the owner checks like Phases 1-3. **Phase 3:** all eight tasks
+built (`docs/phases/PHASE-3-REPORT.md`); waiting for the owner checks like Phases 1-2. **Phase 0 closed 2026-11-18.**
+**Phases 1 and 2:** built and tested; the owner does all manual checks after the
+last phase (`docs/MANUAL_CHECKS.md`). No phase is closed or merged to `main`
+before its checks pass. PR #1 (Phases 0-1) is open with green CI.
+
+**Phase 2:** Task 1 (Landlord module), Task 2 (AI listing assistant, mock
+until the Anthropic key exists), Task 3 (Admin review queue with SLA
+metrics), Task 4 (private-listing hardening and leakage crawl), Task 5 (Agent
+marketplace and proposals), Task 6 (exclusive mandate), Task 7 (Landlord data
+exposure) and Task 8 (chain notifications) done. **Phase 2 build complete;**
+exit waits on the owner checks listed at the end of the Phase 2 report.
 
 | Phase 1 task                           | State |
 | -------------------------------------- | ----- |

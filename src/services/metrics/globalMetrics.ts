@@ -58,13 +58,13 @@ async function computeLandingStats(): Promise<LandingStats> {
     }),
     financialPromotionsReviewed
       ? db.property.aggregate({
-        where: {
-          status: "LIVE",
-          targetRoiPct: { not: null },
-          agentProfile: { is: { active: true, user: { active: true } } },
-        },
-        _avg: { targetRoiPct: true },
-      })
+          where: {
+            status: "LIVE",
+            targetRoiPct: { not: null },
+            agentProfile: { is: { active: true, user: { active: true } } },
+          },
+          _avg: { targetRoiPct: true },
+        })
       : Promise.resolve({ _avg: { targetRoiPct: null } }),
   ]);
 

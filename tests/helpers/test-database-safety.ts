@@ -1,9 +1,14 @@
 const LOCAL_DATABASE_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
 
+/** Set by tests/setup/env.ts when no database is configured; never connected to. */
+export const NO_DATABASE_PLACEHOLDER = "postgresql://no-database@127.0.0.1:9/no_database";
+
 export function assertSafeIntegrationDatabase(
   connectionString: string | undefined,
 ): boolean {
   if (!connectionString) return false;
+  // tests/setup/env.ts placeholder: no database for this run, so skip.
+  if (connectionString === NO_DATABASE_PLACEHOLDER) return false;
 
   let url: URL;
   try {

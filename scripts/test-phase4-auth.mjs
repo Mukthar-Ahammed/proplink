@@ -14,7 +14,8 @@ const required = [
   "DIRECT_URL",
 ];
 for (const name of required) {
-  if (!process.env[name]) throw new Error(`Missing required environment variable: ${name}`);
+  if (!process.env[name])
+    throw new Error(`Missing required environment variable: ${name}`);
 }
 assertConfiguredSupabaseProject();
 
@@ -137,7 +138,10 @@ try {
   );
   assert.equal(profileBeforeConfirmation.rows[0].role, "INVESTOR");
   assert.equal(profileBeforeConfirmation.rows[0].legacyUserId, null);
-  pass("server_assigned_signup_role", "role=INVESTOR legacy_mapping=pending_confirmation");
+  pass(
+    "server_assigned_signup_role",
+    "role=INVESTOR legacy_mapping=pending_confirmation",
+  );
 
   const injected = await publicAuth.auth.signUp({
     email: injectedEmail,
@@ -271,7 +275,10 @@ try {
   await page.getByLabel("Password").fill(replacementPassword);
   await page.getByRole("button", { name: "Log in", exact: true }).click();
   await page.waitForURL("**/investor");
-  pass("password_reset_preserves_verification_gate", "old_password_denied new_password_accepted");
+  pass(
+    "password_reset_preserves_verification_gate",
+    "old_password_denied new_password_accepted",
+  );
 } catch (error) {
   console.log(`phase4_auth_matrix=FAIL ${sanitize(error, secrets)}`);
   process.exitCode = 1;

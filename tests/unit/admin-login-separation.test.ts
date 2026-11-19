@@ -171,6 +171,19 @@ describe("separate Admin authentication surface", () => {
     ).resolves.toEqual({ kind: "success", destination: "/buy" });
   });
 
+  it.each(["//evil.example", "/\\evil.example", "https://evil.example", "/ok\\..\\x"])(
+    "never returns off-site to %s",
+    async (requested) => {
+      mocks.auth.mockResolvedValue(sessionFor(Role.BUYER));
+      await expect(
+        loginAction(
+          { email: "verified@example.test", password: "correct-password" },
+          requested,
+        ),
+      ).resolves.toEqual({ kind: "success", destination: "/portal" });
+    },
+  );
+
   it("returns a retry duration after repeated failed login attempts", async () => {
     mocks.rateLimitsExceeded.mockResolvedValue(true);
 

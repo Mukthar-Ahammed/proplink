@@ -191,9 +191,9 @@ describe("uploadFile", () => {
 
   it("cannot be enabled without private S3 buckets and ClamAV", async () => {
     const { parseServerEnv } = await import("@/env");
-    expect(() => parseServerEnv({ NODE_ENV: "development", UPLOADS_ENABLED: "true" })).toThrow(
-      /private S3 provider|quarantine and private buckets|malware scanner/,
-    );
+    expect(() =>
+      parseServerEnv({ NODE_ENV: "development", UPLOADS_ENABLED: "true" }),
+    ).toThrow(/private S3 provider|quarantine and private buckets|malware scanner/);
     expect(
       parseServerEnv({
         NODE_ENV: "development",

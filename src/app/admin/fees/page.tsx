@@ -1,4 +1,4 @@
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 
 export const metadata = { title: "Admin — Fees & Billing Rules" };
@@ -32,7 +32,7 @@ const NEVER_CHARGED = [
 ];
 
 export default async function FeesPage() {
-  await requirePageRole("ADMIN");
+  await requireAdminPagePermission("SUBSCRIPTION_PRICING");
 
   return (
     <div className="space-y-6">

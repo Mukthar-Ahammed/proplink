@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { getServerEnv } from "@/env";
 import { KycStatus, LandlordListingStatus } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
 import { db } from "@/lib/db";
@@ -165,7 +166,13 @@ export default async function LandlordListingPage({
       {listing.status === LandlordListingStatus.APPROVED && (
         <Notice tone="success" icon={<CheckIcon />} title="Approved">
           Verified agents can now see this listing and send you proposals. It stays
-          private: never public, never in search.
+          private: never public, never in search.{" "}
+          <Link
+            href={`/landlord/listings/${listing.id}/proposals`}
+            className="font-semibold text-accent underline underline-offset-4 hover:text-accent-strong"
+          >
+            Compare proposals
+          </Link>
         </Notice>
       )}
 
@@ -173,6 +180,7 @@ export default async function LandlordListingPage({
         <InvestorSectionTitle title="Property" tail="details" />
         {editable ? (
           <ListingFieldsForm
+            aiAssistant={getServerEnv().AI_PROVIDER !== "disabled"}
             initial={{
               id: listing.id,
               title: listing.title,

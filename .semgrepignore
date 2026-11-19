@@ -1,0 +1,4 @@
+# Phase 7 Task 1: generated code is not ours to review (Prisma client).
+src/generated/
+node_modules/
+.next/

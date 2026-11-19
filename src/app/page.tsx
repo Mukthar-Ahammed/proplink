@@ -1,3 +1,4 @@
+import { AdSlot } from "@/components/ads/AdSlot";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
@@ -71,7 +72,7 @@ const STEPS = [
  * signed-in viewer sees their own card point at their portal. Sign-up buttons
  * (`/register`) are for signed-out visitors only: an account holds exactly one
  * role (ADR-016), so a signed-in Buyer is never offered a sign-up flow they
- * cannot complete with that account (OD-23).
+ * cannot complete with that account (OD-33).
  */
 const AUDIENCES: {
   role: Role;
@@ -346,6 +347,11 @@ export default async function Home() {
           </div>
         </div>
       </section>
+
+      {/* Phase 6 (ADR-060): sponsored partners strip, below the fold; empty without a live ad. */}
+      <div className="mx-auto w-full max-w-4xl px-6 py-10 empty:hidden">
+        <AdSlot slot="HOME_PARTNERS" />
+      </div>
 
       {/* ----------------------------------------------------- Closing CTA */}
       <section className="py-24 sm:py-32">

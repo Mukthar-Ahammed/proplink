@@ -1,5 +1,6 @@
 "use server";
 
+import { recordSecurityEvent } from "@/services/security/securityEvents";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { z } from "zod";
 import { cookies, headers } from "next/headers";
@@ -218,6 +219,7 @@ async function loginForAudience(
         cooldownSeconds: 60,
       };
     }
+    await recordSecurityEvent("LOGIN_FAILED");
     await consumeRateLimits("login_failure", limits);
     return { kind: "error", message: invalidMessage };
   }
@@ -235,6 +237,7 @@ async function loginForAudience(
     await bridgeVerifiedUser(data.user);
   } catch {
     await supabase.auth.signOut({ scope: "local" });
+    await recordSecurityEvent("LOGIN_FAILED");
     await consumeRateLimits("login_failure", limits);
     return { kind: "error", message: invalidMessage };
   }
@@ -243,6 +246,7 @@ async function loginForAudience(
   const isAdmin = session?.user.role === Role.ADMIN;
   if (!session || !isAuthenticationAudienceAllowed(session.user, audience)) {
     await supabase.auth.signOut({ scope: "local" });
+    await recordSecurityEvent("LOGIN_FAILED");
     await consumeRateLimits("login_failure", limits);
     return {
       kind: "error",
@@ -258,8 +262,10 @@ async function loginForAudience(
     return { kind: "success", destination: "/admin" };
   }
 
+  // Same-site paths only: "/x", never "//host" or "/\host" (browsers read a
+  // backslash as a slash, so "/\evil.example" would leave the site).
   const destination =
-    requestedDestination && /^\/(?!\/)/.test(requestedDestination)
+    requestedDestination && /^\/(?![/\\])[^\\]*$/.test(requestedDestination)
       ? requestedDestination
       : "/portal";
   return { kind: "success", destination };

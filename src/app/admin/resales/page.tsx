@@ -1,13 +1,12 @@
 import "server-only";
 
-import { requirePageRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { ResaleQueueClient } from "./ResaleQueueClient";
 
 export const metadata = { title: "Admin — Flipper Resale Moderation | PropLink" };
 
 export default async function FlipperResalesPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("LISTING_MODERATION");
 
   return <ResaleQueueClient />;
 }

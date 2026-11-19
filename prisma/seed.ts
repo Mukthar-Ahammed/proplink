@@ -678,10 +678,57 @@ async function seedBuyerActivity() {
   return { viewings: 1, offers: 1, messages };
 }
 
+/**
+ * Phase 6 (ADR-058): on a fresh database the seeded Admin becomes the first
+ * super-admin (the database allows a request-less grant only while no active
+ * super-admin exists). Later grants need two super-admins.
+ */
+async function seedSuperAdmin() {
+  await db.$executeRaw`
+    INSERT INTO public.admin_permission_grants (id, "profileId", permission)
+    SELECT gen_random_uuid(), p.id, 'SUPER_ADMIN'::"AdminPermission"
+    FROM public.profiles p
+    JOIN public."User" u ON u.id = p."legacyUserId"
+    WHERE u.email = 'admin@proplink.test' AND p.role = 'ADMIN' AND p.active
+      AND NOT EXISTS (
+        SELECT 1 FROM public.admin_permission_grants g
+        JOIN public.profiles q ON q.id = g."profileId"
+        WHERE g.permission = 'SUPER_ADMIN' AND g."revokedAt" IS NULL AND q.role = 'ADMIN' AND q.active
+      )
+  `;
+}
+
+/**
+ * OD-27 (Q2): the seeded Agent joined before invitations, so PropLink must
+ * authorise it before it reaches the private Landlord pipeline. The seed
+ * records it as confirmed and authorised by the seeded Admin. Idempotent.
+ */
+async function seedAgentAuthorisation() {
+  await db.$executeRaw`
+    INSERT INTO public.agent_migrations
+      ("profileId", status, "confirmedAt", "authorisedAt", "authorisedBy", "updatedAt")
+    SELECT a.id, 'AUTHORISED'::"AgentMigrationStatus", now(), now(), adm.id, now()
+    FROM public.profiles a
+    JOIN public."User" au ON au.id = a."legacyUserId" AND au.email = 'agent@proplink.test'
+    JOIN public.profiles adm ON adm.role = 'ADMIN'
+    JOIN public."User" du ON du.id = adm."legacyUserId" AND du.email = 'admin@proplink.test'
+    WHERE a.role = 'AGENT'
+      AND NOT EXISTS (SELECT 1 FROM public.agent_invites i WHERE i."acceptedProfileId" = a.id)
+    ON CONFLICT ("profileId") DO UPDATE
+      SET status = 'AUTHORISED',
+          "confirmedAt" = COALESCE(public.agent_migrations."confirmedAt", now()),
+          "authorisedAt" = COALESCE(public.agent_migrations."authorisedAt", now()),
+          "authorisedBy" = COALESCE(public.agent_migrations."authorisedBy", EXCLUDED."authorisedBy"),
+          "updatedAt" = now()
+  `;
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash("Password123!", 10);
 
   const userCount = await seedUsers(passwordHash);
+  await seedSuperAdmin();
+  await seedAgentAuthorisation();
 
   const agent = await db.user.findUniqueOrThrow({
     where: { email: "agent@proplink.test" },

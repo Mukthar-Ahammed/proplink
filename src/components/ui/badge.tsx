@@ -70,6 +70,8 @@ export function EpcBadge({ rating }: { rating: EpcRating | null | undefined }) {
       )}
       title={`EPC rating ${rating}`}
     >
+      {/* Phase 7 Task 6: a bare letter is announced as just "C". */}
+      <span className="sr-only">EPC rating </span>
       {rating}
     </span>
   );

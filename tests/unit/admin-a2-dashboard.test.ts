@@ -41,10 +41,7 @@ const mockDb = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/db", () => ({ db: mockDb }));
 
-import {
-  getDashboardKpis,
-  getAttentionItems,
-} from "@/services/admin/dashboardService";
+import { getDashboardKpis, getAttentionItems } from "@/services/admin/dashboardService";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -180,7 +177,15 @@ describe("Phase A2 — getDashboardKpis()", () => {
     const result = await getDashboardKpis();
     const keys = Object.keys(result);
 
-    const forbidden = ["gmv", "revenue", "commission", "capitalRaised", "roi", "growth", "trend"];
+    const forbidden = [
+      "gmv",
+      "revenue",
+      "commission",
+      "capitalRaised",
+      "roi",
+      "growth",
+      "trend",
+    ];
     for (const key of keys) {
       expect(forbidden.some((f) => key.toLowerCase().includes(f))).toBe(false);
     }
@@ -331,16 +336,25 @@ describe("Phase A2 — getAttentionItems()", () => {
     });
 
     mockDb.kycSubmission.findMany.mockResolvedValue([
-      makeKyc("k1", 10), makeKyc("k2", 9), makeKyc("k3", 8),
-      makeKyc("k4", 7), makeKyc("k5", 6),
+      makeKyc("k1", 10),
+      makeKyc("k2", 9),
+      makeKyc("k3", 8),
+      makeKyc("k4", 7),
+      makeKyc("k5", 6),
     ]);
     mockDb.property.findMany.mockResolvedValue([
-      makeListing("p1", 5), makeListing("p2", 4), makeListing("p3", 3),
-      makeListing("p4", 2), makeListing("p5", 1),
+      makeListing("p1", 5),
+      makeListing("p2", 4),
+      makeListing("p3", 3),
+      makeListing("p4", 2),
+      makeListing("p5", 1),
     ]);
     mockDb.flipperResale.findMany.mockResolvedValue([
-      makeResale("r1", 11), makeResale("r2", 12), makeResale("r3", 13),
-      makeResale("r4", 14), makeResale("r5", 15),
+      makeResale("r1", 11),
+      makeResale("r2", 12),
+      makeResale("r3", 13),
+      makeResale("r4", 14),
+      makeResale("r5", 15),
     ]);
 
     const items = await getAttentionItems();
@@ -364,7 +378,10 @@ describe("Phase A2 — getAttentionItems()", () => {
       documents: [],
     };
 
-    mockDb.kycSubmission.findMany.mockResolvedValue([kycWithSubmittedAt, kycNoSubmittedAt]);
+    mockDb.kycSubmission.findMany.mockResolvedValue([
+      kycWithSubmittedAt,
+      kycNoSubmittedAt,
+    ]);
     mockDb.property.findMany.mockResolvedValue([]);
     mockDb.flipperResale.findMany.mockResolvedValue([]);
 
@@ -382,13 +399,15 @@ describe("Phase A2 — Attention stream privacy projection", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("AttentionItem type contains only safe fields — no document paths, secrets, or internal notes", async () => {
-    mockDb.kycSubmission.findMany.mockResolvedValue([{
-      id: "kyc-1",
-      submittedAt: iso(2),
-      createdAt: iso(2),
-      user: { name: "Secure User", email: "secure@test.com" },
-      documents: [{ id: "doc-1" }],
-    }]);
+    mockDb.kycSubmission.findMany.mockResolvedValue([
+      {
+        id: "kyc-1",
+        submittedAt: iso(2),
+        createdAt: iso(2),
+        user: { name: "Secure User", email: "secure@test.com" },
+        documents: [{ id: "doc-1" }],
+      },
+    ]);
     mockDb.property.findMany.mockResolvedValue([]);
     mockDb.flipperResale.findMany.mockResolvedValue([]);
 
@@ -416,13 +435,15 @@ describe("Phase A2 — Attention stream privacy projection", () => {
   });
 
   it("KYC subtitle contains only document count and email — no storage keys or signed URLs", async () => {
-    mockDb.kycSubmission.findMany.mockResolvedValue([{
-      id: "kyc-2",
-      submittedAt: iso(1),
-      createdAt: iso(1),
-      user: { name: "Protected User", email: "protected@test.com" },
-      documents: [{ id: "doc-a" }, { id: "doc-b" }],
-    }]);
+    mockDb.kycSubmission.findMany.mockResolvedValue([
+      {
+        id: "kyc-2",
+        submittedAt: iso(1),
+        createdAt: iso(1),
+        user: { name: "Protected User", email: "protected@test.com" },
+        documents: [{ id: "doc-a" }, { id: "doc-b" }],
+      },
+    ]);
     mockDb.property.findMany.mockResolvedValue([]);
     mockDb.flipperResale.findMany.mockResolvedValue([]);
 
@@ -439,13 +460,15 @@ describe("Phase A2 — Attention stream privacy projection", () => {
   it("resale subtitle contains only city, investor name, and estimated price — no cost ledger", async () => {
     mockDb.kycSubmission.findMany.mockResolvedValue([]);
     mockDb.property.findMany.mockResolvedValue([]);
-    mockDb.flipperResale.findMany.mockResolvedValue([{
-      id: "resale-1",
-      submittedAt: iso(2),
-      estimatedAskingPriceGBP: 275000,
-      property: { title: "3 Bed Semi", city: "Birmingham" },
-      investor: { name: "John Doe" },
-    }]);
+    mockDb.flipperResale.findMany.mockResolvedValue([
+      {
+        id: "resale-1",
+        submittedAt: iso(2),
+        estimatedAskingPriceGBP: 275000,
+        property: { title: "3 Bed Semi", city: "Birmingham" },
+        investor: { name: "John Doe" },
+      },
+    ]);
 
     const items = await getAttentionItems();
     const item = items[0];
@@ -467,13 +490,15 @@ describe("Phase A4 — Attention stream resale href points to /admin/resales/[id
   it("resale attention items link to /admin/resales/[id]", async () => {
     mockDb.kycSubmission.findMany.mockResolvedValue([]);
     mockDb.property.findMany.mockResolvedValue([]);
-    mockDb.flipperResale.findMany.mockResolvedValue([{
-      id: "resale-safe",
-      submittedAt: iso(1),
-      estimatedAskingPriceGBP: 100000,
-      property: { title: "Test Flat", city: "Leeds" },
-      investor: { name: "Safe Investor" },
-    }]);
+    mockDb.flipperResale.findMany.mockResolvedValue([
+      {
+        id: "resale-safe",
+        submittedAt: iso(1),
+        estimatedAskingPriceGBP: 100000,
+        property: { title: "Test Flat", city: "Leeds" },
+        investor: { name: "Safe Investor" },
+      },
+    ]);
 
     const items = await getAttentionItems();
     const resaleItem = items.find((i) => i.kind === "RESALE_SUBMITTED");

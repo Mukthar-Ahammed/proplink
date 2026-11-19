@@ -1,17 +1,34 @@
 ﻿import { createClient } from "@supabase/supabase-js";
 import { config } from "dotenv";
 import { parsePhase3Fixtures } from "./phase3-fixtures.mjs";
-import { authenticateRoleSessions, assertProfilePolicy, assertRemainingPolicyAreas } from "./phase3-rls-harness.mjs";
+import {
+  authenticateRoleSessions,
+  assertProfilePolicy,
+  assertRemainingPolicyAreas,
+} from "./phase3-rls-harness.mjs";
 import { assertExpectedSupabaseProject } from "./lib/supabase-project-guard.mjs";
 config({ path: ".env.staging.local", quiet: true });
-for (const name of ["NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "PHASE3_FIXTURES_JSON", "PROPLINK_STAGING_PROJECT_REF"]) if (!process.env[name]) throw new Error(`Missing ${name}`);
-const ref = process.env.PROPLINK_STAGING_PROJECT_REF; const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);
+for (const name of [
+  "NEXT_PUBLIC_SUPABASE_URL",
+  "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+  "PHASE3_FIXTURES_JSON",
+  "PROPLINK_STAGING_PROJECT_REF",
+])
+  if (!process.env[name]) throw new Error(`Missing ${name}`);
+const ref = process.env.PROPLINK_STAGING_PROJECT_REF;
+const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const verifiedRef = assertExpectedSupabaseProject({
   url: process.env.NEXT_PUBLIC_SUPABASE_URL,
   environment: "staging",
 });
-if (ref !== verifiedRef || url.hostname !== `${ref}.supabase.co`) throw new Error("Staging guard failed");
+if (ref !== verifiedRef || url.hostname !== `${ref}.supabase.co`)
+  throw new Error("Staging guard failed");
 const fixtures = parsePhase3Fixtures(process.env.PHASE3_FIXTURES_JSON);
-const sessions = await authenticateRoleSessions({ fixturesJson: process.env.PHASE3_FIXTURES_JSON, createClient, url: url.toString(), publishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY });
+const sessions = await authenticateRoleSessions({
+  fixturesJson: process.env.PHASE3_FIXTURES_JSON,
+  createClient,
+  url: url.toString(),
+  publishableKey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
+});
 console.log(JSON.stringify(await assertProfilePolicy({ sessions, fixtures })));
 console.log(JSON.stringify(await assertRemainingPolicyAreas({ sessions, fixtures })));

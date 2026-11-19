@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import {
   attachFileAction,
@@ -12,6 +12,7 @@ import {
   type FormState,
 } from "../actions";
 import { BUTTON, CHOICE, INPUT, LABEL, SECONDARY } from "../ui";
+import { AiAssistantPanel } from "./AiAssistantPanel";
 
 export type EditableFields = {
   id: string;
@@ -96,12 +97,21 @@ function Field({
 }
 
 /** TRD LL-1 fields. Saving keeps everything as typed if validation fails. */
-export function ListingFieldsForm({ initial }: { initial: EditableFields }) {
+export function ListingFieldsForm({
+  initial,
+  aiAssistant = false,
+}: {
+  initial: EditableFields;
+  /** Show the optional AI listing assistant (off when AI_PROVIDER=disabled). */
+  aiAssistant?: boolean;
+}) {
   const [state, formAction, pending] = useActionState(saveListingAction, {
     kind: "idle",
   } as FormState);
+  const formRef = useRef<HTMLFormElement>(null);
   return (
     <form
+      ref={formRef}
       action={formAction}
       className="space-y-6 rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-7"
     >
@@ -169,6 +179,7 @@ export function ListingFieldsForm({ initial }: { initial: EditableFields }) {
           inputMode="numeric"
         />
       </div>
+      {aiAssistant && <AiAssistantPanel formRef={formRef} />}
       <Field
         name="description"
         label="Description"

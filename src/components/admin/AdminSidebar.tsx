@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { mayOpenAdminPath } from "@/lib/authz/adminRoutes";
+
 export interface NavItem {
   label: string;
   href: string;
@@ -21,7 +23,17 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     items: [
       { label: "Overview", href: "/admin", exact: true, status: "active" },
       { label: "KYC Queue", href: "/admin/kyc", status: "active" },
+      {
+        label: "Landlord Listings",
+        href: "/admin/landlord-listings",
+        exact: true,
+        status: "active",
+      },
+      { label: "Chats", href: "/admin/chats", status: "active" },
+      { label: "Investor Projects", href: "/admin/projects", status: "active" },
       { label: "Moderation", href: "/admin/moderation", status: "active" },
+      { label: "Reviews", href: "/admin/reviews", status: "active" },
+      { label: "Cases", href: "/admin/cases", status: "active" },
       { label: "Flipper Resales", href: "/admin/resales", status: "active" },
     ],
   },
@@ -29,12 +41,15 @@ const NAVIGATION_GROUPS: NavGroup[] = [
     title: "PLATFORM",
     items: [
       { label: "Users Directory", href: "/admin/users", status: "active" },
-      { label: "Agents & Agencies", href: "/admin/agents", exact: true, status: "soon" },
+      { label: "Agents", href: "/admin/agents", exact: true, status: "active" },
+      { label: "Agencies", href: "/admin/agents/agencies", status: "active" },
       { label: "Agent Invites", href: "/admin/agents/invites", status: "active" },
       { label: "Company Checks", href: "/admin/agents/companies", status: "active" },
       { label: "Existing Agents", href: "/admin/agents/migration", status: "active" },
       { label: "Verified Badges", href: "/admin/badges", status: "active" },
+      { label: "Admin Roles", href: "/admin/roles", status: "active" },
       { label: "Upload Limits", href: "/admin/settings/uploads", status: "active" },
+      { label: "Track Record", href: "/admin/settings/track-record", status: "active" },
       { label: "Announcements", href: "/admin/announcements", status: "active" },
       {
         label: "List for a Landlord",
@@ -47,15 +62,17 @@ const NAVIGATION_GROUPS: NavGroup[] = [
   {
     title: "COMMERCIAL",
     items: [
-      { label: "Fees & Billing", href: "/admin/fees", status: "active" },
-      { label: "Ad Campaigns", href: "/admin/ads", status: "placeholder" },
+      { label: "Subscriptions", href: "/admin/billing", status: "active" },
+      { label: "Fee Settings", href: "/admin/fees", status: "placeholder" },
+      { label: "Advertising", href: "/admin/ads", status: "active" },
     ],
   },
   {
     title: "GOVERNANCE",
     items: [
+      { label: "KPIs & System", href: "/admin/system", status: "active" },
       { label: "Audit Logs", href: "/admin/audit", status: "soon" },
-      { label: "Privacy & Erasure", href: "/admin/privacy", status: "soon" },
+      { label: "Data Requests", href: "/admin/privacy", status: "active" },
       { label: "Platform Settings", href: "/admin/settings", status: "soon" },
     ],
   },
@@ -64,11 +81,18 @@ const NAVIGATION_GROUPS: NavGroup[] = [
 export function AdminSidebar({
   mobileOpen,
   onCloseMobile,
+  permissions = [],
 }: {
   mobileOpen?: boolean;
   onCloseMobile?: () => void;
+  /** Phase 6 (ADR-058): links the Admin may not open are hidden (the server still checks). */
+  permissions?: string[];
 }) {
   const currentPath = usePathname();
+  const groups = NAVIGATION_GROUPS.map((group) => ({
+    ...group,
+    items: group.items.filter((item) => mayOpenAdminPath(permissions, item.href)),
+  })).filter((group) => group.items.length > 0);
 
   function isItemActive(item: NavItem): boolean {
     if (item.exact) {
@@ -123,7 +147,7 @@ export function AdminSidebar({
 
         {/* Scrollable Navigation Items */}
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-6">
-          {NAVIGATION_GROUPS.map((group) => (
+          {groups.map((group) => (
             <div key={group.title}>
               <div className="px-3 pb-2 text-[10px] font-bold tracking-wider text-muted uppercase">
                 {group.title}
@@ -138,7 +162,7 @@ export function AdminSidebar({
                     return (
                       <li key={item.label}>
                         <div
-                          className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-muted bg-transparent opacity-60 cursor-not-allowed select-none"
+                          className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-muted bg-transparent cursor-not-allowed select-none"
                           title="Operational surface under development (Phase A4-A8)"
                         >
                           <span>{item.label}</span>

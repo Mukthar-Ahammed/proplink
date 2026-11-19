@@ -1,5 +1,11 @@
 import { requirePageRole } from "@/lib/authz";
-import { parseSearchParams, searchService } from "@/services/search";
+import {
+  buildSearchQueryString,
+  parseSearchParams,
+  searchService,
+} from "@/services/search";
+import { ActionButton } from "@/components/projects/ActionButton";
+import { saveSearchAction } from "@/components/buy/savedSearchActions";
 import { PropertyCard } from "@/components/marketplace/PropertyCard";
 import { SearchFilters } from "@/components/marketplace/SearchFilters";
 import { SearchPagination } from "@/components/marketplace/SearchPagination";
@@ -57,6 +63,32 @@ export default async function BuyerSearchPage({ searchParams }: PageProps) {
       />
 
       <section aria-label="Search results" className="pt-4">
+        <details className="mb-4" data-testid="save-search">
+          <summary className="cursor-pointer text-sm font-semibold text-accent">
+            Save this search
+          </summary>
+          <div className="mt-2 max-w-md">
+            <ActionButton
+              action={saveSearchAction}
+              hidden={{ query: buildSearchQueryString({ ...params, page: undefined }) }}
+              label="Save search"
+              tone="secondary"
+            >
+              <label className="block text-sm text-body">
+                Name
+                <input
+                  name="name"
+                  required
+                  minLength={2}
+                  maxLength={80}
+                  placeholder="e.g. 3-bed in Leeds under £250k"
+                  className="mt-1 w-full rounded-xl border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none"
+                />
+              </label>
+            </ActionButton>
+          </div>
+        </details>
+
         {results.items.length === 0 ? (
           <PortalEmpty>
             No properties match that search. Try widening your budget, clearing a filter,

@@ -194,6 +194,16 @@ export async function confirmCompany(
   const result = isActiveStatus(company.status)
     ? CompanyCheckResult.VERIFIED
     : CompanyCheckResult.INACTIVE;
+
+  const previous = await db.agentCompanyCheck.findUnique({
+    where: { profileId: actor.profileId },
+    select: { companyNumber: true, result: true, override: true },
+  });
+  // An Admin rejection is a decision about the Agent, not only about one
+  // register status: choosing a company again must not clear it (Phase 7
+  // business-flow review). Only an Admin can lift it. An Admin approval is
+  // about a specific company, so it is still cleared by a new choice.
+  const keepRejection = previous?.override === CompanyCheckOverride.REJECTED;
   const record = {
     companyNumber: company.companyNumber,
     companyName: company.companyName.trim().slice(0, 200),
@@ -201,24 +211,28 @@ export async function confirmCompany(
     result,
     provider: getCompaniesHouseProvider().name,
     checkedAt: new Date(),
-    override: null,
-    overrideReason: null,
-    overriddenBy: null,
-    overriddenAt: null,
+    ...(keepRejection
+      ? {}
+      : {
+          override: null,
+          overrideReason: null,
+          overriddenBy: null,
+          overriddenAt: null,
+        }),
   };
 
-  const previous = await db.agentCompanyCheck.findUnique({
-    where: { profileId: actor.profileId },
-    select: { companyNumber: true, result: true, override: true },
-  });
   await db.agentCompanyCheck.upsert({
     where: { profileId: actor.profileId },
     create: { profileId: actor.profileId, ...record },
     update: record,
   });
-  // A company that no longer passes cannot keep a blue tick (ADR-027).
+  // A company that no longer passes cannot keep a blue tick (ADR-027), and a
+  // tick awarded while the Agent traded as another company does not carry
+  // over to a new one: the Admin re-awards it after checking.
+  const companyChanged =
+    previous !== null && previous.companyNumber !== record.companyNumber;
   const badgeRevoked =
-    result !== CompanyCheckResult.VERIFIED &&
+    (result !== CompanyCheckResult.VERIFIED || keepRejection || companyChanged) &&
     (await revokeBadgeForFailedVerification(db, actor.profileId));
   await writeAudit({
     actorUserId: actor.legacyUserId,

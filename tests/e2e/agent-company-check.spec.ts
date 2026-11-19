@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { closeDb, hasDb, q } from "./helpers/db";
 import { login } from "./helpers/login";
+import { loginAsAdmin } from "./helpers/adminSession";
 
 /**
  * Phase 1 Task 4 (ADR-024): an Agent finds their company on the (mock)
@@ -55,7 +56,7 @@ test("Agent verifies a company; Admin sees it and records an override", async ({
 
   const adminContext = await browser.newContext();
   const admin = await adminContext.newPage();
-  await login(admin, "admin@proplink.test", "Password123!", "ADMIN");
+  await loginAsAdmin(admin);
   await admin.goto("/admin/agents/companies");
   const row = admin.getByTestId(`company-check-row-${await agentProfileId()}`);
   await expect(row).toContainText("PROPLINK DEMO ESTATES LIMITED");
@@ -65,6 +66,6 @@ test("Agent verifies a company; Admin sees it and records an override", async ({
   await row.getByRole("button", { name: "Reject" }).click();
   await expect(row.getByRole("status")).toContainText("Decision saved");
   await admin.reload();
-  await expect(row).toContainText("REJECTED_BY_ADMIN");
+  await expect(row).toContainText("REJECTED BY ADMIN");
   await adminContext.close();
 });

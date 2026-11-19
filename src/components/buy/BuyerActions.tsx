@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { RateLimitCountdown } from "@/components/security/RateLimitCountdown";
@@ -207,7 +208,11 @@ export function BuyerActions({
               Send message
             </button>
             <p className="mt-3 text-xs text-muted">
-              Messages are saved and delivered, but do not yet update live.
+              The agent&apos;s replies appear in{" "}
+              <Link href="/messages" className="underline">
+                Messages
+              </Link>
+              .
             </p>
           </div>
         )}

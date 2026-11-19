@@ -1,7 +1,9 @@
 import { db } from "@/lib/db";
 
 /**
- * GDPR right-to-erasure: anonymises the User row in place.
+ * GDPR right-to-erasure: anonymises the User row in place. Call through
+ * `eraseMember` (src/services/privacy/erasure.ts), which checks legal holds
+ * first (Phase 7, ADR-065).
  * KycRecord rows are DELIBERATELY preserved (UK AML: 5-year retention,
  * docs/CONTEXT.md §compliance) — they end up linked to an anonymised shell.
  */
@@ -22,9 +24,29 @@ export async function eraseUser(userId: string): Promise<{ ok: boolean }> {
           complianceCode: null,
           gdprConsentAt: null,
           active: false,
+          // Phase 7: every existing session ends now.
+          sessionsRevokedAt: new Date(),
         },
       });
+      // Phase 7 (ADR-065): profile content and notification preferences.
+      await transaction.userProfile.updateMany({
+        where: { profileId: user.authProfile.id },
+        data: {
+          headline: null,
+          bio: null,
+          location: null,
+          specialisms: [],
+          experience: null,
+          photoFileId: null,
+          visibility: "PRIVATE",
+        },
+      });
+      await transaction.notificationPreference.deleteMany({
+        where: { profileId: user.authProfile.id },
+      });
     }
+    await transaction.savedSearch.deleteMany({ where: { userId } });
+    await transaction.savedProperty.deleteMany({ where: { userId } });
     await transaction.user.update({
       where: { id: userId },
       data: {

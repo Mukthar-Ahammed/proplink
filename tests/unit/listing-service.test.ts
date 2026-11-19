@@ -573,15 +573,18 @@ describe("getListingForPublicView", () => {
   it.each([
     { active: false, user: { active: true } },
     { active: true, user: { active: false } },
-  ])("hides public inventory when the responsible Agent is inactive", async (agentProfile) => {
-    mockDb.property.findUnique.mockResolvedValue(
-      propertyRow({ status: PropertyStatus.LIVE, agentProfile }),
-    );
+  ])(
+    "hides public inventory when the responsible Agent is inactive",
+    async (agentProfile) => {
+      mockDb.property.findUnique.mockResolvedValue(
+        propertyRow({ status: PropertyStatus.LIVE, agentProfile }),
+      );
 
-    await expect(
-      getListingForPublicView({ propertyId: PROPERTY_ID, viewer: null }),
-    ).resolves.toBeNull();
-  });
+      await expect(
+        getListingForPublicView({ propertyId: PROPERTY_ID, viewer: null }),
+      ).resolves.toBeNull();
+    },
+  );
   it("returns null when the listing does not exist", async () => {
     mockDb.property.findUnique.mockResolvedValue(null);
 

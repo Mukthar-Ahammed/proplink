@@ -36,6 +36,9 @@ describe("location visibility (Phase 1 Task 2, ADR-022)", () => {
       distressTags: [],
       lat: 53.480759,
       lng: -2.242631,
+      agentVerified: false,
+      agentRatingAverage: null,
+      agentRatingCount: 0,
     });
     expect(item).toMatchObject({
       postcode: "M1",

@@ -10,7 +10,7 @@ vi.mock("@/lib/db", () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
-    appraisal: { findUnique: vi.fn(), aggregate: vi.fn(), create: vi.fn() },
+    review: { aggregate: vi.fn() },
     property: { count: vi.fn() },
     enquiry: { count: vi.fn() },
     deal: { count: vi.fn() },
@@ -18,14 +18,11 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { db } from "@/lib/db";
-import { Role } from "@/generated/prisma/enums";
 import { AgentServiceError } from "@/services/agents/errors";
 import {
-  createAppraisal,
   createCaseStudy,
   deleteCaseStudy,
   getAgentProfilePublic,
-  getAppraisalEligibility,
   listCaseStudiesForOwnedProfile,
   updateCaseStudy,
 } from "@/services/agents/agentProfileService";
@@ -37,7 +34,6 @@ beforeEach(() => vi.clearAllMocks());
 const AGENT_USER_ID = "user-agent-1";
 const AGENT_PROFILE_ID = "profile-1";
 const CASE_STUDY_ID = "case-study-1";
-const INVESTOR_ID = "user-investor-1";
 
 function ownedProfile(overrides: Partial<{ userId: string; active: boolean }> = {}) {
   return {
@@ -64,17 +60,20 @@ describe("getAgentProfilePublic", () => {
     } as never);
 
     expect(await getAgentProfilePublic(AGENT_PROFILE_ID)).toBeNull();
-    expect(mockDb.appraisal.aggregate).not.toHaveBeenCalled();
+    expect(mockDb.review.aggregate).not.toHaveBeenCalled();
   });
 
-  it("aggregates rating average/count, verified SOLD deal count, case studies and appraisals", async () => {
+  it("aggregates the published-review rating, verified SOLD deal count, case studies and appraisals", async () => {
     mockDb.agentProfile.findUnique.mockResolvedValue({
       id: AGENT_PROFILE_ID,
       agencyName: "Northgate Distressed Assets",
       bio: "Distressed stock specialists.",
       complianceCode: "PL-AG-0001",
       active: true,
-      user: { active: true },
+      user: {
+        active: true,
+        authProfile: { id: "profile-uuid-1", verificationBadge: null },
+      },
       caseStudies: [
         {
           id: CASE_STUDY_ID,
@@ -96,7 +95,7 @@ describe("getAgentProfilePublic", () => {
         },
       ],
     } as never);
-    mockDb.appraisal.aggregate.mockResolvedValue({
+    mockDb.review.aggregate.mockResolvedValue({
       _avg: { rating: 4.5 },
       _count: { rating: 12 },
     } as never);
@@ -130,13 +129,19 @@ describe("getAgentProfilePublic", () => {
       },
     ]);
 
+    // Only published reviews about the owning account count.
+    expect(mockDb.review.aggregate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { subjectId: "profile-uuid-1", status: "PUBLISHED" },
+      }),
+    );
     // Verified Completed Deals = count of this profile's SOLD listings.
     expect(mockDb.property.count).toHaveBeenCalledWith({
       where: { agentProfileId: AGENT_PROFILE_ID, status: "SOLD" },
     });
   });
 
-  it("reports null rating average (not 0) when the profile has no appraisals yet", async () => {
+  it("reports null rating average (not 0) when the profile has no reviews yet", async () => {
     mockDb.agentProfile.findUnique.mockResolvedValue({
       id: AGENT_PROFILE_ID,
       agencyName: "New Agency",
@@ -147,7 +152,7 @@ describe("getAgentProfilePublic", () => {
       caseStudies: [],
       appraisals: [],
     } as never);
-    mockDb.appraisal.aggregate.mockResolvedValue({
+    mockDb.review.aggregate.mockResolvedValue({
       _avg: { rating: null },
       _count: { rating: 0 },
     } as never);
@@ -324,189 +329,5 @@ describe("deleteCaseStudy", () => {
     expect(mockDb.caseStudy.delete).toHaveBeenCalledWith({
       where: { id: CASE_STUDY_ID },
     });
-  });
-});
-
-describe("getAppraisalEligibility", () => {
-  it("rejects AGENT and ADMIN roles — appraisals are investor/buyer only", async () => {
-    for (const role of [Role.AGENT, Role.ADMIN]) {
-      const result = await getAppraisalEligibility({
-        userId: INVESTOR_ID,
-        role,
-        agentProfileId: AGENT_PROFILE_ID,
-      });
-      expect(result).toEqual({ eligible: false, reason: "WRONG_ROLE" });
-    }
-    expect(mockDb.appraisal.findUnique).not.toHaveBeenCalled();
-  });
-
-  it("rejects a user who has already reviewed this agent profile", async () => {
-    mockDb.appraisal.findUnique.mockResolvedValue({ id: "existing" } as never);
-
-    const result = await getAppraisalEligibility({
-      userId: INVESTOR_ID,
-      role: Role.INVESTOR,
-      agentProfileId: AGENT_PROFILE_ID,
-    });
-
-    expect(result).toEqual({ eligible: false, reason: "ALREADY_REVIEWED" });
-  });
-
-  it("rejects a qualifying-role user with no prior enquiry or deal on this agent's listings", async () => {
-    mockDb.appraisal.findUnique.mockResolvedValue(null);
-    mockDb.enquiry.count.mockResolvedValue(0);
-    mockDb.deal.count.mockResolvedValue(0);
-
-    const result = await getAppraisalEligibility({
-      userId: INVESTOR_ID,
-      role: Role.BUYER,
-      agentProfileId: AGENT_PROFILE_ID,
-    });
-
-    expect(result).toEqual({ eligible: false, reason: "NOT_QUALIFIED" });
-  });
-
-  it("qualifies via a prior Enquiry alone", async () => {
-    mockDb.appraisal.findUnique.mockResolvedValue(null);
-    mockDb.enquiry.count.mockResolvedValue(1);
-    mockDb.deal.count.mockResolvedValue(0);
-
-    const result = await getAppraisalEligibility({
-      userId: INVESTOR_ID,
-      role: Role.INVESTOR,
-      agentProfileId: AGENT_PROFILE_ID,
-    });
-
-    expect(result).toEqual({ eligible: true });
-  });
-
-  it("qualifies via a prior Deal alone (no Enquiry row)", async () => {
-    mockDb.appraisal.findUnique.mockResolvedValue(null);
-    mockDb.enquiry.count.mockResolvedValue(0);
-    mockDb.deal.count.mockResolvedValue(1);
-
-    const result = await getAppraisalEligibility({
-      userId: INVESTOR_ID,
-      role: Role.BUYER,
-      agentProfileId: AGENT_PROFILE_ID,
-    });
-
-    expect(result).toEqual({ eligible: true });
-  });
-
-  it("scopes the Enquiry/Deal check to this agent profile's own listings", async () => {
-    mockDb.appraisal.findUnique.mockResolvedValue(null);
-    mockDb.enquiry.count.mockResolvedValue(0);
-    mockDb.deal.count.mockResolvedValue(0);
-
-    await getAppraisalEligibility({
-      userId: INVESTOR_ID,
-      role: Role.INVESTOR,
-      agentProfileId: AGENT_PROFILE_ID,
-    });
-
-    expect(mockDb.enquiry.count).toHaveBeenCalledWith({
-      where: { fromUserId: INVESTOR_ID, property: { agentProfileId: AGENT_PROFILE_ID } },
-    });
-    expect(mockDb.deal.count).toHaveBeenCalledWith({
-      where: {
-        property: { agentProfileId: AGENT_PROFILE_ID },
-        offer: { buyerUserId: INVESTOR_ID },
-      },
-    });
-  });
-});
-
-describe("createAppraisal", () => {
-  const baseParams = {
-    userId: INVESTOR_ID,
-    role: Role.INVESTOR,
-    agentProfileId: AGENT_PROFILE_ID,
-    rating: 5,
-    review: "Excellent communication throughout the sale.",
-  };
-
-  it("404s when the agent profile does not exist", async () => {
-    mockDb.agentProfile.findUnique.mockResolvedValue(null);
-
-    await expect(createAppraisal(baseParams)).rejects.toMatchObject({
-      code: "NOT_FOUND",
-    });
-    expect(mockDb.appraisal.create).not.toHaveBeenCalled();
-  });
-
-  it("re-validates the rating range server-side regardless of caller input", async () => {
-    mockDb.agentProfile.findUnique.mockResolvedValue({ id: AGENT_PROFILE_ID } as never);
-
-    await expect(createAppraisal({ ...baseParams, rating: 6 })).rejects.toMatchObject({
-      code: "VALIDATION",
-    });
-    await expect(createAppraisal({ ...baseParams, rating: 0 })).rejects.toMatchObject({
-      code: "VALIDATION",
-    });
-    expect(mockDb.appraisal.create).not.toHaveBeenCalled();
-  });
-
-  it("blocks an AGENT/ADMIN poster (wrong role) even with a valid rating", async () => {
-    mockDb.agentProfile.findUnique.mockResolvedValue({ id: AGENT_PROFILE_ID } as never);
-
-    await expect(
-      createAppraisal({ ...baseParams, role: Role.AGENT }),
-    ).rejects.toMatchObject({ code: "NOT_QUALIFIED" });
-    expect(mockDb.appraisal.create).not.toHaveBeenCalled();
-  });
-
-  it("blocks a qualifying-role user with no prior enquiry/deal on this agent's listings", async () => {
-    mockDb.agentProfile.findUnique.mockResolvedValue({ id: AGENT_PROFILE_ID } as never);
-    mockDb.appraisal.findUnique.mockResolvedValue(null);
-    mockDb.enquiry.count.mockResolvedValue(0);
-    mockDb.deal.count.mockResolvedValue(0);
-
-    await expect(createAppraisal(baseParams)).rejects.toMatchObject({
-      code: "NOT_QUALIFIED",
-    });
-    expect(mockDb.appraisal.create).not.toHaveBeenCalled();
-  });
-
-  it("blocks a duplicate appraisal (one per user per profile)", async () => {
-    mockDb.agentProfile.findUnique.mockResolvedValue({ id: AGENT_PROFILE_ID } as never);
-    mockDb.appraisal.findUnique.mockResolvedValue({ id: "existing" } as never);
-
-    await expect(createAppraisal(baseParams)).rejects.toMatchObject({
-      code: "DUPLICATE",
-    });
-    expect(mockDb.appraisal.create).not.toHaveBeenCalled();
-  });
-
-  it("creates the appraisal for a qualified investor", async () => {
-    mockDb.agentProfile.findUnique.mockResolvedValue({ id: AGENT_PROFILE_ID } as never);
-    mockDb.appraisal.findUnique.mockResolvedValue(null);
-    mockDb.enquiry.count.mockResolvedValue(1);
-    mockDb.deal.count.mockResolvedValue(0);
-    mockDb.appraisal.create.mockResolvedValue({ id: "new-appraisal" } as never);
-
-    const result = await createAppraisal(baseParams);
-
-    expect(mockDb.appraisal.create).toHaveBeenCalledWith({
-      data: {
-        agentProfileId: AGENT_PROFILE_ID,
-        investorUserId: INVESTOR_ID,
-        rating: 5,
-        review: baseParams.review,
-      },
-    });
-    expect(result).toEqual({ id: "new-appraisal" });
-  });
-
-  it("creates the appraisal for a qualified buyer (Deal-only qualification)", async () => {
-    mockDb.agentProfile.findUnique.mockResolvedValue({ id: AGENT_PROFILE_ID } as never);
-    mockDb.appraisal.findUnique.mockResolvedValue(null);
-    mockDb.enquiry.count.mockResolvedValue(0);
-    mockDb.deal.count.mockResolvedValue(1);
-    mockDb.appraisal.create.mockResolvedValue({ id: "new-appraisal" } as never);
-
-    await createAppraisal({ ...baseParams, role: Role.BUYER });
-
-    expect(mockDb.appraisal.create).toHaveBeenCalled();
   });
 });

@@ -55,7 +55,10 @@ describe("Supabase auth security primitives", () => {
       recoveryGrantIsValid(grant.value, "22222222-2222-4222-8222-222222222222"),
     ).toBe(false);
     expect(
-      recoveryGrantIsValid(`${grant.value}tampered`, "11111111-1111-4111-8111-111111111111"),
+      recoveryGrantIsValid(
+        `${grant.value}tampered`,
+        "11111111-1111-4111-8111-111111111111",
+      ),
     ).toBe(false);
   });
 });

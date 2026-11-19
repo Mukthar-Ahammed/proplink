@@ -20,6 +20,9 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/app/(auth)/actions", () => ({ logoutAction: vi.fn() }));
+vi.mock("@/services/admin/permissions", () => ({
+  adminPermissionsOf: vi.fn(async () => new Set(["SUPER_ADMIN"])),
+}));
 
 import AdminLayout from "@/app/admin/layout";
 import { mapStatusToTone } from "@/components/admin/StatusBadge";

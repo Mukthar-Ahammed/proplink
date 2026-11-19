@@ -10,6 +10,9 @@ import {
 } from "@/services/listings/listingService";
 import { getAgentProfilePublic } from "@/services/agents/agentProfileService";
 import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
+import { ReportPanel } from "@/components/cases/ReportPanel";
+import { SITE_URL } from "@/lib/siteUrl";
+import { listingStructuredData, serializeJsonLd } from "@/services/search/publicListings";
 import { staticMapService } from "@/services/maps";
 import { DISTRESS_TAG_OPTIONS, formatPenceGBP } from "@/components/listings/wizardTypes";
 import { Badge, EpcBadge } from "@/components/ui/badge";
@@ -159,6 +162,34 @@ export default async function PropertyDetailPage({ params }: PageProps) {
     // Layout follows ADR-071: a two-column body with the gallery and facts
     // on the left and a sticky action rail (price first) on the right.
     <main className="mx-auto w-full max-w-7xl px-4 pt-6 pb-16 sm:px-6 lg:px-8">
+      {/* Structured data (Phase 5 Task 6, ADR-057): public fields only, for
+          listings that are for sale. serializeJsonLd escapes "<", so listing
+          text cannot close the script element. */}
+      {isPublic && (listing.status === "LIVE" || listing.status === "UNDER_OFFER") && (
+        <script
+          type="application/ld+json"
+          data-testid="listing-jsonld"
+          // nosemgrep: react-dangerouslysetinnerhtml -- JSON-LD from public fields, serialised with < and line separators escaped (ADR-057); reviewed Phase 7.
+          dangerouslySetInnerHTML={{
+            __html: serializeJsonLd(
+              listingStructuredData(
+                {
+                  id: listing.id,
+                  title: listing.title,
+                  city: listing.city,
+                  region: listing.region,
+                  postcode: listing.postcode,
+                  askingPriceGBP: listing.askingPriceGBP,
+                  status: listing.status,
+                  bedrooms: listing.bedrooms,
+                  imageUrl: listing.images[0]?.url ?? null,
+                },
+                SITE_URL,
+              ),
+            ),
+          }}
+        />
+      )}
       {!isPublic && (
         <p
           role="status"
@@ -217,6 +248,16 @@ export default async function PropertyDetailPage({ params }: PageProps) {
           )}
         </div>
         {canSave && <SaveButton propertyId={listing.id} initialSaved={alreadySaved} />}
+        {/* Signed out: prompt to sign in and come back to this listing (Phase 5 Task 2). */}
+        {isPublic && !viewer && (
+          <Link
+            href={`/login?callbackUrl=${encodeURIComponent(`/marketplace/${listing.id}`)}`}
+            data-testid="save-signin"
+            className="rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:border-accent hover:text-accent"
+          >
+            ☆ Sign in to save
+          </Link>
+        )}
       </div>
 
       {/* Counted server-side and deduped per session — see analytics.ts. */}
@@ -401,6 +442,27 @@ export default async function PropertyDetailPage({ params }: PageProps) {
             </section>
           )}
         </aside>
+      </div>
+
+      <div className="mt-12 space-y-6">
+        <p
+          className="rounded-2xl border border-line bg-surface p-4 text-xs leading-relaxed text-muted"
+          data-testid="ag6-notice"
+        >
+          Conveyancing, legal agreements and contract responsibilities for this sale are
+          handled by the listing agent. Where a property was refurbished through a PropLink
+          investment project, the investment side is handled by that project&apos;s
+          Solicitor. PropLink does not hold or move purchase money.
+        </p>
+
+        {/* Phase 6 Task 3 (ADR-059): signed-in members may report a listing. */}
+        {isPublic && viewer && (
+          <ReportPanel
+            subjectType="LISTING"
+            subjectId={listing.id}
+            label="Report this listing"
+          />
+        )}
       </div>
     </main>
   );

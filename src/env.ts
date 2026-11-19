@@ -21,6 +21,11 @@ const optionalSecret = z.preprocess(
 const optionalEnum = <const T extends readonly [string, ...string[]]>(values: T) =>
   z.preprocess((value) => (value === "" ? undefined : value), z.enum(values).optional());
 
+const optionalPositiveInt = z.preprocess(
+  (value) => (value === "" || value === undefined ? undefined : Number(value)),
+  z.number().int().positive().optional(),
+);
+
 const booleanEnv = z.preprocess((value) => {
   if (value === undefined || value === "") return undefined;
   if (value === "true") return true;
@@ -65,6 +70,28 @@ const serverEnvSchema = z
     SUMSUB_SECRET_KEY: optionalString,
     SUMSUB_WEBHOOK_SECRET: optionalString,
     SUMSUB_LEVEL_NAME: optionalString,
+    STRIPE_PROVIDER: optionalEnum(["mock", "stripe"]),
+    STRIPE_SECRET_KEY: optionalString,
+    STRIPE_WEBHOOK_SECRET: optionalString,
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: optionalString,
+    AI_PROVIDER: optionalEnum(["mock", "anthropic", "disabled"]),
+    // Phase 4 Task 6 (ADR-048): e-signature. Default Dropbox Sign [OWNER confirms].
+    ESIGN_PROVIDER: optionalEnum(["mock", "dropbox_sign"]),
+    ESIGN_API_KEY: optionalString,
+    ESIGN_CLIENT_ID: optionalString,
+    ESIGN_WEBHOOK_SECRET: optionalString,
+    ESIGN_TEST_MODE: booleanEnv,
+    // Phase 5 Task 3 (ADR-056): maps. Mock until the Google keys exist (H2.2).
+    MAPS_PROVIDER: optionalEnum(["mock", "google"]),
+    GOOGLE_MAPS_SERVER_KEY: optionalString,
+    GOOGLE_MAPS_BROWSER_KEY: optionalString,
+    GOOGLE_MAPS_API_KEY: optionalString,
+    // Phase 5 Task 3: Vercel Cron sends it as a Bearer token to /api/jobs/* (H5.5).
+    CRON_SECRET: optionalSecret,
+    ANTHROPIC_API_KEY: optionalString,
+    AI_MODEL: optionalString,
+    AI_DAILY_TOKEN_BUDGET_PER_USER: optionalPositiveInt,
+    AI_GLOBAL_DAILY_BUDGET: optionalPositiveInt,
     SENTRY_DSN: optionalUrl,
     NEXT_PUBLIC_SENTRY_DSN: optionalUrl,
     FINANCIAL_PROMOTIONS_REVIEWED: booleanEnv,
@@ -107,6 +134,103 @@ const serverEnvSchema = z
         code: "custom",
         path: ["KYC_PROVIDER"],
         message: "Production requires a real KYC provider",
+      });
+    }
+
+    // Phase 3 Task 1 (ADR-042): subscriptions only; never live keys outside production.
+    const stripeProvider =
+      env.STRIPE_PROVIDER ?? (env.NODE_ENV === "production" ? "stripe" : "mock");
+    if (stripeProvider === "stripe") {
+      for (const key of ["STRIPE_SECRET_KEY", "STRIPE_WEBHOOK_SECRET"] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: "Required when the Stripe provider is enabled",
+          });
+        }
+      }
+    }
+    const productionDeployment =
+      env.NODE_ENV === "production" &&
+      (env.PROPLINK_ENV ?? "production") === "production";
+    const liveKey = [env.STRIPE_SECRET_KEY, env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY].some(
+      (key) => key !== undefined && /^(sk|rk|pk)_live_/.test(key),
+    );
+    if (liveKey && !productionDeployment) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["STRIPE_SECRET_KEY"],
+        message: "Live Stripe keys are refused outside production; use test-mode keys",
+      });
+    }
+    // Phase 5 Task 3 (ADR-056): the Google provider needs both restricted keys.
+    if (env.MAPS_PROVIDER === "google") {
+      if (!env.GOOGLE_MAPS_SERVER_KEY) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["GOOGLE_MAPS_SERVER_KEY"],
+          message: "Required when MAPS_PROVIDER=google",
+        });
+      }
+      if (!env.GOOGLE_MAPS_BROWSER_KEY && !env.GOOGLE_MAPS_API_KEY) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["GOOGLE_MAPS_BROWSER_KEY"],
+          message: "Required when MAPS_PROVIDER=google",
+        });
+      }
+    }
+    // Phase 4 Task 6 (ADR-048): mock signatures have no legal effect.
+    const esignProvider =
+      env.ESIGN_PROVIDER ?? (env.NODE_ENV === "production" ? "dropbox_sign" : "mock");
+    if (esignProvider === "dropbox_sign") {
+      for (const key of ["ESIGN_API_KEY", "ESIGN_CLIENT_ID"] as const) {
+        if (!env[key]) {
+          ctx.addIssue({
+            code: "custom",
+            path: [key],
+            message: "Required when the Dropbox Sign provider is enabled",
+          });
+        }
+      }
+    }
+    if (env.NODE_ENV === "production" && esignProvider === "mock") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ESIGN_PROVIDER"],
+        message: "Production cannot use the mock e-signature provider",
+      });
+    }
+    if (productionDeployment && env.ESIGN_TEST_MODE === true) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ESIGN_TEST_MODE"],
+        message: "Production signatures must not be test-mode signatures",
+      });
+    }
+    if (env.NODE_ENV === "production" && stripeProvider === "mock") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["STRIPE_PROVIDER"],
+        message: "Production cannot use the mock billing provider",
+      });
+    }
+
+    const aiProvider =
+      env.AI_PROVIDER ?? (env.NODE_ENV === "production" ? "anthropic" : "mock");
+    if (aiProvider === "anthropic" && !env.ANTHROPIC_API_KEY) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["ANTHROPIC_API_KEY"],
+        message: "Required when the Anthropic AI provider is enabled",
+      });
+    }
+    if (env.NODE_ENV === "production" && aiProvider === "mock") {
+      ctx.addIssue({
+        code: "custom",
+        path: ["AI_PROVIDER"],
+        message: "Production cannot use the mock AI provider (use anthropic or disabled)",
       });
     }
 
@@ -298,6 +422,18 @@ export function parseServerEnv(source: NodeJS.ProcessEnv) {
     KYC_PROVIDER:
       parsed.KYC_PROVIDER ?? (parsed.NODE_ENV === "production" ? "sumsub" : "mock"),
     SUMSUB_LEVEL_NAME: parsed.SUMSUB_LEVEL_NAME ?? "basic-kyc-level",
+    STRIPE_PROVIDER:
+      parsed.STRIPE_PROVIDER ?? (parsed.NODE_ENV === "production" ? "stripe" : "mock"),
+    AI_PROVIDER:
+      parsed.AI_PROVIDER ?? (parsed.NODE_ENV === "production" ? "anthropic" : "mock"),
+    AI_MODEL: parsed.AI_MODEL ?? "claude-opus-5-5",
+    ESIGN_PROVIDER:
+      parsed.ESIGN_PROVIDER ??
+      (parsed.NODE_ENV === "production" ? "dropbox_sign" : "mock"),
+    // Test mode unless explicitly turned off (only production deployments may).
+    ESIGN_TEST_MODE: parsed.ESIGN_TEST_MODE ?? parsed.NODE_ENV !== "production",
+    AI_DAILY_TOKEN_BUDGET_PER_USER: parsed.AI_DAILY_TOKEN_BUDGET_PER_USER ?? 40_000,
+    AI_GLOBAL_DAILY_BUDGET: parsed.AI_GLOBAL_DAILY_BUDGET ?? 1_000_000,
     TURNSTILE_ENABLED: parsed.TURNSTILE_ENABLED ?? parsed.NODE_ENV === "production",
     UPLOADS_ENABLED: parsed.UPLOADS_ENABLED ?? false,
     FINANCIAL_PROMOTIONS_REVIEWED: parsed.FINANCIAL_PROMOTIONS_REVIEWED ?? false,

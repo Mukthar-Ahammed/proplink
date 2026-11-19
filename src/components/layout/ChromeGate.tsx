@@ -32,6 +32,10 @@ const BARE_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
+  // Invite acceptance pages render `<AuthShell>` too; a signed-in admin
+  // opening the link would otherwise see their own header above the card.
+  "/invite/agent",
+  "/invite/solicitor",
 ];
 
 const SHELL_PREFIXES = ["/admin"];

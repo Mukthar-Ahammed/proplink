@@ -49,7 +49,8 @@ test.describe("buyer portal", () => {
 
     // Inside it, the distress disclosure is still closed: its summary is
     // visible; the chips are not, until it is opened.
-    const disclosure = page.locator("details");
+    // Scoped: the page also has a "Save this search" disclosure (Phase 5).
+    const disclosure = page.locator("details", { hasText: "Distress type" });
     await expect(disclosure).toHaveCount(1);
     expect(await disclosure.evaluate((el: HTMLDetailsElement) => el.open)).toBe(false);
     await expect(disclosure.locator("summary")).toContainText("Distress type");
@@ -114,6 +115,7 @@ test.describe("buyer portal", () => {
     const id = await seededListingId(page);
 
     await page.goto(`/marketplace/${id}`);
+    const title = (await page.getByRole("heading", { level: 1 }).innerText()).trim();
     await page.getByRole("tab", { name: "Message agent" }).click();
     // Scoped: the enquiry form further down the page has its own "Message"
     // field, so an unscoped label is a strict-mode violation.
@@ -122,10 +124,18 @@ test.describe("buyer portal", () => {
     await actions.getByRole("button", { name: "Send message" }).click();
     await expect(page.getByText("Message sent to the agent.")).toBeVisible();
 
+    // Old link still works; messages live in per-property threads (ADR-043).
     await page.goto("/buy/messages");
-    // `.first()`: repeated runs leave the same message on more than one
-    // property's thread, and that is correct behaviour rather than residue to
-    // assert against.
+    await expect(page).toHaveURL(/\/messages$/);
+    await page
+      .getByRole("link", {
+        name: new RegExp(title.slice(0, 40).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")),
+      })
+      .first()
+      .click();
+    await expect(page).toHaveURL(/\/messages\/[0-9a-f-]{36}$/);
+    // `.first()`: repeated runs leave the same message in the thread, which is
+    // correct behaviour rather than residue to assert against.
     await expect(page.getByText("Is the roof report available?").first()).toBeVisible();
   });
 

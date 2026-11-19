@@ -55,13 +55,20 @@ export function isPrivateResponsePath(pathname: string): boolean {
     pathname === "/account" ||
     pathname.startsWith("/account/") ||
     pathname === "/mfa" ||
+    pathname === "/messages" ||
+    pathname.startsWith("/messages/") ||
     pathname === "/landlord" ||
     pathname.startsWith("/landlord/") ||
+    pathname === "/solicitor" ||
+    pathname.startsWith("/esign/") ||
+    pathname.startsWith("/solicitor/") ||
     pathname.startsWith("/dev/") ||
     pathname.startsWith("/u/") ||
     pathname === "/verify" ||
     pathname.startsWith("/verify/") ||
     pathname.startsWith("/auth/") ||
+    // Saved-search unsubscribe links carry a token (Phase 5 Task 3).
+    pathname.startsWith("/alerts/") ||
     pathname === "/login" ||
     pathname === "/register" ||
     pathname === "/forgot-password" ||

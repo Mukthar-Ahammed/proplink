@@ -31,6 +31,9 @@ interface RawSearchRow {
   lng: number | null;
   imageUrl: string | null;
   distressTags: string[] | null;
+  agentVerified: boolean | null;
+  agentRatingAverage: number | null;
+  agentRatingCount: number | null;
 }
 
 function toItem(
@@ -44,6 +47,9 @@ function toItem(
     // the query COALESCEs it, but the mapper stays defensive since a null here
     // would crash every card that maps over the list.
     distressTags: (row.distressTags ?? []) as DistressTag[],
+    agentVerified: row.agentVerified === true,
+    agentRatingCount: row.agentRatingCount ?? 0,
+    agentRatingAverage: row.agentRatingCount ? row.agentRatingAverage : null,
   };
 }
 
@@ -54,9 +60,7 @@ function toItem(
  * sibling class rather than unpicking SQL from business logic.
  */
 export class PostgresSearchService implements SearchService {
-  constructor(
-    private readonly financialPromotionsReviewed = false,
-  ) {}
+  constructor(private readonly financialPromotionsReviewed = false) {}
 
   async search(params: SearchParams): Promise<SearchResult> {
     const page = resolvePage(params.page);
@@ -72,9 +76,7 @@ export class PostgresSearchService implements SearchService {
     ]);
 
     return {
-      items: rows.map((row) =>
-        toItem(row, this.financialPromotionsReviewed),
-      ),
+      items: rows.map((row) => toItem(row, this.financialPromotionsReviewed)),
       total,
       // Report what was actually queried, not what was asked for — the caller
       // paginates against these numbers.

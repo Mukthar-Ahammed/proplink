@@ -1,8 +1,8 @@
-# Phase 2 — Landlord Listings, Admin Queue, Agent Interest and Exclusive Mandates
+| 3. Admin review queue | Done | ADR-037 |# Phase 2 — Landlord Listings, Admin Queue, Agent Interest and Exclusive Mandates
 
-| Status      | Started    | Branch                      | Depends on                                             |
-| ----------- | ---------- | --------------------------- | ------------------------------------------------------ |
-| In progress | 2026-11-18 | `phase-2-landlord-pipeline` | Phase 1 exit (owner's hand check of three Admin flows) |
+| Status                          | Started    | Branch                      | Depends on                                             |
+| ------------------------------- | ---------- | --------------------------- | ------------------------------------------------------ |
+| Built; waiting for owner checks | 2026-11-18 | `phase-2-landlord-pipeline` | Phase 1 exit (owner's hand check of three Admin flows) |
 
 Phase 2 started in parallel with Phase 1's last check, branched from
 `phase-1-roles-access` (as ADR-020 did for Phase 0 → 1). It cannot exit, or
@@ -12,7 +12,7 @@ merge to `main`, before Phase 1 does.
 
 | Task                         | Business rule                                                                                   |
 | ---------------------------- | ----------------------------------------------------------------------------------------------- |
-| 1. Landlord module           | **Done**                                                                                        | ADR-034 |
+| 1. Landlord module           | TRD LL-1; Q5, Q6                                                                                |
 | 2. AI listing assistant      | Q5                                                                                              |
 | 3. Admin review queue        | Q6 (confirmed): reviewed and approved within 30–60 minutes before verified Agents see it        |
 | 4. Private-listing hardening | TRD LL-2 to LL-5; acceptance criterion 3                                                        |
@@ -27,16 +27,16 @@ mandate exists (OD-22).
 
 ## Task progress
 
-| Task                         | State       | Notes |
-| ---------------------------- | ----------- | ----- |
-| 1. Landlord module           | In progress |       |
-| 2. AI listing assistant      | Not started |       |
-| 3. Admin review queue        | Not started |       |
-| 4. Private-listing hardening | Not started |       |
-| 5. Agent marketplace         | Not started |       |
-| 6. Exclusive mandate         | Not started |       |
-| 7. Landlord data exposure    | Not started |       |
-| 8. Notifications             | Not started |       |
+| Task                         | State                                             | Notes   |
+| ---------------------------- | ------------------------------------------------- | ------- |
+| 1. Landlord module           | Done                                              | ADR-034 |
+| 2. AI listing assistant      | Done (real-provider smoke test waits for the key) | ADR-036 |
+| 3. Admin review queue        | Done                                              | ADR-037 |
+| 4. Private-listing hardening | Done                                              |         |
+| 5. Agent marketplace         | Done                                              | ADR-038 |
+| 6. Exclusive mandate         | Done                                              | ADR-039 |
+| 7. Landlord data exposure    | Done (used by Phase 4 publishing)                 | ADR-040 |
+| 8. Notifications             | Done                                              | ADR-041 |
 
 ## Task 1 — Landlord module (2026-11-18)
 
@@ -77,3 +77,313 @@ mandate exists (OD-22).
   applied to development.
 - The permission-matrix rows for private listings flip when Task 5 delivers
   agent viewing (both Phase 2 rows together).
+
+## Task 2 — AI listing assistant (2026-11-18)
+
+**Delivered** (ADR-036)
+
+- `src/services/ai/`: provider interface, mock and Anthropic adapters
+  (official SDK, structured JSON output, no tools, server-side system prompt,
+  answers sent as data), `AI_PROVIDER=mock|anthropic|disabled` with
+  production refusing the mock.
+- `listingAssistant.ts`: Landlord-only; input cleaning (contact details,
+  links, markup, control characters removed; length caps); 10 per hour per
+  user; per-user and global daily token budgets; output cleaning and caps;
+  usage-only logging.
+- Migration `20261118100000_phase2_ai_usage` (with `rollback.sql`): the
+  `ai_usage` ledger (token counts only), server-only.
+- Landlord editor: optional "Draft the description with the AI assistant"
+  panel; draft shown for review, put into the form only on request.
+- `docs/credentials/anthropic.md` (account, key, spend limits, rotation,
+  smoke test), `.env.example`, BLOCKERS row.
+
+**Verification**
+
+- `tests/unit/ai-listing-assistant.test.ts` (16): input and output
+  cleaning, enum filtering, Landlord-only, empty-answer refusal, disabled
+  provider, rate limit before budget, budget exhaustion without a provider
+  call, failed calls recorded with their usage, output sanitising, log lines
+  free of listing text; Anthropic adapter: system prompt, data block,
+  fallbacks, no tools, refusal/truncation mapping, status-only error logs.
+- `tests/integration/ai-budget-db.test.ts` (5, disposable database): 10
+  concurrent reservations against a 40,000-token budget let exactly 4 through;
+  settled usage replaces the reservation; global budget across users;
+  previous days not counted; row checks, RLS on, no Data API access.
+- Rollback rehearsed (table and enum removed, re-applied cleanly).
+- Full suite without a database: 99 files pass, 14 database-only skipped.
+
+**Open**
+
+- Real-provider smoke test: waits for `ANTHROPIC_API_KEY` (H1.9); steps in
+  `docs/credentials/anthropic.md`.
+
+## Task 3 — Admin review queue (2026-11-18)
+
+**Delivered** (ADR-037)
+
+- Migration `20261118110000_phase2_listing_review_queue` (with
+  `rollback.sql`): claim columns and trigger on `landlord_listings`;
+  append-only `landlord_listing_reviews`; server-only.
+- `src/services/landlord/reviewQueue.ts`: queue views, claim / take over /
+  release / assign, approve or reject with reason (atomic, KYC-gated),
+  history rows, audit, Landlord email per preferences, SLA state and metrics.
+- `/admin/landlord-listings`: SLA metrics (waiting, unclaimed, overdue,
+  oldest; decided, within 60 minutes, median and p90 over 7 days) and the
+  queue; `/admin/landlord-listings/[id]`: listing, Landlord KYC, files via
+  signed links, earlier decisions, hold and decision controls. Sidebar link.
+- Notification event `listing.review_decision`; Landlord decision emails.
+
+**Verification**
+
+- `tests/unit/landlord-review-queue.test.ts` (15): SLA boundaries, Admin
+  rate limit, atomic claim and audit, take-over audit, assignment to active
+  Admins only, reason rules, held-by-another refusal, KYC and suspension gate,
+  lost race writes nothing, approval writes history, audit and email,
+  rejection respects the email preference, email failure keeps the decision,
+  event offered to Landlords only.
+- `tests/integration/landlord-review-queue-db.test.ts` (5, disposable
+  database): hold and take-over; two Admins deciding at once produce exactly
+  one decision, one history row and one audit row; reject, resubmit and
+  approve keep both history rows and feed the metrics; KYC no longer approved
+  blocks approval; database guards (non-Admin claim refused, withdrawal
+  releases a claim, history append-only, reason rules, non-Admin reviewer
+  refused, RLS on, no Data API access).
+- Rollback rehearsed (table, columns and trigger removed, re-applied).
+- Full suite on the disposable database (seeded): 115 files pass. Without a
+  database: 100 files pass, 15 database-only skipped.
+
+**Open**
+
+- Owner hand check of the queue with two Admin accounts (needs the owner's
+  MFA); telling verified Agents about approved listings comes with Tasks 5
+  and 8.
+
+## Task 4 — Private-listing hardening (2026-11-18)
+
+**Delivered** (TRD LL-2 to LL-5; acceptance criterion 3)
+
+- Already in place and now covered by tests: Landlord listing tables are
+  server-only (RLS on, no Data API); `/landlord`, `/admin`, `/agent` and
+  `/api` responses carry `Cache-Control: private, no-store` and
+  `X-Robots-Tag: noindex, nofollow`; files only through short-lived signed,
+  access-checked links (Phase 1 Task 12).
+- `src/app/robots.ts`: `robots.txt` disallows every private area. There is
+  no sitemap, and none may list a private route.
+- Code boundary guard (`tests/unit/private-listing-boundary.test.ts`): only
+  `src/services/landlord/` reads the listing tables; only the Landlord portal
+  and the Admin review pages use that service; sitemap, robots, search,
+  marketplace and public APIs never touch it. A planted leak in
+  `src/app/marketplace/` was confirmed to fail all three checks. The Task 5
+  Agent marketplace must be added to the allowlist on purpose.
+- Leakage crawl (`tests/e2e/private-listing-leakage.spec.ts`): a throwaway
+  Landlord's **approved** listing (the most visible state) carries unique
+  markers. Signed out, then as Buyer, Investor and Agent, the test crawls the
+  public site and its links (up to 40 pages per role), calls the public
+  search, count, listings and case-study APIs with words from the listing,
+  fetches `robots.txt` and `/sitemap.xml`, and requests the private URLs
+  directly. No response may contain the title, address, description,
+  defects or ID; direct private URLs never return 200 and are `no-store`
+  and `noindex`. Fixtures are removed afterwards.
+- Shared E2E login helper waits for hydration and allows a cold dev server
+  more time (it was submitting before hydration and retrying into the login
+  rate limit).
+
+**Verification**
+
+- Boundary and header/robots unit tests: 8 pass.
+- Leakage crawl against the development database: 4 of 4 pass (signed out,
+  Buyer, Investor, Agent); no fixtures left behind.
+- Full suite without a database: 101 files pass, 15 database-only skipped.
+
+**Open**
+
+- "Visible to a Verified Agent" (the other half of criterion 3) needs the
+  Task 5 marketplace; its E2E test will extend this spec.
+- Admin is not crawled (sign-in needs the owner's MFA); Admin access is
+  covered by the review-queue tests.
+
+## Task 5 — Agent marketplace (2026-11-18)
+
+**Delivered** (ADR-038; OD-23 recorded)
+
+- Migration `20261118120000_phase2_agent_proposals` (with `rollback.sql`):
+  `agent_proposals` and `agent_proposal_questions`, guard triggers,
+  server-only.
+- `src/services/landlord/marketplace.ts`: verified-Agent check; marketplace
+  list with filters and detail with access-checked photos; structured
+  proposals (valuation, fee, contract period, terms, pitch) with edit,
+  withdraw and resubmit; Landlord side-by-side comparison, questions and
+  decline; Agent answers; email notifications by preference.
+- Pages: `/agent/marketplace` (nav "Landlord listings"),
+  `/agent/marketplace/[id]`, `/landlord/listings/[id]/proposals` (linked
+  from the approved listing).
+- `createGrantedDownloadLink` for photos a verified Agent may see; callable
+  only from the Landlord service (boundary test).
+- Permission matrix moved to Phase 2: real checkers for
+  `create_private_listing` and `view_private_landlord_listing`.
+
+**Verification**
+
+- `tests/unit/agent-marketplace.test.ts` (21): money parsing and proposal
+  validation, rate limit first, verified-Agent rules (role, active, legacy
+  ID, company gate), list and detail never select the Landlord and show
+  photos only, create / edit / resubmit / decided / duplicate race / email
+  failure, withdraw scope, question ownership and cap, decline scope.
+- `tests/integration/agent-marketplace-db.test.ts` (4, disposable database):
+  verified Agent sees approved listings only (Admin-rejected company and
+  Investor refused); a racing double submission leaves one proposal;
+  owner-only comparison and questions, answer once by the right Agent;
+  database guards (non-Agent author, unapproved listing, fee shape, unique
+  pair, immutable listing, resubmission on a withdrawn listing, question
+  asker and edits), RLS on, no Data API access. This caught a NULL-unsafe fee
+  check (a fixed fee with no amount passed); fixed before release.
+- Permission matrix: 63 checks pass with Phase 2 delivered.
+- Leakage crawl extended (5 of 5 pass against the development database):
+  signed out, Buyer and Investor see nothing; the verified Agent sees the
+  approved listing in the marketplace and on its page, nowhere else, and
+  never the Landlord's name, email or ID; the Agent sends a proposal through
+  the real form (stored as 18,500,000 and 275,000 pence).
+- Rollback rehearsed. Full suite on the disposable database: 118 files, 1540
+  tests pass. Without a database: 102 files pass, 16 database-only skipped.
+
+**Open**
+
+- Choosing an Agent (the exclusive mandate, with the one-mandate race test)
+  is Task 6; declining sends no email until Task 8.
+
+## Task 6 — Exclusive mandate (2026-11-18)
+
+**Delivered** (ADR-039; OD-23 completed)
+
+- Migration `20261118130000_phase2_mandates` (with `rollback.sql`): `mandates`,
+  partial unique index (one offered or active mandate per listing), mandate
+  guard trigger (start state, source proposal, Agent role, transitions,
+  frozen terms, terminating party, contract file) and a listing guard
+  (no status change under a live mandate, OD-22). Server-only.
+- `src/services/landlord/mandates.ts`: choose an Agent (offer), withdraw an
+  offer, accept or decline, terminate with a reason, close at contract end,
+  attach the contract, Agent and Landlord views; audit and email by
+  preference (new event `mandate.response`).
+- Marketplace hides listings under an offered or active mandate; withdrawal
+  refused while one exists.
+- Pages: mandate panel and "Choose this agent" on
+  `/landlord/listings/[id]/proposals`; `/agent/mandates` (nav "Mandates")
+  and `/agent/mandates/[id]`; contract uploader shared by both parties.
+
+**Verification**
+
+- `tests/unit/mandates.test.ts` (15): calendar months, lifecycle stage,
+  choosing (rate limit, role, KYC, own approved listing, terms copied,
+  unique-index race and lost update refused without side effects, renewal
+  length), withdrawing an offer reopens the proposal, accepting and
+  declining, listing no longer approved, termination scope and notices,
+  close only after the contract period, contract upload ownership, Landlord
+  identity and documents only while active.
+- `tests/integration/mandates-db.test.ts` (4, disposable database): **three
+  concurrent choices produce exactly one mandate** and the losing proposals
+  stay open; full lifecycle (offer → out of the pool → accept → Landlord name
+  and documents visible → withdrawal refused by service and trigger →
+  terminate → back in the pool, former Agent loses access); close after the
+  contract period; database guards and RLS.
+- `tests/e2e/mandate-accept.spec.ts` against the development database: the
+  verified Agent accepts the offered mandate in the browser; the Landlord's
+  name is hidden before and shown after; the mandate is active with an end
+  date. The leakage crawl still passes (5 of 5). No fixtures left behind.
+- Rollback rehearsed. Full suite on the disposable database: 120 files, 1559
+  tests pass. Without a database: 103 files pass, 17 database-only skipped.
+
+## Task 7 — Landlord data exposure control (2026-11-18)
+
+**Delivered** (ADR-040; TRD AG-7)
+
+- Migration `20261118140000_phase2_mandate_disclosures` (with `rollback.sql`):
+  `mandate_disclosures`, trigger allowing only the active mandate's Agent;
+  server-only.
+- `src/services/landlord/disclosure.ts`: safe defaults, update (rate limited,
+  verified Agent, active mandate, audited with changed fields) and the pure
+  `buildInvestorView` for Phase 4.
+- Agent mandate page: tick what investors will see, with a live preview;
+  Landlord mandate panel: what the Agent will show.
+
+**Verification**
+
+- `tests/unit/mandate-disclosure.test.ts` (7): defaults hide the Landlord's
+  name, street address, full postcode and documents; ownership documents and
+  the Landlord's title never appear even with everything ticked; strict
+  checkbox parsing; safe defaults when nothing is stored; update refused at
+  the rate limit, for unverified Agents and without an active mandate; saved
+  and audited with the changed fields.
+- `tests/integration/mandates-db.test.ts` (now 5): only the active mandate's
+  Agent can set the disclosure (offered, other Agent and ended mandate
+  refused by service and trigger); RLS on.
+- Rollback rehearsed.
+
+## Task 8 — Notifications along the chain (2026-11-18)
+
+**Delivered** (ADR-041; business Q12)
+
+- Every Phase 2 event now has a sender, by preference: listing review
+  results and new proposals, questions, answers and mandate responses to the
+  Landlord; new or returned listings, questions, declines, offers,
+  withdrawals, terminations and closures to the Agent.
+- `listing.private_listing` announcements to verified Agents when a listing
+  is approved or returns to the pool after a mandate ends; after the
+  response, five at a time, at most 500, exactly once per round
+  (`notification_deliveries`, migration `20261118150000` with rollback).
+- Declining a proposal now emails the Agent (left open in Task 5).
+
+**Verification**
+
+- `tests/unit/chain-notifications.test.ts` (15): claim-then-send, never twice,
+  skipped for preference off / inactive / no email, failures recorded and
+  never thrown (this caught a path where recording a failure could itself
+  throw; fixed), verified-Agent rule, open listings only, email content
+  (area and kind only), return-to-pool rounds, and a guard that every Phase 2
+  catalogue event has a sender.
+- `tests/integration/chain-notifications-db.test.ts` (2, disposable
+  database): a verified Agent is emailed once across repeated rounds, an
+  opted-out Agent is skipped, an Admin-rejected Agent is never included, a
+  new round is a new email, and the log holds no listing text; duplicate
+  claims refused; RLS on. Its first full-suite run timed out with about 56
+  Agents delivered one by one, which led to delivering five at a time.
+- Rollback rehearsed. Full suite on the disposable database: 123 files, 1584
+  tests pass.
+
+**Found, not changed (Phase 1):** the events `verification.decision`,
+`account.security` and `platform.update` have no sender that references
+them: KYC results appear in the portal but are not emailed; account emails
+come from Supabase Auth; announcements are dashboard banners. Listed in the
+checks below for an owner decision.
+
+## Owner checks before Phase 2 can close
+
+Phase 2's build is complete. Per the owner's choice, these checks are done
+in one sitting at the end (with Phase 1's). Use the development app.
+
+1. **Phase 1 Admin flows** (needs your Admin MFA): invite an Agent and go
+   through the company step; run a company check and an override; confirm an
+   existing Agent (details in `docs/phases/PHASE-1-REPORT.md`).
+2. **Review queue with two Admin accounts:** a Landlord submits a listing;
+   Admin A claims it, Admin B sees "held by" and takes over; reject with a
+   reason (Landlord sees it and gets an email at /dev/mail); the Landlord
+   edits and resubmits; approve. Expect the SLA badge and metrics to update
+   and verified Agents to receive "New private property" emails.
+3. **Marketplace and mandate as a real Landlord:** as the Agent, send a
+   proposal; as the Landlord, compare, ask a question, then "Choose this
+   agent"; as the Agent, accept; tick what investors see; terminate with a
+   reason. Expect the listing to leave and return to the marketplace and
+   the emails at each step.
+4. **Admin leakage check:** signed in as Admin, open a Landlord listing and
+   the review page; confirm nothing private shows on public pages (the
+   automated crawl covers every other role).
+5. **AI assistant (optional, needs `ANTHROPIC_API_KEY`):** follow the smoke
+   test in `docs/credentials/anthropic.md`.
+6. **Decisions:**
+   - OD-23 (what Agents see before and during a mandate): confirm the
+     default or change it.
+   - Should KYC results also be emailed (`verification.decision`)? Today
+     they show only in the portal.
+   - May an Agent show the Landlord's name to investors without the
+     Landlord's consent (ADR-040 notes the default hides it)?
+7. **Merge:** after Phase 1's checks, merge PR #1; then Phase 2 can be
+   proposed for merge.

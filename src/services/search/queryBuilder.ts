@@ -213,8 +213,25 @@ export function buildSearchQuery(
         SELECT array_agg(pdt."tag"::text ORDER BY pdt."tag")
         FROM "PropertyDistressTag" pdt
         WHERE pdt."propertyId" = p."id"
-      ), ARRAY[]::text[]) AS "distressTags"
+      ), ARRAY[]::text[]) AS "distressTags",
+      -- Criterion 6: the badge only when an Admin awarded it (ADR-027).
+      EXISTS (
+        SELECT 1 FROM "AgentProfile" ap_v
+        JOIN "profiles" pr_v ON pr_v."legacyUserId" = ap_v."userId"
+        JOIN "verification_badges" vb ON vb."profileId" = pr_v."id"
+        WHERE ap_v."id" = p."agentProfileId"
+      ) AS "agentVerified",
+      -- Published reviews only (ADR-054).
+      rating."average" AS "agentRatingAverage",
+      COALESCE(rating."count", 0) AS "agentRatingCount"
     FROM "Property" p
+    LEFT JOIN LATERAL (
+      SELECT avg(r."rating")::float8 AS "average", count(*)::int AS "count"
+      FROM "reviews" r
+      JOIN "profiles" pr_r ON pr_r."id" = r."subjectId"
+      JOIN "AgentProfile" ap_r ON ap_r."userId" = pr_r."legacyUserId"
+      WHERE ap_r."id" = p."agentProfileId" AND r."status" = 'PUBLISHED'
+    ) rating ON true
     ${whereClause(params, financialPromotionsReviewed)}
     ${orderByClause(params, financialPromotionsReviewed)}
     LIMIT ${pageSize} OFFSET ${offset}

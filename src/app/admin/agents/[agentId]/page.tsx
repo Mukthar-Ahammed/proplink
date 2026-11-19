@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { requirePageRole } from "@/lib/authz";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { getAgentDetails } from "@/services/admin/agents";
-import { Role } from "@/generated/prisma/enums";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
@@ -14,7 +13,7 @@ export default async function AdminAgentDetailPage({
 }: {
   params: Promise<{ agentId: string }>;
 }) {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("SUSPENSION");
   const { agentId } = await params;
   const details = await getAgentDetails(agentId);
   if (!details) notFound();

@@ -1,6 +1,27 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Phase 7 Task 7: do not advertise the framework (X-Powered-By).
+  poweredByHeader: false,
+  // Phase 5 Task 6 (ADR-057): the optimiser serves only allowlisted sources
+  // (src/lib/images.ts mirrors this list; the CSP img-src matches it).
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "*.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
+      { protocol: "https", hostname: "images.unsplash.com" },
+    ],
+    // Same-origin: uploads, plus the site's own marketing and UI artwork.
+    localPatterns: [
+      { pathname: "/uploads/**", search: "" },
+      { pathname: "/marketing/**", search: "" },
+      { pathname: "/ui/**", search: "" },
+    ],
+    formats: ["image/avif", "image/webp"],
+  },
   logging: {
     // Confirmation URLs contain one-time token hashes. Keep those request
     // paths out of development logs; application code also never logs them.

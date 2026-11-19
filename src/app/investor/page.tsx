@@ -1,3 +1,4 @@
+import { AdSlot } from "@/components/ads/AdSlot";
 import Link from "next/link";
 import { requirePageRole, hasInvestorCapability } from "@/lib/authz";
 import { formatPenceGBP } from "@/services/metrics/globalMetrics";
@@ -274,6 +275,9 @@ export default async function InvestorPage() {
           />
         </div>
       </section>
+
+      {/* Phase 6 (ADR-060): one designated sponsored slot; nothing renders without a live ad. */}
+      <AdSlot slot="INVESTOR_DASHBOARD" />
     </div>
   );
 }

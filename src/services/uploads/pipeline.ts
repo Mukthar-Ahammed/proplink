@@ -30,7 +30,8 @@ import { declaredTypeMatches, detectFileType } from "@/services/uploads/sniff";
 export const DEFAULT_MAX_FILE_BYTES = 100 * 1024 * 1024;
 export const DEFAULT_USER_QUOTA_BYTES = 2 * 1024 * 1024 * 1024;
 export const DOWNLOAD_TTL_SECONDS = 5 * 60;
-export const UPLOAD_PURPOSES = ["profile_photo", "document"] as const;
+// Phase 6 (ADR-060): ad creatives go through the same quarantine and scan.
+export const UPLOAD_PURPOSES = ["profile_photo", "document", "ad_creative"] as const;
 export type UploadPurpose = (typeof UPLOAD_PURPOSES)[number];
 
 export const UPLOAD_MESSAGES = {
@@ -346,6 +347,35 @@ export async function createDownloadLink(
   return { ok: true, url: `/api/files/download?token=${body}.${sign(body)}` };
 }
 
+/**
+ * A download link for a viewer the caller has already authorised by a
+ * relationship this module cannot see (Phase 2 Task 5: a verified Agent
+ * viewing a photo on an approved Landlord listing). Bound to that viewer and
+ * valid for 5 minutes like every other link. Only `src/services/landlord/`
+ * may call it (tests/unit/private-listing-boundary.test.ts).
+ */
+export async function createGrantedDownloadLink(
+  viewerProfileId: string,
+  fileId: string,
+  options: { inline?: boolean } = {},
+  now = Date.now(),
+): Promise<{ ok: true; url: string } | { ok: false; status: number }> {
+  if (!z.uuid().safeParse(fileId).success) return { ok: false, status: 404 };
+  const file = await db.uploadedFile.findUnique({
+    where: { id: fileId },
+    select: { status: true, previewable: true },
+  });
+  if (!file || file.status !== UploadStatus.AVAILABLE) return { ok: false, status: 404 };
+  const payload: TokenPayload = {
+    f: fileId,
+    u: viewerProfileId,
+    d: options.inline && file.previewable ? "inline" : "attachment",
+    e: Math.floor(now / 1000) + DOWNLOAD_TTL_SECONDS,
+  };
+  const body = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  return { ok: true, url: `/api/files/download?token=${body}.${sign(body)}` };
+}
+
 export type DownloadResult =
   | {
       ok: true;
@@ -397,6 +427,26 @@ export async function readDownload(
     contentType:
       inline && file.detectedType ? file.detectedType : "application/octet-stream",
     disposition: inline ? "inline" : "attachment",
+  };
+}
+
+/**
+ * Server-side read of a clean file's bytes (Phase 4 Task 6: sending the
+ * Solicitor's agreement to the e-signature provider). The caller has
+ * already checked access; nothing here is returned to a browser.
+ */
+export async function readGrantedFileBytes(
+  fileId: string,
+): Promise<{ bytes: Uint8Array; fileName: string } | null> {
+  if (!z.uuid().safeParse(fileId).success) return null;
+  const file = await db.uploadedFile.findUnique({
+    where: { id: fileId },
+    select: { status: true, storageKey: true, originalName: true },
+  });
+  if (!file || file.status !== UploadStatus.AVAILABLE) return null;
+  return {
+    bytes: await getStore().get("private", file.storageKey),
+    fileName: file.originalName,
   };
 }
 
@@ -460,6 +510,34 @@ export async function readProfilePhoto(
     !file.detectedType
   ) {
     return { ok: false, status: 404 };
+  }
+  return {
+    ok: true,
+    bytes: await getStore().get("private", file.storageKey),
+    contentType: file.detectedType,
+  };
+}
+
+/**
+ * Phase 6 Task 1 (ADR-060): an ad image, served only while it is a clean,
+ * previewable image of a live campaign (checked by the caller with the
+ * campaign; this checks the file itself).
+ */
+export async function readAdCreative(
+  fileId: string,
+): Promise<{ ok: true; bytes: Uint8Array; contentType: string } | { ok: false }> {
+  const file = await db.uploadedFile.findUnique({
+    where: { id: fileId },
+    select: { status: true, previewable: true, purpose: true, storageKey: true, detectedType: true },
+  });
+  if (
+    !file ||
+    file.status !== UploadStatus.AVAILABLE ||
+    !file.previewable ||
+    file.purpose !== "ad_creative" ||
+    !file.detectedType
+  ) {
+    return { ok: false };
   }
   return {
     ok: true,

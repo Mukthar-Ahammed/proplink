@@ -1,3 +1,4 @@
+import { AdSlot } from "@/components/ads/AdSlot";
 import Link from "next/link";
 import { requirePageRole } from "@/lib/authz";
 import { getAgentDashboard } from "@/services/agents/agentDashboard";
@@ -141,6 +142,8 @@ export default async function AgentHomePage() {
             : `${data.verifiedDealCount} completed ${data.verifiedDealCount === 1 ? "deal" : "deals"} recorded against your profile.`}
         </p>
       </PortalSection>
+      {/* Phase 6 (ADR-060): one designated sponsored slot; nothing renders without a live ad. */}
+      <AdSlot slot="AGENT_DASHBOARD" />
     </>
   );
 }

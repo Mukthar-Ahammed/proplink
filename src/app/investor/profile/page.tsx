@@ -1,4 +1,5 @@
 import { requirePageRole } from "@/lib/authz";
+import { DeleteAccount } from "@/app/account/profile/DeleteAccount";
 import { ProfileEditor } from "@/app/account/profile/ProfileEditor";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,9 @@ export default async function InvestorProfilePage() {
     <div>
       <h2 className="sr-only">Your investor profile</h2>
       <ProfileEditor user={session.user} />
+      <div className="mt-12">
+        <DeleteAccount />
+      </div>
     </div>
   );
 }

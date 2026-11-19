@@ -164,6 +164,8 @@ export function ListingReviewStudioClient({
       {/* Feedback Banner */}
       {actionFeedback && (
         <div
+          role={actionFeedback.type === "error" ? "alert" : "status"}
+          data-testid="moderation-feedback"
           className={`p-4 rounded-lg text-sm border font-medium ${
             actionFeedback.type === "success"
               ? "bg-success/10 border-success/30 text-success"
@@ -412,8 +414,15 @@ export function ListingReviewStudioClient({
       {/* ── APPROVAL CONFIRMATION MODAL ─────────────────────────────────────── */}
       {showApproveModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-line">
-            <h3 className="text-base font-bold text-primary">Confirm Listing Approval</h3>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="approve-listing-title"
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-line"
+          >
+            <h3 id="approve-listing-title" className="text-base font-bold text-primary">
+              Confirm Listing Approval
+            </h3>
             <p className="text-xs text-muted leading-relaxed">
               Are you sure you want to approve property{" "}
               <strong className="text-primary">{listing.title}</strong>?
@@ -446,16 +455,27 @@ export function ListingReviewStudioClient({
       {/* ── REJECTION MODAL ─────────────────────────────────────────────────── */}
       {showRejectModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-line">
-            <h3 className="text-base font-bold text-danger">Reject Listing</h3>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reject-listing-title"
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-line"
+          >
+            <h3 id="reject-listing-title" className="text-base font-bold text-danger">
+              Reject Listing
+            </h3>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-primary mb-1 uppercase text-[10px]">
+                <label
+                  htmlFor="rejection-reason"
+                  className="block font-bold text-primary mb-1 uppercase text-[10px]"
+                >
                   Agent-Visible Rejection Reason{" "}
                   <span className="text-danger">* (Required)</span>
                 </label>
                 <textarea
+                  id="rejection-reason"
                   rows={3}
                   placeholder="Provide feedback explaining why the listing was rejected (e.g. Inaccurate asking price, missing EPC certificate)..."
                   value={rejectionReason}

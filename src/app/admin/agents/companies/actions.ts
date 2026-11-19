@@ -2,8 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
-import { Role } from "@/generated/prisma/enums";
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import { overrideCompanyCheck } from "@/services/agents/companyCheck";
 
 export type OverrideFormState =
@@ -13,7 +12,7 @@ export async function overrideCompanyCheckAction(
   _previous: OverrideFormState,
   formData: FormData,
 ): Promise<OverrideFormState> {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("VERIFICATION");
   if (!authz.ok) return { kind: "error", message: "Admin access required" };
   const result = await overrideCompanyCheck(
     { profileId: authz.session.user.authUserId, legacyUserId: authz.session.user.id },

@@ -264,6 +264,9 @@ export async function getAgentAccessState(profileId: string): Promise<AgentAcces
  * pre-invite Agents pass. Phase 3 chat, subscriptions and publishing to
  * investors call this. Existing features (listings, leads) are unaffected.
  */
+export const AGENT_AUTHORISATION_MESSAGE =
+  "Confirm your account (Agent portal → Overview) and wait for PropLink to authorise it before using Landlord listings, chat and subscriptions.";
+
 export async function hasNewFeatureAccess(profileId: string): Promise<boolean> {
   const state = await getAgentAccessState(profileId);
   return state.kind === "invited" || state.kind === "authorised";

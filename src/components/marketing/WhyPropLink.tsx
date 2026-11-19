@@ -32,7 +32,7 @@ const USUAL_POINTS = [
 /**
  * `portal` is the signed-in viewer's own portal (null when signed out). Signed
  * in, the main button opens it instead of offering "Create an account": an
- * account holds one role (ADR-016, OD-23), so sign-up is for visitors only.
+ * account holds one role (ADR-016, OD-33), so sign-up is for visitors only.
  */
 export function WhyPropLink({
   portal = null,
