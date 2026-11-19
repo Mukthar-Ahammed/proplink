@@ -560,6 +560,14 @@ export async function rejectKycSubmission(
       WHERE "id" = ${submission.userId}
         AND "kycStatus" = 'PENDING'::"KycStatus"
     `,
+    // PR-2: the blue tick is only for accounts that pass KYC (Phase 7
+    // business-flow review); a rejection removes any earlier badge.
+    db.$executeRaw`
+      DELETE FROM public.verification_badges
+      WHERE "profileId" IN (
+        SELECT id FROM public.profiles WHERE "legacyUserId" = ${submission.userId}
+      )
+    `,
   ]);
 
   // Audit Event

@@ -115,6 +115,19 @@ export async function recordDecision(
         if (!CLOSABLE.includes(project.status)) {
           throw new Refused("Pledges are released only before works start");
         }
+        // An agreement naming these pledges can no longer be signed: it would
+        // give a released investor a share (Phase 7 business-flow review).
+        await tx.projectAgreement.updateMany({
+          where: {
+            projectId,
+            status: { in: [AgreementStatus.DRAFT, AgreementStatus.SENT] },
+          },
+          data: {
+            status: AgreementStatus.VOIDED,
+            completedAt: now,
+            endedReason: "Pledges released",
+          },
+        });
         const result = await tx.projectPledge.updateMany({
           where: { projectId, status: PledgeState.PLEDGED },
           data: {

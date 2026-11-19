@@ -124,8 +124,8 @@ export default async function InvestorProjectPage({
           <p className="text-sm text-body" data-testid="lead-stats">
             {project.lead.isMe
               ? "You are this project's Lead Investor."
-              : project.lead.name
-                ? `${project.lead.name}${project.lead.verified ? " (verified)" : ""}`
+              : project.lead.publicId
+                ? `Investor ${project.lead.publicId}${project.lead.verified ? " (verified)" : ""}`
                 : `A ${project.lead.verified ? "verified " : ""}investor (private profile)`}{" "}
             · {project.lead.led} project{project.lead.led === 1 ? "" : "s"} led ·{" "}
             {project.lead.completed} completed

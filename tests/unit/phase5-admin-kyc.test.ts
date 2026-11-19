@@ -270,8 +270,8 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
         },
       } as never);
 
-      vi.spyOn(db, "$executeRaw").mockResolvedValue(1);
-      vi.spyOn(db, "$transaction").mockResolvedValue([1, 1] as never);
+      const spyRaw = vi.spyOn(db, "$executeRaw").mockResolvedValue(1);
+      const spyTx = vi.spyOn(db, "$transaction").mockResolvedValue([1, 1, 1] as never);
       const spyAudit = vi.spyOn(db.auditLog, "create").mockResolvedValue({} as never);
 
       const res = await rejectKycSubmission(mockAdmin, {
@@ -281,6 +281,15 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
       });
 
       expect(res.ok).toBe(true);
+      // PR-2 (Phase 7 business-flow review): the rejection removes any blue
+      // tick in the same transaction as the status change.
+      const statements = spyRaw.mock.calls.map((call) =>
+        Array.from(call[0] as unknown as TemplateStringsArray).join("?"),
+      );
+      expect(
+        statements.some((sql) => sql.includes("DELETE FROM public.verification_badges")),
+      ).toBe(true);
+      expect((spyTx.mock.calls[0][0] as unknown as unknown[]).length).toBe(3);
       expect(spyAudit).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({

@@ -197,3 +197,16 @@ versioning (H7.5); network and realtime timings on staging (H7.2).
   parameters); production build passes.
 
 **Owner checks added:** real iPhone and Android, keyboard-only use.
+
+## Business-flow review against the PDFs (2026-11-19)
+
+At the owner's request, every rule in the TRD, the Clarification Questions
+and the Clarification Answers was checked against the enforcing code
+(`docs/BUSINESS-FLOW-REVIEW.md`). The pipeline matches the PDFs. Five
+defects were fixed (ADR-068, migration `20261121020000`, rollback
+rehearsed): releasing pledges now voids an agreement out for signature; an
+Admin company rejection can no longer be undone by the Agent; the blue tick is
+removed on a company change and on an Admin KYC rejection; other investors
+see a Lead Investor's anonymous platform ID, never their name. Six behaviours
+need an owner decision (OD-27 to OD-32); nine smaller gaps are listed for
+follow-up. Vitest 160 files, 1,888 tests passed.

@@ -62,8 +62,11 @@ export async function investorIdentity(profileId: string) {
   });
   const isPrivate =
     !profile?.userProfile || profile.userProfile.visibility === ProfileVisibility.PRIVATE;
+  // Q4 / section E: a PUBLIC investor profile shows an anonymous platform ID
+  // and general metrics only, never the person's name (Phase 7 business-flow
+  // review). `name` stays in the shape for callers but is never filled here.
   return {
-    name: isPrivate ? null : (profile?.name ?? null),
+    name: null as string | null,
     publicId: isPrivate ? null : (profile?.userProfile?.publicId ?? null),
     verified: Boolean(profile?.verificationBadge),
   };

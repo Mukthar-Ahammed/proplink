@@ -41,7 +41,9 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   measured (ADR-066). Task 6 done: every journey on desktop and phone,
   cross-browser smoke, visual baselines, accessibility fixes; 115 browser
   tests and 1,884 unit/database tests passing (ADR-067). Pen test, staging
-  scans, legal review and real backups are H7.1-H7.5.
+  scans, legal review and real backups are H7.1-H7.5. Business-flow review
+  against the three PDFs (`docs/BUSINESS-FLOW-REVIEW.md`): flow correct, 5
+  defects fixed (ADR-068), owner decisions OD-27 to OD-32.
 - **Phase 6 built** (2026-11-19) on `phase-6-admin-ads`: Admin permissions with
   maker-checker (ADR-058), cases and disputes with two-person GDPR exports
   (ADR-059), advertising in designated slots (ADR-060), KPIs, integrations

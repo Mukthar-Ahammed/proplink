@@ -140,11 +140,11 @@ describe("confirmCompany", () => {
     expect(mockDb.$executeRaw).toHaveBeenCalledTimes(1);
   });
 
-  it("clears a previous Admin override when the company changes", async () => {
+  it("clears a previous Admin approval when the company changes", async () => {
     mockDb.agentCompanyCheck.findUnique.mockResolvedValueOnce({
       companyNumber: "11111111",
       result: CompanyCheckResult.INACTIVE,
-      override: CompanyCheckOverride.REJECTED,
+      override: CompanyCheckOverride.APPROVED,
     } as never);
 
     await confirmCompany(AGENT, "12345678");
@@ -160,8 +160,55 @@ describe("confirmCompany", () => {
       mockDb.auditLog.create.mock.calls[0][0] as { data: { metaJson: unknown } }
     ).data.metaJson;
     expect(meta).toMatchObject({
-      previous: { companyNumber: "11111111", override: CompanyCheckOverride.REJECTED },
+      previous: { companyNumber: "11111111", override: CompanyCheckOverride.APPROVED },
     });
+  });
+
+  // Phase 7 business-flow review: only an Admin lifts an Admin rejection.
+  it("keeps an Admin rejection when the Agent chooses a company again", async () => {
+    for (const previousNumber of ["12345678", "11111111"]) {
+      vi.clearAllMocks();
+      vi.mocked(consumeRateLimits).mockResolvedValue(true);
+      mockDb.agentCompanyCheck.findUnique.mockResolvedValueOnce({
+        companyNumber: previousNumber,
+        result: CompanyCheckResult.VERIFIED,
+        override: CompanyCheckOverride.REJECTED,
+      } as never);
+
+      await confirmCompany(AGENT, "12345678");
+
+      const upsert = mockDb.agentCompanyCheck.upsert.mock.calls[0][0];
+      expect(upsert.update).not.toHaveProperty("override");
+      expect(upsert.update).not.toHaveProperty("overriddenBy");
+      expect(
+        effectiveCompanyStatus({
+          result: CompanyCheckResult.VERIFIED,
+          override: CompanyCheckOverride.REJECTED,
+        }),
+      ).toBe("REJECTED_BY_ADMIN");
+      // The blue tick goes with it.
+      expect(mockDb.$executeRaw).toHaveBeenCalled();
+    }
+  });
+
+  it("removes the blue tick when the Agent switches to another company", async () => {
+    mockDb.agentCompanyCheck.findUnique.mockResolvedValueOnce({
+      companyNumber: "11111111",
+      result: CompanyCheckResult.VERIFIED,
+      override: null,
+    } as never);
+    await confirmCompany(AGENT, "12345678");
+    expect(mockDb.$executeRaw).toHaveBeenCalled();
+
+    vi.clearAllMocks();
+    vi.mocked(consumeRateLimits).mockResolvedValue(true);
+    mockDb.agentCompanyCheck.findUnique.mockResolvedValueOnce({
+      companyNumber: "12345678",
+      result: CompanyCheckResult.VERIFIED,
+      override: null,
+    } as never);
+    await confirmCompany(AGENT, "12345678");
+    expect(mockDb.$executeRaw).not.toHaveBeenCalled();
   });
 
   it("does not store an unknown company, but audits the attempt", async () => {
