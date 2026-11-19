@@ -1,3 +1,7 @@
+// SUPERSEDED (Phase 7 Task 2, ADR-063): these checks need the Supabase Data
+// API, which stays off. The same assertions run locally as role tests in
+// tests/integration/rls-audit-db.test.ts. Do not re-enable the Data API to run
+// this script; it is kept only as a record of the earlier parity checks.
 import { PHASE3_ROLES, parsePhase3Fixtures } from "./phase3-fixtures.mjs";
 
 /** Build independently authenticated role clients. No service-role client is accepted. */

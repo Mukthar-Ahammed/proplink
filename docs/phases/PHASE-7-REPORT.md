@@ -29,7 +29,7 @@ secret store, backups and restore on the real database, and every open
 | Task                           | State                                                  | Notes           |
 | ------------------------------ | ------------------------------------------------------ | --------------- |
 | 1. Security review             | Done (local); pen test and staging scans are H7.1/H7.2 | THREAT-MODEL.md |
-| 2. RLS and authorisation audit | In progress                                            |                 |
+| 2. RLS and authorisation audit | Done (local); Security Advisor is H7.2                 | ADR-063         |
 | 3. Rate-limit and abuse        | Not started                                            |                 |
 | 4. Privacy and compliance      | Not started                                            |                 |
 | 5. Resilience and performance  | Not started                                            |                 |
@@ -66,3 +66,27 @@ secret store, backups and restore on the real database, and every open
 
 **Not done here:** OWASP ZAP and the Supabase Security Advisor need a staging
 deployment (H7.2); the penetration test is H7.1.
+
+## Task 2 — RLS and authorisation audit (2026-11-19)
+
+**Delivered** (ADR-063)
+
+- Audit of all 109 public tables: RLS on everywhere but PostGIS's
+  `spatial_ref_sys`. Found Sprint-era client write grants (column-level
+  INSERT/UPDATE on seven tables, INSERT/DELETE on saved listings) and
+  column reads on `User`, never used (no browser Data API use).
+- Migration `20261121000000_phase7_revoke_client_writes` revokes them and
+  sets default privileges so new tables start with no client access;
+  rollback restores them exactly (rehearsed, and verified on its own).
+- `tests/integration/rls-audit-db.test.ts` (9): RLS everywhere; exact
+  approved client grants (read-only); no column-level client grants; every
+  table probed as `anon` and `authenticated` — reads refused unless granted,
+  writes always refused; anonymous visitors see public listings only; a
+  member sees only their own profile and cannot change role, KYC or
+  investor type; non-members see no project or ledger rows. This replaces
+  the three PostgREST parity scripts (marked superseded).
+- `docs/security/RLS-AUDIT.md`; human task H7.3 (production database with
+  extensions outside `public`, Data API off).
+
+**Not done here:** the Supabase Security Advisor needs the real projects
+(H7.2).

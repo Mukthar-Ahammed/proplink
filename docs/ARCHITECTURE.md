@@ -1361,3 +1361,10 @@ of the boundary.
   company number; suspend or reactivate a whole agency);
   `/admin/agents/agencies`; `tests/e2e/admin-a5.spec.ts` (19 Admin pages,
   four widths, axe). Permission matrix `CURRENT_PHASE = 6`.
+
+## Phase 7 — Hardening
+
+- Client roles deny-by-default (Task 2, ADR-063): migration `20261121000000`
+  revokes all client writes and `User` reads; remaining reads are
+  policy-backed and pinned in `tests/integration/rls-audit-db.test.ts`, which
+  replaces the PostgREST parity scripts. Security docs in `docs/security/`.
