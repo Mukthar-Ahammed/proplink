@@ -31,8 +31,8 @@ secret store, backups and restore on the real database, and every open
 | 1. Security review             | Done (local); pen test and staging scans are H7.1/H7.2 | THREAT-MODEL.md |
 | 2. RLS and authorisation audit | Done (local); Security Advisor is H7.2                 | ADR-063         |
 | 3. Rate-limit and abuse        | Done (local); staging load test is H7.2                | ADR-064         |
-| 4. Privacy and compliance      | In progress                                            |                 |
-| 5. Resilience and performance  | Not started                                            |                 |
+| 4. Privacy and compliance      | Done (local); legal review is H7.4                     | ADR-065         |
+| 5. Resilience and performance  | In progress                                            |                 |
 | 6. Quality gates               | Not started                                            |                 |
 | 7. Deployment readiness        | Not started                                            |                 |
 | 8. Final documentation         | Not started                                            |                 |
@@ -108,3 +108,26 @@ deployment (H7.2); the penetration test is H7.1.
   degrade safely.
 
 **Not done here:** a load test and forced outage against staging (H7.2).
+
+## Task 4 — Privacy and compliance (2026-11-19)
+
+**Delivered** (ADR-065)
+
+- Erasure with legal holds: `erasureHolds` / `eraseMember`; self-service
+  `DELETE /api/me` returns 409 with the reasons while a hold applies;
+  Admin erasure requests with two-person approval (migration
+  `20261121010000_phase7_erasure_requests`, additive, with rollback).
+  Erasure now also revokes sessions, clears the public profile and deletes
+  preferences and saved items.
+- Data export: unchanged (two-person approved JSON, ADR-059).
+- Retention: `runRetention` daily via Vercel Cron (`/api/jobs/retention`);
+  schedule in `docs/compliance/RETENTION.md` (OD-26).
+- Drafts for the owner's advisers in `docs/compliance/`: DPIA, ROPA,
+  privacy and terms inputs (including cookies: essential only), FCA review
+  handoff. DPA notes per processor in `docs/EXTERNAL_SERVICES.md`.
+- Tests: `tests/unit/erasure.test.ts`, `tests/integration/privacy-db.test.ts`
+  (holds block and allow, Admin erasure request, retention deletes only
+  expired rows).
+
+**Not done here:** legal review, DPAs and FCA counsel (H7.4); deleting the
+Supabase Auth user needs OD-18 (BLOCKERS).

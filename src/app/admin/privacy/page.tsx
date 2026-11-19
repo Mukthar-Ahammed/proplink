@@ -44,6 +44,10 @@ export default async function AdminPrivacyPage() {
             label="Record request"
           >
             <div className="flex flex-wrap gap-2">
+              <select name="kind" aria-label="Request type" className={field}>
+                <option value="EXPORT">Export (copy of their data)</option>
+                <option value="ERASURE">Erasure (delete their account)</option>
+              </select>
               <input
                 name="email"
                 type="email"
@@ -74,6 +78,7 @@ export default async function AdminPrivacyPage() {
             <ul className="space-y-3" data-testid="data-requests">
               {requests.map((request) => {
                 const live =
+                  request.kind === "EXPORT" &&
                   request.status === "APPROVED" &&
                   request.expiresAt &&
                   request.expiresAt > now;
@@ -83,9 +88,11 @@ export default async function AdminPrivacyPage() {
                     className="rounded-lg border border-line p-3 text-sm"
                   >
                     <p className="text-body">
-                      {request.subject.name ?? "Member"} (
+                      <strong>{request.kind === "ERASURE" ? "Erasure" : "Export"}</strong>{" "}
+                      · {request.subject.name ?? "Member"} (
                       {request.subject.role.toLowerCase()}) ·{" "}
                       {request.status.toLowerCase()} · {day(request.createdAt)}
+                      {request.completedAt && ` · erased ${day(request.completedAt)}`}
                     </p>
                     <p className="text-xs text-muted">
                       Recorded by {request.requester.name ?? "an Admin"}: {request.reason}

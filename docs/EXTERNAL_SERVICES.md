@@ -23,6 +23,28 @@ appropriate private operations system.
 | E-signature / Pusher              | Future agreements and realtime workflows                                   | Provider-specific keys and webhook secrets                                                                                                                              | Not configured for this phase.                                                                                                                                                      | Implement behind server-only interfaces with local mocks and signed, idempotent webhooks.                                                                                                          |
 | Gitleaks                          | Secret scanning                                                            | No application secret                                                                                                                                                   | CI action added; local executable is unavailable, so the scan has not been run here.                                                                                                | Install locally before committing; the pre-commit hook fails closed when absent.                                                                                                                   |
 
+## Data processing agreements (Phase 7 Task 4)
+
+Each processor that handles personal data needs a DPA and, for transfers
+outside the UK, a transfer mechanism (UK IDTA or the UK Addendum to the EU
+SCCs) recorded by the owner before launch (H7.4). Data each one receives is
+in `docs/compliance/ROPA.md`.
+
+| Processor            | Personal data it receives                       | DPA / transfer note                                         |
+| -------------------- | ----------------------------------------------- | ----------------------------------------------------------- |
+| Supabase             | All account and business data                   | Supabase DPA; choose a UK/EU region (H7.3)                  |
+| AWS S3               | Private documents and images                    | AWS DPA (in the service terms); eu-west-2 region            |
+| Resend               | Email addresses, email content (no chat bodies) | Resend DPA; US transfer mechanism                           |
+| Sentry               | Error reports (scrubbed of request bodies)      | Sentry DPA; EU data region recommended                      |
+| Upstash              | Hashed rate-limit keys only                     | Upstash DPA; EU region                                      |
+| Stripe               | Billing customer and subscription details       | Stripe DPA (in the services agreement)                      |
+| Sumsub (KYC)         | Identity documents and checks                   | Sumsub DPA; confirm provider (OD-20)                        |
+| Dropbox Sign         | Signers' names, emails, agreement documents     | Dropbox DPA; confirm provider (OD-24)                       |
+| Anthropic            | Keywords typed into the listing assistant       | Anthropic commercial terms and DPA; no training on API data |
+| Google Maps          | Postcodes only                                  | Google Maps Platform terms and data processing terms        |
+| Companies House      | Company numbers (public data)                   | Public register; no DPA needed                              |
+| Cloudflare Turnstile | Visitor IP and browser signals for bot checks   | Cloudflare DPA                                              |
+
 Credential setup guides are in [`credentials/`](./credentials/). A service is
 not production-ready just because its environment variables exist: require
 least-privilege access, a smoke test, rotation metadata, and a documented

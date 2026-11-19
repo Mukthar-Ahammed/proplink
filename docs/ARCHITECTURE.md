@@ -1371,3 +1371,10 @@ of the boundary.
 - Rate limits (Task 3, ADR-064): request-layer classes fail closed on a
   Redis outage except read-only classes (`DEGRADE_OPEN_CLASSES`); see
   `docs/security/RATE-LIMITS.md`.
+
+- Privacy (Task 4, ADR-065): `src/services/privacy/erasure.ts` checks legal
+  holds before `eraseUser` pseudonymises an account (self-service
+  `DELETE /api/me`, or an Admin erasure request with two-person approval,
+  `DataExportRequest.kind`); `src/services/privacy/retention.ts` runs daily
+  at `/api/jobs/retention` and deletes only short-lived operational data.
+  Compliance drafts live in `docs/compliance/`.

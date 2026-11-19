@@ -4,6 +4,10 @@
     {
       "path": "/api/jobs/saved-search-alerts",
       "schedule": "0 7 * * *"
+    },
+    {
+      "path": "/api/jobs/retention",
+      "schedule": "30 3 * * *"
     }
   ]
 }

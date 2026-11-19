@@ -5,6 +5,7 @@ import { Role } from "@/generated/prisma/enums";
 import { auth } from "@/lib/auth";
 import { ensureUserProfile } from "@/services/profiles/userProfiles";
 
+import { DeleteAccount } from "./DeleteAccount";
 import { ProfileForm } from "./ProfileForm";
 
 export const dynamic = "force-dynamic";
@@ -45,6 +46,9 @@ export default async function EditProfilePage() {
             visibility: profile.visibility,
           }}
         />
+      </div>
+      <div className="mt-12">
+        <DeleteAccount />
       </div>
     </main>
   );

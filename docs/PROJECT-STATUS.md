@@ -33,7 +33,10 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   and the Dropbox Sign live smoke test are pending.
 - **Phase 7 started** (2026-11-19) on `phase-7-hardening`: hardening, compliance,
   performance and release readiness (`docs/phases/PHASE-7-REPORT.md`). Production
-  rollout stays deferred.
+  rollout stays deferred. Tasks 1-4 done locally: security review, client roles
+  deny-by-default (ADR-063), rate-limit outage behaviour (ADR-064), erasure with
+  legal holds, retention job and compliance drafts in `docs/compliance/`
+  (ADR-065). Pen test, staging scans and legal review are H7.1-H7.4.
 - **Phase 6 built** (2026-11-19) on `phase-6-admin-ads`: Admin permissions with
   maker-checker (ADR-058), cases and disputes with two-person GDPR exports
   (ADR-059), advertising in designated slots (ADR-060), KPIs, integrations

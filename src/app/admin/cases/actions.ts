@@ -126,6 +126,7 @@ export async function dataExportAction(
         subjectId: user.authProfile.id,
         reason: text(formData, "reason"),
         caseId: text(formData, "caseId") || undefined,
+        kind: text(formData, "kind") === "ERASURE" ? "ERASURE" : "EXPORT",
       }),
       ["/admin/privacy"],
       "Recorded. A second case manager must approve it.",
@@ -134,6 +135,6 @@ export async function dataExportAction(
   return finish(
     await decideDataExport(admin, text(formData, "requestId"), intent === "approve"),
     ["/admin/privacy"],
-    intent === "approve" ? "Approved; download within 7 days." : "Rejected.",
+    intent === "approve" ? "Approved." : "Rejected.",
   );
 }

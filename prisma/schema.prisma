@@ -2892,6 +2892,9 @@ model DataExportRequest {
   decidedBy   String?          @db.Uuid
   decidedAt   DateTime?
   expiresAt   DateTime?
+  /// Phase 7 (ADR-065): EXPORT or ERASURE; an approved erasure records when it ran.
+  kind        String           @default("EXPORT")
+  completedAt DateTime?
   createdAt   DateTime         @default(now())
 
   subject   Profile  @relation("DataExportSubject", fields: [subjectId], references: [id], onDelete: Restrict)

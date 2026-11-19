@@ -285,3 +285,19 @@ localhost:3000/api/webhooks/stripe`, set a price as Admin, subscribe with
 ## Later phases
 
 Each phase adds its section here when its build is complete.
+
+## Phase 7 — Hardening
+
+- [ ] **Account erasure (Phase 7).** As a Buyer with no open offers, delete
+      the account at the bottom of `/account/profile`: you are signed out, signing in no
+      longer reaches any data, and Admin → Users shows "Erased User". As an
+      Agent with an active mandate, try the same: it is refused and the
+      reason names the mandate.
+- [ ] **Admin erasure request.** At Admin → Data Requests record an
+      "Erasure" request for a member; you cannot approve your own; a second
+      Admin approves it: the member is erased and the request shows the
+      erased date, with no download link. A request for a member with an
+      open project is refused with the reason.
+- [ ] **Retention job.** After deployment, call `/api/jobs/retention` with
+      the cron secret (or wait for 03:30 UTC): the response lists the counts
+      deleted; without the secret it is refused.
