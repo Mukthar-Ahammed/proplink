@@ -73,6 +73,13 @@ export function DecisionPanel({
             />
             <input name="reason" required placeholder="Reason" className={input} />
           </div>
+          <label className="mt-2 flex items-start gap-2 text-sm text-body">
+            <input type="checkbox" name="partiesConsulted" className="mt-1" />
+            <span>
+              The Landlord and the investors were consulted and agreed (needed to release
+              pledges or close the project).
+            </span>
+          </label>
           <p className="text-xs text-muted">
             Closing releases every pledge; any refund or cancellation payment is handled
             by the Solicitor outside PropLink.

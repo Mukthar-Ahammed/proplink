@@ -37,6 +37,14 @@ import { buildInvestorView, disclosureFor } from "@/services/landlord/disclosure
  * active mandate with a reason; the Landlord closes it once the agreed
  * contract period has ended. Ending a mandate returns the listing to the
  * private pool and the former Agent loses access to its documents.
+ *
+ * Phase 7 owner decisions: a mandate ends automatically at its agreed end
+ * date unless an investor project still depends on it, with a reminder 7
+ * days before (OD-28); while a mandate is active, the other interested
+ * Agents' chats are closed, and reopen for Admin authorisation when the
+ * listing returns to the pool (OD-29). After a mandate ends at its term the
+ * former Agent's proposal reopens, so the Landlord can renew by choosing them
+ * again.
  */
 
 export const LIVE: readonly MandateStatus[] = [
@@ -296,6 +304,7 @@ export async function closeMandate(
     entityId: mandateId,
   });
   await endAgentChat(mandateId, "Mandate closed", landlord.profileId);
+  await returnToPool(mandateId, { renewable: true });
   await notify(
     mandate.agentId,
     "mandate.decision",
@@ -347,6 +356,7 @@ export async function respondToOffer(
     select: {
       contractMonths: true,
       listingId: true,
+      proposalId: true,
       listing: { select: { ownerId: true, title: true, status: true } },
     },
   });
@@ -372,6 +382,24 @@ export async function respondToOffer(
     entity: "Mandate",
     entityId: mandateId,
   });
+  if (accept) {
+    // OD-29: the mandate is exclusive, so the other agents' chats close.
+    await closeCompetingChats(mandate.listingId, agent.profileId);
+  } else {
+    // The Agent turned the mandate down: their proposal counts as withdrawn
+    // (they may send a new one later) and their chat closes.
+    await db.agentProposal.updateMany({
+      where: { id: mandate.proposalId, status: AgentProposalStatus.SELECTED },
+      data: { status: AgentProposalStatus.WITHDRAWN },
+    });
+    const { closePrivateListingThread } = await import("@/services/chat/threads");
+    await closePrivateListingThread(
+      mandate.listingId,
+      agent.profileId,
+      "Agent declined the mandate",
+      agent.profileId,
+    );
+  }
   await notify(
     mandate.listing.ownerId,
     "mandate.response",
@@ -463,6 +491,167 @@ export async function getMandateForAgent(agent: AgentActor, mandateId: string) {
   };
 }
 
+/** OD-29: close the chats of every other Agent with a proposal on the listing. */
+async function closeCompetingChats(listingId: string, mandatedAgentId: string) {
+  const others = await db.agentProposal.findMany({
+    where: {
+      listingId,
+      agentId: { not: mandatedAgentId },
+      status: AgentProposalStatus.SUBMITTED,
+    },
+    select: { agentId: true },
+  });
+  const { closePrivateListingThread } = await import("@/services/chat/threads");
+  for (const other of others) {
+    await closePrivateListingThread(
+      listingId,
+      other.agentId,
+      "Another agent holds the exclusive mandate",
+      null,
+    );
+  }
+}
+
+/**
+ * The listing is back in the private pool (Q9): Agents with open proposals
+ * may talk to the Landlord again once an Admin re-authorises the chat (Q10,
+ * OD-29). After a mandate ends at its term the former Agent's proposal
+ * reopens too, so the Landlord can renew by choosing them again (OD-28).
+ */
+async function returnToPool(mandateId: string, options: { renewable: boolean }) {
+  const mandate = await db.mandate.findUnique({
+    where: { id: mandateId },
+    select: {
+      listingId: true,
+      agentId: true,
+      proposalId: true,
+      listing: { select: { ownerId: true, status: true } },
+    },
+  });
+  if (!mandate?.listing || mandate.listing.status !== LandlordListingStatus.APPROVED)
+    return;
+  if (options.renewable) {
+    await db.agentProposal.updateMany({
+      where: { id: mandate.proposalId, status: AgentProposalStatus.SELECTED },
+      data: { status: AgentProposalStatus.SUBMITTED },
+    });
+  }
+  const open = await db.agentProposal.findMany({
+    where: { listingId: mandate.listingId, status: AgentProposalStatus.SUBMITTED },
+    select: { agentId: true },
+  });
+  const { ensurePrivateListingThread } = await import("@/services/chat/threads");
+  for (const proposal of open) {
+    await ensurePrivateListingThread({
+      listingId: mandate.listingId,
+      landlordId: mandate.listing.ownerId,
+      agentId: proposal.agentId,
+      reopenReason: "Listing back in the private pool",
+    });
+  }
+}
+
+export const MANDATE_REMINDER_DAYS = 7;
+
+/**
+ * OD-28, run daily: mandates past their agreed end date end automatically
+ * (as the Landlord's close would), unless an investor project is still live
+ * (investors rely on the Agent; the Landlord closes it once the project is
+ * sold or closed). Recorded against the Landlord, marked automatic.
+ */
+export async function expireMandates(now: Date = new Date()) {
+  const due = await db.mandate.findMany({
+    where: { status: MandateStatus.ACTIVE, endsAt: { lte: now } },
+    select: {
+      id: true,
+      agentId: true,
+      listingId: true,
+      listing: {
+        select: { ownerId: true, title: true, owner: { select: { legacyUserId: true } } },
+      },
+    },
+    take: 200,
+  });
+  let ended = 0;
+  let heldByProject = 0;
+  for (const mandate of due) {
+    if (await hasLiveProject(mandate.id)) {
+      heldByProject += 1;
+      continue;
+    }
+    const updated = await db.mandate.updateMany({
+      where: { id: mandate.id, status: MandateStatus.ACTIVE },
+      data: { status: MandateStatus.CLOSED, closedAt: now },
+    });
+    if (updated.count === 0) continue;
+    ended += 1;
+    if (mandate.listing.owner.legacyUserId) {
+      await writeAudit({
+        actorUserId: mandate.listing.owner.legacyUserId,
+        action: "MANDATE_CLOSED",
+        entity: "Mandate",
+        entityId: mandate.id,
+        meta: { automatic: true, reason: "Agreed contract period ended" },
+      });
+    }
+    await endAgentChat(mandate.id, "Contract period ended", mandate.listing.ownerId);
+    await returnToPool(mandate.id, { renewable: true });
+    await notify(
+      mandate.agentId,
+      "mandate.decision",
+      "expired",
+      mandate.listing.title,
+      AGENT_PATH(mandate.id),
+    );
+    await notify(
+      mandate.listing.ownerId,
+      "mandate.response",
+      "expired",
+      mandate.listing.title,
+      LANDLORD_PATH(mandate.listingId),
+    );
+  }
+  return { ended, heldByProject };
+}
+
+/** OD-28, run daily: both parties are told once, 7 days before the end date. */
+export async function remindMandatesEnding(now: Date = new Date()) {
+  const soon = new Date(now.getTime() + MANDATE_REMINDER_DAYS * 86_400_000);
+  const ending = await db.mandate.findMany({
+    where: { status: MandateStatus.ACTIVE, endsAt: { gt: now, lte: soon } },
+    select: {
+      id: true,
+      agentId: true,
+      listingId: true,
+      listing: { select: { ownerId: true, title: true } },
+    },
+    take: 500,
+  });
+  const { deliverOnce } = await import("@/services/notifications/deliveries");
+  let sent = 0;
+  for (const mandate of ending) {
+    for (const [profileId, eventKey, path] of [
+      [mandate.agentId, "mandate.decision", AGENT_PATH(mandate.id)],
+      [mandate.listing.ownerId, "mandate.response", LANDLORD_PATH(mandate.listingId)],
+    ] as const) {
+      const outcome = await deliverOnce({
+        profileId,
+        eventKey,
+        dedupeKey: `mandate:${mandate.id}:ending`,
+        send: (to) =>
+          sendMandateEmail({
+            to,
+            notice: "ending_soon",
+            listingTitle: mandate.listing.title,
+            path,
+          }),
+      });
+      if (outcome === "sent") sent += 1;
+    }
+  }
+  return { reminded: sent };
+}
+
 /** Q9: when a mandate ends, the former Agent loses the chat (history stays with the Landlord). */
 async function endAgentChat(mandateId: string, reason: string, actorId: string) {
   const mandate = await db.mandate.findUnique({
@@ -525,6 +714,7 @@ export async function terminateMandate(
     meta: { by: party.role, reason: reason.data },
   });
   await endAgentChat(mandateId, "Mandate terminated", party.profileId);
+  await returnToPool(mandateId, { renewable: false });
   if (party.role === Role.AGENT) {
     await notify(
       mandate.listing.ownerId,

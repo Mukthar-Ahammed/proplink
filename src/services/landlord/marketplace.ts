@@ -17,6 +17,7 @@ import {
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
+import { hasNewFeatureAccess } from "@/services/agents/agentMigration";
 import { agentCompanyGate } from "@/services/agents/companyGate";
 import { consumeRateLimits, type LimitSpec } from "@/services/auth/supabaseAuthService";
 import {
@@ -44,7 +45,7 @@ export type AgentActor = { profileId: string; legacyUserId: string; role: Role }
 const bad = (error: string, status = 400) => ({ ok: false as const, error, status });
 
 export const UNVERIFIED_AGENT_MESSAGE =
-  "Verify your company (Agent portal → Company) to see Landlord listings and send proposals.";
+  "Verify your company (Agent portal → Company) and, if you joined before invitations, confirm your account and wait for PropLink to authorise it, to see Landlord listings and send proposals.";
 
 /** Business rate class "pledge / offer / viewing / mandate actions": 10 a minute. */
 export function proposalActionLimits(profileId: string): LimitSpec[] {
@@ -67,7 +68,11 @@ export async function isVerifiedAgent(actor: AgentActor): Promise<boolean> {
   });
   if (!profile?.active || profile.role !== Role.AGENT) return false;
   if (profile.legacyUserId !== actor.legacyUserId) return false;
-  return (await agentCompanyGate(actor.legacyUserId)).allowed;
+  if (!(await agentCompanyGate(actor.legacyUserId)).allowed) return false;
+  // OD-27 (Q2): an existing (pre-invite) Agent reaches the private Landlord
+  // pipeline (listings, proposals, chat, mandates, publishing) only once
+  // PropLink has authorised the account. Invited Agents pass straight away.
+  return hasNewFeatureAccess(actor.profileId);
 }
 
 // ── Money and text ───────────────────────────────────────────────────────

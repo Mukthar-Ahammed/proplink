@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/db", () => {
   const db = {
-    agentProposal: { findFirst: vi.fn(), updateMany: vi.fn() },
+    agentProposal: { findFirst: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
     mandate: {
       create: vi.fn(),
       findFirst: vi.fn(),
@@ -21,6 +21,10 @@ vi.mock("@/lib/db", () => {
 });
 vi.mock("@/services/admin/audit", () => ({ writeAudit: vi.fn() }));
 vi.mock("@/services/agents/companyGate", () => ({ agentCompanyGate: vi.fn() }));
+// OD-27: these Agents are authorised (the gate itself is tested in agent-migration tests).
+vi.mock("@/services/agents/agentMigration", () => ({
+  hasNewFeatureAccess: async () => true,
+}));
 vi.mock("@/services/auth/supabaseAuthService", () => ({ consumeRateLimits: vi.fn() }));
 vi.mock("@/services/notifications/preferences", () => ({ shouldNotify: vi.fn() }));
 vi.mock("@/services/uploads/pipeline", () => ({ createGrantedDownloadLink: vi.fn() }));
@@ -97,6 +101,8 @@ beforeEach(() => {
   vi.resetAllMocks();
   mockDb.$transaction.mockImplementation((async (run: (tx: typeof db) => unknown) =>
     run(db)) as never);
+  // OD-29: no competing proposals unless a test says so.
+  mockDb.agentProposal.findMany.mockResolvedValue([]);
   vi.mocked(consumeRateLimits).mockResolvedValue(true);
   vi.mocked(agentCompanyGate).mockResolvedValue({ allowed: true, reason: "verified" });
   vi.mocked(shouldNotify).mockResolvedValue(true);

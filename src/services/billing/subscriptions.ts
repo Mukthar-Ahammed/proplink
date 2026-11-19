@@ -14,6 +14,10 @@ import {
 } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
+import {
+  AGENT_AUTHORISATION_MESSAGE,
+  hasNewFeatureAccess,
+} from "@/services/agents/agentMigration";
 import { consumeRateLimits, type LimitSpec } from "@/services/auth/supabaseAuthService";
 import {
   BillingSignatureError,
@@ -241,6 +245,13 @@ export async function startCheckout(
 ): Promise<{ ok: true; url: string } | { ok: false; error: string; status: number }> {
   const allowed = audiencesFor(actor.role);
   if (allowed.length === 0) return bad("Your account does not need a subscription", 403);
+  // OD-27 (Q2): an existing (pre-invite) Agent subscribes once PropLink has
+  // authorised the account; invited Agents pass straight away.
+  if (actor.role === Role.AGENT) {
+    if (!(await hasNewFeatureAccess(actor.profileId))) {
+      return bad(AGENT_AUTHORISATION_MESSAGE, 403);
+    }
+  }
   if (!(await consumeRateLimits("billing_checkout", checkoutLimits(actor.profileId)))) {
     return bad("Too many attempts; wait a minute", 429);
   }

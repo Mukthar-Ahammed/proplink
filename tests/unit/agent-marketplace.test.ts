@@ -17,6 +17,10 @@ vi.mock("@/lib/db", () => ({
 }));
 vi.mock("@/services/admin/audit", () => ({ writeAudit: vi.fn() }));
 vi.mock("@/services/agents/companyGate", () => ({ agentCompanyGate: vi.fn() }));
+// OD-27: these Agents are authorised (the gate itself is tested in agent-migration tests).
+vi.mock("@/services/agents/agentMigration", () => ({
+  hasNewFeatureAccess: async () => true,
+}));
 vi.mock("@/services/auth/supabaseAuthService", () => ({ consumeRateLimits: vi.fn() }));
 vi.mock("@/services/notifications/preferences", () => ({ shouldNotify: vi.fn() }));
 vi.mock("@/services/uploads/pipeline", () => ({ createGrantedDownloadLink: vi.fn() }));

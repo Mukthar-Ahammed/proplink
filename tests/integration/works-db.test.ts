@@ -212,7 +212,8 @@ describe.skipIf(!hasDb)("funds, costs, milestones, updates, changes (Task 7)", (
   it("starts works only under a signed agreement and runs to listed for sale", async () => {
     const p = await fundedProject(client);
     const agent = as(p.agent, Role.AGENT);
-    expect(await advanceProject(agent, p.projectId, "IN_WORKS")).toEqual({
+    const lead = as(p.lead, Role.INVESTOR);
+    expect(await advanceProject(lead, p.projectId, "IN_WORKS")).toEqual({
       ok: false,
       error: "Works start once the project agreement is signed",
       status: 409,
@@ -224,14 +225,20 @@ describe.skipIf(!hasDb)("funds, costs, milestones, updates, changes (Task 7)", (
       ),
     ).rejects.toMatchObject({ code: "23514" });
     await signAgreement(client, p);
+    // OD-30 (Q18): works start and completion are the Lead Investor's
+    // decisions; a co-investor is not a party to them at all.
+    expect(await advanceProject(agent, p.projectId, "IN_WORKS")).toMatchObject({
+      ok: false,
+      status: 403,
+    });
     expect(
-      await advanceProject(as(p.lead, Role.INVESTOR), p.projectId, "IN_WORKS"),
+      await advanceProject(as(p.co, Role.INVESTOR), p.projectId, "IN_WORKS"),
     ).toMatchObject({ ok: false, status: 404 });
-    expect(await advanceProject(agent, p.projectId, "COMPLETED")).toMatchObject({
+    expect(await advanceProject(lead, p.projectId, "COMPLETED")).toMatchObject({
       ok: false,
       status: 409,
     });
-    expect(await advanceProject(agent, p.projectId, "IN_WORKS")).toEqual({ ok: true });
+    expect(await advanceProject(lead, p.projectId, "IN_WORKS")).toEqual({ ok: true });
     expect(
       await addMilestone(agent, p.projectId, { title: "Strip out", dueOn: "2026-12-01" }),
     ).toEqual({
@@ -244,6 +251,13 @@ describe.skipIf(!hasDb)("funds, costs, milestones, updates, changes (Task 7)", (
     expect(await setMilestoneStatus(agent, milestone.id, "IN_PROGRESS")).toEqual({
       ok: true,
     });
+    // The Lead manages milestones too.
+    expect(
+      await addMilestone(lead, p.projectId, { title: "Rewire", dueOn: "2027-01-15" }),
+    ).toEqual({ ok: true });
+    expect(
+      await addMilestone(as(p.co, Role.INVESTOR), p.projectId, { title: "Nope" }),
+    ).toMatchObject({ ok: false, status: 404 });
     expect(await setMilestoneStatus(agent, milestone.id, "COMPLETE")).toEqual({
       ok: true,
     });
@@ -251,7 +265,16 @@ describe.skipIf(!hasDb)("funds, costs, milestones, updates, changes (Task 7)", (
       ok: false,
       status: 409,
     });
-    expect(await advanceProject(agent, p.projectId, "COMPLETED")).toEqual({ ok: true });
+    expect(await advanceProject(agent, p.projectId, "COMPLETED")).toMatchObject({
+      ok: false,
+      status: 403,
+    });
+    expect(await advanceProject(lead, p.projectId, "COMPLETED")).toEqual({ ok: true });
+    // Listing for sale is the Agent's (AG-4).
+    expect(await advanceProject(lead, p.projectId, "LISTED_FOR_SALE")).toMatchObject({
+      ok: false,
+      status: 403,
+    });
     expect(await advanceProject(agent, p.projectId, "LISTED_FOR_SALE")).toEqual({
       ok: true,
     });

@@ -88,6 +88,7 @@ describe.skipIf(!hasDb)("business-flow review fixes (Phase 7)", () => {
     const result = await recordDecision(as(p.agent, Role.AGENT), p.projectId, {
       kind: "RELEASE_PLEDGES",
       reason: "Restart the raise with new terms",
+      partiesConsulted: true,
     });
     expect(result).toMatchObject({ ok: true, data: { pledgesReleased: 2 } });
     const { rows } = await client.query(

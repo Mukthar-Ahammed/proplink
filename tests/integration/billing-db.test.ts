@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { authoriseTestAgent } from "../helpers/project-fixtures";
 import { assertSafeIntegrationDatabase } from "../helpers/test-database-safety";
 
 vi.mock("server-only", () => ({}));
@@ -69,6 +70,7 @@ async function person(
     `UPDATE public.profiles SET role = $2::"Role", "legacyUserId" = $3 WHERE id = $1`,
     [profileId, role, legacyUserId],
   );
+  if (role === "AGENT") await authoriseTestAgent(client, profileId);
   return { profileId, legacyUserId, role: role as Role, email };
 }
 

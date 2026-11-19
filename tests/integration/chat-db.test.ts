@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Client } from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
+import { authoriseTestAgent } from "../helpers/project-fixtures";
 import { assertSafeIntegrationDatabase } from "../helpers/test-database-safety";
 
 vi.mock("server-only", () => ({}));
@@ -79,6 +80,7 @@ async function person(
       [profileId],
     );
   }
+  if (role === "AGENT") await authoriseTestAgent(client, profileId);
   return { profileId, legacyUserId, role: role as Role };
 }
 

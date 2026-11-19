@@ -351,14 +351,17 @@ export async function costSummary(projectId: string) {
   return { costs, totals, total };
 }
 
-// ── Milestones (Agent) ───────────────────────────────────────────────────
+// ── Milestones (Agent and Lead Investor) ─────────────────────────────────
+
+/** OD-30 (Q18): the Lead Investor's executive authority covers the building work. */
+const WORKS_MANAGERS: readonly (Role4 | null)[] = ["AGENT", "LEAD"];
 
 export async function addMilestone(
   agent: Actor,
   projectId: string,
   raw: { title?: unknown; dueOn?: unknown },
 ): Promise<ServiceResult> {
-  if ((await projectRelation(agent, projectId)) !== "AGENT")
+  if (!WORKS_MANAGERS.includes(await projectRelation(agent, projectId)))
     return bad("Project not found", 404);
   const title = text(2, 200, "Title").safeParse(raw.title);
   if (!title.success) return bad(title.error.issues[0]?.message ?? "Give a title");
@@ -392,7 +395,10 @@ export async function setMilestoneStatus(
     where: { id: milestoneId },
     select: { projectId: true, title: true },
   });
-  if (!milestone || (await projectRelation(agent, milestone.projectId)) !== "AGENT") {
+  if (
+    !milestone ||
+    !WORKS_MANAGERS.includes(await projectRelation(agent, milestone.projectId))
+  ) {
     return bad("Milestone not found", 404);
   }
   const updated = await db.projectMilestone.updateMany({
@@ -408,7 +414,7 @@ export async function setMilestoneStatus(
       milestone.projectId,
       agent.profileId,
       `Milestone complete: ${milestone.title}`,
-      `The agent marked "${milestone.title}" complete.`,
+      `${agent.role === Role.AGENT ? "The agent" : "The Lead Investor"} marked "${milestone.title}" complete.`,
       ProjectUpdateAudience.INVESTORS_AND_LANDLORD,
     );
     await tell(milestone.projectId, true);
@@ -595,23 +601,39 @@ const STAGE_TEXT: Partial<Record<InvestorProjectStatus, string>> = {
 };
 
 /**
- * The Agent moves the project on: Funded → In works (needs the signed
- * agreement, database-checked) → Completed → Listed for sale. Phase 5
- * connects "Listed for sale" to the retail listing and records the sale.
+ * Moving the project on: Funded → In works (needs the signed agreement,
+ * database-checked) → Completed are decisions about the building work, so
+ * the Lead Investor makes them (OD-30, Q18 executive authority); Completed →
+ * Listed for sale is the Agent's (AG-4). Phase 5 connects "Listed for sale"
+ * to the retail listing and records the sale.
  */
+const STAGE_OWNER: Partial<Record<InvestorProjectStatus, Role4>> = {
+  [InvestorProjectStatus.IN_WORKS]: "LEAD",
+  [InvestorProjectStatus.COMPLETED]: "LEAD",
+  [InvestorProjectStatus.LISTED_FOR_SALE]: "AGENT",
+};
+
 export async function advanceProject(
   agent: Actor,
   projectId: string,
   rawTo: unknown,
 ): Promise<ServiceResult> {
-  if ((await projectRelation(agent, projectId)) !== "AGENT")
-    return bad("Project not found", 404);
+  const relation = await projectRelation(agent, projectId);
+  if (relation !== "AGENT" && relation !== "LEAD") return bad("Project not found", 404);
   const project = await db.investorProject.findUnique({
     where: { id: projectId },
     select: { status: true },
   });
   const to = NEXT_STAGE[project!.status];
   if (!to || rawTo !== to) return bad("The project can't move to that stage now", 409);
+  if (STAGE_OWNER[to] !== relation) {
+    return bad(
+      STAGE_OWNER[to] === "LEAD"
+        ? "The Lead Investor decides when works start and finish"
+        : "The Agent lists the completed property for sale",
+      403,
+    );
+  }
   try {
     const moved = await db.investorProject.updateMany({
       where: { id: projectId, status: project!.status },

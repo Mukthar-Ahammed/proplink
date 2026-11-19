@@ -58,6 +58,27 @@ export async function grantAdminPermission(
   }
 }
 
+/**
+ * OD-27: test Agents are pre-invite accounts; mark one as authorised by
+ * PropLink. Replica mode skips the Admin-only guard (disposable DB only).
+ */
+export async function authoriseTestAgent(client: Client, profileId: string) {
+  await client.query("BEGIN");
+  try {
+    await client.query("SET LOCAL session_replication_role = replica");
+    await client.query(
+      `INSERT INTO public.agent_migrations ("profileId", status, "confirmedAt", "authorisedAt", "authorisedBy", "updatedAt")
+       VALUES ($1, 'AUTHORISED', now(), now(), $1, now())
+       ON CONFLICT ("profileId") DO NOTHING`,
+      [profileId],
+    );
+    await client.query("COMMIT");
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  }
+}
+
 export async function person(
   client: Client,
   role: Role,
@@ -65,6 +86,8 @@ export async function person(
     kyc?: boolean;
     subscribed?: boolean;
     name?: string;
+    /** Agent only: authorised by PropLink as an existing Agent (default true, OD-27). */
+    authorised?: boolean;
     /** Admin only: permissions to hold (default SUPER_ADMIN; [] for none). */
     adminPermissions?: string[];
   } = {},
@@ -105,6 +128,9 @@ export async function person(
        VALUES ($1, '12345678', 'PROPLINK DEMO ESTATES LIMITED', 'active', 'VERIFIED', 'mock', now(), now())`,
       [profileId],
     );
+  }
+  if (role === "AGENT" && (options.authorised ?? true)) {
+    await authoriseTestAgent(client, profileId);
   }
   if ((role === "AGENT" || role === "INVESTOR") && (options.subscribed ?? true)) {
     await subscribe(client, profileId, role === "AGENT" ? "AGENT" : "CO_INVESTOR");

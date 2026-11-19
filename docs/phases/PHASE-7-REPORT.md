@@ -210,3 +210,17 @@ removed on a company change and on an Admin KYC rejection; other investors
 see a Lead Investor's anonymous platform ID, never their name. Six behaviours
 need an owner decision (OD-27 to OD-32); nine smaller gaps are listed for
 follow-up. Vitest 160 files, 1,888 tests passed.
+
+## Owner decisions OD-27 to OD-32 (2026-11-19)
+
+The owner asked for the best decision on each open item from the review
+(ADR-069, `docs/OPEN_DECISIONS.md`): existing Agents need authorisation
+(OD-27); mandates end automatically at their agreed date with a 7-day
+reminder (OD-28, daily `/api/jobs/mandates`); competing agents' chats close
+during an exclusive mandate and reopen afterwards (OD-29); the Lead Investor
+starts and completes the works (OD-30, migration `20261121030000`, rollback
+rehearsed); the Admin closes Solicitor accounts, prompted by a KPI queue
+(OD-31); shortfall release/close needs confirmation that the parties agreed
+(OD-32). Seed and dev database: the seeded Agent is authorised; the
+agent-migration E2E uses its own pre-invite Agent. Vitest 161 files, 1,892
+tests; affected Playwright specs 33 passed.

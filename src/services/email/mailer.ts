@@ -188,7 +188,9 @@ export type MandateNotice =
   | "offer_withdrawn"
   | "terminated"
   | "closed"
-  | "proposal_declined";
+  | "proposal_declined"
+  | "ending_soon"
+  | "expired";
 
 const MANDATE_COPY: Record<MandateNotice, { subject: string; body: string }> = {
   offered: {
@@ -218,6 +220,15 @@ const MANDATE_COPY: Record<MandateNotice, { subject: string; body: string }> = {
   closed: {
     subject: "A mandate was closed",
     body: "The landlord closed the mandate at the end of the agreed contract.",
+  },
+  // OD-28: mandates end automatically at the agreed end date.
+  ending_soon: {
+    subject: "A mandate ends in 7 days",
+    body: "An exclusive mandate you are part of reaches the end of its agreed contract period in 7 days. To renew, the landlord can choose the same agent again after it ends.",
+  },
+  expired: {
+    subject: "A mandate ended",
+    body: "An exclusive mandate you are part of reached the end of its agreed contract period and ended. The listing is back in the private pool.",
   },
 };
 

@@ -126,9 +126,17 @@ describe.skipIf(!hasDb)("project decisions (Task 9, Q44)", () => {
 
   it("releases unsigned pledges and keeps raising", async () => {
     const p = await shortfallProject();
+    // OD-32: releasing needs confirmation that the parties were consulted.
+    expect(
+      await recordDecision(as(p.admin, Role.ADMIN), p.projectId, {
+        kind: "RELEASE_PLEDGES",
+        reason: "Restart the raise with new terms",
+      }),
+    ).toMatchObject({ ok: false, status: 400 });
     const result = await recordDecision(as(p.admin, Role.ADMIN), p.projectId, {
       kind: "RELEASE_PLEDGES",
       reason: "Restart the raise with new terms",
+      partiesConsulted: true,
     });
     expect(result).toMatchObject({ ok: true, data: { pledgesReleased: 1 } });
     const { rows } = await client.query(
@@ -152,6 +160,7 @@ describe.skipIf(!hasDb)("project decisions (Task 9, Q44)", () => {
       await recordDecision(as(p.agent, Role.AGENT), p.projectId, {
         kind: "CLOSE_PROJECT",
         reason: "The landlord withdrew from the sale",
+        partiesConsulted: true,
       }),
     ).toMatchObject({ ok: true, data: { pledgesReleased: 2 } });
     const row = await status(p.projectId);

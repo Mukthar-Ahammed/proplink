@@ -31,7 +31,12 @@ import { projectRelation } from "@/services/projects/works";
  *   open nominations withdrawn, unsigned agreements voided, chats closed;
  * - **release** the unsigned pledges and keep raising.
  * Each decision is recorded (append-only), audited, posted to the feed and
- * emailed to the project's investors.
+ * emailed to the project's investors and the Landlord.
+ *
+ * OD-32 (Q21: a shortfall is "an agreement between Landlord, Agent and
+ * Investor"): releasing pledges or closing the project ends people's
+ * participation, so whoever records it confirms the Landlord and investors
+ * were consulted; the confirmation is kept in the audit log.
  */
 
 const DAY = 86_400_000;
@@ -53,6 +58,7 @@ const schema = z.object({
         .transform((value) => new Date(`${value}T23:59:59.000Z`))
         .optional(),
     ),
+  partiesConsulted: z.boolean().optional(),
 });
 
 const RAISING: readonly InvestorProjectStatus[] = [
@@ -84,9 +90,22 @@ export async function recordDecision(
   if (!parsed.success)
     return bad(parsed.error.issues[0]?.message ?? "Check the decision");
   const decision = parsed.data;
+  if (
+    decision.kind !== ProjectDecisionKind.EXTEND_DEADLINE &&
+    decision.partiesConsulted !== true
+  ) {
+    return bad(
+      "Confirm the Landlord and the investors were consulted and agreed (Q21) before releasing pledges or closing the project",
+    );
+  }
   const project = await db.investorProject.findUniqueOrThrow({
     where: { id: projectId },
-    select: { status: true, fundingDeadline: true, title: true },
+    select: {
+      status: true,
+      fundingDeadline: true,
+      title: true,
+      listing: { select: { ownerId: true } },
+    },
   });
   const decisionId = randomUUID();
   let released = 0;
@@ -226,8 +245,22 @@ export async function recordDecision(
     action: `PROJECT_DECISION_${decision.kind}`,
     entity: "InvestorProject",
     entityId: projectId,
-    meta: { decisionId, released, reason: decision.reason },
+    meta: {
+      decisionId,
+      released,
+      reason: decision.reason,
+      partiesConsulted: decision.partiesConsulted === true,
+    },
   });
+  // The Landlord is a party to the shortfall agreement too (OD-32).
+  await notifyProfile(project.listing.ownerId, "project.update", (to) =>
+    sendProjectEmail({
+      to,
+      notice: "update",
+      projectTitle: project.title,
+      path: PROJECT_PATH.landlord(projectId),
+    }),
+  );
   const investors = await db.projectPledge.findMany({
     where: { projectId },
     select: { investorId: true },

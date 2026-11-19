@@ -1,32 +1,29 @@
 import { test, expect } from "@playwright/test";
+import { createAccount, PASSWORD, retireAccount, type Account } from "./helpers/accounts";
 import { closeDb, hasDb, q } from "./helpers/db";
 import { login } from "./helpers/login";
 import { loginAsAdmin } from "./helpers/adminSession";
+import { runId } from "./helpers/runId";
 
 /**
  * Phase 1 Task 5 (ADR-025, Q2): Admin emails a pre-invite Agent, the Agent
- * confirms, Admin authorises. Needs the Phase 1 migrations on the target
- * database. The seeded agent@proplink.test registered before invite-only
- * onboarding.
+ * confirms, Admin authorises. Since Phase 7 (OD-27) authorisation gates the
+ * private Landlord pipeline, so this test uses its own fresh pre-invite Agent
+ * and leaves the seeded (authorised) agent@proplink.test alone.
  */
 test.skip(!hasDb, "requires the development database");
 
-async function agentProfileId(): Promise<string> {
-  const rows = await q<{ id: string }>(
-    `SELECT p.id FROM public.profiles p JOIN public."User" u ON u.id = p."legacyUserId"
-     WHERE u.email = 'agent@proplink.test'`,
-  );
-  return rows[0].id;
-}
+const RUN = runId("migration")
+  .replace(/[^a-z0-9-]/gi, "")
+  .toLowerCase();
+let account: Account;
 
-async function reset() {
-  await q(`DELETE FROM public.agent_migrations WHERE "profileId" = $1`, [
-    await agentProfileId(),
-  ]);
-}
+test.beforeAll(async () => {
+  account = await createAccount("AGENT", RUN);
+});
 
 test.afterAll(async () => {
-  await reset();
+  if (account) await retireAccount(account);
   await closeDb();
 });
 
@@ -34,8 +31,7 @@ test("existing Agent is notified, confirms, and is authorised by Admin", async (
   page,
   browser,
 }) => {
-  await reset();
-  const profileId = await agentProfileId();
+  const profileId = account.profileId;
 
   const adminContext = await browser.newContext();
   const admin = await adminContext.newPage();
@@ -48,7 +44,10 @@ test("existing Agent is notified, confirms, and is authorised by Admin", async (
   await admin.reload();
   await expect(row).toContainText("NOTIFIED");
 
-  await login(page, "agent@proplink.test", "Password123!");
+  await login(page, account.email, PASSWORD);
+  // OD-27: until PropLink authorises the account, the private pool is closed.
+  await page.goto("/agent/marketplace");
+  await expect(page.getByText(/wait for PropLink to authorise it/)).toBeVisible();
   await page.goto("/agent");
   await expect(page.getByTestId("migration-prompt")).toBeVisible();
   await page.getByRole("link", { name: "Confirm account" }).click();

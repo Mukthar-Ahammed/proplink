@@ -66,14 +66,15 @@ async function soldProject(salePrice: string) {
     [p.landlord.profileId]: "20",
   });
   const agent = as(p.agent, Role.AGENT);
-  await advanceProject(agent, p.projectId, "IN_WORKS");
+  // OD-30: the Lead Investor starts and completes the works.
+  await advanceProject(as(p.lead, Role.INVESTOR), p.projectId, "IN_WORKS");
   await recordCost(agent, p.projectId, {
     category: "CONTRACTOR",
     description: "Full refurbishment",
     amount: "20000",
     incurredOn: "2026-12-01",
   });
-  await advanceProject(agent, p.projectId, "COMPLETED");
+  await advanceProject(as(p.lead, Role.INVESTOR), p.projectId, "COMPLETED");
   await advanceProject(agent, p.projectId, "LISTED_FOR_SALE");
   const sale = await recordSale(agent, p.projectId, { salePrice, soldOn: "2027-03-01" });
   if (!sale.ok) throw new Error(sale.error);

@@ -19,9 +19,10 @@ never leak into public, investor or buyer views; chats need an active
 subscription and Admin authorisation; all nine TRD acceptance criteria have
 tests.
 
-The review found **5 defects, now fixed** (below), **6 behaviours that need an
-owner decision** (OD-27 to OD-32) and **9 smaller gaps** recommended for
-follow-up.
+The review found **5 defects, now fixed** (below), **6 behaviours that needed an
+owner decision** (OD-27 to OD-32, now decided and built) and **9 smaller
+gaps** recommended for follow-up (gap 7, the declined mandate offer, is fixed
+by OD-29).
 
 ## Fixed in this review (ADR-068)
 
@@ -37,16 +38,19 @@ Tests: `tests/integration/business-flow-review-db.test.ts`,
 `tests/unit/company-check.test.ts`, `tests/unit/phase5-admin-kyc.test.ts`.
 The new migration's rollback was rehearsed.
 
-## Needs an owner decision (safe default kept meanwhile)
+## Owner decisions (taken 2026-11-19, ADR-069)
 
-| OD    | Rule      | What the code does now                                                                                                   | Question                                                                                                                               |
-| ----- | --------- | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
-| OD-27 | Q2        | Existing (pre-invite) Agents work fully once their company passes; Admin authorisation is recorded but restricts nothing | Should an unauthorised existing Agent be blocked from the private Landlord pool, chats, subscriptions and publishing until authorised? |
-| OD-28 | Q8, Q9    | A mandate stays ACTIVE past its end date until the Landlord closes it (renewal per contract)                             | End mandates automatically at the agreed end date unless renewed?                                                                      |
-| OD-29 | Q8, Q10   | Agents not chosen keep their (Admin-authorised) chat with the Landlord during the exclusive mandate                      | Close the other agents' chats when a mandate becomes active?                                                                           |
-| OD-30 | Q18, Q23  | The Lead approves or rejects budget/timeline/scope changes; works stages and milestones are set by the Agent             | Must the Lead also approve stage moves and milestones?                                                                                 |
-| OD-31 | Section F | The Admin closes the Solicitor account by hand after completion                                                          | Close it automatically when the project is sold or closed?                                                                             |
-| OD-32 | CI-5, Q21 | A shortfall decision (extend, release, close) is recorded by the Agent or Admin                                          | Record the Landlord's and investors' agreement to the decision as well?                                                                |
+The owner asked for the best decision on each; all six are built and tested
+(`tests/integration/owner-decisions-db.test.ts`, `works-db`, `decisions-db`).
+
+| OD    | Rule      | Decision                                                                                                                                                |
+| ----- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| OD-27 | Q2        | Existing Agents need PropLink's authorisation before the private pipeline and subscriptions                                                             |
+| OD-28 | Q8, Q9    | Mandates end automatically at the agreed date (reminder 7 days before), unless a live project depends on them; renewal by choosing the same agent again |
+| OD-29 | Q8, Q10   | Other agents' chats close during an exclusive mandate and reopen for Admin authorisation afterwards                                                     |
+| OD-30 | Q18, Q23  | The Lead Investor starts and completes the works and may manage milestones                                                                              |
+| OD-31 | Section F | The Admin closes the Solicitor account; KPIs list accounts ready to close                                                                               |
+| OD-32 | CI-5, Q21 | Releasing pledges or closing needs confirmation that the parties agreed; the Landlord is emailed too                                                    |
 
 Already decided and recorded: Buyer↔Agent chats open without Admin
 authorisation (OD-15); ROI formula (OD-07/Q38, hidden until decided);

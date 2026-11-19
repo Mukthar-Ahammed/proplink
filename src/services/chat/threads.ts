@@ -169,6 +169,8 @@ export async function ensurePrivateListingThread(input: {
   listingId: string;
   landlordId: string;
   agentId: string;
+  /** Why a closed thread reopens (it then waits for Admin authorisation). */
+  reopenReason?: string;
 }): Promise<string> {
   const key = {
     contextType: ChatContextType.PRIVATE_LISTING,
@@ -191,7 +193,7 @@ export async function ensurePrivateListingThread(input: {
           existing.id,
           ChatAuthorizationAction.REOPENED,
           null,
-          "Proposal sent again",
+          input.reopenReason ?? "Proposal sent again",
         );
       });
     }

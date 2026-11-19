@@ -6,6 +6,7 @@ import {
   InvestorProjectStatus,
   KycSubmissionStatus,
   MandateStatus,
+  ProjectSolicitorStatus,
   PropertyStatus,
   SubscriptionStatus,
 } from "@/generated/prisma/enums";
@@ -38,6 +39,7 @@ export async function adminKpis(now = new Date()) {
     projectsSold,
     offers,
     dealsCompleted,
+    solicitorsToClose,
   ] = await Promise.all([
     reviewQueueMetrics(now),
     db.kycSubmission.count({ where: { status: KycSubmissionStatus.SUBMITTED } }),
@@ -88,7 +90,25 @@ export async function adminKpis(now = new Date()) {
     }),
     db.offer.count({ where: { createdAt: { gte: since } } }),
     db.deal.count({ where: { stage: DealStage.COMPLETED, updatedAt: { gte: since } } }),
+    // OD-31: a Solicitor account is ready to close once the project is
+    // settled after its sale, or closed. The Admin closes it (the Solicitor
+    // may still need to record refunds or ledger corrections until then).
+    db.projectSolicitor.findMany({
+      where: {
+        status: ProjectSolicitorStatus.ACTIVE,
+        project: {
+          OR: [
+            { status: InvestorProjectStatus.CLOSED },
+            { status: InvestorProjectStatus.SOLD, ledger: { some: {} } },
+          ],
+        },
+      },
+      select: { project: { select: { statusChangedAt: true } } },
+    }),
   ]);
+  const oldestReady = solicitorsToClose
+    .map((s) => s.project.statusChangedAt)
+    .sort((a, b) => a.getTime() - b.getTime())[0];
   return {
     queues: [
       {
@@ -114,6 +134,12 @@ export async function adminKpis(now = new Date()) {
         name: "Chat authorisations",
         waiting: chatsPending,
         oldestMinutes: minutesSince(oldestChat?.createdAt, now),
+      },
+      {
+        name: "Solicitor accounts to close",
+        waiting: solicitorsToClose.length,
+        oldestMinutes: minutesSince(oldestReady, now),
+        note: "Projects settled after sale, or closed (Admin → Projects)",
       },
     ],
     subscriptions: subscriptions.map((s) => ({

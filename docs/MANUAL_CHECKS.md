@@ -301,6 +301,15 @@ Each phase adds its section here when its build is complete.
 - [ ] **Retention job.** After deployment, call `/api/jobs/retention` with
       the cron secret (or wait for 03:30 UTC): the response lists the counts
       deleted; without the secret it is refused.
+- [ ] **Owner decisions OD-27 to OD-32.** (a) A newly notified existing
+      Agent sees "wait for PropLink to authorise it" on Landlord listings until
+      you authorise them at Admin → Agents → Migration. (b) When an Agent
+      accepts a mandate, the other agents' chats on that listing close. (c) As
+      the Lead Investor on a funded, signed project, "Start works" and "Mark
+      works complete" are on your project page; the Agent sees that the Lead
+      decides. (d) Recording "Release pledges" or "Close the project" needs
+      the "consulted and agreed" box. (e) After deployment, the mandates job
+      runs daily (reminders 7 days before a mandate ends; ends it after).
 - [ ] **Health check and delivery panel.** Open `/api/health` signed out: it
       shows `"status":"ok"` and nothing else about the system. At Admin →
       KPIs & System the "Emails and alerts" and "Webhooks received" panels

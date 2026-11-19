@@ -60,15 +60,23 @@ export function WorksPanel({
   const solicitor = relation === "SOLICITOR";
   const lead = relation === "LEAD";
   const costEditor = agent || solicitor;
+  // OD-30 (Q18): the Lead Investor decides when works start and finish and
+  // can manage milestones; the Agent manages milestones day to day.
+  const worksManager = agent || lead;
   const next = NEXT[projectStatus];
   return (
     <div data-testid="works-panel">
-      {agent && next && (
+      {lead && next && (
         <ActionButton
           action={advanceAction}
           hidden={{ projectId, to: next.to, path }}
           label={next.label}
         />
+      )}
+      {agent && next && (
+        <p className="text-sm text-muted" data-testid="lead-decides-stage">
+          The Lead Investor decides when works start and when they are complete.
+        </p>
       )}
 
       {view.myFunds && (
@@ -135,7 +143,7 @@ export function WorksPanel({
                 {milestone.dueOn && ` · due ${day(milestone.dueOn)}`}
                 {milestone.completedAt && ` · done ${day(milestone.completedAt)}`}
               </span>
-              {agent && milestone.status !== "COMPLETE" && (
+              {worksManager && milestone.status !== "COMPLETE" && (
                 <ActionButton
                   action={milestoneAction}
                   hidden={{
@@ -151,7 +159,7 @@ export function WorksPanel({
           ))}
         </ul>
       )}
-      {agent && (
+      {worksManager && (
         <div className="mt-2">
           <ActionButton
             action={milestoneAction}

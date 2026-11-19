@@ -69,6 +69,12 @@ vi.mock("@/services/agents/companyGate", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/services/agents/companyGate")>()),
   agentCompanyGate: vi.fn(async () => ({ allowed: true, reason: "verified" })),
 }));
+// OD-27: the Agent here is authorised; the authorisation gate is tested in
+// the agent-migration tests.
+vi.mock("@/services/agents/agentMigration", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/services/agents/agentMigration")>()),
+  hasNewFeatureAccess: vi.fn(async () => true),
+}));
 
 import { Role } from "@/generated/prisma/enums";
 import {

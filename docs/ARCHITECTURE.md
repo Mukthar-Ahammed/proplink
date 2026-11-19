@@ -1394,3 +1394,13 @@ of the boundary.
   sign-in-capable Landlord and Solicitor accounts; `visual.spec.ts` keeps
   local screenshot baselines. Run against `APP_ORIGIN=http://localhost:3100
 npx next dev --port 3100`. `DataTable` is a focusable named region.
+
+- Owner decisions OD-27 to OD-32 (ADR-069): `isVerifiedAgent` also requires
+  `hasNewFeatureAccess` (pre-invite Agents need authorisation) and agent
+  checkout checks it; `expireMandates` / `remindMandatesEnding` run daily at
+  `/api/jobs/mandates` (04:00 UTC); mandate activation closes competing
+  chats and `returnToPool` reopens them for Admin authorisation; works
+  stages IN_WORKS and COMPLETED belong to the Lead Investor (migration
+  `20261121030000` lets the Lead add milestones and post updates); shortfall
+  release/close needs `partiesConsulted`; KPIs list Solicitor accounts to
+  close.

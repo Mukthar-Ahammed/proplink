@@ -8,6 +8,10 @@
     {
       "path": "/api/jobs/retention",
       "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/jobs/mandates",
+      "schedule": "0 4 * * *"
     }
   ]
 }

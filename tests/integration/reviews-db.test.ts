@@ -76,14 +76,15 @@ async function soldProject() {
      VALUES ($1, $2, 'Review Estates', $3)`,
     [`ap-${randomUUID()}`, p.agent.legacyUserId, `RV-${randomUUID().slice(0, 12)}`],
   );
-  await advanceProject(agent, p.projectId, "IN_WORKS");
+  // OD-30: the Lead Investor starts and completes the works.
+  await advanceProject(as(p.lead, Role.INVESTOR), p.projectId, "IN_WORKS");
   await recordCost(agent, p.projectId, {
     category: "CONTRACTOR",
     description: "Refurbishment",
     amount: "20000",
     incurredOn: "2026-12-01",
   });
-  await advanceProject(agent, p.projectId, "COMPLETED");
+  await advanceProject(as(p.lead, Role.INVESTOR), p.projectId, "COMPLETED");
   const listed = await relistProject(agent, p.projectId, {
     title: "Refurbished three-bed terrace",
     description: "Fully refurbished terrace with a new kitchen, bathroom and roof.",

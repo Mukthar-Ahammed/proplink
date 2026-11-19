@@ -692,11 +692,37 @@ async function seedSuperAdmin() {
   `;
 }
 
+/**
+ * OD-27 (Q2): the seeded Agent joined before invitations, so PropLink must
+ * authorise it before it reaches the private Landlord pipeline. The seed
+ * records it as confirmed and authorised by the seeded Admin. Idempotent.
+ */
+async function seedAgentAuthorisation() {
+  await db.$executeRaw`
+    INSERT INTO public.agent_migrations
+      ("profileId", status, "confirmedAt", "authorisedAt", "authorisedBy", "updatedAt")
+    SELECT a.id, 'AUTHORISED'::"AgentMigrationStatus", now(), now(), adm.id, now()
+    FROM public.profiles a
+    JOIN public."User" au ON au.id = a."legacyUserId" AND au.email = 'agent@proplink.test'
+    JOIN public.profiles adm ON adm.role = 'ADMIN'
+    JOIN public."User" du ON du.id = adm."legacyUserId" AND du.email = 'admin@proplink.test'
+    WHERE a.role = 'AGENT'
+      AND NOT EXISTS (SELECT 1 FROM public.agent_invites i WHERE i."acceptedProfileId" = a.id)
+    ON CONFLICT ("profileId") DO UPDATE
+      SET status = 'AUTHORISED',
+          "confirmedAt" = COALESCE(public.agent_migrations."confirmedAt", now()),
+          "authorisedAt" = COALESCE(public.agent_migrations."authorisedAt", now()),
+          "authorisedBy" = COALESCE(public.agent_migrations."authorisedBy", EXCLUDED."authorisedBy"),
+          "updatedAt" = now()
+  `;
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash("Password123!", 10);
 
   const userCount = await seedUsers(passwordHash);
   await seedSuperAdmin();
+  await seedAgentAuthorisation();
 
   const agent = await db.user.findUniqueOrThrow({
     where: { email: "agent@proplink.test" },

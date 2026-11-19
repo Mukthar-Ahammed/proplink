@@ -11,15 +11,17 @@ export type Account = { profileId: string; legacyId: string; email: string };
  * A sign-in-capable account in the development database, created the way the
  * seed creates accounts (legacy user, Supabase auth user with a password and
  * identity, profile). Used for roles the seed does not provide (Landlord,
- * Solicitor). Retire it with `retireAccount` afterwards.
+ * Solicitor) and for a fresh pre-invite Agent (OD-27 migration test).
+ * Retire it with `retireAccount` afterwards.
  */
 export async function createAccount(
-  role: "LANDLORD" | "SOLICITOR",
+  role: "LANDLORD" | "SOLICITOR" | "AGENT",
   run: string,
 ): Promise<Account> {
   const email = `${run}-${role.toLowerCase()}@proplink.test`;
   const legacyId = `legacy-${run}-${role.toLowerCase()}`;
-  const name = `${role === "LANDLORD" ? "Landlord" : "Solicitor"} ${run}`;
+  const label = { LANDLORD: "Landlord", SOLICITOR: "Solicitor", AGENT: "Agent" }[role];
+  const name = `${label} ${run}`;
   const kyc = role === "LANDLORD" ? "APPROVED" : "NOT_STARTED";
   await q(
     `INSERT INTO public."User" (id, email, name, role, "kycStatus", "passwordHash", "emailVerified", "gdprConsentAt")

@@ -96,7 +96,8 @@ export async function milestoneAction(
   _previous: ProjectFormState,
   formData: FormData,
 ): Promise<ProjectFormState> {
-  const who = await actor(Role.AGENT);
+  // OD-30: the Agent and the Lead Investor (the service checks the relation).
+  const who = await actor(Role.AGENT, Role.INVESTOR);
   if (!who) return { kind: "error", message: "Sign in again" };
   const milestoneId = text(formData, "milestoneId");
   const result = milestoneId
@@ -163,7 +164,8 @@ export async function advanceAction(
   _previous: ProjectFormState,
   formData: FormData,
 ): Promise<ProjectFormState> {
-  const who = await actor(Role.AGENT);
+  // OD-30: works start and completion are the Lead Investor's decisions.
+  const who = await actor(Role.AGENT, Role.INVESTOR);
   if (!who) return { kind: "error", message: "Sign in again" };
   return finish(
     formData,
@@ -185,6 +187,7 @@ export async function decisionAction(
     kind: text(formData, "kind"),
     reason: text(formData, "reason"),
     newDeadline: text(formData, "newDeadline"),
+    partiesConsulted: formData.get("partiesConsulted") === "on",
   });
   return finish(formData, result, "Decision recorded.");
 }
