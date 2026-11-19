@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
       { pathname: "/uploads/**", search: "" },
       { pathname: "/marketing/**", search: "" },
       { pathname: "/ui/**", search: "" },
+      // Portal mastheads (ADR-071).
+      { pathname: "/banners/**", search: "" },
     ],
     formats: ["image/avif", "image/webp"],
   },
