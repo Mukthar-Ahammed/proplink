@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
 import { requireAdminPagePermission } from "@/lib/authz";
+import { deliveryHealth } from "@/services/admin/deliveryHealth";
 import { adminKpis } from "@/services/admin/kpis";
 
 export const dynamic = "force-dynamic";
@@ -18,12 +19,12 @@ function age(minutes: number | null) {
 /** Admin KPIs (Phase 6 Task 4, ADR-061): queues, chats, subscriptions, funnel. */
 export default async function AdminSystemPage() {
   await requireAdminPagePermission("SYSTEM_INTEGRATIONS");
-  const kpis = await adminKpis();
+  const [kpis, delivery] = await Promise.all([adminKpis(), deliveryHealth()]);
   return (
     <div className="space-y-6">
       <AdminPageHeader
         title="KPIs"
-        description="Queue times, chat authorisations, subscriptions and the last 30 days' funnel. Counts only."
+        description="Queue times, chat authorisations, email and webhook health, subscriptions and the last 30 days' funnel. Counts only."
       />
       <nav aria-label="System pages" className="flex flex-wrap gap-2 text-sm">
         <Link
@@ -64,6 +65,60 @@ export default async function AdminSystemPage() {
           </table>
         </CardBody>
       </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card>
+          <CardTitle>Emails and alerts</CardTitle>
+          <CardBody>
+            <dl className="space-y-1 text-sm" data-testid="kpi-deliveries">
+              {delivery.deliveries.map((row) => (
+                <div key={row.name} className="flex justify-between gap-4">
+                  <dt className="text-muted">{row.name}</dt>
+                  <dd
+                    className={
+                      row.attention
+                        ? "font-semibold text-danger"
+                        : "font-semibold text-primary"
+                    }
+                  >
+                    {row.value}
+                    {row.attention ? (
+                      <span className="sr-only"> (needs attention)</span>
+                    ) : null}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardTitle>Webhooks received</CardTitle>
+          <CardBody>
+            <p className="text-xs text-muted">
+              Providers retry until PropLink accepts an event; each is recorded once.
+            </p>
+            <table className="mt-2 w-full text-left text-sm" data-testid="kpi-webhooks">
+              <thead className="text-xs text-muted">
+                <tr>
+                  <th className="py-1 font-semibold">Provider</th>
+                  <th className="py-1 font-semibold">24 h</th>
+                  <th className="py-1 font-semibold">Last received</th>
+                </tr>
+              </thead>
+              <tbody>
+                {delivery.webhooks.map((hook) => (
+                  <tr key={hook.provider} className="border-t border-line">
+                    <td className="py-2 text-body">{hook.provider}</td>
+                    <td className="py-2 text-body">{hook.last24h}</td>
+                    <td className="py-2 text-body">
+                      {hook.minutesAgo === null ? "Never" : `${age(hook.minutesAgo)} ago`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardBody>
+        </Card>
+      </div>
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardTitle>Subscriptions (active, trial, past due)</CardTitle>

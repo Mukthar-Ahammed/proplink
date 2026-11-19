@@ -301,3 +301,7 @@ Each phase adds its section here when its build is complete.
 - [ ] **Retention job.** After deployment, call `/api/jobs/retention` with
       the cron secret (or wait for 03:30 UTC): the response lists the counts
       deleted; without the secret it is refused.
+- [ ] **Health check and delivery panel.** Open `/api/health` signed out: it
+      shows `"status":"ok"` and nothing else about the system. At Admin →
+      KPIs & System the "Emails and alerts" and "Webhooks received" panels
+      show counts; a failed email shows in red.

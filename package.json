@@ -34,7 +34,8 @@
     "postinstall": "prisma generate",
     "prepare": "node scripts/install-git-hooks.mjs",
     "format:check:changed": "node scripts/format-check-changed.mjs",
-    "audit:check": "node scripts/audit-check.mjs"
+    "audit:check": "node scripts/audit-check.mjs",
+    "test:perf": "vitest run --config vitest.perf.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.10.0",

@@ -84,7 +84,10 @@ async function deliveries(profileId: string) {
 describe.skipIf(!hasDb)("chain announcements", () => {
   it(
     "tells each verified Agent once per round and respects preferences",
-    { timeout: 60_000 },
+    // Announces to every verified Agent in the shared test database, which
+    // grows with each run (about 1,200 by Phase 7), three rounds, while the
+    // rest of the suite runs in parallel. Production runs this in after().
+    { timeout: 180_000 },
     async () => {
       const [admin, landlord] = [await person("ADMIN"), await person("LANDLORD")];
       const [verified, quiet, rejected] = [

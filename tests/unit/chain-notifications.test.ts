@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/db", () => ({
   db: {
-    notificationDelivery: { create: vi.fn(), update: vi.fn() },
+    notificationDelivery: { createMany: vi.fn(), update: vi.fn() },
     profile: { findUnique: vi.fn(), findMany: vi.fn() },
     landlordListing: { findFirst: vi.fn() },
     mandate: { findFirst: vi.fn() },
@@ -19,7 +19,6 @@ vi.mock("@/services/landlord/marketplace", () => ({
     postcode ? postcode.split(" ")[0] : null,
 }));
 
-import { Prisma } from "@/generated/prisma/client";
 import { Role } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 import { sendPrivateListingEmail } from "@/services/email/mailer";
@@ -39,6 +38,7 @@ const LISTING = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 beforeEach(() => {
   vi.resetAllMocks();
   vi.mocked(shouldNotify).mockResolvedValue(true);
+  mockDb.notificationDelivery.createMany.mockResolvedValue({ count: 1 });
   mockDb.profile.findUnique.mockResolvedValue({
     id: AGENT,
     role: Role.AGENT,
@@ -59,12 +59,17 @@ describe("deliverOnce", () => {
 
   it("claims the delivery, sends, and records SENT", async () => {
     expect(await delivery()).toBe("sent");
-    expect(mockDb.notificationDelivery.create.mock.calls[0][0].data).toMatchObject({
-      profileId: AGENT,
-      eventKey: "listing.private_listing",
-      dedupeKey: "k",
-      channel: "email",
-    });
+    expect(mockDb.notificationDelivery.createMany.mock.calls[0][0]?.data).toMatchObject([
+      {
+        profileId: AGENT,
+        eventKey: "listing.private_listing",
+        dedupeKey: "k",
+        channel: "email",
+      },
+    ]);
+    expect(mockDb.notificationDelivery.createMany.mock.calls[0][0]?.skipDuplicates).toBe(
+      true,
+    );
     expect(send).toHaveBeenCalledWith("agent@x.test");
     expect(mockDb.notificationDelivery.update.mock.calls[0][0].data).toEqual({
       status: "SENT",
@@ -72,12 +77,7 @@ describe("deliverOnce", () => {
   });
 
   it("never sends twice: an existing claim means duplicate", async () => {
-    mockDb.notificationDelivery.create.mockRejectedValue(
-      new Prisma.PrismaClientKnownRequestError("dup", {
-        code: "P2002",
-        clientVersion: "7",
-      }),
-    );
+    mockDb.notificationDelivery.createMany.mockResolvedValue({ count: 0 });
     expect(await delivery()).toBe("duplicate");
     expect(send).not.toHaveBeenCalled();
   });
@@ -176,9 +176,13 @@ describe("announcing a listing to verified Agents", () => {
     ] as never);
     const result = await announceListingToAgents(LISTING, { kind: "approved" });
     expect(result).toMatchObject({ sent: 1, skipped: 0, failed: 0, duplicate: 0 });
-    expect(mockDb.notificationDelivery.create.mock.calls[0][0].data.dedupeKey).toBe(
-      `listing:${LISTING}:approved:2026-11-18T10:00:00.000Z`,
-    );
+    expect(
+      (
+        mockDb.notificationDelivery.createMany.mock.calls[0][0]?.data as {
+          dedupeKey: string;
+        }[]
+      )[0].dedupeKey,
+    ).toBe(`listing:${LISTING}:approved:2026-11-18T10:00:00.000Z`);
     expect(sendPrivateListingEmail).toHaveBeenCalledWith({
       to: "agent@x.test",
       area: "Leeds LS6",
@@ -215,9 +219,13 @@ describe("announcing a listing to verified Agents", () => {
       { id: AGENT, companyCheck: null, _count: { agentInvitesAccepted: 0 } },
     ] as never);
     await announceReturnToPool("m1");
-    expect(mockDb.notificationDelivery.create.mock.calls[0][0].data.dedupeKey).toBe(
-      `listing:${LISTING}:returned:m1`,
-    );
+    expect(
+      (
+        mockDb.notificationDelivery.createMany.mock.calls[0][0]?.data as {
+          dedupeKey: string;
+        }[]
+      )[0].dedupeKey,
+    ).toBe(`listing:${LISTING}:returned:m1`);
     expect(sendPrivateListingEmail).toHaveBeenCalledWith(
       expect.objectContaining({ kind: "plot of land", returned: true, area: "Leeds" }),
     );

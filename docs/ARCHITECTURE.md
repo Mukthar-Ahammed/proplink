@@ -1378,3 +1378,11 @@ of the boundary.
   `DataExportRequest.kind`); `src/services/privacy/retention.ts` runs daily
   at `/api/jobs/retention` and deletes only short-lived operational data.
   Compliance drafts live in `docs/compliance/`.
+
+- Resilience and performance (Task 5, ADR-066): `GET /api/health`
+  (`src/services/metrics/health.ts`, database only, 2 s timeout);
+  `src/services/admin/deliveryHealth.ts` feeds the KPIs page's email, alert
+  and webhook panels; `scripts/rehearse-rollbacks.mjs` rehearses every
+  rollback on a disposable database; `npm run test:perf`
+  (`vitest.perf.config.ts`, `tests/perf/`) measures p95 and checks plans.
+  See `docs/performance/`.

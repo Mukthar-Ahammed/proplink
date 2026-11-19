@@ -26,16 +26,16 @@ secret store, backups and restore on the real database, and every open
 
 ## Task progress
 
-| Task                           | State                                                  | Notes           |
-| ------------------------------ | ------------------------------------------------------ | --------------- |
-| 1. Security review             | Done (local); pen test and staging scans are H7.1/H7.2 | THREAT-MODEL.md |
-| 2. RLS and authorisation audit | Done (local); Security Advisor is H7.2                 | ADR-063         |
-| 3. Rate-limit and abuse        | Done (local); staging load test is H7.2                | ADR-064         |
-| 4. Privacy and compliance      | Done (local); legal review is H7.4                     | ADR-065         |
-| 5. Resilience and performance  | In progress                                            |                 |
-| 6. Quality gates               | Not started                                            |                 |
-| 7. Deployment readiness        | Not started                                            |                 |
-| 8. Final documentation         | Not started                                            |                 |
+| Task                           | State                                                        | Notes           |
+| ------------------------------ | ------------------------------------------------------------ | --------------- |
+| 1. Security review             | Done (local); pen test and staging scans are H7.1/H7.2       | THREAT-MODEL.md |
+| 2. RLS and authorisation audit | Done (local); Security Advisor is H7.2                       | ADR-063         |
+| 3. Rate-limit and abuse        | Done (local); staging load test is H7.2                      | ADR-064         |
+| 4. Privacy and compliance      | Done (local); legal review is H7.4                           | ADR-065         |
+| 5. Resilience and performance  | Done (local); real backups and staging timings are H7.5/H7.2 | ADR-066         |
+| 6. Quality gates               | In progress                                                  |                 |
+| 7. Deployment readiness        | Not started                                                  |                 |
+| 8. Final documentation         | Not started                                                  |                 |
 
 ## Final exit gate (launch checklist)
 
@@ -131,3 +131,36 @@ deployment (H7.2); the penetration test is H7.1.
 
 **Not done here:** legal review, DPAs and FCA counsel (H7.4); deleting the
 Supabase Auth user needs OD-18 (BLOCKERS).
+
+## Task 5 — Resilience and performance (2026-11-19)
+
+**Delivered** (ADR-066)
+
+- Rollback rehearsal: `scripts/rehearse-rollbacks.mjs` rolled back all 45
+  migrations from Phase 0 to Phase 7 and re-applied them; schema identical
+  (2,412 items). It found a real defect (the erasure rollback failed once an
+  erasure request existed), now fixed.
+- Backup and restore drill on the test database: 115 tables and 71,116 rows
+  restored with every row count, index, trigger, policy and constraint equal.
+- `GET /api/health` (database check, 503 when down, no details).
+- KPIs page: failed and stuck emails and alerts; webhooks received per
+  provider with the time since the last one.
+- Performance (`npm run test:perf`): at 4,905 and 39,894 live listings every
+  search p95 is under the 300 ms target (worst: free text, 205 ms at 39,894);
+  chat history and polling p95 under 25 ms. Plans: radius search and chat use
+  their indexes; free-text search scans the table, so the remedy and the
+  point to apply it are recorded in `docs/performance/PERFORMANCE.md`.
+- Reliability fix: the full suite intermittently lost a test worker during
+  `projects-db` (about half of isolated runs). Cause: re-announcing a project
+  to hundreds of investors went through the unique-violation error path of
+  `deliverOnce` concurrently. `deliverOnce` now claims with `INSERT ... ON
+CONFLICT DO NOTHING` (`createMany` with `skipDuplicates`): same
+  exactly-once guarantee, no error raised. 0 crashes in 6 isolated runs and
+  two consecutive green full runs (159 files, 1,884 tests). The
+  chain-announcement test's timeout rose to 180 s because the shared test
+  database now holds about 1,200 verified Agents.
+- Tests: `tests/unit/health-and-delivery.test.ts` (4),
+  `tests/perf/performance.perf.test.ts` (3, opt-in).
+
+**Not done here:** restoring the real database, uptime monitor, S3
+versioning (H7.5); network and realtime timings on staging (H7.2).

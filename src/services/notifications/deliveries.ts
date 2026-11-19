@@ -2,7 +2,6 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 
-import { Prisma } from "@/generated/prisma/client";
 import { NotificationDeliveryStatus } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 import { shouldNotify } from "@/services/notifications/preferences";
@@ -24,22 +23,22 @@ export async function deliverOnce(params: {
   send: (to: string) => Promise<void>;
 }): Promise<DeliveryOutcome> {
   const id = randomUUID();
-  try {
-    await db.notificationDelivery.create({
-      data: {
+  // INSERT ... ON CONFLICT DO NOTHING: an existing claim is a normal outcome,
+  // not an error. (Phase 7 Task 5: re-announcing to hundreds of recipients
+  // through the unique-violation path intermittently killed the test worker.)
+  const claimed = await db.notificationDelivery.createMany({
+    data: [
+      {
         id,
         profileId: params.profileId,
         eventKey: params.eventKey,
         dedupeKey: params.dedupeKey,
         channel: "email",
       },
-    });
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-      return "duplicate";
-    }
-    throw error;
-  }
+    ],
+    skipDuplicates: true,
+  });
+  if (claimed.count === 0) return "duplicate";
   const finish = (status: NotificationDeliveryStatus) =>
     db.notificationDelivery.update({ where: { id }, data: { status } });
   try {
