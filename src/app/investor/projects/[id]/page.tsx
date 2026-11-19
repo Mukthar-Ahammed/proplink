@@ -41,9 +41,18 @@ import {
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Investor — Project", robots: { index: false } };
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
+function Row({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: React.ReactNode;
+  className?: string;
+}) {
+  // The wrapping div must be a direct child of <dl> (axe: definition-list).
   return (
-    <div>
+    <div className={className}>
       <dt className="text-xs font-medium tracking-wide text-muted uppercase">{label}</dt>
       <dd className="mt-0.5 text-sm whitespace-pre-line text-body">{value || "—"}</dd>
     </div>
@@ -395,12 +404,11 @@ export default async function InvestorProjectPage({
               project.property.landAreaSqm ? `${project.property.landAreaSqm} m²` : null
             }
           />
-          <div className="sm:col-span-2">
-            <Row
-              label="Description"
-              value={project.property.description ?? "Not disclosed"}
-            />
-          </div>
+          <Row
+            className="sm:col-span-2"
+            label="Description"
+            value={project.property.description ?? "Not disclosed"}
+          />
           <Row
             label="Known defects"
             value={project.property.defects ?? "Not disclosed"}

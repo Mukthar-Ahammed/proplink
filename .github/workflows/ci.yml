@@ -105,7 +105,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # Phase 7 Task 6: phone (Chromium), Firefox and WebKit smoke projects.
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run build
       - run: npm run test:e2e
         env:

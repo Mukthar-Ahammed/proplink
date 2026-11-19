@@ -243,11 +243,17 @@ export default function RegisterPage() {
           />
           <span>
             I agree to the{" "}
-            <Link href="/privacy" className="text-accent underline">
+            <Link
+              href="/privacy"
+              className="font-semibold text-primary underline hover:text-accent"
+            >
               privacy policy
             </Link>{" "}
             and{" "}
-            <Link href="/terms" className="text-accent underline">
+            <Link
+              href="/terms"
+              className="font-semibold text-primary underline hover:text-accent"
+            >
               terms of service
             </Link>
             .

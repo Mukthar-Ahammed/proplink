@@ -133,7 +133,7 @@ test("a LIVE listing renders gallery, distress chips, EPC badge, price, hidden a
   // Distress chips + EPC badge (AGENTS.md: EPC displayed on every listing).
   await expect(page.getByText("Probate sale", { exact: true })).toBeVisible();
   await expect(page.getByText("Renovation needed", { exact: true })).toBeVisible();
-  await expect(page.getByTestId("epc-badge")).toHaveText("E");
+  await expect(page.getByTestId("epc-badge")).toHaveText("EPC rating E");
 
   // Money is stored as integer pence, formatted at the display boundary.
   await expect(page.getByTestId("asking-price")).toHaveText("£185,000");

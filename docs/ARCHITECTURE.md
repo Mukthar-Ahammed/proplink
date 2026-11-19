@@ -1386,3 +1386,11 @@ of the boundary.
   rollback on a disposable database; `npm run test:perf`
   (`vitest.perf.config.ts`, `tests/perf/`) measures p95 and checks plans.
   See `docs/performance/`.
+
+- Quality gates (Task 6, ADR-067): Playwright projects `chromium` (all
+  specs), `mobile` (journeys and smoke), `firefox` and `webkit` (smoke).
+  `tests/e2e/journeys.spec.ts` walks every role's pages with heading, fit
+  and axe checks (`helpers/pageChecks.ts`); `helpers/accounts.ts` creates
+  sign-in-capable Landlord and Solicitor accounts; `visual.spec.ts` keeps
+  local screenshot baselines. Run against `APP_ORIGIN=http://localhost:3100
+npx next dev --port 3100`. `DataTable` is a focusable named region.

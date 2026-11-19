@@ -201,6 +201,7 @@ export default async function AdminUsersPage({
       </form>
 
       <DataTable
+        label="Users"
         rows={users}
         rowKey={(u) => u.id}
         emptyMessage="No matching users found in directory."

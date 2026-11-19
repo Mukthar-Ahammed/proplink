@@ -12,6 +12,13 @@ export async function login(
     window.localStorage.setItem("proplink-cookie-consent", "essential");
   });
   await page.context().clearCookies();
+  // The request-layer sign-in limit (5 per 15 minutes) is keyed on the client
+  // address. Locally every test shares one, so a full run tripped it. Each
+  // sign-in gets its own documentation-range address (RFC 5737); the limiter
+  // itself is covered by tests/unit/rate-limit-behaviour.test.ts.
+  await page.context().setExtraHTTPHeaders({
+    "x-forwarded-for": `198.51.100.${1 + Math.floor(Math.random() * 254)}`,
+  });
 
   const loginPath = audience === "ADMIN" ? "/admin/login" : "/login";
   await expect(async () => {

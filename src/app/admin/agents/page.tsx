@@ -115,6 +115,7 @@ export default async function AdminAgentsPage({
         </Link>
       </form>
       <DataTable
+        label="Agents"
         rows={result.agents}
         rowKey={(agent) => agent.id}
         emptyMessage="No AgentProfiles match these filters."

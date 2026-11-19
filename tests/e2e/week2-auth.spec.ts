@@ -1,8 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { hasDb } from "./helpers/db";
+import { loginAsAdmin } from "./helpers/adminSession";
+import { closeDb, hasDb } from "./helpers/db";
 import { login } from "./helpers/login";
 
 test.skip(!hasDb, "requires seeded Supabase Auth and business identities");
+test.afterAll(async () => {
+  await closeDb();
+});
 
 test("Supabase user session is established and logout expires it", async ({ page }) => {
   await login(page, "buyer@proplink.test", "Password123!");
@@ -18,9 +22,15 @@ test("Supabase user session is established and logout expires it", async ({ page
 test("Admin authentication is available only through the Admin surface", async ({
   page,
 }) => {
+  // A password alone is not enough for Admin: the second factor is asked for
+  // (ADR-030). The test then satisfies it the way loginAsAdmin does.
   await login(page, "admin@proplink.test", "Password123!", "ADMIN");
-  await expect(page).toHaveURL(/\/admin(?:\/|$)/);
+  await expect(page).toHaveURL(/\/mfa(?:\?|$)/);
 
-  await page.getByRole("button", { name: "Sign out" }).click();
+  await loginAsAdmin(page);
+  await expect(page).toHaveURL(/\/admin(?:\/|\?|$)/);
+
+  // The site header and the Admin header each offer "Sign out".
+  await page.getByRole("button", { name: "Sign out" }).first().click();
   await expect(page).toHaveURL("/");
 });

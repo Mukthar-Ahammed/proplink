@@ -13,6 +13,8 @@ export interface DataTableProps<T> {
   rowKey: (row: T) => string;
   emptyMessage?: string;
   className?: string;
+  /** Names the scrollable region for screen readers (default "Table"). */
+  label?: string;
 }
 
 export function DataTable<T>({
@@ -21,12 +23,21 @@ export function DataTable<T>({
   rowKey,
   emptyMessage = "No results",
   className,
+  label = "Table",
 }: DataTableProps<T>) {
   return (
     // `relative`: absolutely positioned descendants (sr-only labels) stay inside
     // the scroll box instead of widening the page on small screens (Phase 6).
+    // Focusable named region: on a phone the table scrolls sideways, and a
+    // keyboard user must be able to reach it (axe: scrollable-region-focusable).
     <div
-      className={cn("relative overflow-x-auto rounded-lg border border-line", className)}
+      role="region"
+      aria-label={label}
+      tabIndex={0}
+      className={cn(
+        "relative overflow-x-auto rounded-lg border border-line focus:outline-none focus-visible:ring-2 focus-visible:ring-accent",
+        className,
+      )}
     >
       <table className="w-full min-w-max text-left text-sm">
         <thead className="bg-surface text-xs uppercase tracking-wide text-muted">

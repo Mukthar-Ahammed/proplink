@@ -33,8 +33,8 @@ secret store, backups and restore on the real database, and every open
 | 3. Rate-limit and abuse        | Done (local); staging load test is H7.2                      | ADR-064         |
 | 4. Privacy and compliance      | Done (local); legal review is H7.4                           | ADR-065         |
 | 5. Resilience and performance  | Done (local); real backups and staging timings are H7.5/H7.2 | ADR-066         |
-| 6. Quality gates               | In progress                                                  |                 |
-| 7. Deployment readiness        | Not started                                                  |                 |
+| 6. Quality gates               | Done (local); real devices are owner checks                  | ADR-067         |
+| 7. Deployment readiness        | In progress                                                  |                 |
 | 8. Final documentation         | Not started                                                  |                 |
 
 ## Final exit gate (launch checklist)
@@ -164,3 +164,36 @@ CONFLICT DO NOTHING` (`createMany` with `skipDuplicates`): same
 
 **Not done here:** restoring the real database, uptime monitor, S3
 versioning (H7.5); network and realtime timings on staging (H7.2).
+
+## Task 6 — Quality gates (2026-11-19)
+
+**Delivered** (ADR-067)
+
+- Every journey on desktop and phone (`journeys.spec.ts`): Landlord, Agent,
+  Investor, Buyer, Solicitor (with second factor) and public pages; each
+  role's whole navigation loads, fits the screen and passes axe. Admin: four
+  widths (`admin-a5.spec.ts`).
+- Cross-browser smoke in Chromium, Firefox, WebKit and on a phone
+  (`smoke.spec.ts`), including the EPC on a listing page.
+- Visual regression: five key pages with local baselines (`visual.spec.ts`).
+- **Accessibility defects found and fixed:** the Admin Review Studio's
+  approve and reject windows had no dialog role and the rejection reason no
+  label, and its result was not announced; EPC badges were announced as a
+  bare letter ("C"); sideways-scrolling tables (Agent listings, Admin users
+  and agents) were not keyboard-reachable; contrast failures on the Investor
+  KYC pill over the dark header (phone), the dimmed "coming soon" cards and
+  the privacy and terms links on registration and invitations; an invalid
+  definition list on the Investor project page.
+- **Specs brought up to date** (they had drifted from the product, mostly
+  unnoticed because earlier phases ran only their own specs): four Admin
+  specs signed in without the second factor; the moderation spec used the
+  pre-A2 dialog; others expected old status labels, the old messages page,
+  the old landing CTAs, or reloaded before an action finished; one cleanup
+  deleted append-only audit rows and so left test listings behind (removed).
+- **Results:** Playwright 115 passed, 0 failed (97 desktop Chromium; 18 on
+  phone, Firefox and WebKit). Vitest 159 files and 1,884 tests passed in two
+  consecutive runs (one earlier run lost a worker once; not reproduced).
+  Typecheck clean; lint 0 errors (2 existing warnings for typed mock
+  parameters); production build passes.
+
+**Owner checks added:** real iPhone and Android, keyboard-only use.

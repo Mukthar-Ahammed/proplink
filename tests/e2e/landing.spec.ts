@@ -31,16 +31,17 @@ test.describe("landing page", () => {
       stats.getByTestId("metric-value").filter({ hasText: /^0$/ }),
     ).toHaveCount(0);
 
-    // The hero carries no links at all now (ADR-011 § Amendment). Registration
-    // is reached from the header's `Get started` and the page's closing CTA;
-    // `/marketplace` from the category tiles and the closing CTA.
-    // Scoped by landmark: `Get started` is deliberately in both places, so an
-    // unscoped locator is a strict-mode violation rather than a passing test.
+    // Registration is reached from the header, the hero and the closing CTA;
+    // the hero also offers "Browse listings". Scoped by landmark: `Get
+    // started` is deliberately in several places.
     await expect(
       page.getByRole("banner").getByRole("link", { name: "Get started" }),
     ).toBeVisible();
+    const mainCtas = page.getByRole("main").getByRole("link", { name: "Get started" });
+    await expect(mainCtas).toHaveCount(2);
+    await expect(mainCtas.first()).toBeVisible();
     await expect(
-      page.getByRole("main").getByRole("link", { name: "Get started" }),
+      page.getByRole("main").getByRole("link", { name: "Browse listings" }).first(),
     ).toBeVisible();
 
     // EOI compliance notice must be present

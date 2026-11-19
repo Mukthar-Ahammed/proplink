@@ -2,6 +2,7 @@ import { test, expect, type Page } from "@playwright/test";
 import { closeDb, hasDb, q } from "./helpers/db";
 import { runId } from "./helpers/runId";
 import { login } from "./helpers/login";
+import { loginAsAdmin } from "./helpers/adminSession";
 
 // Full-flow spec needs the live dev database (H1.2) — same convention as the
 // Sprint 1/2 specs (see week2-admin.spec.ts, agent-listing-wizard.spec.ts).
@@ -50,19 +51,24 @@ async function submitListingForReview(page: Page, title: string) {
   await page.getByRole("button", { name: "Submit for review" }).click();
 
   await page.waitForURL("**/agent/listings");
-  // Scoped: the "Draft saved" toast from the mid-flow Save Draft click (line
-  // above) can still be visible (4s auto-dismiss) when this one fires, which
-  // trips Playwright's strict-mode check on a bare getByRole("status").
-  await expect(
-    page.getByRole("status").filter({ hasText: "submitted for review" }),
-  ).toBeVisible();
+  // The "submitted for review" toast lasts 4 s and can be gone before a cold
+  // dev server renders the listings page; the saved status is what matters
+  // here (the toast itself is checked in agent-listing-wizard.spec.ts).
+  await expect
+    .poll(
+      async () =>
+        (
+          await q<{ status: string }>(`SELECT status FROM "Property" WHERE title = $1`, [
+            title,
+          ])
+        )[0]?.status,
+      { timeout: 30_000 },
+    )
+    .toBe("PENDING_REVIEW");
 }
 
 test.afterAll(async () => {
-  await q(
-    `DELETE FROM "AuditLog" WHERE entity = 'Property' AND "entityId" IN (SELECT id FROM "Property" WHERE title LIKE $1)`,
-    [`${RUN}%`],
-  );
+  // The audit log is append-only (Phase 0), so its rows stay; the listings go.
   await q(`DELETE FROM "Property" WHERE title LIKE $1`, [`${RUN}%`]);
   await closeDb();
 });
@@ -71,18 +77,20 @@ test("admin approves a pending listing to LIVE", async ({ page }) => {
   const title = `${RUN} — approve — Three-bed semi needing full refurbishment`;
   await submitListingForReview(page, title);
 
-  await login(page, "admin@proplink.test", "Password123!", "ADMIN");
+  await loginAsAdmin(page);
   await page.goto("/admin/moderation");
 
   const row = page.locator("tr", { hasText: title });
   await expect(row).toBeVisible();
-  await row.getByRole("button", { name: "Review" }).click();
-
+  // Admin A2: each row opens the listing's Review Studio.
+  await row.getByRole("link", { name: /Review Studio/ }).click();
+  await page.getByRole("button", { name: /Approve Listing/ }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Approve" }).click();
-  await expect(page.getByRole("status")).toContainText("approved");
+  await page.getByRole("button", { name: "Confirm & Publish LIVE" }).click();
+  await expect(page.getByTestId("moderation-feedback")).toContainText("APPROVED");
 
   // Approved listing drops out of the PENDING_REVIEW queue.
+  await page.goto("/admin/moderation");
   await expect(page.locator("tr", { hasText: title })).toHaveCount(0);
 
   const [property] = await q<{ status: string; publishedAt: string | null }>(
@@ -109,21 +117,21 @@ test("admin rejects a pending listing with a reason", async ({ page }) => {
   const title = `${RUN} — reject — Three-bed semi needing full refurbishment`;
   await submitListingForReview(page, title);
 
-  await login(page, "admin@proplink.test", "Password123!", "ADMIN");
+  await loginAsAdmin(page);
   await page.goto("/admin/moderation");
 
   const row = page.locator("tr", { hasText: title });
   await expect(row).toBeVisible();
-  await row.getByRole("button", { name: "Review" }).click();
-
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page
-    .getByLabel("Rejection reason (required)")
-    .fill("Missing EPC certificate detail");
-  await page.getByRole("button", { name: "Reject" }).click();
-  await expect(page.getByRole("status")).toContainText("rejected");
+  await row.getByRole("link", { name: /Review Studio/ }).click();
+  await page.getByRole("button", { name: /Reject Listing/ }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog).toBeVisible();
+  await dialog.getByLabel(/Rejection Reason/i).fill("Missing EPC certificate detail");
+  await dialog.getByRole("button", { name: "Confirm Rejection" }).click();
+  await expect(page.getByTestId("moderation-feedback")).toContainText("REJECTED");
 
   // Rejected listing drops out of the PENDING_REVIEW queue too.
+  await page.goto("/admin/moderation");
   await expect(page.locator("tr", { hasText: title })).toHaveCount(0);
 
   const [property] = await q<{ status: string; rejectionReason: string | null }>(

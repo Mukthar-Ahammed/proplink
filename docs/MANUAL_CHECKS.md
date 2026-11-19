@@ -305,3 +305,12 @@ Each phase adds its section here when its build is complete.
       shows `"status":"ok"` and nothing else about the system. At Admin →
       KPIs & System the "Emails and alerts" and "Webhooks received" panels
       show counts; a failed email shows in red.
+- [ ] **Real phone and Safari.** On an iPhone (Safari) and an Android phone
+      (Chrome): sign in as `buyer@`, search, open a listing, save it; as
+      `investor@`, open a project. Nothing needs sideways scrolling and the
+      KYC pill in the dark header is readable. (Automated: Pixel 7 size and
+      the WebKit engine, not a real device.)
+- [ ] **Keyboard only.** Without a mouse, sign in, use search filters, open
+      a listing, and as an Admin approve a listing in the Review Studio: focus
+      is always visible, the approve and reject windows can be completed and
+      closed, and wide tables can be scrolled after tabbing to them.

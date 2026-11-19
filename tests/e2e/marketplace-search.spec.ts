@@ -72,7 +72,7 @@ test("the EPC filter narrows to the selected bands only", async ({ page }) => {
   const count = await cards(page).count();
   expect(count).toBeGreaterThan(0);
   for (let i = 0; i < count; i++) {
-    await expect(cards(page).nth(i).getByTestId("epc-badge")).toHaveText("A");
+    await expect(cards(page).nth(i).getByTestId("epc-badge")).toHaveText("EPC rating A");
   }
 });
 
@@ -151,6 +151,8 @@ test("a shared URL restores both the filters and the results", async ({ page }) 
   await expect(page).toHaveURL(/q=probate/);
   await expect(page).toHaveURL(/tags=PROBATE/);
   await expect(page).toHaveURL(/sort=price/);
+  // The URL rewrite can trigger one more fetch; let it finish too.
+  await settled(page);
 
   const sharedUrl = page.url();
 

@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { closeDb, hasDb, q } from "./helpers/db";
 import { login } from "./helpers/login";
+import { loginAsAdmin } from "./helpers/adminSession";
 
 /**
  * Phase 1 Task 5 (ADR-025, Q2): Admin emails a pre-invite Agent, the Agent
@@ -38,10 +39,10 @@ test("existing Agent is notified, confirms, and is authorised by Admin", async (
 
   const adminContext = await browser.newContext();
   const admin = await adminContext.newPage();
-  await login(admin, "admin@proplink.test", "Password123!", "ADMIN");
+  await loginAsAdmin(admin);
   await admin.goto("/admin/agents/migration");
   const row = admin.getByTestId(`migration-row-${profileId}`);
-  await expect(row).toContainText("NOT_NOTIFIED");
+  await expect(row).toContainText("NOT NOTIFIED");
   await admin.getByRole("button", { name: "Email selected agents" }).click();
   await expect(admin.getByRole("status").filter({ hasText: "Emailed" })).toBeVisible();
   await admin.reload();
@@ -58,6 +59,19 @@ test("existing Agent is notified, confirms, and is authorised by Admin", async (
   await admin.reload();
   await expect(row).toContainText("CONFIRMED");
   await row.getByRole("button", { name: /^Authorise / }).click();
+  // Wait for the authorisation to land before reloading.
+  await expect
+    .poll(
+      async () =>
+        (
+          await q<{ status: string }>(
+            `SELECT status FROM public.agent_migrations WHERE "profileId" = $1`,
+            [profileId],
+          )
+        )[0]?.status,
+      { timeout: 30_000 },
+    )
+    .toBe("AUTHORISED");
   await admin.reload();
   await expect(row).toContainText("AUTHORISED");
   await adminContext.close();

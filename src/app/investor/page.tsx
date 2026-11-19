@@ -229,7 +229,7 @@ export default async function InvestorPage() {
               </Link>
             </div>
 
-            <div className="rounded-2xl border border-line bg-white p-5 opacity-80">
+            <div className="rounded-2xl border border-dashed border-line bg-white p-5">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                 Renovation Tracking
               </span>
@@ -239,7 +239,7 @@ export default async function InvestorPage() {
               </p>
             </div>
 
-            <div className="rounded-2xl border border-line bg-white p-5 opacity-80">
+            <div className="rounded-2xl border border-dashed border-line bg-white p-5">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted">
                 Resale Exit
               </span>

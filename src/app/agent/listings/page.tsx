@@ -36,6 +36,7 @@ export default async function AgentListingsPage() {
       </div>
 
       <DataTable
+        label="Your listings"
         rows={listings}
         rowKey={(p) => p.id}
         emptyMessage="No listings yet — create your first one."

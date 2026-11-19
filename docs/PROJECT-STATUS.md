@@ -38,8 +38,10 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
   legal holds, retention job and compliance drafts in `docs/compliance/`
   (ADR-065). Task 5 done locally: rollback rehearsal of all 45 roadmap
   migrations, restore drill, `/api/health`, delivery and webhook panels, p95
-  measured (ADR-066). Pen test, staging scans, legal review and real backups
-  are H7.1-H7.5.
+  measured (ADR-066). Task 6 done: every journey on desktop and phone,
+  cross-browser smoke, visual baselines, accessibility fixes; 115 browser
+  tests and 1,884 unit/database tests passing (ADR-067). Pen test, staging
+  scans, legal review and real backups are H7.1-H7.5.
 - **Phase 6 built** (2026-11-19) on `phase-6-admin-ads`: Admin permissions with
   maker-checker (ADR-058), cases and disputes with two-person GDPR exports
   (ADR-059), advertising in designated slots (ADR-060), KPIs, integrations
