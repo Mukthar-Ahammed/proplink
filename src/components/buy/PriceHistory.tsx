@@ -45,7 +45,7 @@ export function PriceHistory({ data }: { data: ComparableSummary }) {
       {data.isSample ? (
         <p
           data-testid="comparables-sample-notice"
-          className="mt-2 rounded-lg bg-warning/10 px-4 py-3 text-sm text-warning"
+          className="mt-2 rounded-xl bg-warning/10 px-4 py-3 text-sm text-warning"
         >
           <strong>Sample data.</strong> These figures are illustrative and are not HM Land
           Registry records. Do not rely on them for a valuation — the real Price Paid feed

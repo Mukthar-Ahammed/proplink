@@ -1,26 +1,31 @@
 import type { Metadata } from "next";
-import { Figtree } from "next/font/google";
+import { Figtree, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 import { ChromeGate } from "@/components/layout/ChromeGate";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { CookieBanner } from "@/components/layout/CookieBanner";
+import { DemoBanner } from "@/components/layout/DemoBanner";
 import { ToastProvider } from "@/components/ui/toast";
 import { SITE_URL } from "@/lib/siteUrl";
 
 /**
- * The single typeface (ADR-012). One variable family covers the whole product —
- * `--font-sans` for every UI surface and `--font-display` for marketing
- * headlines both resolve to it, and the weight axis is what separates them.
- *
- * It replaced Inter (product) plus Playfair Display (marketing display), so
- * one font file ships where two used to. `weight` is deliberately omitted:
- * Figtree is variable, and the whole 300–900 axis is what the display headings
- * use in place of the roman/italic pairing ADR-006 built.
+ * Typography (ADR-071). Figtree carries every UI surface and headline; the
+ * italic Instrument Serif is the editorial accent — one or two words inside a
+ * headline (`font-serif italic`), never body or UI text. Figtree is variable,
+ * so `weight` is omitted; Instrument Serif ships a single 400 weight.
  */
 const figtree = Figtree({
   variable: "--font-figtree",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -43,9 +48,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en-GB" className={`${figtree.variable} h-full antialiased`}>
+    <html
+      lang="en-GB"
+      className={`${figtree.variable} ${instrumentSerif.variable} h-full antialiased`}
+    >
       <body className="flex min-h-full flex-col">
         <ToastProvider>
+          {/* ADR-076: the hosted demo's banner shows on every page. */}
+          <DemoBanner />
           {/* The `(auth)` routes carry their own full-bleed shell and suppress
               the global chrome — see `<ChromeGate>`. The cookie banner is not
               gated: consent has to be offered on every page. */}

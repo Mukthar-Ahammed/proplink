@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { PropertyStatus } from "@/generated/prisma/enums";
@@ -58,7 +59,8 @@ export function ListingReviewStudioClient({
 
       setActionFeedback({
         type: "success",
-        message: "Listing APPROVED! Property status updated to LIVE on public marketplace.",
+        message:
+          "Listing APPROVED! Property status updated to LIVE on public marketplace.",
       });
       setShowApproveModal(false);
       await refreshListing();
@@ -131,13 +133,20 @@ export function ListingReviewStudioClient({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-primary">Agent Listing Moderation Studio</h1>
+            <h1 className="text-xl font-bold text-primary">
+              Agent Listing Moderation Studio
+            </h1>
             <span className="text-xs font-semibold px-2 py-0.5 rounded bg-surface border border-line text-muted uppercase">
               Source: {listing.listingSource}
             </span>
           </div>
           <p className="text-xs text-muted mt-1">
-            Agent: <strong className="text-primary">{listing.agentProfile?.user.name ?? "Unknown"}</strong> ({listing.agentProfile?.agencyName ?? "Independent"}) — ID: <code className="text-xs">{listing.id}</code>
+            Agent:{" "}
+            <strong className="text-primary">
+              {listing.agentProfile?.user.name ?? "Unknown"}
+            </strong>{" "}
+            ({listing.agentProfile?.agencyName ?? "Independent"}) — ID:{" "}
+            <code className="text-xs">{listing.id}</code>
           </p>
         </div>
 
@@ -145,7 +154,7 @@ export function ListingReviewStudioClient({
           <StatusBadge status={listing.status} />
           <Link
             href="/admin/moderation"
-            className="px-3 py-1.5 text-xs font-semibold rounded-md border border-line bg-white hover:bg-surface text-secondary transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-line bg-white hover:bg-surface text-secondary transition-colors"
           >
             ← Back to Queue
           </Link>
@@ -155,12 +164,14 @@ export function ListingReviewStudioClient({
       {/* Feedback Banner */}
       {actionFeedback && (
         <div
+          role={actionFeedback.type === "error" ? "alert" : "status"}
+          data-testid="moderation-feedback"
           className={`p-4 rounded-lg text-sm border font-medium ${
             actionFeedback.type === "success"
               ? "bg-success/10 border-success/30 text-success"
               : actionFeedback.type === "warning"
-              ? "bg-warning/10 border-warning/30 text-warning"
-              : "bg-danger/10 border-danger/30 text-danger"
+                ? "bg-warning/10 border-warning/30 text-warning"
+                : "bg-danger/10 border-danger/30 text-danger"
           }`}
         >
           {actionFeedback.message}
@@ -177,12 +188,14 @@ export function ListingReviewStudioClient({
             </h2>
 
             {/* Main Image Viewer */}
-            <div className="min-h-[360px] bg-gray-900 rounded-lg border border-line flex items-center justify-center overflow-hidden relative">
+            <div className="min-h-[360px] bg-primary rounded-2xl border border-line flex items-center justify-center overflow-hidden relative">
               {currentImage ? (
-                /* eslint-disable-next-html-element-suppress */
-                <img
+                <Image
                   src={currentImage}
                   alt={`Listing image ${selectedImageIndex + 1}`}
+                  width={760}
+                  height={380}
+                  unoptimized
                   className="max-w-full max-h-[380px] object-contain rounded"
                 />
               ) : (
@@ -198,11 +211,19 @@ export function ListingReviewStudioClient({
                     key={img.url}
                     onClick={() => setSelectedImageIndex(idx)}
                     className={`h-16 w-20 rounded-lg overflow-hidden border-2 transition-all ${
-                      selectedImageIndex === idx ? "border-accent shadow-xs" : "border-transparent opacity-70 hover:opacity-100"
+                      selectedImageIndex === idx
+                        ? "border-accent shadow-xs"
+                        : "border-transparent opacity-70 hover:opacity-100"
                     }`}
                   >
-                    {/* eslint-disable-next-html-element-suppress */}
-                    <img src={img.url} alt={`Thumbnail ${idx + 1}`} className="w-full h-full object-cover" />
+                    <Image
+                      src={img.url}
+                      alt={`Thumbnail ${idx + 1}`}
+                      width={80}
+                      height={64}
+                      unoptimized
+                      className="w-full h-full object-cover"
+                    />
                   </button>
                 ))}
               </div>
@@ -217,7 +238,12 @@ export function ListingReviewStudioClient({
                 <div className="p-2.5 bg-surface rounded border border-line flex items-center justify-between">
                   <span>EPC Certificate:</span>
                   {listing.epcCertUrl ? (
-                    <a href={listing.epcCertUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline font-semibold">
+                    <a
+                      href={listing.epcCertUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-accent hover:underline font-semibold"
+                    >
                       View Document ↗
                     </a>
                   ) : (
@@ -227,7 +253,12 @@ export function ListingReviewStudioClient({
                 <div className="p-2.5 bg-surface rounded border border-line flex items-center justify-between">
                   <span>Floor Plan:</span>
                   {listing.floorPlanUrl ? (
-                    <a href={listing.floorPlanUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline font-semibold">
+                    <a
+                      href={listing.floorPlanUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-accent hover:underline font-semibold"
+                    >
                       View Document ↗
                     </a>
                   ) : (
@@ -236,7 +267,9 @@ export function ListingReviewStudioClient({
                 </div>
               </div>
               <p className="text-[10px] text-muted italic">
-                Note: All certificates and floor plans above are agent-supplied supporting evidence and have not been independently verified with external registries.
+                Note: All certificates and floor plans above are agent-supplied supporting
+                evidence and have not been independently verified with external
+                registries.
               </p>
             </div>
           </div>
@@ -252,32 +285,49 @@ export function ListingReviewStudioClient({
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Asking Price</span>
-                <span className="font-extrabold text-primary text-sm">{formatPenceGBP(listing.askingPriceGBP)}</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Asking Price
+                </span>
+                <span className="font-extrabold text-primary text-sm">
+                  {formatPenceGBP(listing.askingPriceGBP)}
+                </span>
               </div>
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Property Type</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Property Type
+                </span>
                 <span className="font-bold text-primary">{listing.propertyType}</span>
               </div>
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Bedrooms</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Bedrooms
+                </span>
                 <span className="font-bold text-primary">{listing.bedrooms} Beds</span>
               </div>
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Target ROI</span>
-                <span className="font-bold text-accent">{listing.targetRoiPct != null ? `${listing.targetRoiPct}%` : "—"}</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Target ROI
+                </span>
+                <span className="font-bold text-accent">
+                  {listing.targetRoiPct != null ? `${listing.targetRoiPct}%` : "—"}
+                </span>
               </div>
             </div>
 
             <div className="bg-surface p-2.5 rounded border border-line text-xs">
-              <span className="text-[10px] text-muted font-bold uppercase block">Full Address</span>
+              <span className="text-[10px] text-muted font-bold uppercase block">
+                Full Address
+              </span>
               <span className="font-medium text-primary">
-                {listing.addressLine1}, {listing.city}, {listing.region}, {listing.postcode}
+                {listing.addressLine1}, {listing.city}, {listing.region},{" "}
+                {listing.postcode}
               </span>
             </div>
 
             <div>
-              <span className="text-[10px] text-muted font-bold uppercase block mb-1">Description</span>
+              <span className="text-[10px] text-muted font-bold uppercase block mb-1">
+                Description
+              </span>
               <div className="p-3 bg-surface border border-line rounded-lg text-xs text-secondary leading-relaxed whitespace-pre-wrap">
                 {listing.description}
               </div>
@@ -290,9 +340,24 @@ export function ListingReviewStudioClient({
               Agent & Agency Context
             </h2>
             <div className="text-xs space-y-1 text-secondary">
-              <div>Agent Name: <strong className="text-primary">{listing.agentProfile?.user.name ?? "Platform"}</strong></div>
-              <div>Agent Email: <strong className="text-primary">{listing.agentProfile?.user.email ?? "—"}</strong></div>
-              <div>Agency Name: <strong className="text-accent">{listing.agentProfile?.agencyName ?? "Independent"}</strong></div>
+              <div>
+                Agent Name:{" "}
+                <strong className="text-primary">
+                  {listing.agentProfile?.user.name ?? "Platform"}
+                </strong>
+              </div>
+              <div>
+                Agent Email:{" "}
+                <strong className="text-primary">
+                  {listing.agentProfile?.user.email ?? "—"}
+                </strong>
+              </div>
+              <div>
+                Agency Name:{" "}
+                <strong className="text-accent">
+                  {listing.agentProfile?.agencyName ?? "Independent"}
+                </strong>
+              </div>
             </div>
           </div>
 
@@ -316,12 +381,14 @@ export function ListingReviewStudioClient({
               </div>
             ) : isSelfAgent ? (
               <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning font-semibold">
-                ⚠️ Anti-Self Approval Policy: You cannot approve or reject a listing created by your own Agent account. Decision controls are disabled.
+                ⚠️ Anti-Self Approval Policy: You cannot approve or reject a listing
+                created by your own Agent account. Decision controls are disabled.
               </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-xs text-muted">
-                  Review the property details, asking price, and supplied media. Approving will publish the property LIVE onto the public deal marketplace.
+                  Review the property details, asking price, and supplied media. Approving
+                  will publish the property LIVE onto the public deal marketplace.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -347,19 +414,29 @@ export function ListingReviewStudioClient({
       {/* ── APPROVAL CONFIRMATION MODAL ─────────────────────────────────────── */}
       {showApproveModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-line">
-            <h3 className="text-base font-bold text-primary">Confirm Listing Approval</h3>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="approve-listing-title"
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-line"
+          >
+            <h3 id="approve-listing-title" className="text-base font-bold text-primary">
+              Confirm Listing Approval
+            </h3>
             <p className="text-xs text-muted leading-relaxed">
-              Are you sure you want to approve property <strong className="text-primary">{listing.title}</strong>?
+              Are you sure you want to approve property{" "}
+              <strong className="text-primary">{listing.title}</strong>?
               <br />
-              This listing will transition to <strong className="text-success">LIVE</strong> and become immediately discoverable on the public PropLink marketplace.
+              This listing will transition to{" "}
+              <strong className="text-success">LIVE</strong> and become immediately
+              discoverable on the public PropLink marketplace.
             </p>
 
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowApproveModal(false)}
                 disabled={actionProcessing}
-                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-gray-100 text-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-surface text-secondary rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -378,15 +455,27 @@ export function ListingReviewStudioClient({
       {/* ── REJECTION MODAL ─────────────────────────────────────────────────── */}
       {showRejectModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-line">
-            <h3 className="text-base font-bold text-danger">Reject Listing</h3>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reject-listing-title"
+            className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 space-y-4 border border-line"
+          >
+            <h3 id="reject-listing-title" className="text-base font-bold text-danger">
+              Reject Listing
+            </h3>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-primary mb-1 uppercase text-[10px]">
-                  Agent-Visible Rejection Reason <span className="text-danger">* (Required)</span>
+                <label
+                  htmlFor="rejection-reason"
+                  className="block font-bold text-primary mb-1 uppercase text-[10px]"
+                >
+                  Agent-Visible Rejection Reason{" "}
+                  <span className="text-danger">* (Required)</span>
                 </label>
                 <textarea
+                  id="rejection-reason"
                   rows={3}
                   placeholder="Provide feedback explaining why the listing was rejected (e.g. Inaccurate asking price, missing EPC certificate)..."
                   value={rejectionReason}
@@ -400,7 +489,7 @@ export function ListingReviewStudioClient({
               <button
                 onClick={() => setShowRejectModal(false)}
                 disabled={actionProcessing}
-                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-gray-100 text-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-surface text-secondary rounded-lg transition-colors"
               >
                 Cancel
               </button>

@@ -24,6 +24,18 @@ describe("GoogleStaticMapService", () => {
     expect(url.searchParams.get("markers")).toBeNull();
   });
 
+  it("builds an outdoor Street View URL that 404s when there is no imagery", () => {
+    const url = new URL(service.getStreetViewImageUrl(COORDS));
+    expect(url.origin + url.pathname).toBe(
+      "https://maps.googleapis.com/maps/api/streetview",
+    );
+    expect(url.searchParams.get("location")).toBe("53.4808,-2.2426");
+    expect(url.searchParams.get("size")).toBe("640x320");
+    expect(url.searchParams.get("source")).toBe("outdoor");
+    expect(url.searchParams.get("return_error_code")).toBe("true");
+    expect(url.searchParams.get("key")).toBe("test-key");
+  });
+
   it("respects custom width/height/zoom", () => {
     const url = new URL(
       service.getMapImageUrl({ ...COORDS, width: 800, height: 400, zoom: 17 }),

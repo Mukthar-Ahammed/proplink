@@ -4,6 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 
 import { config } from "dotenv";
 import pg from "pg";
+import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 config({ path: ".env.local", quiet: true });
 config({ quiet: true });
@@ -23,6 +24,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 if (!connectionString || !supabaseUrl) {
   throw new Error("DIRECT_URL/DATABASE_URL and NEXT_PUBLIC_SUPABASE_URL are required");
 }
+assertConfiguredSupabaseProject({
+  ...process.env,
+  DIRECT_URL: connectionString,
+});
 
 const apiUrl = new URL(supabaseUrl);
 const databaseUrl = new URL(connectionString);
@@ -37,7 +42,9 @@ const databaseRef = username.startsWith("postgres.")
     : null;
 
 if (!apiRef || !databaseRef || apiRef !== databaseRef) {
-  throw new Error("Staging preflight failed: Supabase API and database project refs differ");
+  throw new Error(
+    "Staging preflight failed: Supabase API and database project refs differ",
+  );
 }
 console.log("staging_project_match=PASS");
 
@@ -100,7 +107,8 @@ async function validateStructure() {
   );
   result(
     "public_property_active_agent_boundary",
-    propertyFunction.includes("ap.active") && propertyFunction.includes("agent_user.active"),
+    propertyFunction.includes("ap.active") &&
+      propertyFunction.includes("agent_user.active"),
   );
 
   const enquiryPolicy = String(
@@ -170,7 +178,13 @@ async function validateStructure() {
   result("profile_security_columns_no_client_grants", protectedProfileUpdateGrants === 0);
 }
 
-async function setIdentity(authId, legacyId, role, investorType = null, kycStatus = "NOT_STARTED") {
+async function setIdentity(
+  authId,
+  legacyId,
+  role,
+  investorType = null,
+  kycStatus = "NOT_STARTED",
+) {
   await client.query(
     `UPDATE public."User"
      SET role = $2::public."Role", "kycStatus" = $3::public."KycStatus", active = true
@@ -209,7 +223,9 @@ async function expectDenied(label, role, authId, sql, params = []) {
   try {
     await client.query(`SET LOCAL ROLE ${role}`);
     if (authId) {
-      await client.query("SELECT set_config('request.jwt.claim.sub', $1, true)", [authId]);
+      await client.query("SELECT set_config('request.jwt.claim.sub', $1, true)", [
+        authId,
+      ]);
     } else {
       await client.query("SELECT set_config('request.jwt.claim.sub', '', true)");
     }
@@ -335,14 +351,12 @@ async function validateDirectRls() {
       [propertyA],
       1,
     );
-    await client.query(
-      `UPDATE public."User" SET active = false WHERE id = $1`,
-      [identityA.legacy_id],
-    );
-    await client.query(
-      `UPDATE public.profiles SET active = false WHERE id = $1::uuid`,
-      [identityA.auth_id],
-    );
+    await client.query(`UPDATE public."User" SET active = false WHERE id = $1`, [
+      identityA.legacy_id,
+    ]);
+    await client.query(`UPDATE public.profiles SET active = false WHERE id = $1::uuid`, [
+      identityA.auth_id,
+    ]);
     await expectRowCount(
       "anon_inactive_agent_property_hidden",
       "anon",
@@ -521,7 +535,11 @@ try {
         `validator_pid=${row.pid} state=${row.state} wait_type=${row.wait_event_type ?? "none"} wait=${row.wait_event ?? "none"} blockers=${row.blockers.join(",") || "none"}`,
       );
     }
-    result("validator_activity_found", activity.rowCount > 0, `count=${activity.rowCount}`);
+    result(
+      "validator_activity_found",
+      activity.rowCount > 0,
+      `count=${activity.rowCount}`,
+    );
   } else if (mode === "apply") {
     const alreadyRecorded = Boolean(
       await scalar(

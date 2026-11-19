@@ -15,7 +15,7 @@ intelligence and an ecosystem marketplace.
 npm install                # also runs prisma generate
 cp .env.example .env.local # fill in what you have (see docs/HUMAN_TASKS.md)
 npm run db:migrate         # needs DIRECT_URL (Supabase)
-npm run db:seed            # 4 users (one per role, password: Password123!)
+npm run db:seed            # seed users incl. admin, agent, investor, buyer, landlord@proplink.test (password: Password123!)
 npm run dev                # http://localhost:3000
 ```
 
@@ -30,6 +30,6 @@ npm run test:e2e   # playwright (run `npm run build` first, or have `npm run dev
 ## Stack
 
 Next.js 16 (App Router, strict TS) · Tailwind v4 · Prisma 7 + PostgreSQL/PostGIS
-(Supabase) · Auth.js v5 · Upstash Redis · S3/CloudFront · Anthropic API · Google
+(Supabase) · Supabase Auth · Upstash Redis · S3/CloudFront · Anthropic API · Google
 Maps Routes API · Sumsub · Stripe · Pusher · Resend · Vercel. Full rationale:
 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

@@ -8,18 +8,26 @@ export interface AdminShellProps {
   children: React.ReactNode;
   userName?: string;
   userEmail?: string;
+  /** Phase 6: the Admin's permissions, used to hide links (ADR-058). */
+  permissions?: string[];
 }
 
-export function AdminShell({ children, userName, userEmail }: AdminShellProps) {
+export function AdminShell({
+  children,
+  userName,
+  userEmail,
+  permissions,
+}: AdminShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-surface/50 text-body flex flex-col font-sans">
+    <div className="min-h-screen bg-surface text-body flex flex-col font-sans">
       <div className="flex flex-1">
         {/* Sidebar */}
         <AdminSidebar
           mobileOpen={mobileOpen}
           onCloseMobile={() => setMobileOpen(false)}
+          permissions={permissions}
         />
 
         {/* Main Content Area */}

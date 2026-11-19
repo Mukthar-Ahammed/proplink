@@ -7,7 +7,12 @@ import {
 import { listActiveAgentProfiles } from "@/services/listings/listingService";
 import { getAgentProfileAnalytics } from "@/services/listings/analytics";
 import { listEnquiriesForAgentProfile } from "@/services/enquiries/enquiryService";
-import { Card, CardBody, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/cn";
+import {
+  InvestorEmpty,
+  InvestorSectionTitle,
+  PrimaryLink,
+} from "@/components/investor/InvestorUi";
 import { LeadsTable, type LeadRow } from "@/components/agents/LeadsTable";
 
 export const metadata = { title: "Agent — Leads" };
@@ -30,9 +35,12 @@ export default async function AgentLeadsPage() {
 
   if (!activeId) {
     return (
-      <p className="text-sm text-muted">
-        You don&apos;t have an agency profile yet — contact an admin.
-      </p>
+      <InvestorEmpty
+        title="No agency profile yet"
+        action={<PrimaryLink href="/agent/profile">Set up agency profile</PrimaryLink>}
+      >
+        Leads arrive per agency profile. Set yours up first; it takes a minute.
+      </InvestorEmpty>
     );
   }
 
@@ -64,24 +72,43 @@ export default async function AgentLeadsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-        {stats.map((s) => (
-          <Card key={s.key}>
-            <CardTitle>{s.label}</CardTitle>
-            <CardBody>
-              <p
-                className="text-2xl font-bold text-primary"
+    <div className="space-y-12">
+      <section className="space-y-5">
+        <InvestorSectionTitle
+          title="Agency"
+          tail="analytics"
+          description="Figures for the agency profile selected in the navigation."
+        />
+        {/* Hairlines come from the 1px gaps showing the `line` background. */}
+        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-3xl border border-line bg-line shadow-sm sm:grid-cols-5">
+          {stats.map((s, index) => (
+            <div
+              key={s.key}
+              className={cn(
+                "bg-white p-5 sm:p-6",
+                index === stats.length - 1 && "col-span-2 sm:col-span-1",
+              )}
+            >
+              <dt className="text-sm font-medium text-muted">{s.label}</dt>
+              <dd
+                className="font-display mt-2 text-3xl font-semibold tracking-[-0.02em] text-primary tabular-nums"
                 data-testid={`analytics-${s.key}`}
               >
                 {s.value}
-              </p>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
+              </dd>
+            </div>
+          ))}
+        </dl>
+      </section>
 
-      <LeadsTable leads={leads} />
+      <section className="space-y-5">
+        <InvestorSectionTitle
+          title="Buyer"
+          tail="enquiries"
+          description="Mark each lead as you work it; the status saves straight away."
+        />
+        <LeadsTable leads={leads} />
+      </section>
     </div>
   );
 }

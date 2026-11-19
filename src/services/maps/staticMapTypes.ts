@@ -22,4 +22,12 @@ export interface StaticMapParams {
 export interface StaticMapService {
   getMapImageUrl(params: StaticMapParams): string;
   getSatelliteImageUrl(params: StaticMapParams): string;
+  /**
+   * Street-level photo facing the property (Google Street View Static API on
+   * the same browser key). The real URL asks Google for an HTTP 404 when no
+   * imagery exists (`return_error_code=true`), so the page can show its own
+   * "no Street View here" state instead of Google's grey placeholder tile, with
+   * no server-side metadata call. `zoom` is ignored.
+   */
+  getStreetViewImageUrl(params: StaticMapParams): string;
 }

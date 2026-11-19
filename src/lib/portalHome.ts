@@ -12,6 +12,10 @@ export const PORTAL_HOME: Record<Role, string> = {
   INVESTOR: "/investor",
   BUYER: "/buy",
   ADMIN: "/admin",
+  // Portals ship in later phases (ADR-021): Landlord 2, Solicitor 4, Advertiser 6.
+  LANDLORD: "/landlord",
+  SOLICITOR: "/solicitor",
+  ADVERTISER: "/account-pending",
 };
 
 /** Human label for the same, for the header link. */
@@ -20,4 +24,7 @@ export const PORTAL_LABEL: Record<Role, string> = {
   INVESTOR: "Investor portal",
   BUYER: "Buyer portal",
   ADMIN: "Admin",
+  LANDLORD: "Landlord portal",
+  SOLICITOR: "Solicitor portal",
+  ADVERTISER: "My account",
 };

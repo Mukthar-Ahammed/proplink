@@ -11,6 +11,11 @@ export async function createClient() {
   const { url, publishableKey } = getSupabasePublicEnv();
 
   return createServerClient(url, publishableKey, {
+    cookieOptions: {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    },
     cookies: {
       getAll() {
         return cookieStore.getAll();

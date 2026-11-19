@@ -57,6 +57,23 @@ describe("PostgresSearchService.search", () => {
     });
   });
 
+  it("does not return ROI values while the financial promotions review is off", async () => {
+    mockQueries([rawRow()], 1);
+
+    const result = await service.search({});
+
+    expect(result.items[0].targetRoiPct).toBeNull();
+  });
+
+  it("preserves ROI values when explicitly enabled after review", async () => {
+    mockQueries([rawRow()], 1);
+
+    const reviewedService = new PostgresSearchService(true);
+    const result = await reviewedService.search({});
+
+    expect(result.items[0].targetRoiPct).toBe(8);
+  });
+
   it("returns an empty result set without throwing", async () => {
     mockQueries([], 0);
 

@@ -35,7 +35,7 @@ export function SearchPagination({
         <Link
           href={href(page - 1)}
           rel="prev"
-          className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-secondary hover:border-accent"
+          className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-secondary transition-colors hover:border-accent hover:text-accent"
         >
           ← Previous
         </Link>
@@ -51,7 +51,7 @@ export function SearchPagination({
         <Link
           href={href(page + 1)}
           rel="next"
-          className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-secondary hover:border-accent"
+          className="rounded-full border border-line px-5 py-2.5 text-sm font-semibold text-secondary transition-colors hover:border-accent hover:text-accent"
         >
           Next →
         </Link>

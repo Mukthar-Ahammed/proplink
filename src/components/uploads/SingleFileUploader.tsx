@@ -143,7 +143,7 @@ export function SingleFileUploader({
             onClick={() => inputRef.current?.click()}
             disabled={status === "uploading"}
             className={cn(
-              "rounded-md border border-line bg-white px-3 py-1.5 text-sm font-medium text-secondary hover:border-accent disabled:cursor-not-allowed disabled:opacity-50",
+              "rounded-xl border border-line bg-white px-3 py-1.5 text-sm font-medium text-secondary hover:border-accent disabled:cursor-not-allowed disabled:opacity-50",
             )}
           >
             {status === "uploading" ? "Uploading…" : "Upload file"}

@@ -27,11 +27,3 @@ export const updateCaseStudySchema = caseStudyFieldsSchema.partial();
 
 export type CreateCaseStudyInput = z.infer<typeof createCaseStudySchema>;
 export type UpdateCaseStudyInput = z.infer<typeof updateCaseStudySchema>;
-
-/** `Appraisal.rating` is "1..5, checked in service layer" per the schema comment. */
-export const createAppraisalSchema = z.object({
-  rating: z.number().int().min(1).max(5),
-  review: z.string().trim().min(10).max(2000),
-});
-
-export type CreateAppraisalInput = z.infer<typeof createAppraisalSchema>;

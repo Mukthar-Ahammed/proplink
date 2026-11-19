@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
+import { getAgentProfilePublic } from "@/services/agents/agentProfileService";
 import {
-  getAgentProfilePublic,
-  getAppraisalEligibility,
-} from "@/services/agents/agentProfileService";
+  agentRatingsByAgentProfile,
+  publishedReviewsAbout,
+} from "@/services/reviews/reviews";
 import { formatPenceGBP } from "@/components/listings/wizardTypes";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
-import { AppraisalForm } from "@/components/agents/AppraisalForm";
+import { ReviewList } from "@/components/reviews/ReviewList";
+import { VerifiedBadge } from "@/components/profiles/VerifiedBadge";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -21,11 +23,11 @@ export async function generateMetadata({ params }: PageProps) {
 
 /**
  * Public agent profile & credibility hub (Task 2.4 brief): agency info, star
- * rating (average of `Appraisal.rating`), Verified Completed Deals (count of
- * SOLD listings), compliance code, case studies (capex/net margin/narrative)
- * and investor appraisals — with a review form for logged-in users the
- * server has confirmed are qualified (prior Enquiry/Deal, not already
- * reviewed, INVESTOR/BUYER role). No auth required to view the page itself.
+ * rating and reviews (published reviews from completed, qualifying work
+ * only — Phase 5 Task 4, ADR-054), Verified Completed Deals (count of SOLD
+ * listings), compliance code, case studies (capex/net margin/narrative) and
+ * Sprint-era appraisals kept as read-only history. Reviews are written from
+ * `/account/reviews`. No auth required to view the page itself.
  */
 export default async function AgentProfilePage({ params }: PageProps) {
   const { id } = await params;
@@ -33,13 +35,9 @@ export default async function AgentProfilePage({ params }: PageProps) {
   if (!profile) notFound();
 
   const session = await auth();
-  const eligibility = session?.user
-    ? await getAppraisalEligibility({
-        userId: session.user.id,
-        role: session.user.role,
-        agentProfileId: id,
-      })
-    : null;
+  const owner = (await agentRatingsByAgentProfile([id])).get(id);
+  const ownerProfileId = owner?.profileId ?? null;
+  const reviews = ownerProfileId ? await publishedReviewsAbout(ownerProfileId) : [];
 
   return (
     // `<main>` for the same reason as `/marketplace/[id]`: the other publicly
@@ -56,7 +54,10 @@ export default async function AgentProfilePage({ params }: PageProps) {
           {profile.agencyName.charAt(0).toUpperCase()}
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-primary">{profile.agencyName}</h1>
+          <h1 className="flex flex-wrap items-center gap-2 text-2xl font-bold text-primary">
+            {profile.agencyName}
+            {profile.verified && <VerifiedBadge />}
+          </h1>
           {profile.bio && <p className="mt-1 text-sm text-body">{profile.bio}</p>}
           <p className="mt-1 text-xs font-medium text-muted">
             Compliance code: {profile.complianceCode}
@@ -66,7 +67,7 @@ export default async function AgentProfilePage({ params }: PageProps) {
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Card>
-          <CardTitle>Investor rating</CardTitle>
+          <CardTitle>Rating</CardTitle>
           <CardBody>
             {profile.ratingCount > 0 ? (
               <p
@@ -134,39 +135,43 @@ export default async function AgentProfilePage({ params }: PageProps) {
         )}
       </section>
 
-      <section>
-        <h2 className="text-lg font-bold text-primary">Investor appraisals</h2>
-
-        <div className="mt-3">
-          {!session?.user && (
-            <p className="text-sm text-muted">
-              <Link href="/login" className="text-accent underline">
-                Log in
-              </Link>{" "}
-              as a qualified investor or buyer to leave a review.
-            </p>
+      <section aria-labelledby="reviews">
+        <h2 id="reviews" className="text-lg font-bold text-primary">
+          Reviews
+        </h2>
+        <p className="mt-1 text-sm text-muted" data-testid="review-rule">
+          Reviews come only from Landlords, Investors and Buyers who have completed work
+          with this agency on PropLink, and an Admin checks each one before it appears.
+          {session?.user && (
+            <>
+              {" "}
+              <Link href="/account/reviews" className="text-accent underline">
+                Your reviews
+              </Link>
+            </>
           )}
-          {session?.user && eligibility && !eligibility.eligible && (
-            <p className="text-sm text-muted" data-testid="appraisal-ineligible-reason">
-              {eligibility.reason === "WRONG_ROLE" &&
-                "Only investors and buyers who have engaged with this agency can leave a review."}
-              {eligibility.reason === "NOT_QUALIFIED" &&
-                "You need to have made an enquiry or been party to a deal on one of this agency's listings before you can review it."}
-              {eligibility.reason === "ALREADY_REVIEWED" &&
-                "You've already reviewed this agency — thank you."}
-            </p>
-          )}
-          {session?.user && eligibility?.eligible && (
-            <AppraisalForm agentProfileId={profile.id} />
-          )}
+        </p>
+        <div className="mt-4">
+          <ReviewList
+            reviews={reviews}
+            canReport={
+              Boolean(session?.user) && session?.user.authUserId !== ownerProfileId
+            }
+          />
         </div>
+      </section>
 
-        {profile.appraisals.length === 0 ? (
-          <p className="mt-4 text-sm text-muted">No appraisals yet.</p>
-        ) : (
+      {profile.appraisals.length > 0 && (
+        <section aria-labelledby="appraisals">
+          <h2 id="appraisals" className="text-lg font-bold text-primary">
+            Earlier appraisals
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            Written before verified reviews; not counted in the rating.
+          </p>
           <ul className="mt-4 space-y-3">
             {profile.appraisals.map((a) => (
-              <li key={a.id} className="rounded-lg border border-line bg-white p-4">
+              <li key={a.id} className="rounded-2xl border border-line bg-white p-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-semibold text-primary">
                     ★ {a.rating}/5 — {a.reviewerName}
@@ -179,8 +184,8 @@ export default async function AgentProfilePage({ params }: PageProps) {
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        </section>
+      )}
     </main>
   );
 }

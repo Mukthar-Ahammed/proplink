@@ -14,8 +14,9 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
       eyebrow="Buyer portal"
       title="Find the"
       titleTail="right defect"
-      standfirst="Every listing with its disclosed defects, EPC rating and target refurbishment ROI on the face of it."
+      standfirst="Every listing with disclosed defects and its EPC rating on the face of it."
       nav={BUYER_NAV}
+      banner={{ src: "/banners/buyer%20portal%20banner.png" }}
     >
       {children}
     </PortalShell>

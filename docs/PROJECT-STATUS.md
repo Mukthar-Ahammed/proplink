@@ -1,11 +1,140 @@
 # PropLink UK — Project Status
 
-**Status snapshot:** 2026-11-03
+**Status snapshot:** 2026-11-18
 
-**Repository branch:** `main`
+**Repository branches:** `phase-0-stabilise` (pushed; Phase 0 open on one owner
+step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 
-**Latest commit:** `15d2b3d` (`2026-09-07`)
-**Development mode:** Local-first; production deployment remains deferred.
+**Last Phase 0 implementation commit:** `67ad6c5` (2026-11-16).
+
+## 2026-11-19 hosted client demo (ADR-076, branch `design-refresh`)
+
+- Netlify demo prepared: `PROPLINK_ENV=demo` (production build, mock
+  providers, staging database), `netlify.toml`, `config/netlify-demo.env`,
+  demo banner, noindex, Admin-only `/dev/mail`, database-backed demo mail and
+  upload stores (migration `20261122000000_demo_hosted_stores`, not yet
+  applied to staging). Unit tests pass; a local demo-mode production build
+  starts and passes the banner, robots, header and mail-gate checks.
+- Owner steps: `docs/runbooks/NETLIFY-DEMO.md` (H7.7). Not deployed.
+
+## 2026-11-18 update
+
+- **Phase 1** pushed; PR #1 (Phase 0 + Phase 1 into `main`) open. Three
+  credential-dependent checks carried forward; exit waits on the owner's hand
+  check of three Admin flows.
+- **Phase 2 build complete** on `phase-2-landlord-pipeline` (see
+  `docs/phases/PHASE-2-REPORT.md`). All eight tasks done: Landlord module
+  (ADR-034), AI listing assistant (ADR-036; mock until `ANTHROPIC_API_KEY`
+  exists), Admin review queue (ADR-037), private-listing hardening and
+  leakage crawl, Agent marketplace and proposals (ADR-038), exclusive mandate
+  (ADR-039), Landlord data exposure (ADR-040), chain notifications (ADR-041).
+  Exit waits on the owner checks listed at the end of the Phase 2 report.
+  PR #1's CI is green.
+- **Phase 3 build complete** on `phase-3-subscriptions-chat`: Stripe
+  subscriptions (ADR-042), Admin-authorised one-to-one chat with private
+  Realtime, attachments, notifications, Buyer ↔ Agent migration and Admin
+  tools (ADR-043).
+- **Phase 4 build complete** on `phase-4-investor-projects`: investor projects
+  and one Lead per project (ADR-044), race-safe pledges (ADR-045), portal,
+  project chats and Landlord view (ADR-046), Solicitor accounts with RLS
+  scope (ADR-047), agreements and e-signature (ADR-048), funds status, costs
+  and changes (ADR-049), sale and append-only ledger (ADR-050), project
+  decisions (ADR-051). Every exit-gate item is proven by tests; owner checks
+  and the Dropbox Sign live smoke test are pending.
+- **Phase 7 started** (2026-11-19) on `phase-7-hardening`: hardening, compliance,
+  performance and release readiness (`docs/phases/PHASE-7-REPORT.md`). Production
+  rollout stays deferred. Tasks 1-4 done locally: security review, client roles
+  deny-by-default (ADR-063), rate-limit outage behaviour (ADR-064), erasure with
+  legal holds, retention job and compliance drafts in `docs/compliance/`
+  (ADR-065). Task 5 done locally: rollback rehearsal of all 45 roadmap
+  migrations, restore drill, `/api/health`, delivery and webhook panels, p95
+  measured (ADR-066). Task 6 done: every journey on desktop and phone,
+  cross-browser smoke, visual baselines, accessibility fixes; 115 browser
+  tests and 1,884 unit/database tests passing (ADR-067). Pen test, staging
+  scans, legal review and real backups are H7.1-H7.5. Business-flow review
+  against the three PDFs (`docs/BUSINESS-FLOW-REVIEW.md`): flow correct, 5
+  defects fixed (ADR-068); owner decisions OD-27 to OD-32 taken and built
+  (ADR-069). Task 7 done locally: environment matrix, runbooks, headers
+  verified on a production build, staging start-up defect fixed (ADR-070).
+- **Phase 6 built** (2026-11-19) on `phase-6-admin-ads`: Admin permissions with
+  maker-checker (ADR-058), cases and disputes with two-person GDPR exports
+  (ADR-059), advertising in designated slots (ADR-060), KPIs, integrations
+  health and security events (ADR-061), agencies and the Admin A5
+  verification (ADR-062). Every exit-gate item is proven by tests; owner
+  checks pending (`docs/phases/PHASE-6-REPORT.md`).
+- **Phase 5 built** (2026-11-19) on `phase-5-sale-buyers` (re-listing completed projects,
+  buyer experience, reviews, trust features). Built so far: re-listing and
+  sale handoff (ADR-052), offers and viewings (ADR-053), reviews from
+  qualifying interactions with Admin moderation, and the verified badge and
+  stars on listing cards (ADR-054), and the server-computed track record with historical ROI behind an Admin flag (ADR-055), and saved searches with daily email alerts plus the maps provider switch (ADR-056), and the for-sale sitemap, structured data and image allowlist (ADR-057). Every exit-gate item is proven by tests (buyer journey E2E on phone and desktop, axe checks, full suite green); owner checks pending. The owner does every manual
+  check after the last phase; the running list is `docs/MANUAL_CHECKS.md`.
+
+## 2026-11-18 website redesign (branch `design-refresh`)
+
+- Whole-site UI redesigned to a clean, light, modern look from the owner's two
+  reference images (ADR-071, spec `docs/design/WEBSITE-DESIGN-SPEC.md`): new
+  tokens (deep teal accent), Instrument Serif headline accent, new header,
+  footer, landing page, auth shell, portal/admin shells and marketplace pages.
+  Typecheck, lint and all 1,356 unit tests pass; integration tests need a local
+  test DB; Playwright and an in-browser review are still to run.
+
+## 2026-11-17 update
+
+- **Phase 1 Task 4 (Companies House check) done** on `phase-1-roles-access`
+  (ADR-024): Agents check their company at `/agent/company`; Admin reviews and
+  overrides at `/admin/agents/companies`. Mock provider locally; the live key is
+  pending (BLOCKERS). OD-19 decided: invited Agents need a verified or
+  Admin-approved company before submitting listings.
+- **Task 5 (existing agents migration) done** (ADR-025, resolves OD-02):
+  notify → confirm → Admin authorise at `/admin/agents/migration`. Full suite
+  93 files / 1,196 tests pass.
+- **Task 6 (KYC/AML provider) done** (ADR-026): Sumsub adapter and mock,
+  signed idempotent webhook at `/api/webhooks/kyc`, Landlord and Investor
+  "Verify my identity". Provider choice is OD-20; keys pending (BLOCKERS). Full
+  suite 96 files / 1,237 tests pass.
+- **Task 7 (verified badge) done** (ADR-027): Admin-awarded blue tick at
+  `/admin/badges`, suggested after KYC or company verification, removed
+  automatically when that verification fails. Full suite 98 files / 1,264 tests
+  pass.
+- **Task 9 (suspend/reinstate) done** (ADR-028): fixed a defect that stopped
+  Admin deactivation working at all; reason required; suspension revokes all
+  sessions, including refreshed ones. Full suite 99 files / 1,275 tests pass.
+  Phase 1 tasks done: 1–7 and 9 of 13.
+- **Task 10 (notification preferences) done** (ADR-029): catalogue keyed to the
+  Q12 chain, `/account/notifications`, `shouldNotify()` for later phases. Full
+  suite 101 files / 1,291 tests pass.
+- **Task 11 (MFA) done** (ADR-030): TOTP mandatory for Admin and Solicitor,
+  optional for others; hashed recovery codes; 15-minute re-authentication for
+  sensitive Admin actions. **Admin sign-in now needs an authenticator app.**
+  Full suite 103 files / 1,311 tests pass.
+- **Task 12 (secure upload pipeline) done** (ADR-031): quarantine, magic-byte
+  check, ClamAV/mock scan, private storage, 5-minute signed downloads, Admin
+  limits. Production uploads stay off until S3 and ClamAV exist. Full suite 105
+  files / 1,341 tests pass.
+- **Task 8 (profiles) done** (ADR-032): profiles for every account, anonymous
+  public IDs, investors private by default, server-computed track record, photos
+  via the secure pipeline. Full suite 107 files / 1,369 tests pass.
+- **Task 13 (permission-matrix harness) done** (ADR-033). **All 13 Phase 1 tasks
+  are implemented**; full suite 108 files / 1,432 tests pass. Phase 1 has not
+  exited: it waits on the Phase 0 manual auth test, applying the Phase 1
+  migrations to development and running the browser tests, and the pending
+  keys/decisions (see the Phase 1 report's exit-gate table).
+- **Phase 0 closed 2026-11-18**: the owner's manual authentication test passed on
+  development (Supabase Auth email via Resend SMTP, test sender). Phase 1
+  migrations applied to development the same day.
+
+## 2026-11-16 update
+
+- **Phase 0:** every exit-gate item has passed or been carried to a named later
+  phase (ADR-019) except the owner's manual authentication test (steps 1–3,
+  part of 4, 6 and 7). The development project is fully reconciled: inspector
+  221 PASS / 0 FAIL and the Prisma schema is up to date. Automated login,
+  logout, generic-error and rate-limit checks pass after fixes in `67ad6c5`.
+- **Phase 1** started in parallel (ADR-020) on `phase-1-roles-access`, beginning
+  with Task 1 (roles and schema). It cannot exit, and nothing is merged to
+  `main` or deployed, until Phase 0 passes.
+- The sections below are the 2026-11-04 snapshot and are kept for history.
+  **Development mode:** Local-first; production deployment remains deferred.
 
 > This report separates the sprint-tracker baseline from newer work in the
 > working tree. A feature appearing in source code or a phase report does not
@@ -20,30 +149,63 @@ The foundation, agent listing workflow, public marketplace, and database-backed
 search are substantially implemented. Buyer-facing offers, viewings, messaging,
 and deal-tracking have also been added.
 
-There is a second, substantial body of newer work in the local working tree:
-Supabase Auth/RLS and identity migration, investor subtype onboarding, KYC,
-Flipper acquisition/refurbishment/resale, and expanded Admin operations. Much of
-this work has phase-specific documentation and tests, but it is **not committed
-or release-verified as a whole**.
+The Phase 0 implementation groups for Supabase Auth/RLS, security foundations,
+marketplace/search, Admin/KYC/Flipper, and Phase 3 fixtures have been committed
+locally on `phase-0-stabilise`. They have not been pushed or deployed.
 
 The project is therefore best described as **feature-rich but mid-migration and
-not production-ready**. Its live tracker is behind the implementation, staging
-security has a documented temporary exception, and final integration,
-accessibility, and deployment checks remain.
+not production-ready**. Phase 0 security work is underway on
+`phase-0-stabilise`; its exit gate has not passed. Its live tracker is behind
+the implementation, staging security has a documented temporary exception,
+and owner-only staging and manual authentication checks remain.
+
+## Phase 0 current checkpoint
+
+- Approved inventory: [Phase 0 inventory](./phases/PHASE-0-INVENTORY.md).
+  Verification and gate results: [Phase 0 report](./phases/PHASE-0-REPORT.md).
+- The inventory and implementation plan were approved. Six feature-group
+  commits are local to `phase-0-stabilise`; nothing was pushed or deployed.
+  Phase 1 has not started. Only the owner-confirmed disposable
+  `127.0.0.1:55432/proplink_test` database was migrated and seeded for
+  integration tests; no staging or production database was touched.
+- Supabase Auth is the sole runtime auth system. Supabase login, logout, email
+  confirmation, recovery, role, and identity-consistency unit tests pass;
+  unused Auth.js packages and type augmentation have been removed.
+- Shared authorization guards, global route rate limiting, security headers,
+  Turnstile/email mocks, fail-closed compliance flags, append-only AuditLog
+  migration, secret checks, and provider documentation are implemented on the
+  branch. The two Phase 0 migrations were applied only to the disposable local
+  test database and remain unapplied on staging and production.
+- Latest Phase 0 verification: `npm run test` passed **79 files / 1,000 tests**
+  against the confirmed disposable local database; typecheck, repository-wide
+  lint (zero errors/warnings), production build, and `npm run
+check:client-secrets` passed. The report records actual command output.
+- The Gitleaks empty-example allowlist is scoped to the three requested files;
+  its synthetic non-empty key probe remains detectable. Staged Gitleaks scans
+  for all six committed implementation groups passed. The earlier full-disk
+  scan also found ignored local environment and generated files; these were
+  not opened, so a clean full-disk scan is not claimed.
+- `npm audit --audit-level=high` previously passed with 21 moderate findings
+  and no high/critical findings. `check-env --phase=0` remains blocked by local
+  `AUTH_SECURITY_SECRET` and `APP_ORIGIN` configuration.
+- No authenticated staging response, fresh Supabase Security Advisor result,
+  staging RLS report, or manual end-to-end auth parity run is available. These
+  owner-only checks, plus Gitleaks review and integration-test environment
+  verification, prevent Phase 0 exit approval.
 
 ## Progress by area
 
-| Area | Current status | Summary |
-|---|---|---|
-| Foundation and database | Established baseline complete | Next.js 16, TypeScript, Tailwind, Prisma 7, PostgreSQL/PostGIS, schema, migrations, seeds, core auth/RBAC, admin foundation, and GDPR basics. |
-| Agent portal and listings | Sprint 2 documented complete | Listing wizard, image upload abstraction, listing status workflow, admin moderation, agent profile and credibility pages, enquiries, leads, analytics, and seeded property catalogue. |
-| Marketplace and search | Search Tasks 3.1–3.2 documented complete | Server-rendered `/marketplace`, parameterized PostgreSQL search, text/trigram matching, filters, geographic queries, sorting, pagination, count endpoint, and URL-synced filters. |
-| Buyer portal | Implemented beyond the original sprint plan | Buyer portal includes saved properties, affordability tooling, viewing requests, offers, messaging, and deal tracking. Messaging is not realtime; price history uses explicitly labelled sample data. |
-| Maps and commute | Incomplete / blocked | Interactive map and commute-time tasks require Google Maps browser key, APIs, and quotas. Saved-search alerts are also outstanding. |
-| Supabase Auth and authorization | Migration work in progress | Supabase server/browser/proxy clients, `profiles` identity bridge, investor subtype model, authorization guards, and RLS changes are present in current work. Auth.js remains active pending cutover per architecture notes. |
-| Investor, KYC, and Flipper flows | New implementation present; release status not established | Local work includes investor subtype onboarding, KYC submission and review, Flipper opportunities/offers/acquisitions, refurbishment project costs/milestones, and resale workflow. Syndicate payments remain prohibited. |
-| Admin operations | A1/A3/A4 documented verified; A5 implemented but incomplete | Admin shell, KYC studio, listing/resale moderation, users, and agents are documented. A5 still needs authenticated browser, responsive, and accessibility verification. Agency management is not implemented. |
-| AI, Stripe, intelligence, launch | Not complete per sprint tracker | These planned capabilities have not reached their documented sprint exit gates. Production rollout is deferred. |
+| Area                             | Current status                                              | Summary                                                                                                                                                                                                                                                                                |
+| -------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Foundation and database          | Established baseline complete                               | Next.js 16, TypeScript, Tailwind, Prisma 7, PostgreSQL/PostGIS, schema, migrations, seeds, core auth/RBAC, admin foundation, and GDPR basics.                                                                                                                                          |
+| Agent portal and listings        | Sprint 2 documented complete                                | Listing wizard, image upload abstraction, listing status workflow, admin moderation, agent profile and credibility pages, enquiries, leads, analytics, and seeded property catalogue.                                                                                                  |
+| Marketplace and search           | Search Tasks 3.1–3.2 documented complete                    | Server-rendered `/marketplace`, parameterized PostgreSQL search, text/trigram matching, filters, geographic queries, sorting, pagination, count endpoint, and URL-synced filters.                                                                                                      |
+| Buyer portal                     | Implemented beyond the original sprint plan                 | Buyer portal includes saved properties, affordability tooling, viewing requests, offers, messaging, and deal tracking. Messaging is not realtime; price history uses explicitly labelled sample data.                                                                                  |
+| Maps and commute                 | Incomplete / blocked                                        | Interactive map and commute-time tasks require Google Maps browser key, APIs, and quotas. Saved-search alerts are also outstanding.                                                                                                                                                    |
+| Supabase Auth and authorization  | Supabase runtime active; release gates remain               | Supabase server/browser/proxy clients, `profiles` identity bridge, server-verified roles, shared authorization guards, and RLS changes are present. Auth.js dependencies have been removed after focused flow tests; Admin/Solicitor MFA and external parity verification remain open. |
+| Investor, KYC, and Flipper flows | New implementation present; release status not established  | Local work includes investor subtype onboarding, KYC submission and review, Flipper opportunities/offers/acquisitions, refurbishment project costs/milestones, and resale workflow. Syndicate payments remain prohibited.                                                              |
+| Admin operations                 | A1/A3/A4 documented verified; A5 implemented but incomplete | Admin shell, KYC studio, listing/resale moderation, users, and agents are documented. A5 browser, responsive and accessibility verification passed in Phase 6 (ADR-062); agencies are managed as company-level groups.                                                                 |
+| AI, Stripe, intelligence, launch | Not complete per sprint tracker                             | These planned capabilities have not reached their documented sprint exit gates. Production rollout is deferred.                                                                                                                                                                        |
 
 ## Verified baseline details
 
@@ -91,7 +253,7 @@ Recent implementation and security documents describe:
 These are not all at the same verification level. Phase 1 and Phase 2 are
 documented as staging-passed. The newer application phases have implementation
 reports and tests, but no single end-to-end release sign-off covers the complete
-working tree. Do not treat uncommitted code as deployed.
+application. Local commits do not imply staging verification or deployment.
 
 ## Security, compliance, and provider constraints
 
@@ -113,62 +275,62 @@ working tree. Do not treat uncommitted code as deployed.
 
 ## Verification snapshot
 
-Recorded results differ by task and date; they should not be read as a current
-single-suite guarantee:
+Earlier sprint and phase reports contain historical test totals. The latest
+Phase 0 closeout results are:
 
-- Sprint documentation reports 466 unit/integration tests and 43 Playwright
-  tests green for the earlier marketplace baseline, with clean build/typecheck/
-  lint/format checks at that checkpoint.
-- The A5 verification report records a serial full-suite run of 61 test files
-  and 753 passing tests. It also reports transient DB integration failures in
-  the default parallel run and repository-wide lint errors outside A5.
+- `npm run test` passed **79 files / 1,000 tests** against the owner-confirmed
+  disposable `proplink_test` database on loopback. `npm run test -- tests/unit`
+  passed **78 files / 971 tests**.
+- TypeScript typecheck, repository-wide lint (zero errors and warnings),
+  production build with process-only dummy provider values, and
+  `npm run check:client-secrets` passed.
+- The database URL guard rejects non-local or non-test targets before test
+  queries. No staging or production database was touched.
+- The latest requested Gitleaks disk scan reported 38 findings in ignored
+  local environment files and generated `.next` artifacts; those files were
+  not opened. The two tracked documentation hits were empty environment
+  declarations and have a narrow line-pattern allowlist; a synthetic
+  non-empty key remains detectable. Staged scans for all six implementation
+  commits found no leaks. No clean full-disk scan is claimed.
 - A5 responsive/accessibility browser verification remains incomplete because
   an authenticated Admin session was not established.
 - During the 2026-11-03 status review, a read-only `SELECT 1` database probe
   succeeded. This only confirms basic connectivity; it does not verify the
   homepage search/count query or the full application flows.
 
-Run the relevant checks again after reviewing the current changes. In
-particular, validate the local homepage and search endpoints against the
-currently configured database.
+The Phase 0 exit gate remains open pending fresh staging security evidence and
+manual authentication-flow testing. The integration-test database was
+positively verified as a disposable local database. See the Phase 0 report for
+exact check results and owner-run instructions.
 
 ## Repository and documentation state
 
 At the time of this snapshot:
 
-- The branch is `main`; latest commit is `15d2b3d` from 2026-09-07.
-- The working tree has **231 Git status entries**: 95 modified tracked files and
-  136 untracked entries. Review and group these changes before staging or
-  committing; do not assume they form one reviewed release.
-- The original living tracker is stale relative to later work. It places the
-  project in Sprint 3, marks Sprints 4–6 not started, and includes an older
-  Sprint 2 tracker table that still says “in progress.” Newer implementation
-  reports document later work. Reconcile these sources after validating the
-  feature set.
+- The active branch is `phase-0-stabilise`. Six implementation-group commits
+  are local; no push or deployment has occurred. The final documentation group
+  includes this status update.
+- The original 231-entry worktree was inventoried and grouped before changes
+  were approved. The resulting commits were reviewed one group at a time; no
+  local `.env` file was included (`.env.example` is a template).
+- The original living tracker remains behind the newer implementation reports.
+  Reconcile sprint status and remaining scope before planning the next phase.
 - The A5 report records 753 passing tests and incomplete visual verification;
   the sprint tracker’s earlier test totals describe an older baseline.
 
 ## Recommended next steps
 
-1. **Protect and inventory the worktree.** Review the modified/untracked files
-   by feature and migration; keep local credentials and fixture data out of
-   commits. Confirm each migration's intended environment and staging evidence.
-2. **Reconcile project status.** Once the implementation inventory is validated,
-   update `docs/sprints/STATUS.md`, `docs/sprints/SPRINT-TRACKER.md`, and
-   `docs/CONTEXT.md` so they agree on completed, blocked, and deferred work.
-3. **Run focused validation, then broader checks.** Start with typecheck,
-   targeted tests for the active changes, database-backed integration tests,
-   lint, and production build. Address flaky parallel DB tests and existing lint
-   errors explicitly.
-4. **Complete Admin verification.** Establish an authorized test Admin session
+1. **Complete the Phase 0 exit gate.** Run the owner-only staging checks and
+   complete the manual authentication flow in [the Phase 0 report](./phases/PHASE-0-REPORT.md).
+2. **Complete Admin verification.** Establish an authorized test Admin session
    and complete the required route/viewport and accessibility checks.
-5. **Resolve staging security follow-up.** Review the expired exception with
+3. **Resolve staging security follow-up.** Review the expired exception with
    Supabase Support/product owner; do not carry the staging exception to
    production.
-6. **Finish Sprint 3 Maps/commute and saved-search work** when the required
+4. **Finish Sprint 3 Maps/commute and saved-search work** when the required
    Google Maps credentials/APIs are available, or formally update the scope and
    fallback plan.
-7. **Keep launch gates closed** until migration, security, compliance, KYC,
+5. **Keep launch gates closed** until migration, security, compliance, KYC,
    privacy, E2E, and deployment exit criteria have been explicitly passed.
 
 ## Source documents

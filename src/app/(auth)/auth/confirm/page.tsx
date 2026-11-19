@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/ui/submit-button";
 import Link from "next/link";
 
 import { confirmAuthToken } from "@/app/(auth)/actions";
@@ -20,7 +21,7 @@ export default async function ConfirmPage({
 }) {
   const { token_hash: tokenHash = "", type = "", error } = await searchParams;
   const validType = type === "email" || type === "recovery";
-  const message = error ? errorMessages[error] ?? errorMessages.invalid : undefined;
+  const message = error ? (errorMessages[error] ?? errorMessages.invalid) : undefined;
   const action = confirmAuthToken.bind(null, tokenHash, type);
 
   return (
@@ -32,30 +33,31 @@ export default async function ConfirmPage({
           ? "Continue to verify this reset request before choosing a new password."
           : "Use the button below to confirm your email address.")
       }
-      aside={{
-        headline: <><>Secure access,</><span className="mt-1 block font-light">one deliberate step</span></>,
-        points: [
-          "Links are consumed only after you press the confirmation button",
-          "Expired and previously used links cannot create a session",
-          "Confirmation never redirects to a user-supplied destination",
-        ],
-      }}
     >
       {!message && tokenHash && validType ? (
         <form action={action}>
-          <button type="submit" className={AUTH_BUTTON}>
+          <SubmitButton type="submit" className={AUTH_BUTTON}>
             {type === "recovery" ? "Continue to reset password" : "Confirm email"}
-          </button>
+          </SubmitButton>
         </form>
       ) : (
         <div className="space-y-4">
-          <p role="alert" className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger">
+          <p
+            role="alert"
+            className="rounded-xl bg-danger/10 px-4 py-3 text-sm text-danger"
+          >
             {message ?? errorMessages.invalid}
           </p>
-          <Link href="/forgot-password" className="block text-center text-sm font-semibold text-primary underline">
+          <Link
+            href="/forgot-password"
+            className="block text-center text-sm font-semibold text-primary underline"
+          >
             Request a password reset
           </Link>
-          <Link href="/login" className="block text-center text-sm font-semibold text-primary underline">
+          <Link
+            href="/login"
+            className="block text-center text-sm font-semibold text-primary underline"
+          >
             Return to login to resend confirmation
           </Link>
         </div>
@@ -63,4 +65,3 @@ export default async function ConfirmPage({
     </AuthShell>
   );
 }
-

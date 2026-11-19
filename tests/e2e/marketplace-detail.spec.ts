@@ -109,7 +109,7 @@ test.afterAll(async () => {
   await closeDb();
 });
 
-test("a LIVE listing renders gallery, distress chips, EPC badge, price, ROI, map and agent card", async ({
+test("a LIVE listing renders gallery, distress chips, EPC badge, price, hidden address and agent card", async ({
   page,
 }) => {
   await page.goto(`/marketplace/${LIVE_ID}`);
@@ -133,21 +133,22 @@ test("a LIVE listing renders gallery, distress chips, EPC badge, price, ROI, map
   // Distress chips + EPC badge (AGENTS.md: EPC displayed on every listing).
   await expect(page.getByText("Probate sale", { exact: true })).toBeVisible();
   await expect(page.getByText("Renovation needed", { exact: true })).toBeVisible();
-  await expect(page.getByTestId("epc-badge")).toHaveText("E");
+  await expect(page.getByTestId("epc-badge")).toHaveText("EPC rating E");
 
   // Money is stored as integer pence, formatted at the display boundary.
   await expect(page.getByTestId("asking-price")).toHaveText("£185,000");
-  await expect(page.getByTestId("target-roi")).toContainText("18.5%");
+  // Target ROI is a financial promotion: hidden while FINANCIAL_PROMOTIONS_REVIEWED
+  // is false (AGENTS.md constraint 1), which it must be until legal sign-off.
+  await expect(page.getByTestId("target-roi")).toHaveCount(0);
 
-  // Static map (mock provider — no Google key locally, H2.2/H3.1) + satellite toggle.
-  const map = page.getByTestId("property-map-image");
-  await expect(map).toBeVisible();
-  await expect(map).toHaveAttribute("alt", /Map view of 12 Example Road, Manchester/i);
-  await page.getByRole("tab", { name: "Satellite" }).click();
-  await expect(map).toHaveAttribute(
-    "alt",
-    /Satellite view of 12 Example Road, Manchester/i,
-  );
+  // Signed out: town, region and postcode district only — no street, full
+  // postcode or map pin until the visitor signs in (ADR-022).
+  const hidden = page.getByTestId("address-hidden");
+  await expect(hidden).toContainText("Sign in to see the full address and map");
+  await expect(page.getByText(/Manchester, .*M1(?!\s*1AE)/)).toBeVisible();
+  await expect(page.getByText("12 Example Road")).toHaveCount(0);
+  await expect(page.getByText("M1 1AE")).toHaveCount(0);
+  await expect(page.getByTestId("property-map-image")).toHaveCount(0);
 
   // Agent card links through to the Task 2.4 public profile.
   const agentCard = page.getByRole("region", { name: "Listing agent" });
@@ -174,7 +175,8 @@ test("SEO metadata: title, description, canonical and OpenGraph tags are rendere
   );
   await expect(page.locator('meta[name="description"]')).toHaveAttribute(
     "content",
-    /£185,000 — RESIDENTIAL in Manchester, M1 1AE/,
+    // Crawled metadata carries the postcode district only (ADR-022).
+    /£185,000 — RESIDENTIAL in Manchester, M1\. /,
   );
   await expect(page.locator('meta[property="og:title"]')).toHaveAttribute(
     "content",
@@ -191,7 +193,31 @@ test("SEO metadata: title, description, canonical and OpenGraph tags are rendere
 
   // Semantic landmarks the Lighthouse SEO/a11y audits key off.
   await expect(page.locator("h1")).toHaveCount(1);
-  await expect(page.locator("address")).toContainText("Manchester");
+});
+
+test("a signed-in viewer sees the full address and the map", async ({ page }) => {
+  await login(page, "buyer@proplink.test", "Password123!");
+  await page.goto(`/marketplace/${LIVE_ID}`);
+
+  await expect(page.locator("address")).toContainText("12 Example Road");
+  await expect(page.locator("address")).toContainText("M1 1AE");
+
+  // Static map (mock provider — no Google key locally, H2.2/H3.1) + satellite
+  // toggle, inside the expandable location card (ADR-071).
+  const expand = page.getByRole("button", { name: /Show map of 12 Example Road/i });
+  await expect(expand).toHaveAttribute("aria-expanded", "false");
+  await expand.click();
+  const map = page.getByTestId("property-map-image");
+  await expect(map).toBeVisible();
+  await expect(map).toHaveAttribute("alt", /Map view of 12 Example Road, Manchester/i);
+  await page.getByRole("tab", { name: "Satellite" }).click();
+  await expect(map).toHaveAttribute(
+    "alt",
+    /Satellite view of 12 Example Road, Manchester/i,
+  );
+  await page.getByRole("tab", { name: "Street View" }).click();
+  await expect(map).toHaveAttribute("alt", /Street View of 12 Example Road, Manchester/i);
+  await expect(page.getByRole("link", { name: /Explore in Google Maps/i })).toBeVisible();
 });
 
 test("a logged-in buyer posts an enquiry and it lands as an Enquiry row for the agent", async ({
@@ -232,11 +258,20 @@ test("an anonymous visitor is asked to log in instead of being shown the enquiry
   await expect(page.getByRole("form", { name: "Post enquiry" })).toHaveCount(0);
   await expect(page.getByText("to contact the agent about this property.")).toBeVisible();
 
-  // And the endpoint itself refuses, not just the UI.
+  // And the endpoint itself refuses, not just the UI. A request that passes the
+  // Phase 0 CSRF check (same Origin plus the app's x-proplink-request header)
+  // reaches the handler and gets 401; one without them is rejected first with
+  // 403. Both must refuse.
+  const origin = new URL(page.url()).origin;
   const res = await page.request.post("/api/enquiries", {
+    headers: { Origin: origin, "x-proplink-request": "1" },
     data: { propertyId: LIVE_ID, message: `${RUN} — anonymous, must be rejected` },
   });
   expect(res.status()).toBe(401);
+  const noOrigin = await page.request.post("/api/enquiries", {
+    data: { propertyId: LIVE_ID, message: `${RUN} — anonymous, must be rejected` },
+  });
+  expect(noOrigin.status()).toBe(403);
 
   const rows = await q(`SELECT id FROM "Enquiry" WHERE message LIKE $1`, [`%anonymous%`]);
   expect(rows.length).toBe(0);

@@ -1,6 +1,11 @@
+// SUPERSEDED (Phase 7 Task 2, ADR-063): these checks need the Supabase Data
+// API, which stays off. The same assertions run locally as role tests in
+// tests/integration/rls-audit-db.test.ts. Do not re-enable the Data API to run
+// this script; it is kept only as a record of the earlier parity checks.
 import { config } from "dotenv";
 import { createClient } from "@supabase/supabase-js";
 import pg from "pg";
+import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 config({ path: ".env.local", quiet: true });
 
@@ -14,6 +19,7 @@ for (const name of [
   if (!process.env[name])
     throw new Error(`Missing required environment variable: ${name}`);
 }
+assertConfiguredSupabaseProject();
 
 const projectUrl = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const databaseUrl = new URL(process.env.DIRECT_URL);

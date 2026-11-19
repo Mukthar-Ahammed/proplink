@@ -9,6 +9,7 @@ import {
   type UpdateListingInput,
 } from "@/services/listings/validation";
 import { geocodePostcode } from "@/services/maps";
+import { agentCompanyGate, COMPANY_GATE_MESSAGE } from "@/services/agents/companyGate";
 
 const FREE_TIER_LISTING_LIMIT = 3;
 
@@ -313,6 +314,13 @@ export async function updateDraft(params: {
 
 export async function submitForReview(params: { userId: string; propertyId: string }) {
   const property = await findOwnedListing(params.userId, params.propertyId);
+
+  // OD-19: an invited Agent must pass the company check before listings go
+  // to review (see companyGate.ts).
+  const gate = await agentCompanyGate(params.userId);
+  if (!gate.allowed) {
+    throw new ListingServiceError(COMPANY_GATE_MESSAGE, "COMPANY_UNVERIFIED");
+  }
 
   assertReadyForSubmission({
     distressTags: property.distressTags,

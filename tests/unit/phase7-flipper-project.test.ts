@@ -14,10 +14,8 @@ import {
 } from "@/generated/prisma/enums";
 import {
   confirmFlipperAcquisition,
-  cancelFlipperAcquisition,
   createFlipperProject,
   addFlipperProjectCost,
-  removeFlipperProjectCost,
   createProjectMilestone,
   updateProjectMilestone,
   getFlipperProjectDetail,
@@ -109,16 +107,22 @@ describe("Phase 7: FLIPPER Acquisition Completion & Refurbishment Project", () =
       const res = await confirmFlipperAcquisition(mockAgentB, { acquisitionId: "acq-1" });
       expect(res.ok).toBe(false);
       if (!res.ok) {
-        expect(res.error).toMatch(/Agent A cannot confirm acquisitions for Agent B's listing/);
+        expect(res.error).toMatch(
+          /Agent A cannot confirm acquisitions for Agent B's listing/,
+        );
       }
     });
 
     it("denies Investors from self-confirming legal acquisition completion", async () => {
       // Cast mockFlipperApproved as AgentCaller to test server guard
-      const res = await confirmFlipperAcquisition(mockFlipperApproved as never, { acquisitionId: "acq-1" });
+      const res = await confirmFlipperAcquisition(mockFlipperApproved as never, {
+        acquisitionId: "acq-1",
+      });
       expect(res.ok).toBe(false);
       if (!res.ok) {
-        expect(res.error).toMatch(/Only active Agent accounts can confirm acquisition completion/);
+        expect(res.error).toMatch(
+          /Only active Agent accounts can confirm acquisition completion/,
+        );
       }
     });
 
@@ -135,7 +139,9 @@ describe("Phase 7: FLIPPER Acquisition Completion & Refurbishment Project", () =
 
       vi.spyOn(db, "$executeRaw").mockResolvedValueOnce(0); // 0 rows updated
 
-      const res = await confirmFlipperAcquisition(mockAgentA, { acquisitionId: "acq-race" });
+      const res = await confirmFlipperAcquisition(mockAgentA, {
+        acquisitionId: "acq-race",
+      });
       expect(res.ok).toBe(false);
       if (!res.ok) {
         expect(res.error).toMatch(/race condition or already decided/);
@@ -211,7 +217,9 @@ describe("Phase 7: FLIPPER Acquisition Completion & Refurbishment Project", () =
       });
       expect(res.ok).toBe(false);
       if (!res.ok) {
-        expect(res.error).toMatch(/Only active FLIPPER or BOTH investors can create refurbishment projects/);
+        expect(res.error).toMatch(
+          /Only active FLIPPER or BOTH investors can create refurbishment projects/,
+        );
       }
     });
 
@@ -292,8 +300,20 @@ describe("Phase 7: FLIPPER Acquisition Completion & Refurbishment Project", () =
         property: { title: "Test Property", city: "London", postcode: "E1 6AN" },
         acquisition: { agreedPriceGBP: 18000000 },
         costs: [
-          { id: "c1", category: FlipperCostCategory.LABOUR, description: "Builder", amountGBP: 1200000, incurredAt: new Date() },
-          { id: "c2", category: FlipperCostCategory.MATERIALS, description: "Tiles", amountGBP: 1000000, incurredAt: new Date() },
+          {
+            id: "c1",
+            category: FlipperCostCategory.LABOUR,
+            description: "Builder",
+            amountGBP: 1200000,
+            incurredAt: new Date(),
+          },
+          {
+            id: "c2",
+            category: FlipperCostCategory.MATERIALS,
+            description: "Tiles",
+            amountGBP: 1000000,
+            incurredAt: new Date(),
+          },
         ], // Total = £22,000.00 (Over budget by £2,000.00)
         milestones: [],
       } as never);
@@ -323,7 +343,9 @@ describe("Phase 7: FLIPPER Acquisition Completion & Refurbishment Project", () =
       const res = await getFlipperProjectDetail(mockInvestorB, "proj-a");
       expect(res.ok).toBe(false);
       if (!res.ok) {
-        expect(res.error).toMatch(/Investor A cannot access Investor B's refurbishment project/);
+        expect(res.error).toMatch(
+          /Investor A cannot access Investor B's refurbishment project/,
+        );
       }
     });
   });

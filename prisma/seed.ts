@@ -34,44 +34,62 @@ const PLATE_COUNT = 6;
 const plateUrl = (n: number) =>
   `/uploads/seed/plate-${String((n % PLATE_COUNT) + 1).padStart(2, "0")}.jpg`;
 
-async function ensureSchema() {
-  try {
-    await db.$executeRawUnsafe(`
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'ListingSource') THEN
-          CREATE TYPE public."ListingSource" AS ENUM ('AGENT', 'FLIPPER_RESALE');
-        END IF;
-      END $$;
-    `);
-
-    await db.$executeRawUnsafe(`
-      ALTER TABLE public."Property"
-      ALTER COLUMN "agentProfileId" DROP NOT NULL,
-      ADD COLUMN IF NOT EXISTS "listingSource" public."ListingSource" NOT NULL DEFAULT 'AGENT';
-    `);
-
-    await db.$executeRawUnsafe(`
-      ALTER TABLE private.auth_signup_intents
-      ADD COLUMN IF NOT EXISTS "investorType" public."InvestorType";
-    `);
-  } catch (err) {
-    console.warn("Schema initialization check in seed:", err);
-  }
-}
-
 async function seedUsers(passwordHash: string) {
-  await ensureSchema();
-
   const users = [
-    { email: "admin@proplink.test", name: "Platform Admin", role: Role.ADMIN, investorType: null },
-    { email: "agent@proplink.test", name: "Alice Agent", role: Role.AGENT, investorType: null },
-    { email: "investor@proplink.test", name: "Ivan Investor", role: Role.INVESTOR, investorType: "FLIPPER" as const },
-    { email: "buyer@proplink.test", name: "Bella Buyer", role: Role.BUYER, investorType: null },
-    { email: "investor2@proplink.test", name: "Priya Raman", role: Role.INVESTOR, investorType: "BOTH" as const },
-    { email: "investor3@proplink.test", name: "Tom Okafor", role: Role.INVESTOR, investorType: "FLIPPER" as const },
-    { email: "buyer2@proplink.test", name: "Grace Whitfield", role: Role.BUYER, investorType: null },
-    { email: "buyer3@proplink.test", name: "Daniel Mercer", role: Role.BUYER, investorType: null },
+    {
+      email: "admin@proplink.test",
+      name: "Platform Admin",
+      role: Role.ADMIN,
+      investorType: null,
+    },
+    {
+      email: "agent@proplink.test",
+      name: "Alice Agent",
+      role: Role.AGENT,
+      investorType: null,
+    },
+    {
+      email: "investor@proplink.test",
+      name: "Ivan Investor",
+      role: Role.INVESTOR,
+      investorType: "FLIPPER" as const,
+    },
+    {
+      email: "buyer@proplink.test",
+      name: "Bella Buyer",
+      role: Role.BUYER,
+      investorType: null,
+    },
+    {
+      email: "landlord@proplink.test",
+      name: "Lena Landlord",
+      role: Role.LANDLORD,
+      investorType: null,
+    },
+    {
+      email: "investor2@proplink.test",
+      name: "Priya Raman",
+      role: Role.INVESTOR,
+      investorType: "BOTH" as const,
+    },
+    {
+      email: "investor3@proplink.test",
+      name: "Tom Okafor",
+      role: Role.INVESTOR,
+      investorType: "FLIPPER" as const,
+    },
+    {
+      email: "buyer2@proplink.test",
+      name: "Grace Whitfield",
+      role: Role.BUYER,
+      investorType: null,
+    },
+    {
+      email: "buyer3@proplink.test",
+      name: "Daniel Mercer",
+      role: Role.BUYER,
+      investorType: null,
+    },
   ];
 
   for (const u of users) {
@@ -608,25 +626,33 @@ async function seedBuyerActivity() {
 
   const [first, second] = listings;
 
-  await db.viewing.deleteMany({ where: { buyerUserId: buyer.id } });
-  await db.viewing.create({
-    data: {
-      propertyId: first.id,
-      buyerUserId: buyer.id,
-      slotStart: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      slotEnd: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
-    },
-  });
+  // Viewings with history (`ViewingEvent`, append-only, FK Restrict) are kept:
+  // only history-free ones are reset, and the demo viewing is added only when
+  // the buyer has none left, so a re-seed after E2E runs still succeeds.
+  await db.viewing.deleteMany({ where: { buyerUserId: buyer.id, events: { none: {} } } });
+  if ((await db.viewing.count({ where: { buyerUserId: buyer.id } })) === 0) {
+    await db.viewing.create({
+      data: {
+        propertyId: first.id,
+        buyerUserId: buyer.id,
+        slotStart: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        slotEnd: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000 + 60 * 60 * 1000),
+      },
+    });
+  }
 
-  await db.offer.deleteMany({ where: { buyerUserId: buyer.id } });
-  await db.offer.create({
-    data: {
-      propertyId: (second ?? first).id,
-      buyerUserId: buyer.id,
-      // A little under asking, as a real offer on distressed stock would be.
-      amountGBP: Math.round((second ?? first).askingPriceGBP * 0.92),
-    },
-  });
+  // Same rule for offers with history (`OfferEvent`).
+  await db.offer.deleteMany({ where: { buyerUserId: buyer.id, events: { none: {} } } });
+  if ((await db.offer.count({ where: { buyerUserId: buyer.id } })) === 0) {
+    await db.offer.create({
+      data: {
+        propertyId: (second ?? first).id,
+        buyerUserId: buyer.id,
+        // A little under asking, as a real offer on distressed stock would be.
+        amountGBP: Math.round((second ?? first).askingPriceGBP * 0.92),
+      },
+    });
+  }
 
   const agentUserId = first.agentProfile?.userId;
   let messages = 0;
@@ -660,10 +686,166 @@ async function seedBuyerActivity() {
   return { viewings: 1, offers: 1, messages };
 }
 
+/**
+ * Phase 6 (ADR-058): on a fresh database the seeded Admin becomes the first
+ * super-admin (the database allows a request-less grant only while no active
+ * super-admin exists). Later grants need two super-admins.
+ */
+async function seedSuperAdmin() {
+  await db.$executeRaw`
+    INSERT INTO public.admin_permission_grants (id, "profileId", permission)
+    SELECT gen_random_uuid(), p.id, 'SUPER_ADMIN'::"AdminPermission"
+    FROM public.profiles p
+    JOIN public."User" u ON u.id = p."legacyUserId"
+    WHERE u.email = 'admin@proplink.test' AND p.role = 'ADMIN' AND p.active
+      AND NOT EXISTS (
+        SELECT 1 FROM public.admin_permission_grants g
+        JOIN public.profiles q ON q.id = g."profileId"
+        WHERE g.permission = 'SUPER_ADMIN' AND g."revokedAt" IS NULL AND q.role = 'ADMIN' AND q.active
+      )
+  `;
+}
+
+/**
+ * OD-27 (Q2): the seeded Agent joined before invitations, so PropLink must
+ * authorise it before it reaches the private Landlord pipeline. The seed
+ * records it as confirmed and authorised by the seeded Admin. Idempotent.
+ */
+async function seedAgentAuthorisation() {
+  await db.$executeRaw`
+    INSERT INTO public.agent_migrations
+      ("profileId", status, "confirmedAt", "authorisedAt", "authorisedBy", "updatedAt")
+    SELECT a.id, 'AUTHORISED'::"AgentMigrationStatus", now(), now(), adm.id, now()
+    FROM public.profiles a
+    JOIN public."User" au ON au.id = a."legacyUserId" AND au.email = 'agent@proplink.test'
+    JOIN public.profiles adm ON adm.role = 'ADMIN'
+    JOIN public."User" du ON du.id = adm."legacyUserId" AND du.email = 'admin@proplink.test'
+    WHERE a.role = 'AGENT'
+      AND NOT EXISTS (SELECT 1 FROM public.agent_invites i WHERE i."acceptedProfileId" = a.id)
+    ON CONFLICT ("profileId") DO UPDATE
+      SET status = 'AUTHORISED',
+          "confirmedAt" = COALESCE(public.agent_migrations."confirmedAt", now()),
+          "authorisedAt" = COALESCE(public.agent_migrations."authorisedAt", now()),
+          "authorisedBy" = COALESCE(public.agent_migrations."authorisedBy", EXCLUDED."authorisedBy"),
+          "updatedAt" = now()
+  `;
+}
+
+/**
+ * Approved private Landlord listings with no Agent mandate yet, so the Agent
+ * marketplace (`/agent/marketplace`) has something to browse and propose on.
+ * Fixed IDs keep it idempotent; a re-seed restores each listing to APPROVED
+ * but leaves any proposals or mandates made against it alone.
+ */
+const SEED_LANDLORD_LISTINGS = [
+  {
+    id: "5eed0001-0000-4000-8000-000000000001",
+    title: "Fire-damaged mid-terrace, Leeds",
+    addressLine1: "14 Harehills Avenue",
+    city: "Leeds",
+    postcode: "LS8 4EU",
+    propertyKind: "PROPERTY",
+    propertyType: "Terraced house",
+    description:
+      "Three-bed mid-terrace. Kitchen fire in 2025; tenants moved out and the insurer has settled.",
+    defects:
+      "Smoke damage throughout ground floor, kitchen gutted, roof timbers above kitchen charred.",
+    requiredWork:
+      "Strip-out, new kitchen, partial roof replacement, rewire, replaster and redecorate.",
+    landAreaSqm: null,
+    desiredOutcome: "REFURBISHMENT",
+  },
+  {
+    id: "5eed0001-0000-4000-8000-000000000002",
+    title: "Probate semi with subsidence, Birmingham",
+    addressLine1: "62 Wellington Road",
+    city: "Birmingham",
+    postcode: "B20 2QH",
+    propertyKind: "PROPERTY",
+    propertyType: "Semi-detached house",
+    description:
+      "Inherited 1930s semi, empty for two years. Executors want a quick, managed sale or refurbishment.",
+    defects: "Stepped cracking to rear elevation, rising damp, dated services.",
+    requiredWork:
+      "Structural survey and underpinning, damp-proofing, new heating and full refurbishment.",
+    landAreaSqm: null,
+    desiredOutcome: "REFURBISHMENT",
+  },
+  {
+    id: "5eed0001-0000-4000-8000-000000000003",
+    title: "Former garage site, Bristol",
+    addressLine1: "Land rear of 3 Mill Lane",
+    city: "Bristol",
+    postcode: "BS5 9JH",
+    propertyKind: "LAND",
+    propertyType: "Brownfield plot",
+    description:
+      "Disused lock-up garages on a level plot with road frontage. Pre-app suggests 4–6 homes.",
+    defects:
+      "Asbestos garage roofs, possible ground contamination from former workshop use.",
+    requiredWork:
+      "Asbestos removal, demolition, ground investigation and a planning application.",
+    landAreaSqm: 1150,
+    desiredOutcome: "DEVELOPMENT_JV",
+  },
+  {
+    id: "5eed0001-0000-4000-8000-000000000004",
+    title: "Flood-damaged ground-floor flat, York",
+    addressLine1: "Flat 1, 9 Skeldergate",
+    city: "York",
+    postcode: "YO1 6DH",
+    propertyKind: "PROPERTY",
+    propertyType: "Flat",
+    description:
+      "Two-bed riverside flat, uninhabitable since the last flood. Long leasehold, 98 years left.",
+    defects: "Water damage to floors, walls and electrics; mould.",
+    requiredWork:
+      "Dry-out, flood-resilient floors and plaster, raised sockets, new kitchen and bathroom.",
+    landAreaSqm: null,
+    desiredOutcome: "REFURBISHMENT",
+  },
+] as const;
+
+async function seedLandlordListings() {
+  const [landlord, admin] = await Promise.all([
+    db.profile.findFirstOrThrow({
+      where: { legacyUser: { email: "landlord@proplink.test" } },
+      select: { id: true },
+    }),
+    db.profile.findFirstOrThrow({
+      where: { legacyUser: { email: "admin@proplink.test" } },
+      select: { id: true },
+    }),
+  ]);
+  const now = Date.now();
+  for (const [i, listing] of SEED_LANDLORD_LISTINGS.entries()) {
+    const reviewedAt = new Date(now - (i + 1) * 86_400_000);
+    const data = {
+      ...listing,
+      status: "APPROVED" as const,
+      submittedAt: new Date(reviewedAt.getTime() - 86_400_000),
+      reviewedAt,
+      reviewedBy: admin.id,
+      claimedBy: null,
+      claimedAt: null,
+      withdrawnAt: null,
+      rejectionReason: null,
+    };
+    await db.landlordListing.upsert({
+      where: { id: listing.id },
+      create: { ...data, ownerId: landlord.id, createdBy: landlord.id },
+      update: data,
+    });
+  }
+  return SEED_LANDLORD_LISTINGS.length;
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash("Password123!", 10);
 
   const userCount = await seedUsers(passwordHash);
+  await seedSuperAdmin();
+  await seedAgentAuthorisation();
 
   const agent = await db.user.findUniqueOrThrow({
     where: { email: "agent@proplink.test" },
@@ -679,13 +861,15 @@ async function main() {
   const savedCount = await seedSavedProperties();
   const comparableCount = await seedComparableSales();
   const buyerActivity = await seedBuyerActivity();
+  const landlordListingCount = await seedLandlordListings();
 
   console.log(
     `Seeded ${userCount} users, ${profiles.length} agent profiles, ` +
       `${SEED_LISTING_COUNT} listings, ${caseStudyCount} case studies, ` +
       `${appraisalCount} appraisals, ${enquiryCount} enquiries, ${savedCount} saved listings, ` +
       `${comparableCount} SAMPLE comparable sales (not Land Registry data — ADR-017), ` +
-      `${buyerActivity.viewings} viewing, ${buyerActivity.offers} offer, ${buyerActivity.messages} messages.`,
+      `${buyerActivity.viewings} viewing, ${buyerActivity.offers} offer, ${buyerActivity.messages} messages, ` +
+      `${landlordListingCount} private landlord listings.`,
   );
 }
 

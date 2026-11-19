@@ -142,7 +142,7 @@ export function ListingWizard({ agentProfiles, initial }: ListingWizardProps) {
         ))}
       </ol>
 
-      <div className="rounded-lg border border-line bg-white p-6">
+      <div className="rounded-2xl border border-line bg-white p-6">
         {step === 1 && <StepAddress state={state} onChange={patch} />}
         {step === 2 && <StepDetails state={state} onChange={patch} />}
         {step === 3 && <StepDistress state={state} onChange={patch} />}

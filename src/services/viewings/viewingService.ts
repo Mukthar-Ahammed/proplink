@@ -51,7 +51,11 @@ export async function requestViewing(
     return { ok: false as const, error: "Property not available for viewing" };
   }
   if (property.listingSource === "FLIPPER_RESALE") {
-    return { ok: false as const, error: "Direct viewing bookings for Flipper resale listings are not currently supported." };
+    return {
+      ok: false as const,
+      error:
+        "Direct viewing bookings for Flipper resale listings are not currently supported.",
+    };
   }
   const buyer = await db.user.findUnique({
     where: { id: buyerUserId },
@@ -86,6 +90,8 @@ export async function requestViewing(
       slotEnd: new Date(slotStart.getTime() + SLOT_MINUTES * 60_000),
     },
   });
+  const { recordViewingRequested } = await import("@/services/buyers/negotiation");
+  await recordViewingRequested(viewing.id, buyerUserId, slotStart);
 
   return { ok: true as const, viewing };
 }

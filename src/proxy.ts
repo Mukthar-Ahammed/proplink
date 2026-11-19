@@ -1,14 +1,39 @@
+import { randomBytes, randomUUID } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 
 import { db } from "@/lib/db";
+import { recordSecurityEvent } from "@/services/security/securityEvents";
+import { getServerEnv } from "@/env";
+import {
+  isSameOriginMutation,
+  isSignedWebhookRequest,
+  isStateChangingMethod,
+} from "@/lib/security/csrf";
+import {
+  buildContentSecurityPolicy,
+  isFlipperPath,
+  isPrivateResponsePath,
+} from "@/lib/security/headers";
+import {
+  enforceRequestRateLimit,
+  RateLimitBackendUnavailableError,
+} from "@/lib/security/rate-limit";
 import { createMiddlewareClient } from "@/lib/supabase/proxy";
+import { PORTAL_HOME } from "@/lib/portalHome";
 
 const GATES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/admin", roles: ["ADMIN"] },
   { prefix: "/agent", roles: ["AGENT"] },
   { prefix: "/investor", roles: ["INVESTOR"] },
   { prefix: "/buy", roles: ["BUYER"] },
+  { prefix: "/account-pending", roles: ["LANDLORD", "SOLICITOR", "ADVERTISER"] },
+  { prefix: "/verify", roles: ["LANDLORD", "INVESTOR"] },
+  { prefix: "/landlord", roles: ["LANDLORD"] },
+  { prefix: "/solicitor", roles: ["SOLICITOR"] },
 ];
+
+/** Public sign-in/sign-up entry points a signed-in user is redirected away from. */
+const AUTH_ENTRY_PATHS = new Set(["/login", "/register"]);
 
 /**
  * Refreshes Supabase Auth cookies and provides an optimistic portal gate.
@@ -17,24 +42,183 @@ const GATES: Array<{ prefix: string; roles: string[] }> = [
 export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   const { pathname } = request.nextUrl;
+  requestHeaders.delete("x-proplink-user-id");
+  const requestId = randomUUID();
+  const nonce = randomBytes(18).toString("base64");
+  const env = getServerEnv();
+  const supabaseOrigin = env.NEXT_PUBLIC_SUPABASE_URL
+    ? new URL(env.NEXT_PUBLIC_SUPABASE_URL).origin
+    : undefined;
+  const contentSecurityPolicy = buildContentSecurityPolicy(
+    nonce,
+    supabaseOrigin,
+    env.NODE_ENV !== "production",
+  );
+  requestHeaders.set("x-request-id", requestId);
+  requestHeaders.set("x-nonce", nonce);
+  requestHeaders.set("content-security-policy", contentSecurityPolicy);
   requestHeaders.set("x-pathname", pathname);
+
+  if (
+    isFlipperPath(pathname) &&
+    !(env.FLIPPER_FLOWS_ENABLED && env.FINANCIAL_PROMOTIONS_REVIEWED)
+  ) {
+    const response = pathname.startsWith("/api/")
+      ? NextResponse.json({ error: "Not found" }, { status: 404 })
+      : NextResponse.rewrite(new URL("/403", request.url), { status: 404 });
+    return secureResponse(response, request, requestId, nonce, contentSecurityPolicy);
+  }
+
   const { supabase, getResponse, applyCookies } = createMiddlewareClient(
     request,
     requestHeaders,
   );
+
+  const expectedOrigin = env.APP_ORIGIN ?? request.nextUrl.origin;
+  const isApiRequest = pathname.startsWith("/api/");
+  if (
+    !isSignedWebhookRequest(request.method, pathname) &&
+    !isSameOriginMutation(
+      request,
+      expectedOrigin,
+      isApiRequest && isStateChangingMethod(request.method),
+    )
+  ) {
+    void recordSecurityEvent("CSRF_REJECTED");
+    console.warn(
+      JSON.stringify({
+        event: "security.csrf_rejected",
+        requestId,
+        path: pathname,
+      }),
+    );
+    return secureResponse(
+      NextResponse.json({ error: "Request origin rejected" }, { status: 403 }),
+      request,
+      requestId,
+      nonce,
+      contentSecurityPolicy,
+    );
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   // The Admin authentication surface is intentionally separate from both the
   // public login page and the protected Admin portal.
-  if (pathname === "/admin/login" || pathname === "/admin-login") return getResponse();
+  requestHeaders.delete("x-proplink-user-id");
+  if (user?.id) requestHeaders.set("x-proplink-user-id", user.id);
+
+  let rateLimit;
+  try {
+    rateLimit = await enforceRequestRateLimit(request, user?.id);
+  } catch (error) {
+    if (!(error instanceof RateLimitBackendUnavailableError)) throw error;
+    return secureResponse(
+      NextResponse.json({ error: "Service temporarily unavailable" }, { status: 503 }),
+      request,
+      requestId,
+      nonce,
+      contentSecurityPolicy,
+    );
+  }
+  if (rateLimit?.degraded) {
+    console.warn(
+      JSON.stringify({
+        event: "security.rate_limit_degraded",
+        requestId,
+        routeClass: rateLimit.routeClass,
+      }),
+    );
+  }
+  if (rateLimit && !rateLimit.allowed) {
+    void recordSecurityEvent("RATE_LIMITED");
+    console.warn(
+      JSON.stringify({
+        event: "security.rate_limit_exceeded",
+        requestId,
+        routeClass: rateLimit.routeClass,
+        blocked: rateLimit.blocked,
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      }),
+    );
+    const response = NextResponse.json(
+      {
+        error: "Too many requests. Please try again later.",
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+      },
+      { status: 429 },
+    );
+    response.headers.set("Retry-After", String(rateLimit.retryAfterSeconds));
+    return secureResponse(response, request, requestId, nonce, contentSecurityPolicy);
+  }
+
+  if (pathname === "/admin/login" || pathname === "/admin-login") {
+    return secureResponse(
+      applyCookies(getResponse()),
+      request,
+      requestId,
+      nonce,
+      contentSecurityPolicy,
+    );
+  }
+
+  // A signed-in, verified user has no use for the public login/sign-up pages:
+  // send them to the portal their role owns (ADR-016), as every major site
+  // does, instead of showing a form for an account they already hold. Only a
+  // healthy profile is redirected; an inactive or inconsistent one falls
+  // through to the login page, so this can never loop with the portal gates
+  // below (which send such profiles back to /login).
+  //
+  // The landing page gets the same treatment for **admins only**. It is the
+  // public front door and its calls to action speak to visitors and portal
+  // users; an admin's home is the separate `/admin` workspace (ADR-073), so an
+  // admin who opens `/` or clicks the logo is taken back there. Other roles
+  // still see the landing page, with their portal in place of sign-up prompts.
+  const isAdminOnlyEntry = pathname === "/";
+  if ((AUTH_ENTRY_PATHS.has(pathname) || isAdminOnlyEntry) && user?.email_confirmed_at) {
+    const entryProfile = await db.profile.findUnique({
+      where: { id: user.id },
+      select: {
+        role: true,
+        active: true,
+        kycStatus: true,
+        legacyUser: { select: { role: true, active: true, kycStatus: true } },
+      },
+    });
+    if (
+      entryProfile?.active &&
+      entryProfile.legacyUser?.active &&
+      entryProfile.role === entryProfile.legacyUser.role &&
+      entryProfile.kycStatus === entryProfile.legacyUser.kycStatus &&
+      (!isAdminOnlyEntry || entryProfile.role === "ADMIN")
+    ) {
+      return secureResponse(
+        applyCookies(
+          NextResponse.redirect(new URL(PORTAL_HOME[entryProfile.role], request.url)),
+        ),
+        request,
+        requestId,
+        nonce,
+        contentSecurityPolicy,
+      );
+    }
+  }
 
   const gate = GATES.find(
     (candidate) =>
       pathname === candidate.prefix || pathname.startsWith(`${candidate.prefix}/`),
   );
-  if (!gate) return getResponse();
+  if (!gate) {
+    return secureResponse(
+      applyCookies(getResponse()),
+      request,
+      requestId,
+      nonce,
+      contentSecurityPolicy,
+    );
+  }
 
   if (!user?.email_confirmed_at) {
     const login = new URL(
@@ -42,7 +226,13 @@ export async function proxy(request: NextRequest) {
       request.url,
     );
     login.searchParams.set("callbackUrl", pathname);
-    return applyCookies(NextResponse.redirect(login));
+    return secureResponse(
+      applyCookies(NextResponse.redirect(login)),
+      request,
+      requestId,
+      nonce,
+      contentSecurityPolicy,
+    );
   }
 
   const profile = await db.profile.findUnique({
@@ -62,20 +252,76 @@ export async function proxy(request: NextRequest) {
     profile.role !== profile.legacyUser.role ||
     profile.kycStatus !== profile.legacyUser.kycStatus
   ) {
-    return applyCookies(
-      NextResponse.redirect(
-        new URL(gate.prefix === "/admin" ? "/admin/login" : "/login", request.url),
+    return secureResponse(
+      applyCookies(
+        NextResponse.redirect(
+          new URL(gate.prefix === "/admin" ? "/admin/login" : "/login", request.url),
+        ),
       ),
+      request,
+      requestId,
+      nonce,
+      contentSecurityPolicy,
     );
   }
 
   if (!gate.roles.includes(profile.role)) {
-    return applyCookies(
-      NextResponse.rewrite(new URL("/403", request.url), { status: 403 }),
+    return secureResponse(
+      applyCookies(NextResponse.rewrite(new URL("/403", request.url), { status: 403 })),
+      request,
+      requestId,
+      nonce,
+      contentSecurityPolicy,
     );
   }
 
-  return getResponse();
+  return secureResponse(
+    applyCookies(getResponse()),
+    request,
+    requestId,
+    nonce,
+    contentSecurityPolicy,
+  );
+}
+
+function secureResponse(
+  response: NextResponse,
+  request: NextRequest,
+  requestId: string,
+  nonce: string,
+  contentSecurityPolicy: string,
+): NextResponse {
+  response.headers.set("Content-Security-Policy", contentSecurityPolicy);
+  response.headers.set("X-Request-ID", requestId);
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+  response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  response.headers.set("X-Frame-Options", "DENY");
+  if (process.env.NODE_ENV === "production") {
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
+  }
+
+  const { pathname } = request.nextUrl;
+  if (isPrivateResponsePath(pathname)) {
+    response.headers.set(
+      "Cache-Control",
+      "private, no-store, max-age=0, must-revalidate",
+    );
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  if (pathname === "/auth/confirm" || pathname === "/reset-password") {
+    response.headers.set("Referrer-Policy", "no-referrer");
+  }
+  // ADR-076: the hosted demo holds test data only and is never indexed.
+  if (process.env.PROPLINK_ENV === "demo") {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  }
+  return response;
 }
 
 export const config = {

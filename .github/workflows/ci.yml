@@ -7,23 +7,97 @@ on:
 
 jobs:
   quality:
-    name: Typecheck, lint, unit tests
+    name: Typecheck, lint, unit tests, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run check:client-secrets
+      # High/critical advisories fail unless accepted, with a review date, in
+      # security/audit-allowlist.json.
+      - run: npm run audit:check
       - run: npm run typecheck
       - run: npm run lint
-      - run: npm run format:check
+      # Files this change touches must be formatted. Older unformatted files
+      # are left for a single bulk reformat (see docs/phases/PHASE-1-REPORT.md).
+      - run: npm run format:check:changed
+        env:
+          FORMAT_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before }}
+      # Unit tests; database integration tests skip themselves without DATABASE_URL.
       - run: npm run test
+      # Production build with placeholder values: catches build breaks on every
+      # change. Nothing is contacted; the database URL points nowhere.
+      - run: npm run build
+        env:
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:1/ci
+          DIRECT_URL: postgresql://ci:ci@127.0.0.1:1/ci
+          AUTH_SECURITY_SECRET: ci-placeholder-secret-not-used-anywhere-0000
+          APP_ORIGIN: http://127.0.0.1:3000
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ci-placeholder
+          UPSTASH_REDIS_REST_URL: https://ci.invalid
+          UPSTASH_REDIS_REST_TOKEN: ci-placeholder
+          RESEND_API_KEY: ci-placeholder
+          TURNSTILE_SECRET_KEY: ci-placeholder
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: ci-placeholder
+          COMPANIES_HOUSE_API_KEY: ci-placeholder
+          SUMSUB_APP_TOKEN: ci-placeholder
+          SUMSUB_SECRET_KEY: ci-placeholder
+          SUMSUB_WEBHOOK_SECRET: ci-placeholder
+          # Phase 2-3 providers default to the real adapters in production builds.
+          ANTHROPIC_API_KEY: ci-placeholder
+          STRIPE_SECRET_KEY: sk_test_ci_placeholder
+          STRIPE_WEBHOOK_SECRET: whsec_ci_placeholder
+          ESIGN_API_KEY: ci-placeholder
+          ESIGN_CLIENT_ID: ci-placeholder
 
+  # Phase 7 Task 1: static analysis. Fails on ERROR-severity findings; the
+  # reviewed exceptions carry a nosemgrep comment with the reason.
+  sast:
+    name: Static analysis (Semgrep)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep:1.97.0
+    steps:
+      - uses: actions/checkout@v4
+      - run: >-
+          semgrep scan --metrics=off --error --severity ERROR
+          --config p/typescript --config p/nextjs --config p/react
+          --config p/secrets --config p/owasp-top-ten src
+
+  secrets:
+    name: Secret scanning
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Browser tests sign in through Supabase Auth, so they need a dedicated CI
+  # Supabase project with the seeded test accounts. They run once the
+  # repository variable E2E_ENABLED is "true" and the E2E_* secrets are set
+  # (docs/HUMAN_TASKS.md); until then this job is skipped, not failed.
   e2e:
     name: Playwright E2E
+    if: vars.E2E_ENABLED == 'true'
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+      DIRECT_URL: ${{ secrets.E2E_DIRECT_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.E2E_SUPABASE_PUBLISHABLE_KEY }}
+      PROPLINK_ENV: development
+      PROPLINK_LOCAL_SUPABASE_PROJECT_REF: ${{ secrets.E2E_SUPABASE_PROJECT_REF }}
+      AUTH_SECURITY_SECRET: ${{ secrets.E2E_AUTH_SECURITY_SECRET }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,7 +105,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # Phase 7 Task 6: phone (Chromium), Firefox and WebKit smoke projects.
+      - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run build
       - run: npm run test:e2e
         env:

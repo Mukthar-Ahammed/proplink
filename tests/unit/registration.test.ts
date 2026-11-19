@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { registrationSchema } from "@/services/users/registration";
+
+vi.mock("server-only", () => ({}));
 
 const valid = {
   email: "Test@Example.COM",
@@ -16,12 +18,13 @@ describe("registrationSchema", () => {
     expect(result.role).toBe("INVESTOR");
   });
 
-  it.each(["AGENT", "INVESTOR", "BUYER"])("allows self-serve role %s", (role) => {
+  it.each(["INVESTOR", "BUYER"])("allows self-serve role %s", (role) => {
     expect(registrationSchema.safeParse({ ...valid, role }).success).toBe(true);
   });
 
-  it("rejects ADMIN registration (seed-only role)", () => {
+  it("rejects Agent and Admin registration (invite-only / seed-only roles)", () => {
     expect(registrationSchema.safeParse({ ...valid, role: "ADMIN" }).success).toBe(false);
+    expect(registrationSchema.safeParse({ ...valid, role: "AGENT" }).success).toBe(false);
   });
 
   it("rejects passwords under 8 characters", () => {

@@ -1,15 +1,16 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
-vi.mock("@/lib/authz", () => ({ requireRole: vi.fn() }));
+// Phase 6 (ADR-058): the route checks the listing-moderation permission.
+vi.mock("@/lib/authz", () => ({ requireAdminPermission: vi.fn() }));
 vi.mock("@/services/listings/moderationService", () => ({ approveListing: vi.fn() }));
 
-import { requireRole } from "@/lib/authz";
+import { requireAdminPermission } from "@/lib/authz";
 import { approveListing } from "@/services/listings/moderationService";
 import { ListingServiceError } from "@/services/listings/errors";
 import { POST } from "@/app/api/admin/listings/[id]/approve/route";
 
-const mockRequireRole = vi.mocked(requireRole);
+const mockRequireRole = vi.mocked(requireAdminPermission);
 const mockApprove = vi.mocked(approveListing);
 
 function request() {
@@ -90,5 +91,16 @@ describe("POST /api/admin/listings/[id]/approve", () => {
 
     const res = await POST(request(), ctx());
     expect(res.status).toBe(404);
+  });
+});
+
+describe("Admin permission (Phase 6)", () => {
+  it("asks for LISTING_MODERATION", async () => {
+    mockRequireRole.mockResolvedValue({
+      ok: false,
+      response: NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    });
+    await POST(request(), ctx());
+    expect(mockRequireRole).toHaveBeenCalledWith("LISTING_MODERATION");
   });
 });

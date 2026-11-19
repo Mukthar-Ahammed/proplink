@@ -8,6 +8,14 @@ const mocks = vi.hoisted(() => ({
   clearRateLimits: vi.fn(),
   consumeRateLimits: vi.fn(),
   createClient: vi.fn(),
+  getCookie: vi.fn(),
+  deleteCookie: vi.fn(),
+  setCookie: vi.fn(),
+  tokenWasConsumed: vi.fn(),
+  recordConsumedToken: vi.fn(),
+  verifyOtp: vi.fn(),
+  getUser: vi.fn(),
+  updateUser: vi.fn(),
   rateLimitsExceeded: vi.fn(),
   signInWithPassword: vi.fn(),
   signOut: vi.fn(),
@@ -16,7 +24,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock("server-only", () => ({}));
 vi.mock("next/headers", () => ({
   headers: async () => new Headers(),
-  cookies: async () => ({ get: vi.fn(), set: vi.fn(), delete: vi.fn() }),
+  cookies: async () => ({
+    get: mocks.getCookie,
+    set: mocks.setCookie,
+    delete: mocks.deleteCookie,
+  }),
 }));
 vi.mock("next/navigation", () => ({
   redirect: vi.fn((destination: string) => {
@@ -26,19 +38,31 @@ vi.mock("next/navigation", () => ({
 vi.mock("@/lib/auth", () => ({ auth: mocks.auth }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/services/auth/supabaseAuthService", async (importOriginal) => {
-  const actual = await importOriginal<
-    typeof import("@/services/auth/supabaseAuthService")
-  >();
+  const actual =
+    await importOriginal<typeof import("@/services/auth/supabaseAuthService")>();
   return {
     ...actual,
     bridgeVerifiedUser: mocks.bridgeVerifiedUser,
     clearRateLimits: mocks.clearRateLimits,
     consumeRateLimits: mocks.consumeRateLimits,
+    recordConsumedToken: mocks.recordConsumedToken,
+    tokenWasConsumed: mocks.tokenWasConsumed,
+    recoveryGrantIsValid: (grant: string | undefined, userId: string) =>
+      grant === "valid-recovery-grant" && userId === VERIFIED_AUTH_USER.id,
     rateLimitsExceeded: mocks.rateLimitsExceeded,
   };
 });
+vi.mock("@/services/security/turnstile", () => ({
+  verifyTurnstileToken: vi.fn(async () => ({ ok: true, provider: "mock" })),
+}));
 
-import { adminLoginAction, loginAction } from "@/app/(auth)/actions";
+import {
+  adminLoginAction,
+  confirmAuthToken,
+  loginAction,
+  logoutAction,
+  resetPasswordAction,
+} from "@/app/(auth)/actions";
 
 const VERIFIED_AUTH_USER = {
   id: "00000000-0000-4000-8000-000000000001",
@@ -74,10 +98,25 @@ describe("separate Admin authentication surface", () => {
       data: { user: VERIFIED_AUTH_USER, session: { access_token: "redacted" } },
       error: null,
     });
+    mocks.getUser.mockResolvedValue({
+      data: { user: VERIFIED_AUTH_USER },
+      error: null,
+    });
+    mocks.verifyOtp.mockResolvedValue({
+      data: { user: VERIFIED_AUTH_USER },
+      error: null,
+    });
+    mocks.tokenWasConsumed.mockResolvedValue(false);
+    mocks.recordConsumedToken.mockResolvedValue(undefined);
+    mocks.updateUser.mockResolvedValue({ error: null });
+    mocks.getCookie.mockReturnValue({ value: "valid-recovery-grant" });
     mocks.createClient.mockResolvedValue({
       auth: {
         signInWithPassword: mocks.signInWithPassword,
         signOut: mocks.signOut,
+        verifyOtp: mocks.verifyOtp,
+        getUser: mocks.getUser,
+        updateUser: mocks.updateUser,
       },
     });
   });
@@ -130,5 +169,76 @@ describe("separate Admin authentication surface", () => {
         "/buy",
       ),
     ).resolves.toEqual({ kind: "success", destination: "/buy" });
+  });
+
+  it.each(["//evil.example", "/\\evil.example", "https://evil.example", "/ok\\..\\x"])(
+    "never returns off-site to %s",
+    async (requested) => {
+      mocks.auth.mockResolvedValue(sessionFor(Role.BUYER));
+      await expect(
+        loginAction(
+          { email: "verified@example.test", password: "correct-password" },
+          requested,
+        ),
+      ).resolves.toEqual({ kind: "success", destination: "/portal" });
+    },
+  );
+
+  it("returns a retry duration after repeated failed login attempts", async () => {
+    mocks.rateLimitsExceeded.mockResolvedValue(true);
+
+    await expect(
+      loginAction({
+        email: "verified@example.com",
+        password: "incorrect-password",
+      }),
+    ).resolves.toMatchObject({
+      kind: "limited",
+      cooldownSeconds: 900,
+    });
+    expect(mocks.signInWithPassword).not.toHaveBeenCalled();
+  });
+
+  it("verifies email through Supabase OTP, bridges the identity, and signs out", async () => {
+    await expect(confirmAuthToken("one-time-hash", "email")).rejects.toThrow(
+      "redirect:/login?confirmed=1",
+    );
+
+    expect(mocks.verifyOtp).toHaveBeenCalledWith({
+      token_hash: "one-time-hash",
+      type: "email",
+    });
+    expect(mocks.recordConsumedToken).toHaveBeenCalledWith(
+      "one-time-hash",
+      "email",
+      VERIFIED_AUTH_USER.id,
+    );
+    expect(mocks.bridgeVerifiedUser).toHaveBeenCalledWith(VERIFIED_AUTH_USER);
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  it("requires the verified recovery grant before updating a password", async () => {
+    const result = await resetPasswordAction("new-secure-password");
+
+    expect(result).toMatchObject({ kind: "success" });
+    expect(mocks.updateUser).toHaveBeenCalledWith({
+      password: "new-secure-password",
+    });
+    expect(mocks.deleteCookie).toHaveBeenCalledWith("proplink-recovery-grant");
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
+  });
+
+  it("rejects a reset after the Supabase session has expired", async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null }, error: null });
+
+    await expect(resetPasswordAction("new-secure-password")).resolves.toMatchObject({
+      kind: "error",
+    });
+    expect(mocks.updateUser).not.toHaveBeenCalled();
+  });
+
+  it("logs out through Supabase and redirects to the public site", async () => {
+    await expect(logoutAction()).rejects.toThrow("redirect:/");
+    expect(mocks.signOut).toHaveBeenCalledWith({ scope: "local" });
   });
 });

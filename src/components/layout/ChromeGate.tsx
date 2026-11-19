@@ -3,23 +3,24 @@
 import { usePathname } from "next/navigation";
 
 /**
- * Hides the global chrome (`SiteHeader`, `SiteFooter`) on the auth routes,
- * which carry their own full-bleed shell — see `<AuthShell>`.
+ * Decides where the global chrome (`SiteHeader`, `SiteFooter`) appears and how.
  *
- * A client gate rather than a `(site)` route group. The group would be the more
- * idiomatic answer, but it means moving every non-auth route under
- * `src/app/(site)/`, which drags `@/app/agent/actions` — imported by a component
- * and a unit test — to `@/app/(site)/agent/actions`. The cost of the gate is one
- * `auth()` call still running for a header that is then discarded, on two
- * unauthenticated pages. That is the cheaper trade.
+ * - **Bare routes** (the auth flow) carry their own full-page shell —
+ *   see `<AuthShell>` — so the chrome is not rendered at all. Whole-group, not
+ *   just `/login` and `/register`: chrome that reappears when you click
+ *   "Forgot password?" reads as a bug.
+ * - **`/admin/*`** wears `<AdminShell>`, which has its own header and sign-out,
+ *   so the public chrome is hidden there too rather than stacked above it.
+ * - **Overlay routes** open on a coloured hero that should run up behind the
+ *   floating header pill, so the header takes no layout space there (ADR-071).
+ *   The landing page and the agent, buyer, investor and landlord portals (whose mastheads carry
+ *   a photo banner); elsewhere the pill sits in flow above the page.
  *
- * `usePathname` resolves during SSR in the App Router, so the chrome is absent
- * from the server-rendered HTML too — there is no flash of a header that then
- * disappears.
- *
- * Whole-group, not just `/login` and `/register`: password reset and email
- * verification are the same flow, and chrome that reappears when you click
- * "Forgot password?" reads as a bug.
+ * A client gate because `<SiteHeader>` is an async server component rendered by
+ * the layout, which has no pathname. `usePathname` resolves during SSR, so there
+ * is no flash of chrome that then disappears. The variant is published as a data
+ * attribute and the header's utilities (`group-data-[overlay=true]/chrome:…`)
+ * respond to it.
  */
 const BARE_ROUTES = [
   "/login",
@@ -31,38 +32,24 @@ const BARE_ROUTES = [
   "/forgot-password",
   "/reset-password",
   "/verify-email",
+  // Invite acceptance pages render `<AuthShell>` too; a signed-in admin
+  // opening the link would otherwise see their own header above the card.
+  "/invite/agent",
+  "/invite/solicitor",
 ];
 
-/**
- * Routes whose chrome sits *on* the page rather than above it — each opens with
- * a full-bleed dark band that runs to the top of the viewport, so the header
- * floats on it and inverts to white (ADR-007, ADR-014, ADR-015). `/` opens on
- * the `brand` band; `/marketplace` on a `primary` masthead.
- *
- * Exact match, so `/marketplace/[id]` is deliberately excluded: the detail page
- * opens on its gallery and needs the header in flow above it.
- *
- * Carried as a data attribute on a wrapper rather than a prop because
- * `<SiteHeader>` is an async server component: the layout renders it, and the
- * layout has no pathname. `<ChromeGate>` is already the client boundary that
- * knows the route, so it publishes the variant and the header's own utilities
- * (`group-data-[overlay=true]/chrome:…`) respond to it. Utilities, not
- * hand-written CSS — see `plateWash.ts` for why a bespoke class in
- * `globals.css` is a trap here.
- */
-const OVERLAY_ROUTES = ["/", "/marketplace"];
+const SHELL_PREFIXES = ["/admin"];
 
-/**
- * Route *prefixes* whose every page opens on a portal masthead (ADR-016), so
- * `/agent/listings` inverts the header exactly as `/agent` does. Kept separate
- * from the exact list because `/marketplace` must invert while
- * `/marketplace/[id]` must not.
- */
-const OVERLAY_PREFIXES = ["/agent", "/investor", "/buy", "/admin"];
+const OVERLAY_ROUTES = ["/"];
+/** Every page under these opens on a banner masthead (`<PortalShell banner>`). */
+const OVERLAY_PREFIXES = ["/agent", "/buy", "/investor", "/landlord"];
 
 export function ChromeGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   if (BARE_ROUTES.includes(pathname)) return null;
+  if (SHELL_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return null;
+  }
 
   return (
     <div

@@ -2,80 +2,130 @@
 
 /*
  * PropLink UK brand design tokens — single source of truth.
- * Defined in docs/ARCHITECTURE.md §Design tokens. Do not hardcode hex values
+ * Defined in docs/ARCHITECTURE.md §Design tokens and
+ * docs/design/WEBSITE-DESIGN-SPEC.md (ADR-071). Do not hardcode hex values
  * in components; use the Tailwind utilities these tokens generate
- * (bg-primary, text-body, border-line, bg-surface, ...).
+ * (bg-accent, text-body, border-line, bg-surface, ...).
  */
 @theme {
+  /*
+   * Clean, light, editorial palette: white grounds, quiet neutral surfaces,
+   * hairline borders, and one deep teal that carries every primary action.
+   * Contrast figures are against white unless stated.
+   */
   --color-background: #ffffff;
-  --color-primary: #1b1f1e; /* near-black ink */
-  --color-secondary: #33403c; /* slate green-grey */
-  --color-accent: #b4573c; /* terracotta ember — the palette's only non-neutral */
-  --color-surface: #f2f5f4; /* warm off-white */
-  --color-pale: #e6efee; /* mist */
+  --color-surface: #f5f7f6; /* quiet neutral panel — filter rails, stat tiles, inputs */
+  --color-pale: #e8f2ef; /* teal mist — selected states, soft buttons, info panels */
+  --color-primary: #141a18; /* ink — headings, dark text (17.6:1) */
+  --color-secondary: #3b4643; /* secondary emphasis, icons (9.9:1) */
+  --color-body: #2c3431; /* body text (12.6:1) */
+  --color-muted: #5f6b67; /* captions and helper text (5.4:1) */
+  --color-line: #e3e8e6; /* hairline borders ("border" in the brief; `border-line`) */
 
-  /* Full-bleed marketing band ground (ADR-014). Deep petrol: it sits with
-     `pale`'s green-grey undertone, is not a return to the navy ADR-009 left,
-     and makes `accent` read as a warm counterpoint rather than a clash.
+  /* The one brand hue: deep teal. Primary buttons, links, active states, focus.
+     White on it 6.4:1; it on `pale` 5.6:1. */
+  --color-accent: #0f6b5e;
+  --color-accent-strong: #0a5148; /* hover/pressed for `accent` fills (8.9:1) */
 
-     **Band ground only** — the hero and the closing CTA. It is never type, never
-     a product surface, and `accent` must never be *text* on it (2.05:1); ember
-     on this ground is a fill with white type (4.81:1), nothing else.
-     White on it is 9.86:1, `pale` 8.43:1. */
-  --color-brand: #0e4a55;
+  /* Dark card ground: the closing CTA and the bento's dark card. Never body
+     text. White on it 16.9:1; `pale` on it 14.6:1. */
+  --color-brand: #0f1f1c;
+
   --color-success: #0a6640;
   --color-intel: #0099a8;
   --color-warning: #a05a00;
   --color-danger: #c0152a;
-  --color-body: #2f3733; /* warm dark grey — the blue-grey clashed with the new ground */
-  --color-muted: #5f6b66;
-  --color-line: #d5dcd9; /* "border" in the brief; renamed to avoid clashing with Tailwind's border-* utilities */
+  /* Paid-feature gold: the crown on subscription-only items (e.g. Messages).
+     Decorative mark, always beside a text label; not a text colour. */
+  --color-premium: #c8961e;
+  --color-premium-soft: #fbf3dc;
 
   --font-sans:
-    var(--font-figtree), Calibri, ui-sans-serif, system-ui, -apple-system, "Segoe UI",
-    sans-serif;
+    var(--font-figtree), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Marketing display type (`font-display`). Same family as `--font-sans` since
-     ADR-012 — the two are separated by weight and scale, not by face. Kept as a
-     distinct token rather than collapsed into it because the *role* is still
-     real: this marks marketing headline type, and re-pointing it at a display
-     face later is one line here instead of an edit at every heading. */
+  /* Headline type (`font-display`): the same family as `--font-sans`, set
+     tighter and heavier. Kept as its own token so headlines can be re-pointed
+     in one line. */
   --font-display: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
 
-  /* The hero's scroll cue (`animate-scroll-hint`): a short segment that falls
-     down a hairline and fades, once every few seconds. Declared in `@theme`
-     rather than as a bare `@keyframes` block so Tailwind owns it and emits it
-     with the utility — a hand-added rule in this file goes stale under
-     Turbopack's Tailwind cache (see `src/lib/plateWash.ts`). Restart
-     `npm run dev` after editing anything in `@theme`. */
-  --animate-scroll-hint: scroll-hint 2.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  /* The italic serif accent (`font-serif italic`): one or two words inside a
+     headline, never a whole sentence and never UI text. */
+  --font-serif: var(--font-instrument-serif), ui-serif, Georgia, serif;
 
-  /* The ecosystem band's scrolling index (`animate-marquee`). The track holds
-     two identical copies of its content, so translating by exactly -50% lands on
-     the seam and the loop is invisible. Same `@theme` reasoning as above. */
-  --animate-marquee: marquee 52s linear infinite;
+  /* Entrance rise for marketing blocks (`animate-rise`). Declared in `@theme`
+     so Tailwind owns and emits it — a hand-added `@keyframes` rule goes stale
+     under Turbopack's Tailwind cache. Always pair with `motion-reduce:animate-none`.
+     Restart `npm run dev` after editing anything in `@theme`. */
+  --animate-rise: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  /* Hero UK map: `blip` is a pin's expanding ring; `blip-pop` makes a "new
+     listing" pin appear, hold, then fade so pins come and go across the map. */
+  --animate-blip: blip 2.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-blip-pop: blip-pop 7s ease-in-out infinite both;
 
-  @keyframes marquee {
+  @keyframes blip {
     from {
-      transform: translate3d(0, 0, 0);
+      transform: scale(1);
+      opacity: 0.6;
     }
     to {
-      transform: translate3d(-50%, 0, 0);
+      transform: scale(4.5);
+      opacity: 0;
     }
   }
 
-  @keyframes scroll-hint {
-    0% {
-      transform: translateY(-100%);
+  @keyframes blip-pop {
+    0%,
+    100% {
+      transform: scale(0);
       opacity: 0;
     }
-    35% {
+    6% {
+      transform: scale(1.35);
       opacity: 1;
     }
-    100% {
-      transform: translateY(220%);
+    10%,
+    70% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    80% {
+      transform: scale(0);
       opacity: 0;
     }
+  }
+
+  /* Password show/hide toggle: the eye squashes shut and opens again. */
+  --animate-blink: blink 0.32s ease-in-out;
+
+  @keyframes blink {
+    0%,
+    100% {
+      transform: scaleY(1);
+    }
+    45% {
+      transform: scaleY(0.1);
+    }
+  }
+
+  @keyframes rise {
+    from {
+      transform: translateY(16px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
   }
 }
 
@@ -83,4 +133,224 @@ body {
   background: var(--color-background);
   color: var(--color-body);
   font-family: var(--font-sans);
+}
+
+/*
+ * Landing hero ground: a soft mesh of token-coloured radial glows over a
+ * teal-mist → white wash. Starts at the very top so the translucent header
+ * pill sits on the same surface as the hero, and ends on `background` so the
+ * next section continues it without a seam.
+ */
+@utility hero-ground {
+  background:
+    radial-gradient(
+      55% 45% at 8% 6%,
+      color-mix(in oklab, var(--color-accent) 18%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 55% at 82% 28%,
+      color-mix(in oklab, var(--color-intel) 20%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      40% 35% at 55% 0%,
+      color-mix(in oklab, var(--color-pale) 90%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      35% 30% at 30% 75%,
+      color-mix(in oklab, var(--color-accent) 8%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      var(--color-pale) 0%,
+      color-mix(in oklab, var(--color-pale) 45%, var(--color-background)) 60%,
+      var(--color-background) 100%
+    );
+}
+
+/*
+ * Portal banner ground: the landing hero's glows, laid over a photo instead of
+ * a flat wash. Teal mist is heaviest on the left, where the headline sits, and
+ * clears to the right so the photo's subject shows; the bottom fades to
+ * `background` so the content below continues it without a seam.
+ */
+@utility banner-ground {
+  background:
+    radial-gradient(
+      55% 60% at 6% 10%,
+      color-mix(in oklab, var(--color-accent) 20%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      40% 55% at 70% 20%,
+      color-mix(in oklab, var(--color-intel) 16%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--color-pale) 94%, transparent) 0%,
+      color-mix(in oklab, var(--color-pale) 72%, transparent) 38%,
+      color-mix(in oklab, var(--color-pale) 18%, transparent) 72%,
+      transparent 100%
+    ),
+    linear-gradient(
+      180deg,
+      transparent 55%,
+      color-mix(in oklab, var(--color-background) 70%, transparent) 88%,
+      var(--color-background) 100%
+    );
+}
+
+/* Hairline grid over the hero ground, masked to fade out at the bottom and edges. */
+@utility hero-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--color-accent) 7%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-accent) 7%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 20%, #000 30%, transparent 75%);
+}
+
+/*
+ * Auth page ground (`<AuthShell>`): the landing hero's glow mesh, spread over
+ * the whole viewport — teal top-left, cyan bottom-right, a mist halo behind
+ * the centred card — so the full-screen form never sits on a flat fill.
+ */
+@utility auth-ground {
+  background:
+    radial-gradient(
+      60% 65% at 0% 0%,
+      color-mix(in oklab, var(--color-accent) 42%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      60% 65% at 100% 100%,
+      color-mix(in oklab, var(--color-intel) 38%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 50% at 100% 0%,
+      color-mix(in oklab, var(--color-intel) 24%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 50% at 0% 100%,
+      color-mix(in oklab, var(--color-accent) 22%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      30% 32% at 50% 50%,
+      color-mix(in oklab, var(--color-background) 55%, transparent),
+      transparent 80%
+    ),
+    linear-gradient(160deg, var(--color-pale) 0%, var(--color-surface) 100%);
+}
+
+/* Hairline grid over the auth ground: strongest around the edges, fading
+   out behind the card so the form stays quiet. */
+@utility auth-grid {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--color-accent) 10%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-accent) 10%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 48px 48px;
+  background-position: center;
+  mask-image: radial-gradient(ellipse 70% 75% at 50% 50%, transparent 25%, #000 85%);
+}
+
+/*
+ * Closing CTA ground, laid over the restoration photo: a teal glow from the
+ * top, a cyan hint bottom-right, and a brand-ink wash that is heaviest behind
+ * the centred headline so white text stays legible over any part of the image.
+ */
+@utility cta-ground {
+  background:
+    radial-gradient(
+      60% 70% at 50% 0%,
+      color-mix(in oklab, var(--color-accent) 55%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 60% at 100% 100%,
+      color-mix(in oklab, var(--color-intel) 35%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      70% 80% at 50% 50%,
+      color-mix(in oklab, var(--color-brand) 70%, transparent),
+      transparent 100%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklab, var(--color-brand) 72%, transparent) 0%,
+      color-mix(in oklab, var(--color-brand) 88%, transparent) 100%
+    );
+}
+
+/* How it works: the tinted stage behind each step illustration (a teal glow
+   over a mist wash with a faded dot grid). */
+@utility step-stage {
+  background:
+    radial-gradient(
+        circle at 1px 1px,
+        color-mix(in oklab, var(--color-accent) 14%, transparent) 1px,
+        transparent 0
+      )
+      0 0 / 18px 18px,
+    radial-gradient(
+      70% 70% at 50% 45%,
+      color-mix(in oklab, var(--color-background) 85%, transparent),
+      transparent 75%
+    ),
+    radial-gradient(
+      60% 60% at 85% 0%,
+      color-mix(in oklab, var(--color-intel) 14%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      160deg,
+      var(--color-pale),
+      color-mix(in oklab, var(--color-pale) 40%, var(--color-background))
+    );
+}
+
+/* How it works: the dark final-step card (brand ink with a teal glow top-left
+   and a cyan hint bottom-right). */
+@utility step-finale {
+  background:
+    radial-gradient(
+      55% 80% at 0% 0%,
+      color-mix(in oklab, var(--color-accent) 70%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      45% 70% at 100% 100%,
+      color-mix(in oklab, var(--color-intel) 30%, transparent),
+      transparent 70%
+    ),
+    var(--color-brand);
+}
+
+/* Password fields carry their own show/hide toggle (`PasswordInput`), so hide
+   Edge's built-in reveal button to avoid two eyes in one field. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
 }

@@ -60,6 +60,11 @@ export interface SearchResultItem {
   distressTags: DistressTag[];
   lat: number | null;
   lng: number | null;
+  /** The listing agent's Admin-awarded badge (criterion 6, ADR-027). */
+  agentVerified: boolean;
+  /** Published reviews of the listing agent (ADR-054); null average when none. */
+  agentRatingAverage: number | null;
+  agentRatingCount: number;
 }
 
 export interface SearchResult {

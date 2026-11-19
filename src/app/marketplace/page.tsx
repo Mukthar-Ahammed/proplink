@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
+import { auth } from "@/lib/auth";
 import { parseSearchParams, searchService } from "@/services/search";
+import { searchResultForViewer } from "@/services/listings/locationVisibility";
 import { PropertyCard } from "@/components/marketplace/PropertyCard";
 import { SearchFilters } from "@/components/marketplace/SearchFilters";
 import { SearchPagination } from "@/components/marketplace/SearchPagination";
+import { UkListingsMap } from "@/components/marketing/UkListingsMap";
+import { isFinancialPromotionsReviewed } from "@/env";
 
 export const metadata: Metadata = {
   title: "Distressed property marketplace",
   description:
-    "Search UK distressed property: probate sales, repossessions, fire and flood damage, subsidence and part-complete refurbishments — with EPC ratings and target ROI on every listing.",
+    "Search UK distressed property: probate sales, repossessions, fire and flood damage, subsidence and part-complete refurbishments — with EPC ratings and disclosed defects.",
   alternates: { canonical: "/marketplace" },
 };
 
@@ -38,44 +42,74 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
   }
 
   const params = parseSearchParams(sp);
-  const results = await searchService.search(params);
+  const [rawResults, session, liveCount] = await Promise.all([
+    searchService.search(params),
+    auth(),
+    // Unfiltered total for the masthead; the filter panel shows the match count.
+    searchService.count({}),
+  ]);
+  // Signed-out visitors see the postcode district, not the full postcode (ADR-022).
+  const results = searchResultForViewer(
+    rawResults,
+    session?.user ? { userId: session.user.id } : null,
+  );
+  const financialPromotionsReviewed = isFinancialPromotionsReviewed();
 
   return (
     <main className="flex flex-1 flex-col">
-      {/* Masthead — the reference's dark banded opening, at tool scale rather
-          than marketing scale (ADR-015). `<ChromeGate>` lists `/marketplace` as
-          an overlay route, so the header floats on this band and inverts to
-          white exactly as it does on the landing hero.
+      {/* Masthead (ADR-071): a compact teal-mist banner that echoes the landing
+          hero — live count, headline, one line of context and a cropped slice
+          of the dotted UK map with its listing pins. Kept short on purpose: on
+          a search page the results are the content. */}
+      <section className="mx-auto w-full max-w-7xl px-4 pt-4 sm:px-6 lg:px-8">
+        <div className="relative isolate overflow-hidden rounded-[2rem] border border-white bg-gradient-to-br from-pale via-pale/70 to-surface px-6 py-8 sm:px-10 sm:py-10">
+          <div
+            aria-hidden
+            className="absolute -top-24 right-0 -z-10 h-80 w-80 rounded-full bg-accent/15 blur-3xl"
+          />
+          <div
+            aria-hidden
+            className="pointer-events-none absolute top-[-55%] right-8 -z-10 hidden w-[260px] md:block lg:right-16"
+          >
+            <UkListingsMap className="h-auto w-full" />
+          </div>
 
-          The band is where the template's language lives on this page. Below it
-          the layout stays dense and scannable on purpose: giant type and deep
-          vertical rhythm would make a search page measurably worse to use. */}
-      <section className="bg-primary pt-28 pb-14 sm:pt-32">
-        <div className="mx-auto w-full max-w-7xl px-6">
-          <p className="text-[11px] tracking-[0.22em] text-pale/60 uppercase">
-            The catalogue
-          </p>
-          <div className="mt-5 flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
-            <h1 className="font-display max-w-2xl text-[clamp(2rem,4vw,3.25rem)] leading-[1.02] font-semibold tracking-[-0.03em] text-white">
-              Distressed property <span className="font-light">marketplace</span>
+          <div className="max-w-xl">
+            <p className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3.5 py-1.5 text-xs font-semibold text-accent ring-1 ring-accent/15 backdrop-blur-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-60 motion-reduce:animate-none" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+              </span>
+              {liveCount.toLocaleString("en-GB")} live{" "}
+              {liveCount === 1 ? "listing" : "listings"} across the UK
+            </p>
+            <h1 className="font-display mt-4 text-[clamp(1.875rem,3.4vw,2.75rem)] leading-[1.08] font-semibold tracking-[-0.03em] text-primary">
+              Distressed property{" "}
+              <span className="font-serif font-normal tracking-normal text-accent italic">
+                marketplace
+              </span>
             </h1>
-            <p className="max-w-sm text-sm leading-relaxed text-pale/75">
-              Every listing shows its EPC rating, disclosed defects and the agent&apos;s
-              target refurbishment ROI.
+            <p className="mt-3 max-w-md text-sm leading-relaxed text-secondary sm:text-base">
+              Probate sales, repossessions, damage and unfinished refurbs — every listing
+              shows its EPC rating and disclosed defects.
             </p>
           </div>
         </div>
       </section>
 
-      <div className="mx-auto w-full max-w-7xl px-6 py-10">
+      <div className="mx-auto w-full max-w-7xl px-4 pt-8 pb-10 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
-          <SearchFilters initial={params} resultCount={results.total} />
+          <SearchFilters
+            initial={params}
+            resultCount={results.total}
+            financialPromotionsReviewed={financialPromotionsReviewed}
+          />
 
           <section aria-label="Search results">
             {results.items.length === 0 ? (
               <div
                 data-testid="no-results"
-                className="rounded-lg border border-dashed border-line bg-surface px-6 py-16 text-center"
+                className="rounded-3xl border border-dashed border-line bg-surface px-6 py-20 text-center"
               >
                 <p className="font-semibold text-primary">
                   No properties match that search

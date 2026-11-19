@@ -4,7 +4,7 @@ import { cn } from "@/lib/cn";
 type Tone = "default" | "success" | "warning" | "danger" | "intel";
 
 const TONES: Record<Tone, string> = {
-  default: "bg-pale text-secondary",
+  default: "bg-surface text-secondary ring-1 ring-line ring-inset",
   success: "bg-success/15 text-success",
   // 10%, not 15%, like its siblings: at /15 the warning tint (#f1e6d9 over
   // white) puts #a05a00 at 4.31:1, just under WCAG AA's 4.5:1 for this badge's
@@ -29,7 +29,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold",
+        "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
         TONES[tone],
         className,
       )}
@@ -65,11 +65,13 @@ export function EpcBadge({ rating }: { rating: EpcRating | null | undefined }) {
     <span
       data-testid="epc-badge"
       className={cn(
-        "inline-flex h-6 w-6 items-center justify-center rounded text-xs font-bold",
+        "inline-flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-xs font-bold",
         EPC_COLOURS[rating],
       )}
       title={`EPC rating ${rating}`}
     >
+      {/* Phase 7 Task 6: a bare letter is announced as just "C". */}
+      <span className="sr-only">EPC rating </span>
       {rating}
     </span>
   );

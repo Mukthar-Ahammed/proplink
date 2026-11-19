@@ -7,19 +7,19 @@
  * layout's `metadataBase` (Task 2.5).
  */
 function resolveSiteUrl(): string {
-  const raw = process.env.NEXTAUTH_URL?.trim();
+  const raw = process.env.APP_ORIGIN?.trim();
   if (!raw) return "http://localhost:3000";
 
   // Tolerate a bare host (e.g. "my-site.netlify.app") missing the scheme
-  // NEXTAUTH_URL requires — a misconfiguration that would otherwise throw
-  // `TypeError: Invalid URL` deep in metadata collection for every route.
+  // The URL constructor requires — a misconfiguration that would otherwise
+  // throw deep in metadata collection for every route.
   const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
 
   try {
     return new URL(withScheme).toString();
   } catch {
     console.error(
-      `[siteUrl] NEXTAUTH_URL is set but not a valid URL: ${JSON.stringify(raw)}. Falling back to http://localhost:3000.`,
+      `[siteUrl] APP_ORIGIN is set but not a valid URL: ${JSON.stringify(raw)}. Falling back to http://localhost:3000.`,
     );
     return "http://localhost:3000";
   }

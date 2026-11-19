@@ -16,12 +16,8 @@ interface Stat {
  * The landing page's headline figures — the successor to the full-width
  * `MetricsStrip` that used to sit above the site header (ADR-005).
  *
- * Zero-valued metrics are omitted deliberately: pre-launch, three of the
- * sprint plan's four global metrics are structurally 0 (no syndicate has
- * completed, so no success fee has accrued), and a hero advertising "0
- * completed deals · £0 fees" actively damages the credibility the strip
- * exists to build. They reappear on their own the moment they have a value,
- * so nothing needs changing at launch.
+ * Only verified inventory metrics are public here. ROI is omitted until the
+ * financial-promotions review flag is approved.
  */
 export async function HeroStats() {
   const [metrics, landing] = await Promise.all([getGlobalMetrics(), getLandingStats()]);
@@ -44,50 +40,25 @@ export async function HeroStats() {
   if (landing.avgTargetRoiPct != null) {
     stats.push({ value: `${landing.avgTargetRoiPct}%`, label: "Avg target ROI" });
   }
-  if (metrics.completedSyndicateDeals > 0) {
-    stats.push({
-      value: String(metrics.completedSyndicateDeals),
-      label: "Completed Syndicate Deals",
-    });
-  }
-  if (metrics.accruedSuccessFeesGBP > 0) {
-    stats.push({
-      value: formatCompactPenceGBP(metrics.accruedSuccessFeesGBP),
-      label: "Accrued Success Fees",
-      title: formatPenceGBP(metrics.accruedSuccessFeesGBP),
-    });
-  }
-  if (metrics.vettedReferralsRouted > 0) {
-    stats.push({
-      value: String(metrics.vettedReferralsRouted),
-      label: "Vetted Referrals Routed",
-    });
-  }
-
   // An empty database would otherwise render an empty bordered box.
   if (stats.length === 0) return null;
 
   return (
-    // Editorial stat row: oversized display figures over hairline-topped
-    // columns, centered to match the heading block above.
+    // A compact frosted card in the hero copy column, left-aligned with the
+    // text above it; one column per figure, however many survive the zero filter.
     <dl
       data-testid="hero-stats"
-      className="mx-auto mt-14 grid max-w-3xl grid-cols-1 gap-x-10 gap-y-10 text-center sm:grid-cols-3"
+      className="grid auto-cols-fr grid-flow-col divide-x divide-line rounded-2xl border border-white bg-white/70 shadow-lg shadow-accent/5 backdrop-blur-md"
     >
       {stats.map((stat) => (
         // `flex-col-reverse` renders the figure above its caption while keeping
         // the `dt`-before-`dd` order the spec (and screen readers) expect.
-        <div
-          key={stat.label}
-          className="flex flex-col-reverse items-center justify-center text-center border-t border-line pt-4"
-        >
-          <dt className="mt-2 text-[11px] tracking-[0.14em] text-muted uppercase">
-            {stat.label}
-          </dt>
+        <div key={stat.label} className="flex flex-col-reverse items-start px-5 py-4">
+          <dt className="mt-0.5 text-xs text-muted sm:text-sm">{stat.label}</dt>
           <dd
             data-testid="metric-value"
             title={stat.title}
-            className="font-display text-4xl font-semibold tracking-tight text-primary sm:text-5xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {stat.value}
           </dd>

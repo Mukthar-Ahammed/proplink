@@ -4,15 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-
-async function parseErrorMessage(res: Response): Promise<string> {
-  const data = await res.json().catch(() => null);
-  if (data?.issues) {
-    const first = Object.values(data.issues as Record<string, string[]>).flat()[0];
-    if (first) return first;
-  }
-  return data?.error ?? `Request failed (${res.status})`;
-}
+import { TurnstileWidget } from "@/components/security/TurnstileWidget";
+import { RateLimitCountdown } from "@/components/security/RateLimitCountdown";
+import { readApiError } from "@/lib/security/rate-limit-client";
 
 interface EnquiryFormProps {
   propertyId: string;
@@ -23,8 +17,7 @@ interface EnquiryFormProps {
  * Public `/marketplace/[id]` "Post Enquiry" form (Task 2.5 brief). `Enquiry.
  * fromUserId` is a required column (`prisma/schema.prisma`) — there is no
  * anonymous-enquiry path, so a logged-out visitor sees a login prompt instead
- * of the form (mirrors `/agents/[id]`'s `<AppraisalForm>` not-logged-in
- * pattern). The "name" field the brief describes is read-only, sourced from
+ * of the form. The "name" field the brief describes is read-only, sourced from
  * the session (there is nowhere to persist an edited one — the account IS
  * the identity behind `fromUserId`); `contactPhone` is the one genuinely
  * optional/editable extra, folded into the stored message server-side
@@ -36,10 +29,13 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
   const [contactPhone, setContactPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState<number>();
+  const [turnstileToken, setTurnstileToken] = useState<string>();
+  const [turnstileResetKey, setTurnstileResetKey] = useState(0);
 
   if (!sessionUser) {
     return (
-      <div className="rounded-lg border border-line bg-white p-4 text-sm text-muted">
+      <div className="rounded-2xl bg-surface p-4 text-sm text-muted">
         <Link href="/login" className="text-accent underline">
           Log in
         </Link>{" "}
@@ -54,6 +50,7 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    setRetryAfterSeconds(undefined);
     try {
       const res = await fetch("/api/enquiries", {
         method: "POST",
@@ -62,26 +59,27 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
           propertyId,
           message: message.trim(),
           ...(contactPhone.trim() ? { contactPhone: contactPhone.trim() } : {}),
+          turnstileToken,
         }),
       });
       if (!res.ok) {
-        setError(await parseErrorMessage(res));
+        const apiError = await readApiError(res);
+        setError(apiError.message);
+        setRetryAfterSeconds(apiError.retryAfterSeconds);
         return;
       }
       toast("Enquiry sent", "success");
       setMessage("");
       setContactPhone("");
+      setTurnstileToken(undefined);
+      setTurnstileResetKey((key) => key + 1);
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      aria-label="Post enquiry"
-      className="max-w-lg space-y-3 rounded-lg border border-line bg-white p-4"
-    >
+    <form onSubmit={onSubmit} aria-label="Post enquiry" className="space-y-3">
       <div>
         <span className="block text-xs font-medium uppercase tracking-wide text-muted">
           From
@@ -102,7 +100,7 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
           rows={4}
           required
           placeholder="I'd like to know more about this property…"
-          className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+          className="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
         />
       </div>
 
@@ -116,13 +114,18 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
           value={contactPhone}
           onChange={(e) => setContactPhone(e.target.value)}
           placeholder="07700 900123"
-          className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+          className="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
         />
       </div>
+
+      <TurnstileWidget onToken={setTurnstileToken} resetKey={turnstileResetKey} />
 
       {error && (
         <p role="alert" className="text-sm font-medium text-danger">
           {error}
+          {retryAfterSeconds ? (
+            <RateLimitCountdown key={retryAfterSeconds} seconds={retryAfterSeconds} />
+          ) : null}
         </p>
       )}
 

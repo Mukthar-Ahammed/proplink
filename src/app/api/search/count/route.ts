@@ -9,8 +9,7 @@ import { parseSearchParams, searchService } from "@/services/search";
  * "N properties" label on every slider drag and keystroke, and fetching a page
  * of rows to render a number would be pure waste.
  */
-// TODO(H1.5): rate-limit with @upstash/ratelimit once Upstash keys exist —
-// this is the highest-frequency public endpoint in the app.
+// The global proxy applies the public-search rate limit before this handler.
 export async function GET(request: Request) {
   const params = parseSearchParams(new URL(request.url).searchParams);
   const count = await searchService.count(params);

@@ -1,7 +1,8 @@
+import { isRecentlyAuthenticated, REAUTH_MESSAGE } from "@/services/auth/mfa";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { requirePageRole, requireRole } from "@/lib/authz";
+import { requireAdminPagePermission, requireAdminPermission } from "@/lib/authz";
 import { getUserDetails, setUserActive } from "@/services/admin/users";
 import { Role } from "@/generated/prisma/enums";
 import { Card, CardBody, CardTitle } from "@/components/ui/card";
@@ -15,12 +16,20 @@ export const metadata = { title: "Admin — User detail | PropLink" };
 
 async function changeAccountState(formData: FormData) {
   "use server";
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("SUSPENSION");
   if (!authz.ok) return;
+  // Phase 1 Task 11 (ADR-030): destructive Admin actions need a recent check.
+  if (!isRecentlyAuthenticated(authz.session.user)) {
+    throw new Error(`${REAUTH_MESSAGE} Go to /mfa?reauth=1`);
+  }
   const result = await setUserActive({
-    actorUserId: authz.session.user.id,
+    actor: {
+      profileId: authz.session.user.authUserId,
+      legacyUserId: authz.session.user.id,
+    },
     userId: String(formData.get("userId")),
     active: formData.get("nextActive") === "true",
+    reason: String(formData.get("reason") ?? ""),
   });
   if (!result.ok) throw new Error(result.error);
   revalidatePath(`/admin/users/${String(formData.get("userId"))}`);
@@ -32,7 +41,7 @@ export default async function AdminUserDetailPage({
 }: {
   params: Promise<{ userId: string }>;
 }) {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("SUSPENSION");
   const { userId } = await params;
   const details = await getUserDetails(userId);
   if (!details) notFound();
@@ -48,7 +57,7 @@ export default async function AdminUserDetailPage({
       <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/admin/users"
-          className="text-sm font-semibold text-brand hover:underline"
+          className="text-sm font-semibold text-accent hover:underline"
         >
           ← Back to users
         </Link>
@@ -135,7 +144,7 @@ export default async function AdminUserDetailPage({
                 <Link
                   key={agent.id}
                   href={`/admin/agents/${agent.id}`}
-                  className="rounded-md border border-line p-4 hover:border-brand"
+                  className="rounded-xl border border-line p-4 hover:border-brand"
                 >
                   <div className="font-semibold text-primary">{agent.agencyName}</div>
                   <div className="mt-1 text-sm text-muted">
@@ -168,7 +177,7 @@ export default async function AdminUserDetailPage({
                   </div>
                   <Link
                     href={`/admin/kyc/${submission.id}`}
-                    className="text-sm font-semibold text-brand hover:underline"
+                    className="text-sm font-semibold text-accent hover:underline"
                   >
                     Open KYC review
                   </Link>

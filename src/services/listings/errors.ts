@@ -9,7 +9,8 @@ export type ListingErrorCode =
   | "FORBIDDEN" // authenticated, but does not own the resource
   | "TRANSITION_INVALID" // status machine / role rule rejected the transition
   | "LIMIT_EXCEEDED" // Subscription.listingLimit reached
-  | "PROFILE_INACTIVE"; // owned, but the AgentProfile is deactivated
+  | "PROFILE_INACTIVE" // owned, but the AgentProfile is deactivated
+  | "COMPANY_UNVERIFIED"; // invited Agent has not passed the company check (OD-19)
 
 export class ListingServiceError extends Error {
   code: ListingErrorCode;
@@ -28,6 +29,7 @@ const HTTP_STATUS_BY_CODE: Record<ListingErrorCode, number> = {
   TRANSITION_INVALID: 409,
   LIMIT_EXCEEDED: 409,
   PROFILE_INACTIVE: 403,
+  COMPANY_UNVERIFIED: 403,
 };
 
 /** Shared by every /api/listings route handler so error mapping stays consistent. */

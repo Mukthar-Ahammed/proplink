@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { config } from "dotenv";
 import pg from "pg";
+import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 config({ path: ".env.local", quiet: true });
 config({ quiet: true });
@@ -19,6 +20,10 @@ const projectUrlValue = process.env.NEXT_PUBLIC_SUPABASE_URL;
 if (!connectionString || !projectUrlValue) {
   throw new Error("DIRECT_URL and NEXT_PUBLIC_SUPABASE_URL are required");
 }
+assertConfiguredSupabaseProject({
+  ...process.env,
+  DIRECT_URL: connectionString,
+});
 
 const projectUrl = new URL(projectUrlValue);
 const databaseUrl = new URL(connectionString);

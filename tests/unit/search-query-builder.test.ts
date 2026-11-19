@@ -64,7 +64,7 @@ describe("buildSearchQuery — scalar filters", () => {
   });
 
   it("filters on minRoiPct", () => {
-    const { text, values } = buildSearchQuery({ minRoiPct: 15 });
+    const { text, values } = buildSearchQuery({ minRoiPct: 15 }, true);
 
     expect(text).toContain(`"targetRoiPct" >=`);
     expect(values).toContain(15);
@@ -198,9 +198,18 @@ describe("buildSearchQuery — sorting", () => {
   });
 
   it("sorts by ROI descending — highest return first", () => {
-    const { text } = buildSearchQuery({ sort: "roi" });
+    const { text } = buildSearchQuery({ sort: "roi" }, true);
 
     expect(text).toContain(`ORDER BY p."targetRoiPct" DESC`);
+  });
+
+  it("omits public ROI values and ignores ROI filters until reviewed", () => {
+    const { text, values } = buildSearchQuery({ minRoiPct: 15, sort: "roi" }, false);
+
+    expect(text).toContain("NULL::integer AS");
+    expect(text).not.toContain(`"targetRoiPct" >=`);
+    expect(text).not.toContain(`ORDER BY p."targetRoiPct"`);
+    expect(values).not.toContain(15);
   });
 
   it("sorts by ts_rank when relevance is requested with a query", () => {
@@ -277,20 +286,23 @@ describe("buildSearchCountQuery", () => {
 
 describe("buildSearchQuery — combinations", () => {
   it("ANDs every supplied filter together in one query", () => {
-    const { text, values } = buildSearchQuery({
-      q: "probate terrace",
-      maxPriceGBP: 20_000_000,
-      epcBands: [EpcRating.D, EpcRating.E],
-      region: "Greater Manchester",
-      propertyType: PropertyType.RESIDENTIAL,
-      minBedrooms: 3,
-      minRoiPct: 12,
-      distressTags: [DistressTag.PROBATE, DistressTag.DAMP],
-      centre: { lat: 53.4808, lng: -2.2426, radiusKm: 10 },
-      sort: "relevance",
-      page: 2,
-      pageSize: 10,
-    });
+    const { text, values } = buildSearchQuery(
+      {
+        q: "probate terrace",
+        maxPriceGBP: 20_000_000,
+        epcBands: [EpcRating.D, EpcRating.E],
+        region: "Greater Manchester",
+        propertyType: PropertyType.RESIDENTIAL,
+        minBedrooms: 3,
+        minRoiPct: 12,
+        distressTags: [DistressTag.PROBATE, DistressTag.DAMP],
+        centre: { lat: 53.4808, lng: -2.2426, radiusKm: 10 },
+        sort: "relevance",
+        page: 2,
+        pageSize: 10,
+      },
+      true,
+    );
 
     for (const fragment of [
       `"status" IN`,

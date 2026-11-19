@@ -1,21 +1,28 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/authz";
-import { Role, FlipperResaleStatus, InvestorType } from "@/generated/prisma/enums";
+import { requireAdminPermission } from "@/lib/authz";
+import { FlipperResaleStatus, InvestorType } from "@/generated/prisma/enums";
 import { getAdminResaleQueue } from "@/services/admin/flipperResaleAdminService";
 
 export async function GET(request: Request) {
-  const authResult = await requireRole(Role.ADMIN);
+  const authResult = await requireAdminPermission("LISTING_MODERATION");
   if (!authResult.ok) return authResult.response;
 
   const url = new URL(request.url);
-  const statusParam = (url.searchParams.get("status") as FlipperResaleStatus | "ALL" | null) ?? undefined;
-  const investorTypeParam = (url.searchParams.get("investorType") as InvestorType | "ALL" | null) ?? undefined;
+  const statusParam =
+    (url.searchParams.get("status") as FlipperResaleStatus | "ALL" | null) ?? undefined;
+  const investorTypeParam =
+    (url.searchParams.get("investorType") as InvestorType | "ALL" | null) ?? undefined;
   const searchParam = url.searchParams.get("search") ?? undefined;
-  const sortParam = (url.searchParams.get("sort") as "oldest" | "newest" | null) ?? undefined;
-  const pageParam = url.searchParams.get("page") ? parseInt(url.searchParams.get("page")!, 10) : undefined;
-  const pageSizeParam = url.searchParams.get("pageSize") ? parseInt(url.searchParams.get("pageSize")!, 10) : undefined;
+  const sortParam =
+    (url.searchParams.get("sort") as "oldest" | "newest" | null) ?? undefined;
+  const pageParam = url.searchParams.get("page")
+    ? parseInt(url.searchParams.get("page")!, 10)
+    : undefined;
+  const pageSizeParam = url.searchParams.get("pageSize")
+    ? parseInt(url.searchParams.get("pageSize")!, 10)
+    : undefined;
 
   const result = await getAdminResaleQueue(
     {

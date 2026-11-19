@@ -1,6 +1,9 @@
+import Form from "next/form";
+import { SubmitButton } from "@/components/ui/submit-button";
+import { isRecentlyAuthenticated, REAUTH_MESSAGE } from "@/services/auth/mfa";
 import { revalidatePath } from "next/cache";
 import Link from "next/link";
-import { requirePageRole, requireRole } from "@/lib/authz";
+import { requireAdminPagePermission, requireAdminPermission } from "@/lib/authz";
 import { listUsers, setUserActive } from "@/services/admin/users";
 import { Badge } from "@/components/ui/badge";
 import { DataTable } from "@/components/ui/data-table";
@@ -25,13 +28,20 @@ function pageHref(params: Record<string, string | undefined>, page: number) {
 
 async function toggleActive(formData: FormData) {
   "use server";
-  const authz = await requireRole("ADMIN");
+  const authz = await requireAdminPermission("SUSPENSION");
   if (!authz.ok) return;
-
+  // Phase 1 Task 11 (ADR-030): destructive Admin actions need a recent check.
+  if (!isRecentlyAuthenticated(authz.session.user)) {
+    throw new Error(`${REAUTH_MESSAGE} Go to /mfa?reauth=1`);
+  }
   const result = await setUserActive({
-    actorUserId: authz.session.user.id,
+    actor: {
+      profileId: authz.session.user.authUserId,
+      legacyUserId: authz.session.user.id,
+    },
     userId: String(formData.get("userId")),
     active: formData.get("nextActive") === "true",
+    reason: String(formData.get("reason") ?? ""),
   });
   if (!result.ok) throw new Error(result.error);
   revalidatePath("/admin/users");
@@ -49,7 +59,7 @@ export default async function AdminUsersPage({
     page?: string;
   }>;
 }) {
-  await requirePageRole("ADMIN");
+  await requireAdminPagePermission("SUSPENSION");
   const params = await searchParams;
   const role = ROLES.includes(params.role as Role) ? (params.role as Role) : undefined;
   const active =
@@ -81,9 +91,9 @@ export default async function AdminUsersPage({
         description="Inspect registered accounts, manage role permissions, and control account activation states."
       />
 
-      <form
-        method="get"
-        className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-white p-4 shadow-xs"
+      <Form
+        action=""
+        className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4 shadow-xs"
       >
         <div className="flex-1 min-w-[200px]">
           <label
@@ -97,7 +107,7 @@ export default async function AdminUsersPage({
             name="q"
             defaultValue={params.q ?? ""}
             placeholder="Search by email or name..."
-            className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="mt-1 w-full rounded-xl border border-line px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
           />
         </div>
         <div>
@@ -111,7 +121,7 @@ export default async function AdminUsersPage({
             id="role"
             name="role"
             defaultValue={role ?? ""}
-            className="mt-1 rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
           >
             <option value="">All roles</option>
             {ROLES.map((r) => (
@@ -132,7 +142,7 @@ export default async function AdminUsersPage({
             id="active"
             name="active"
             defaultValue={params.active ?? ""}
-            className="mt-1 rounded-md border border-line bg-white px-3 py-2 text-sm"
+            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
           >
             <option value="">All states</option>
             <option value="true">Active</option>
@@ -150,7 +160,7 @@ export default async function AdminUsersPage({
             id="investorType"
             name="investorType"
             defaultValue={params.investorType ?? ""}
-            className="mt-1 rounded-md border border-line bg-white px-3 py-2 text-sm"
+            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
           >
             <option value="">All subtypes</option>
             <option value="FLIPPER">Flipper</option>
@@ -169,7 +179,7 @@ export default async function AdminUsersPage({
             id="kycStatus"
             name="kycStatus"
             defaultValue={params.kycStatus ?? ""}
-            className="mt-1 rounded-md border border-line bg-white px-3 py-2 text-sm"
+            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
           >
             <option value="">All KYC</option>
             <option value="NOT_STARTED">Not started</option>
@@ -178,21 +188,22 @@ export default async function AdminUsersPage({
             <option value="REJECTED">Rejected</option>
           </select>
         </div>
-        <button
+        <SubmitButton
           type="submit"
-          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-accent transition-colors"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong transition-colors"
         >
           Filter
-        </button>
+        </SubmitButton>
         <Link
           href="/admin/users"
-          className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-secondary hover:border-brand"
+          className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-secondary hover:border-brand"
         >
           Clear filters
         </Link>
-      </form>
+      </Form>
 
       <DataTable
+        label="Users"
         rows={users}
         rowKey={(u) => u.id}
         emptyMessage="No matching users found in directory."

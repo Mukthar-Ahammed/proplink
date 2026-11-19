@@ -8,7 +8,7 @@ const ROUTE_LABELS: Record<string, string> = {
   "/admin/kyc": "KYC Review Queue",
   "/admin/moderation": "Listing Moderation",
   "/admin/ads": "Ad Campaigns",
-  "/admin/fees": "Fee Settings",
+  "/admin/fees": "Fees & Billing",
   "/admin/users": "Users Directory",
   "/admin/resales": "Flipper Resales",
 };
@@ -43,21 +43,28 @@ export function AdminBreadcrumbs({ items: customItems }: AdminBreadcrumbsProps =
     segments.forEach((seg, index) => {
       currentPath += `/${seg}`;
       const isLast = index === segments.length - 1;
-      const label = ROUTE_LABELS[currentPath] ?? (seg.charAt(0).toUpperCase() + seg.slice(1));
+      const label =
+        ROUTE_LABELS[currentPath] ?? seg.charAt(0).toUpperCase() + seg.slice(1);
       computedItems.push({ href: currentPath, label, isLast });
     });
     items = computedItems;
   }
 
   return (
-    <nav aria-label="Breadcrumb" className="flex items-center space-x-1.5 text-xs text-muted">
+    <nav
+      aria-label="Breadcrumb"
+      className="flex items-center space-x-1.5 text-xs text-muted"
+    >
       <Link href="/admin" className="hover:text-primary font-medium transition-colors">
         Admin Portal
       </Link>
       {items.map((item, idx) => {
         if (item.href === "/admin") return null;
         return (
-          <div key={item.href ?? item.label ?? idx} className="flex items-center space-x-1.5">
+          <div
+            key={item.href ?? item.label ?? idx}
+            className="flex items-center space-x-1.5"
+          >
             <span className="text-line select-none">/</span>
             {item.isLast || !item.href ? (
               <span className="font-semibold text-primary" aria-current="page">

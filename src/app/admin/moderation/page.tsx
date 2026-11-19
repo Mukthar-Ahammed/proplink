@@ -1,13 +1,12 @@
 import "server-only";
 
-import { requirePageRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPagePermission } from "@/lib/authz";
 import { ModerationQueueClient } from "./ModerationQueueClient";
 
 export const metadata = { title: "Admin — Agent Listing Moderation | PropLink" };
 
 export default async function ModerationPage() {
-  await requirePageRole(Role.ADMIN);
+  await requireAdminPagePermission("LISTING_MODERATION");
 
   return <ModerationQueueClient />;
 }

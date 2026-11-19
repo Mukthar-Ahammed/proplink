@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
   MAX_CASE_STUDY_MONEY_PENCE,
-  createAppraisalSchema,
   createCaseStudySchema,
   updateCaseStudySchema,
 } from "@/services/agents/validation";
@@ -86,30 +85,5 @@ describe("updateCaseStudySchema", () => {
     // assert the parsed value carries no agentProfileId through, rather than
     // asserting failure (that would only hold if this ever adopts .strict()).
     expect(result.success && "agentProfileId" in result.data).toBe(false);
-  });
-});
-
-describe("createAppraisalSchema", () => {
-  const valid = { rating: 4, review: "Responsive, kept us updated at every stage." };
-
-  it("accepts a valid appraisal", () => {
-    expect(createAppraisalSchema.safeParse(valid).success).toBe(true);
-  });
-
-  it("rejects a rating outside 1..5", () => {
-    expect(createAppraisalSchema.safeParse({ ...valid, rating: 0 }).success).toBe(false);
-    expect(createAppraisalSchema.safeParse({ ...valid, rating: 6 }).success).toBe(false);
-  });
-
-  it("rejects a non-integer rating", () => {
-    expect(createAppraisalSchema.safeParse({ ...valid, rating: 3.5 }).success).toBe(
-      false,
-    );
-  });
-
-  it("rejects a review that is too short", () => {
-    expect(createAppraisalSchema.safeParse({ ...valid, review: "Good" }).success).toBe(
-      false,
-    );
   });
 });

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextResponse } from "next/server";
 
+vi.mock("server-only", () => ({}));
 vi.mock("@/lib/authz", () => ({ requireRole: vi.fn() }));
 vi.mock("@/services/enquiries/enquiryService", () => ({ createEnquiry: vi.fn() }));
 

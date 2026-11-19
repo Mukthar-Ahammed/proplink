@@ -1,0 +1,16 @@
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Generated test ledger holds fake test-user IDs only"
+paths = ['''^\.phase3-test-ledger\.json$''']
+
+[[allowlists]]
+description = "Empty environment variable declarations in documented examples"
+paths = [
+  '''^docs/PROPLINK_PHASE_PROMPTS\.md$''',
+  '''^docs/PropLink_Sprint_Plan_Claude_Code\.md$''',
+  '''^\.env\.example$''',
+]
+regexes = ['''^\s*[A-Za-z_][A-Za-z0-9_]*=\s*(?:#.*)?$''']
+regexTarget = "line"

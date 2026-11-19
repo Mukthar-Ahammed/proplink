@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { RateLimitCountdown } from "@/components/security/RateLimitCountdown";
+import { readApiError } from "@/lib/security/rate-limit-client";
 
 /**
  * The buyer's write actions on a listing (ADR-017, Task 5.7): request a viewing,
@@ -19,10 +22,10 @@ import { useState } from "react";
 const TAB =
   "border-b-2 pb-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 const INPUT =
-  "mt-1 w-full rounded-lg border border-line bg-background px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none";
+  "mt-1 w-full rounded-2xl border border-line bg-background px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none";
 const LABEL = "text-[11px] font-semibold tracking-[0.12em] text-muted uppercase";
 const SUBMIT =
-  "rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
+  "rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-strong disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
 
 type Action = "viewing" | "offer" | "message";
 
@@ -50,11 +53,13 @@ export function BuyerActions({
   const [body, setBody] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState<number>();
   const [done, setDone] = useState<string | null>(null);
 
   async function post(url: string, payload: unknown, success: string) {
     setBusy(true);
     setError(null);
+    setRetryAfterSeconds(undefined);
     setDone(null);
     try {
       const res = await fetch(url, {
@@ -63,8 +68,9 @@ export function BuyerActions({
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(data?.error ?? "Something went wrong. Try again.");
+        const apiError = await readApiError(res);
+        setError(apiError.message);
+        setRetryAfterSeconds(apiError.retryAfterSeconds);
         return;
       }
       setDone(success);
@@ -80,7 +86,7 @@ export function BuyerActions({
     <section
       data-testid="buyer-actions"
       aria-labelledby="buyer-actions-heading"
-      className="rounded-2xl border border-line bg-surface p-6"
+      className="rounded-3xl border border-line bg-white p-6"
     >
       <h2 id="buyer-actions-heading" className="text-lg font-semibold text-primary">
         Take it further
@@ -202,14 +208,25 @@ export function BuyerActions({
               Send message
             </button>
             <p className="mt-3 text-xs text-muted">
-              Messages are saved and delivered, but do not yet update live.
+              The agent&apos;s replies appear in{" "}
+              <Link href="/messages" className="underline">
+                Messages
+              </Link>
+              .
             </p>
           </div>
         )}
       </div>
 
       <p aria-live="polite" className="mt-4 text-sm">
-        {error ? <span className="text-danger">{error}</span> : null}
+        {error ? (
+          <span className="text-danger">
+            {error}
+            {retryAfterSeconds ? (
+              <RateLimitCountdown key={retryAfterSeconds} seconds={retryAfterSeconds} />
+            ) : null}
+          </span>
+        ) : null}
         {done ? <span className="text-success">{done}</span> : null}
       </p>
     </section>

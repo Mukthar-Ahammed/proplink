@@ -161,12 +161,17 @@ export function CaseStudyManager({
       )}
 
       {caseStudies.length === 0 && !adding && (
-        <p className="text-sm text-muted">No case studies yet.</p>
+        <p className="rounded-2xl border border-dashed border-line bg-surface/60 px-5 py-6 text-center text-sm text-muted">
+          No case studies yet.
+        </p>
       )}
 
       <ul className="space-y-3">
         {caseStudies.map((cs) => (
-          <li key={cs.id} className="rounded-lg border border-line bg-pale/40 p-4">
+          <li
+            key={cs.id}
+            className="rounded-2xl border border-line bg-white p-5 transition-shadow hover:shadow-md"
+          >
             {editingId === cs.id ? (
               <form
                 onSubmit={(e) => {
@@ -202,7 +207,7 @@ export function CaseStudyManager({
                 <div>
                   <label
                     htmlFor={`description-${cs.id}`}
-                    className="block text-sm font-medium text-body"
+                    className="block text-sm font-medium text-primary"
                   >
                     Description
                   </label>
@@ -213,7 +218,7 @@ export function CaseStudyManager({
                       setEditForm((f) => ({ ...f, description: e.target.value }))
                     }
                     rows={3}
-                    className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                    className="mt-1 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-body transition-colors focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none"
                   />
                 </div>
                 <Input
@@ -240,11 +245,13 @@ export function CaseStudyManager({
             ) : (
               <>
                 <div className="flex items-start justify-between gap-3">
-                  <h4 className="font-semibold text-primary">{cs.title}</h4>
-                  <div className="flex gap-3 text-xs font-medium">
+                  <h4 className="min-w-0 font-semibold break-words text-primary">
+                    {cs.title}
+                  </h4>
+                  <div className="flex shrink-0 gap-2">
                     <button
                       type="button"
-                      className="text-accent underline"
+                      className="rounded-full border border-line bg-white px-3 py-1 text-xs font-semibold text-primary transition-colors hover:border-accent hover:text-accent"
                       onClick={() => {
                         setEditingId(cs.id);
                         setEditForm(toForm(cs));
@@ -254,7 +261,7 @@ export function CaseStudyManager({
                     </button>
                     <button
                       type="button"
-                      className="text-danger underline"
+                      className="rounded-full border border-danger/30 bg-white px-3 py-1 text-xs font-semibold text-danger transition-colors hover:bg-danger/5 disabled:opacity-60"
                       disabled={busy}
                       onClick={() => onDelete(cs.id)}
                     >
@@ -262,21 +269,21 @@ export function CaseStudyManager({
                     </button>
                   </div>
                 </div>
-                <dl className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                <dl className="mt-4 grid grid-cols-2 gap-4 border-t border-line pt-4 text-sm">
                   <div>
-                    <dt className="text-muted">Capex</dt>
-                    <dd className="font-medium text-body">
+                    <dt className="text-xs text-muted">Capex</dt>
+                    <dd className="mt-0.5 font-semibold text-primary tabular-nums">
                       {formatPenceGBP(cs.capexGBP)}
                     </dd>
                   </div>
                   <div>
-                    <dt className="text-muted">Net margin</dt>
-                    <dd className="font-medium text-body">
+                    <dt className="text-xs text-muted">Net margin</dt>
+                    <dd className="mt-0.5 font-semibold text-primary tabular-nums">
                       {formatPenceGBP(cs.netMarginGBP)}
                     </dd>
                   </div>
                 </dl>
-                <p className="mt-2 text-sm text-body">{cs.description}</p>
+                <p className="mt-3 text-sm leading-relaxed text-body">{cs.description}</p>
               </>
             )}
           </li>
@@ -286,7 +293,7 @@ export function CaseStudyManager({
       {adding ? (
         <form
           onSubmit={onAdd}
-          className="space-y-3 rounded-lg border border-line bg-white p-4"
+          className="space-y-3 rounded-2xl border border-accent/20 bg-pale/50 p-5"
         >
           <Input
             id={`add-title-${agentProfileId}`}
@@ -313,7 +320,7 @@ export function CaseStudyManager({
           <div>
             <label
               htmlFor={`add-description-${agentProfileId}`}
-              className="block text-sm font-medium text-body"
+              className="block text-sm font-medium text-primary"
             >
               Description
             </label>
@@ -322,7 +329,7 @@ export function CaseStudyManager({
               value={addForm.description}
               onChange={(e) => setAddForm((f) => ({ ...f, description: e.target.value }))}
               rows={3}
-              className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+              className="mt-1 w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm text-body transition-colors focus:border-accent focus:ring-2 focus:ring-accent/15 focus:outline-none"
             />
           </div>
           <Input

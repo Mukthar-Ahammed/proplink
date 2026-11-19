@@ -13,7 +13,6 @@ import {
   approveKycSubmission,
   rejectKycSubmission,
   getAdminKycQueue,
-  getAdminKycSubmissionDetail,
   presignAdminKycDocumentView,
   AdminCaller,
 } from "@/services/admin/kycAdminService";
@@ -221,7 +220,9 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
         },
       } as never);
 
-      const res = await approveKycSubmission(mockAdmin, { submissionId: "sub-already-approved" });
+      const res = await approveKycSubmission(mockAdmin, {
+        submissionId: "sub-already-approved",
+      });
       expect(res.ok).toBe(false);
       if (!res.ok) {
         expect(res.error).toMatch(/Submission is no longer pending review/);
@@ -269,8 +270,8 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
         },
       } as never);
 
-      vi.spyOn(db, "$executeRaw").mockResolvedValue(1);
-      vi.spyOn(db, "$transaction").mockResolvedValue([1, 1] as never);
+      const spyRaw = vi.spyOn(db, "$executeRaw").mockResolvedValue(1);
+      const spyTx = vi.spyOn(db, "$transaction").mockResolvedValue([1, 1, 1] as never);
       const spyAudit = vi.spyOn(db.auditLog, "create").mockResolvedValue({} as never);
 
       const res = await rejectKycSubmission(mockAdmin, {
@@ -280,6 +281,15 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
       });
 
       expect(res.ok).toBe(true);
+      // PR-2 (Phase 7 business-flow review): the rejection removes any blue
+      // tick in the same transaction as the status change.
+      const statements = spyRaw.mock.calls.map((call) =>
+        Array.from(call[0] as unknown as TemplateStringsArray).join("?"),
+      );
+      expect(
+        statements.some((sql) => sql.includes("DELETE FROM public.verification_badges")),
+      ).toBe(true);
+      expect((spyTx.mock.calls[0][0] as unknown as unknown[]).length).toBe(3);
       expect(spyAudit).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
@@ -323,7 +333,9 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
           "DOCUMENT_EXPIRED: Provided passport expired in 2024",
         );
         // Verify internalNotes is NOT exposed to the investor
-        expect((summary.data.latestSubmission as Record<string, unknown>)["internalNotes"]).toBeUndefined();
+        expect(
+          (summary.data.latestSubmission as Record<string, unknown>)["internalNotes"],
+        ).toBeUndefined();
       }
     });
   });
@@ -384,6 +396,7 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
   describe("7. Financial Eligibility Integration Matrix", () => {
     it("grants FLIPPER financial eligibility ONLY when investorType allows FLIPPER and kycStatus = APPROVED", () => {
       const flipperApproved: AppSession["user"] = {
+        mfa: { aal: "aal1", sessionId: null, lastAuthAt: null },
         id: "u1",
         authUserId: "auth-u1",
         email: "flipper@proplink.uk",
@@ -414,6 +427,7 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
 
     it("grants SYNDICATE financial eligibility ONLY when investorType allows SYNDICATE and kycStatus = APPROVED", () => {
       const syndicateApproved: AppSession["user"] = {
+        mfa: { aal: "aal1", sessionId: null, lastAuthAt: null },
         id: "u2",
         authUserId: "auth-u2",
         email: "syndicate@proplink.uk",
@@ -431,6 +445,7 @@ describe("Phase 5: Secure Admin KYC Review & Approval Workflow", () => {
 
     it("grants BOTH capabilities when investorType = BOTH and kycStatus = APPROVED", () => {
       const bothApproved: AppSession["user"] = {
+        mfa: { aal: "aal1", sessionId: null, lastAuthAt: null },
         id: "u3",
         authUserId: "auth-u3",
         email: "both@proplink.uk",

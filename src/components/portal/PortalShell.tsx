@@ -1,13 +1,13 @@
+import Image from "next/image";
 import { PortalNav } from "@/components/portal/PortalNav";
+import { cn } from "@/lib/cn";
 
 /**
  * The frame every role portal wears (ADR-016).
  *
- * Same shell as `/marketplace` (ADR-015): a `primary` masthead running to the
- * top of the viewport with the header floating on it, the reference's
- * semibold/light heading pairing at tool scale, and a hairline sub-nav — then
- * the working content below at ordinary density. The portals are tools; the
- * band is where the marketing language lives.
+ * A light masthead (ADR-071): pill eyebrow, a headline whose tail is set in
+ * the italic serif, and a tabbed sub-nav on its lower edge — then the working
+ * content below on white at ordinary density.
  *
  * **The sub-nav is the portal's whole navigation.** The global header carries
  * none (ADR-009), so a portal that does not list its own pages here has
@@ -19,11 +19,24 @@ import { PortalNav } from "@/components/portal/PortalNav";
  * It lives in each portal's **layout**, not its pages: the masthead carries the
  * portal's single `<h1>` and every page below contributes `<h2>`s. Putting it in
  * a page as well as a layout is how `/agent` ended up with two `<h1>`s.
+ *
+ * **Banner variant.** With `banner`, the masthead runs up behind the floating
+ * header pill (the route must be an overlay route in `<ChromeGate>`) and lays
+ * the photo under the landing hero's mesh (`banner-ground`, `hero-grid`), so
+ * the portal opens on the same surface as the home page.
  */
 
 export interface PortalNavItem {
   href: string;
   label: string;
+  /** A subscription feature: the tab carries a gold crown. */
+  premium?: boolean;
+  /**
+   * The viewer has no active subscription: clicking opens the subscription
+   * popup (`OPEN_SUBSCRIPTION_EVENT`) instead of navigating. The target page
+   * and every server action still enforce the rule themselves.
+   */
+  locked?: boolean;
 }
 
 export function PortalShell({
@@ -33,6 +46,7 @@ export function PortalShell({
   standfirst,
   nav,
   aside,
+  banner,
   children,
 }: {
   eyebrow: string;
@@ -44,42 +58,81 @@ export function PortalShell({
   nav: PortalNavItem[];
   /** Portal-specific control on the band, e.g. the agent profile switcher. */
   aside?: React.ReactNode;
+  /** Photo behind the masthead; its subject should sit on the right. */
+  banner?: { src: string };
   children: React.ReactNode;
 }) {
   return (
-    <main className="flex flex-1 flex-col">
-      <section className="relative overflow-hidden bg-primary pt-24 pb-0 sm:pt-28">
-        <div className="pointer-events-none absolute -right-24 -top-32 h-96 w-96 rounded-full bg-accent/15 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-40 left-1/3 h-80 w-80 rounded-full bg-white/5 blur-3xl" />
-        <div className="mx-auto w-full max-w-[1600px] px-5 sm:px-8 xl:px-10">
+    <main className="flex flex-1 flex-col bg-background">
+      <section
+        className={cn(
+          "border-b",
+          banner
+            ? "relative isolate overflow-hidden border-transparent"
+            : "border-line bg-surface",
+        )}
+      >
+        {banner ? (
+          <>
+            <Image
+              src={banner.src}
+              alt=""
+              fill
+              priority
+              sizes="100vw"
+              className="-z-30 object-cover object-[78%_center]"
+            />
+            <div aria-hidden className="banner-ground absolute inset-0 -z-20" />
+            <div aria-hidden className="hero-grid absolute inset-0 -z-10" />
+          </>
+        ) : null}
+        <div
+          className={cn(
+            "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8",
+            banner ? "pt-[6.5rem] sm:pt-32" : "pt-10 sm:pt-12",
+          )}
+        >
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-[11px] tracking-[0.22em] text-pale/60 uppercase">
+            <p className="inline-flex items-center rounded-full border border-line bg-white/80 px-4 backdrop-blur-sm py-1.5 text-[11px] font-semibold tracking-[0.18em] text-secondary uppercase">
               {eyebrow}
             </p>
             {aside}
           </div>
-          <div className="mt-5 flex flex-wrap items-end justify-between gap-x-10 gap-y-6">
-            <h1 className="font-display max-w-2xl text-[clamp(2rem,4vw,3.25rem)] leading-[1.02] font-semibold tracking-[-0.03em] text-white">
+          <div
+            className={cn(
+              "mt-5 flex flex-wrap gap-x-10 gap-y-4",
+              banner ? "flex-col" : "items-end justify-between",
+            )}
+          >
+            <h1 className="font-display max-w-2xl text-[clamp(1.875rem,3.5vw,2.75rem)] leading-[1.08] font-semibold tracking-[-0.03em] text-primary">
               {title}
-              {titleTail ? <span className="font-light"> {titleTail}</span> : null}
+              {titleTail ? (
+                <span className="font-serif font-normal tracking-normal italic">
+                  {" "}
+                  {titleTail}
+                </span>
+              ) : null}
             </h1>
             {standfirst ? (
-              <p className="max-w-sm text-sm leading-relaxed text-pale/75">
+              <p
+                className={cn(
+                  "max-w-sm text-sm leading-relaxed",
+                  banner ? "text-body" : "text-muted",
+                )}
+              >
                 {standfirst}
               </p>
             ) : null}
           </div>
 
-          {/* Sub-nav on the band's lower edge, so the band and the content it
-              governs are visibly one object. */}
+          {/* Sub-nav on the masthead's lower edge, so the masthead and the
+              content it governs read as one object. */}
           <PortalNav items={nav} />
         </div>
       </section>
 
-      <div className="mx-auto w-full max-w-[1600px] px-4 py-6 sm:px-8 sm:py-10 xl:px-10">
-        <div className="rounded-[1.75rem] border border-line/70 bg-white/80 p-5 shadow-[0_18px_60px_rgba(15,35,32,0.06)] backdrop-blur-sm sm:p-8">
-          {children}
-        </div>
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+        {children}
       </div>
     </main>
   );
@@ -96,11 +149,9 @@ export function StatCard({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-line/70 bg-surface/70 p-5 transition-shadow hover:shadow-md">
-      <p className="text-3xl font-semibold tracking-tight text-primary">{value}</p>
-      <p className="mt-2 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
-        {label}
-      </p>
+    <div className="rounded-2xl border border-line bg-white p-6 transition-shadow hover:shadow-md">
+      <p className="text-4xl font-light tracking-tight text-primary">{value}</p>
+      <p className="mt-2 text-sm font-medium text-muted">{label}</p>
       {hint ? <p className="mt-1.5 text-xs text-muted">{hint}</p> : null}
     </div>
   );
@@ -130,7 +181,7 @@ export function PortalSection({
 /** The honest empty state — every one of these portals starts empty. */
 export function PortalEmpty({ children }: { children: React.ReactNode }) {
   return (
-    <p className="rounded-xl border border-dashed border-line bg-surface px-5 py-8 text-center text-sm text-muted">
+    <p className="rounded-2xl border border-dashed border-line bg-surface px-6 py-12 text-center text-sm text-muted">
       {children}
     </p>
   );

@@ -7,21 +7,28 @@ import { z } from "zod";
 import { InvestorType, Role, type Role as AppRole } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
 
-export const SELF_SERVE_ROLES = [Role.AGENT, Role.INVESTOR, Role.BUYER] as const;
+/**
+ * Roles anyone may choose at public sign-up (Phase 1 Task 2). Agent is
+ * invite-only; Admin, Solicitor and Advertiser are created by Admin. The
+ * database enforces the same list on sign-up intents.
+ */
+export const SELF_SERVE_ROLES = [Role.LANDLORD, Role.INVESTOR, Role.BUYER] as const;
 
-export const signupSchema = z.object({
-  email: z
-    .email("Enter a valid email address")
-    .transform((value) => value.trim().toLowerCase()),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .max(128, "Password must be at most 128 characters"),
-  name: z.string().trim().min(2, "Enter your full name").max(100),
-  gdprConsent: z.literal(true, {
-    error: "You must accept the privacy policy to register",
-  }),
-});
+export const signupSchema = z
+  .object({
+    email: z
+      .email("Enter a valid email address")
+      .transform((value) => value.trim().toLowerCase()),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .max(128, "Password must be at most 128 characters"),
+    name: z.string().trim().min(2, "Enter your full name").max(100),
+    gdprConsent: z.literal(true, {
+      error: "You must accept the privacy policy to register",
+    }),
+  })
+  .strict();
 
 export const investorTypeEnumSchema = z.enum(
   [InvestorType.FLIPPER, InvestorType.SYNDICATE, InvestorType.BOTH],
@@ -32,12 +39,14 @@ export const investorSignupSchema = signupSchema.extend({
   investorType: investorTypeEnumSchema,
 });
 
-export const credentialsSchema = z.object({
-  email: z
-    .email("Enter a valid email address")
-    .transform((value) => value.trim().toLowerCase()),
-  password: z.string().min(1, "Enter your password").max(128),
-});
+export const credentialsSchema = z
+  .object({
+    email: z
+      .email("Enter a valid email address")
+      .transform((value) => value.trim().toLowerCase()),
+    password: z.string().min(1, "Enter your password").max(128),
+  })
+  .strict();
 
 export const passwordSchema = z
   .string()
@@ -51,13 +60,13 @@ const RECOVERY_GRANT_TTL_SECONDS = 15 * 60;
 export const RECOVERY_GRANT_COOKIE = "proplink-recovery-grant";
 
 function securitySecret(): string {
-  const value = process.env.AUTH_SECURITY_SECRET ?? process.env.NEXTAUTH_SECRET;
+  const value = process.env.AUTH_SECURITY_SECRET;
   if (!value) throw new Error("AUTH_SECURITY_SECRET is not configured");
   return value;
 }
 
 export function appOrigin(): string {
-  const configured = process.env.APP_ORIGIN ?? process.env.NEXTAUTH_URL;
+  const configured = process.env.APP_ORIGIN;
   const url = new URL(configured ?? "http://localhost:3000");
   return url.origin;
 }
@@ -94,17 +103,6 @@ export async function createSignupIntent(
   const nonceDigest = sha256(nonce);
   const emailDigest = sha256(input.email);
   const expiresAt = new Date(Date.now() + SIGNUP_INTENT_TTL_MS);
-
-  if (typeof db.$executeRawUnsafe === "function") {
-    try {
-      await db.$executeRawUnsafe(`
-        ALTER TABLE private.auth_signup_intents
-        ADD COLUMN IF NOT EXISTS "investorType" public."InvestorType";
-      `);
-    } catch {
-      // Ignore DDL errors in constrained DB/mock environments
-    }
-  }
 
   await db.$transaction([
     db.$executeRaw`
@@ -199,8 +197,8 @@ export async function bridgeVerifiedUser(user: SupabaseUser): Promise<void> {
   });
 }
 
-type LimitSpec = {
-  kind: "email" | "ip";
+export type LimitSpec = {
+  kind: "email" | "ip" | "user" | "global";
   identifier: string;
   windowSeconds: number;
   limit: number;

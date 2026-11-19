@@ -16,7 +16,7 @@ export function Input({ label, error, id, className, ...props }: InputProps) {
       <input
         id={id}
         className={cn(
-          "mt-1 w-full rounded-md border px-3 py-2 text-sm focus:outline-none",
+          "mt-1.5 w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-primary transition-colors placeholder:text-muted/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/20",
           error ? "border-danger" : "border-line focus:border-accent",
           className,
         )}

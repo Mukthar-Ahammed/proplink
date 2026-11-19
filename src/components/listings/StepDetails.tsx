@@ -35,7 +35,7 @@ export function StepDetails({
           rows={5}
           value={state.description}
           onChange={(e) => onChange({ description: e.target.value })}
-          className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none"
+          className="mt-1 w-full rounded-xl border border-line px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
           placeholder="Describe the property's condition, distress factors and opportunity."
         />
       </div>

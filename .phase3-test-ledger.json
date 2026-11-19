@@ -5,7 +5,7 @@
       "role": "AGENT",
       "email": "phase3-test-agent@example.invalid",
       "projectRef": "staging",
-      "marker": "phase3-a2273f43-9291-4439-92fb-96b6863a636d",
+      "marker": "phase3-82efd633-0dbf-4546-913c-56dcbdb1fb3d",
       "state": "READY",
       "authUserId": "phase3-test-agent",
       "legacyUserId": "legacy"
@@ -14,7 +14,7 @@
       "role": "INVESTOR",
       "email": "phase3-test-investor@example.invalid",
       "projectRef": "staging",
-      "marker": "phase3-633006ff-61a1-484f-a78b-554a5e64dfa1",
+      "marker": "phase3-81d5b1c5-f56f-49b9-a72f-2acc082e6bdf",
       "state": "READY",
       "authUserId": "phase3-test-investor",
       "legacyUserId": "legacy"
@@ -23,7 +23,7 @@
       "role": "BUYER",
       "email": "phase3-test-buyer@example.invalid",
       "projectRef": "staging",
-      "marker": "phase3-6846f8df-914c-4c13-9661-3e7d98a5ef3e",
+      "marker": "phase3-1c5ae101-9895-4fdb-a9e4-320f8caa8317",
       "state": "READY",
       "authUserId": "phase3-test-buyer",
       "legacyUserId": "legacy"
@@ -32,7 +32,7 @@
       "role": "ADMIN",
       "email": "phase3-test-admin@example.invalid",
       "projectRef": "staging",
-      "marker": "phase3-120054fb-93ae-4d25-8b7b-9958058f70ea",
+      "marker": "phase3-8d4e5dac-ca14-4ba9-808d-55d6ffc282e4",
       "state": "READY",
       "authUserId": "phase3-test-admin",
       "legacyUserId": "legacy"

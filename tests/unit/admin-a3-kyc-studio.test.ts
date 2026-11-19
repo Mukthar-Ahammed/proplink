@@ -50,7 +50,6 @@ vi.mock("@/lib/db", () => ({ db: mockDb }));
 
 import {
   getAdminKycSummary,
-  getAdminKycQueue,
   getAdminKycSubmissionDetail,
   approveKycSubmission,
   rejectKycSubmission,
@@ -137,7 +136,9 @@ describe("Phase A3 — KYC & Compliance Review Studio", () => {
         expect(res.data.approvedCount).toBe(12);
         expect(res.data.rejectedCount).toBe(2);
         expect(res.data.totalCount).toBe(19);
-        expect(res.data.oldestPendingSubmittedAt).toEqual(new Date("2026-10-01T10:00:00Z"));
+        expect(res.data.oldestPendingSubmittedAt).toEqual(
+          new Date("2026-10-01T10:00:00Z"),
+        );
       }
     });
 
@@ -223,12 +224,28 @@ describe("Phase A3 — KYC & Compliance Review Studio", () => {
           email: "multi@investor.com",
           active: true,
           kycStatus: KycStatus.PENDING,
-          authProfile: { investorType: InvestorType.FLIPPER, kycStatus: KycStatus.PENDING, active: true },
+          authProfile: {
+            investorType: InvestorType.FLIPPER,
+            kycStatus: KycStatus.PENDING,
+            active: true,
+          },
           kycSubmissions: [subAttempt1, subAttempt2],
         },
         documents: [
-          { id: "doc-2", kind: "ID_PROOF", contentType: "image/jpeg", sizeBytes: 150000, createdAt: new Date("2026-10-05") },
-          { id: "doc-3", kind: "ADDRESS_PROOF", contentType: "application/pdf", sizeBytes: 500000, createdAt: new Date("2026-10-05") },
+          {
+            id: "doc-2",
+            kind: "ID_PROOF",
+            contentType: "image/jpeg",
+            sizeBytes: 150000,
+            createdAt: new Date("2026-10-05"),
+          },
+          {
+            id: "doc-3",
+            kind: "ADDRESS_PROOF",
+            contentType: "application/pdf",
+            sizeBytes: 500000,
+            createdAt: new Date("2026-10-05"),
+          },
         ],
       });
 
@@ -325,7 +342,11 @@ describe("Phase A3 — KYC & Compliance Review Studio", () => {
           id: "inv-flipper",
           active: true,
           kycStatus: KycStatus.PENDING,
-          authProfile: { investorType: InvestorType.FLIPPER, active: true, kycStatus: KycStatus.PENDING },
+          authProfile: {
+            investorType: InvestorType.FLIPPER,
+            active: true,
+            kycStatus: KycStatus.PENDING,
+          },
         },
       });
 
@@ -346,7 +367,11 @@ describe("Phase A3 — KYC & Compliance Review Studio", () => {
           id: "inv-syndicate",
           active: true,
           kycStatus: KycStatus.PENDING,
-          authProfile: { investorType: InvestorType.SYNDICATE, active: true, kycStatus: KycStatus.PENDING },
+          authProfile: {
+            investorType: InvestorType.SYNDICATE,
+            active: true,
+            kycStatus: KycStatus.PENDING,
+          },
         },
       });
 
@@ -354,7 +379,9 @@ describe("Phase A3 — KYC & Compliance Review Studio", () => {
       mockDb.$transaction.mockResolvedValueOnce([1, 1]);
       mockDb.auditLog.create.mockResolvedValueOnce({});
 
-      const res = await approveKycSubmission(mockAdmin, { submissionId: "sub-syndicate" });
+      const res = await approveKycSubmission(mockAdmin, {
+        submissionId: "sub-syndicate",
+      });
       expect(res.ok).toBe(true);
     });
 
@@ -367,7 +394,11 @@ describe("Phase A3 — KYC & Compliance Review Studio", () => {
           id: "inv-both",
           active: true,
           kycStatus: KycStatus.PENDING,
-          authProfile: { investorType: InvestorType.BOTH, active: true, kycStatus: KycStatus.PENDING },
+          authProfile: {
+            investorType: InvestorType.BOTH,
+            active: true,
+            kycStatus: KycStatus.PENDING,
+          },
         },
       });
 

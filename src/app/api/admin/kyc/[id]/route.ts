@@ -1,15 +1,11 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPermission } from "@/lib/authz";
 import { getAdminKycSubmissionDetail } from "@/services/admin/kycAdminService";
 
-export async function GET(
-  _request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
-  const authResult = await requireRole(Role.ADMIN);
+export async function GET(_request: Request, props: { params: Promise<{ id: string }> }) {
+  const authResult = await requireAdminPermission("VERIFICATION");
   if (!authResult.ok) return authResult.response;
 
   const { id } = await props.params;

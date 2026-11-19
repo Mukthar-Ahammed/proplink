@@ -1,5 +1,6 @@
 import { PortalShell } from "@/components/portal/PortalShell";
 import { getInvestorNav } from "@/app/investor/nav";
+import { areFlipperFlowsEnabled } from "@/env";
 import { requirePageRole } from "@/lib/authz";
 
 export default async function InvestorLayout({
@@ -8,7 +9,7 @@ export default async function InvestorLayout({
   children: React.ReactNode;
 }) {
   const session = await requirePageRole("INVESTOR");
-  const nav = getInvestorNav(session.user.investorType);
+  const nav = getInvestorNav(session.user.investorType, areFlipperFlowsEnabled());
 
   return (
     <PortalShell
@@ -17,6 +18,7 @@ export default async function InvestorLayout({
       titleTail="your position"
       standfirst="Expressions of interest, funding progress and the projects behind them."
       nav={nav}
+      banner={{ src: "/banners/investor%20portal%20banner.png" }}
     >
       {children}
     </PortalShell>

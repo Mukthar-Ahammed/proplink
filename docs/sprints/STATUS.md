@@ -1,19 +1,76 @@
 # Sprint Status — Live Tracker
 
 > Living document. Update task states as work happens; update the phase line in
-> `docs/CONTEXT.md` at sprint boundaries. Task definitions and acceptance criteria:
-> `docs/PropLink_Sprint_Plan_Claude_Code.md`. Per-sprint detail: `SPRINT-NN.md`.
-> Sprint-level progress sheet (status/remarks/comments): `SPRINT-TRACKER.md`.
+> `docs/CONTEXT.md` at phase boundaries. Roadmap, task definitions and exit
+> gates: `docs/PROPLINK_PHASE_PROMPTS.md` (Phases 0–7). Per-phase detail:
+> `docs/phases/PHASE-N-REPORT.md`. The 12-week sprint plan and the sprint
+> sections below are the historical baseline (superseded, ADR-019).
 
-**We are here → Sprint 3 (Search, Map & Commute). Tasks 3.1 and 3.2 done, the
-Week 5 checkpoint passed 2026-08-07.** Sprint 2 completed and DoD-passed the
-same day — full criteria table in `SPRINT-02.md`. Suite now at **466 unit +
-integration tests and 43 Playwright tests green**; Lighthouse on `/marketplace`
-at SEO 100 / accessibility 100 / best practices 100. ⚠️ **Week 6 is blocked:**
-Tasks 3.3 and 3.4 need H3.1 (Google Maps browser key + Places/Routes APIs +
-quotas), the only provider in this build the plan says is required even locally
-— Google Maps JS will not render without a real key. Task 3.5 (saved searches &
-alerts) is not blocked and can be brought forward.
+**Current focus → Phase 7 — Hardening, Compliance, Performance and Release Readiness**, on `phase-7-hardening` (started 2026-11-19; `docs/phases/PHASE-7-REPORT.md`). **Phase 6 — Advertising, Admin Roles and Permissions, Disputes and Reporting**, on `phase-6-admin-ads` (started 2026-11-19; `docs/phases/PHASE-6-REPORT.md`). **Built 2026-11-19; waiting for the owner checks like Phases 1-5.** Delivered: Admin permissions with maker-checker (ADR-058), cases and GDPR exports (ADR-059), advertising (ADR-060), KPIs, integrations and security events (ADR-061), agencies and Admin verification (ADR-062). **Phase 5 — Final Sale, Retail Buyer Experience, Reviews and
+Trust Features**, on `phase-5-sale-buyers` (started 2026-11-18, branched from
+Phase 4; see `docs/phases/PHASE-5-REPORT.md`). **Built 2026-11-19; waiting for the owner checks like Phases 1-4.** Delivered: re-listing and sale handoff (ADR-052), offer and viewing state machines (ADR-053), reviews and listing-card badges (ADR-054), track record (ADR-055), saved-search alerts and the maps switch (ADR-056), SEO and public safety (ADR-057). **Phase 4:** all nine tasks and 3a built (ADR-044 to ADR-051); waiting for the owner checks like Phases 1-3. **Phase 3:** all eight tasks
+built (`docs/phases/PHASE-3-REPORT.md`); waiting for the owner checks like Phases 1-2. **Phase 0 closed 2026-11-18.**
+**Phases 1 and 2:** built and tested; the owner does all manual checks after the
+last phase (`docs/MANUAL_CHECKS.md`). No phase is closed or merged to `main`
+before its checks pass. PR #1 (Phases 0-1) is open with green CI.
+
+**Hosted demo (ADR-076, 2026-11-19):** Netlify demo mode built and tested
+locally; deployment waits on the owner (H7.7, `docs/runbooks/NETLIFY-DEMO.md`).
+
+**Phase 2:** Task 1 (Landlord module), Task 2 (AI listing assistant, mock
+until the Anthropic key exists), Task 3 (Admin review queue with SLA
+metrics), Task 4 (private-listing hardening and leakage crawl), Task 5 (Agent
+marketplace and proposals), Task 6 (exclusive mandate), Task 7 (Landlord data
+exposure) and Task 8 (chain notifications) done. **Phase 2 build complete;**
+exit waits on the owner checks listed at the end of the Phase 2 report.
+
+| Phase 1 task                           | State |
+| -------------------------------------- | ----- |
+| 1. Roles and schema                    | Done  |
+| 2. Public registration rules           | Done  |
+| 3. Agent invitations and announcements | Done  |
+| 4. Companies House check               | Done  |
+| 5. Existing agents migration           | Done  |
+| 6. KYC/AML provider                    | Done  |
+| 7. Blue tick                           | Done  |
+| 8. Profiles                            | Done  |
+| 9. Suspend/reinstate                   | Done  |
+| 10. Notification preferences           | Done  |
+| 11. MFA                                | Done  |
+| 12. Secure upload pipeline             | Done  |
+| 13. Permission-matrix harness          | Done  |
+
+**2026-11-16 Phase 0 progress:** development reconciliation completed
+(inspector 221/0, schema up to date); automated auth checks passed after three
+fixes (missing local `AUTH_SECURITY_SECRET`, silent rate-limited forms,
+passwords in development logs — `67ad6c5`). Details in the Phase 0 report.
+
+**Earlier Phase 0 history.** On 2026-11-05, the owner-applied development
+catch-up's four schema checks passed and its failed Prisma history row was
+reconciled with `migrate resolve --applied` on the approved development
+project only. The nine later migrations remain pending; `db:deploy` is blocked
+by pre-existing seed-created `ListingSource`/`Property` changes. No staging or
+production migration or deployment occurred.
+
+**2026-11-13 closeout review:** the only Phase 0 exit-gate item still open is
+the manual authentication hand test. The other unmet gate items were carried to
+named later phases (ADR-019). The development migration reconciliation has an
+approved order and a rehearsal script (both run successfully on 2026-11-16).
+
+**2026-11-16 Task 11 alignment:** the phase prompts were aligned with the three
+business PDFs (permission matrix, chat pairs, Landlord lifecycle, Lead Investor
+assignment, sale-to-ledger handoff, PDF → phase traceability); `AGENTS.md`,
+`CONTEXT.md` and `ARCHITECTURE.md` now reflect the subscriptions-only Stripe rule
+and the current roadmap; the older plans are marked superseded; OD-13 to OD-17
+were logged in `OPEN_DECISIONS.md`.
+
+The original sprint baseline remains Sprint 3: Tasks 3.1 and 3.2 were completed
+at the Week 5 checkpoint on 2026-08-07; Sprint 2 was DoD-passed the same day.
+The **466 unit/integration tests, 43 Playwright tests, and Lighthouse scores**
+below are historical results from that checkpoint, not a current full-suite
+claim. Sprint 3 Tasks 3.3 and 3.4 still need H3.1 (Google Maps browser key +
+Places/Routes APIs + quotas); Task 3.5 (saved searches and alerts) remains
+outstanding.
 
 Landing page `/` redesigned 2026-08-25 (unplanned, requested directly). Two
 passes: the global metrics strip moved into the hero with zero-valued metrics

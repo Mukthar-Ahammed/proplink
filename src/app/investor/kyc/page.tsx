@@ -1,12 +1,29 @@
-import Link from "next/link";
 import { requirePageRole } from "@/lib/authz";
-import { PortalSection } from "@/components/portal/PortalShell";
+import {
+  AlertIcon,
+  ArrowLink,
+  CheckIcon,
+  ClockIcon,
+  IconChip,
+  IdIcon,
+  InvestorSectionTitle,
+  ShieldIcon,
+} from "@/components/investor/InvestorUi";
 import { getOrCreateKycDraft, getKycStatusSummary } from "@/services/kyc/kycService";
 import { KycSubmissionForm } from "@/components/investor/KycSubmissionForm";
 import type { KycCaller } from "@/services/kyc/kycService";
 import { KycStatus, KycSubmissionStatus } from "@/generated/prisma/enums";
+import { getProviderApplicantState } from "@/services/kyc/providerVerification";
+import { VerifyButton } from "@/app/verify/VerifyButton";
 
 export const dynamic = "force-dynamic";
+
+const STATUS_ICON = {
+  [KycStatus.NOT_STARTED]: { tone: "warning", icon: <IdIcon /> },
+  [KycStatus.PENDING]: { tone: "warning", icon: <ClockIcon /> },
+  [KycStatus.APPROVED]: { tone: "success", icon: <CheckIcon /> },
+  [KycStatus.REJECTED]: { tone: "danger", icon: <AlertIcon /> },
+} as const;
 
 const STATUS_CONFIG = {
   [KycStatus.NOT_STARTED]: {
@@ -25,7 +42,7 @@ const STATUS_CONFIG = {
   },
   [KycStatus.APPROVED]: {
     badge: "bg-success/15 text-success border-success/30",
-    title: "Identity Verified ✓",
+    title: "Identity Verified",
     description:
       "Your identity verification is complete and approved. You are eligible for investor features subject to your workspace capabilities.",
     showForm: false,
@@ -63,65 +80,113 @@ export default async function InvestorKycPage() {
     active: true,
   };
 
-  const [statusResult, draftResult] = await Promise.all([
+  const [statusResult, draftResult, providerState] = await Promise.all([
     getKycStatusSummary(caller),
     // Only fetch/create draft when the investor can submit
     user.kycStatus === KycStatus.NOT_STARTED || user.kycStatus === KycStatus.REJECTED
       ? getOrCreateKycDraft(caller)
       : Promise.resolve(null),
+    getProviderApplicantState(user.authUserId),
   ]);
+  // Provider verification is the primary route (ADR-026); the manual
+  // submission below stays for exceptions reviewed in the Admin KYC studio.
+  const canStartProvider =
+    user.kycStatus === KycStatus.NOT_STARTED ||
+    user.kycStatus === KycStatus.REJECTED ||
+    (user.kycStatus === KycStatus.PENDING && providerState.sameProvider);
 
   const config = STATUS_CONFIG[user.kycStatus] ?? STATUS_CONFIG[KycStatus.NOT_STARTED];
   const latestSubmission = statusResult.ok ? statusResult.data.latestSubmission : null;
   const draft = draftResult && draftResult.ok ? draftResult.data : null;
 
+  const statusIcon = STATUS_ICON[user.kycStatus] ?? STATUS_ICON[KycStatus.NOT_STARTED];
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
       {/* Status header card */}
-      <div className="rounded-2xl border border-line bg-white p-6 sm:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-6">
-          <div>
-            <h2 className="text-xl font-bold text-primary">{config.title}</h2>
-            <p className="mt-1 text-sm text-muted">Authoritative identity verification status</p>
+      <div className="relative isolate overflow-hidden rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-8">
+        <div
+          aria-hidden
+          className="absolute -top-20 -right-20 -z-10 h-56 w-56 rounded-full bg-pale blur-3xl"
+        />
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <IconChip tone={statusIcon.tone}>{statusIcon.icon}</IconChip>
+            <div>
+              <p className="text-xs font-semibold tracking-[0.14em] text-muted uppercase">
+                Identity verification
+              </p>
+              <h2 className="font-display mt-0.5 text-2xl font-semibold tracking-[-0.02em] text-primary">
+                {config.title}
+              </h2>
+            </div>
           </div>
           <span
-            className={`rounded-full border px-4 py-1.5 text-xs font-semibold uppercase tracking-wider ${config.badge}`}
+            className={`rounded-full border px-4 py-1.5 text-xs font-semibold tracking-wider uppercase ${config.badge}`}
           >
             {user.kycStatus}
           </span>
         </div>
 
-        <div className="mt-6 space-y-4">
-          <p className="text-sm leading-relaxed text-secondary">{config.description}</p>
+        <p className="mt-5 max-w-3xl text-sm leading-relaxed text-body">
+          {config.description}
+        </p>
 
-          {/* Rejection notes */}
-          {user.kycStatus === KycStatus.REJECTED && latestSubmission?.reviewNotes && (
-            <div className="rounded-xl border border-danger/20 bg-danger/5 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-danger">
-                Compliance Notes
-              </p>
-              <p className="mt-1.5 text-sm leading-relaxed text-secondary">
-                {latestSubmission.reviewNotes}
+        {/* Rejection notes */}
+        {user.kycStatus === KycStatus.REJECTED && latestSubmission?.reviewNotes && (
+          <div className="mt-5 rounded-2xl border border-danger/20 bg-danger/5 p-4">
+            <p className="text-xs font-semibold tracking-wide text-danger uppercase">
+              Compliance Notes
+            </p>
+            <p className="mt-1.5 text-sm leading-relaxed text-secondary">
+              {latestSubmission.reviewNotes}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {canStartProvider && (
+        <section className="space-y-5">
+          <InvestorSectionTitle title="Verify with our" tail="identity partner" />
+          <div className="flex flex-col gap-5 rounded-3xl border border-accent/20 bg-pale/70 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+            <div className="flex items-start gap-3">
+              <IconChip>
+                <ShieldIcon />
+              </IconChip>
+              <p className="max-w-2xl text-sm leading-relaxed text-body">
+                {user.kycStatus === KycStatus.PENDING
+                  ? "Your verification is in progress. Continue where you left off; we update your status as soon as our partner has a result."
+                  : "The quickest route: verify your identity online with PropLink's regulated verification partner. It usually takes a few minutes. PropLink stores only the result, not your documents."}
               </p>
             </div>
-          )}
-        </div>
-      </div>
+            <div className="shrink-0">
+              <VerifyButton
+                label={
+                  user.kycStatus === KycStatus.PENDING
+                    ? "Continue verification"
+                    : "Verify my identity"
+                }
+              />
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Submission history */}
       {latestSubmission && (
-        <PortalSection title="Application Status">
-          <div className="rounded-2xl border border-line bg-white overflow-hidden">
-            <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-4 border-b border-line">
+        <section className="space-y-5">
+          <InvestorSectionTitle title="Application" tail="status" />
+          <div className="overflow-hidden rounded-3xl border border-line bg-white">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line px-6 py-5">
               <div>
-                <p className="text-sm font-semibold text-primary">
-                  KYC Application
-                </p>
-                <p className="text-xs text-muted mt-0.5">
+                <p className="text-sm font-semibold text-primary">KYC Application</p>
+                <p className="mt-0.5 text-xs text-muted">
                   {latestSubmission.documentCount} document
                   {latestSubmission.documentCount !== 1 ? "s" : ""} attached
                   {latestSubmission.submittedAt &&
-                    ` · Submitted ${new Date(latestSubmission.submittedAt).toLocaleDateString("en-GB", {
+                    ` · Submitted ${new Date(
+                      latestSubmission.submittedAt,
+                    ).toLocaleDateString("en-GB", {
                       day: "numeric",
                       month: "long",
                       year: "numeric",
@@ -142,85 +207,81 @@ export default async function InvestorKycPage() {
               </div>
             )}
           </div>
-        </PortalSection>
+        </section>
       )}
 
       {/* KYC submission form — shown only when the investor can submit/resubmit */}
       {config.showForm && draft && (
-        <PortalSection
-          title={
-            user.kycStatus === KycStatus.REJECTED
-              ? "Resubmit Your Application"
-              : "Submit Identity Verification"
-          }
-        >
-          <KycSubmissionForm
-            submissionId={draft.submissionId}
-            initialDocumentCount={draft.documentCount}
-            onSubmitted={() => {/* router.refresh() handled in client */}}
+        <section className="space-y-5">
+          <InvestorSectionTitle
+            title={user.kycStatus === KycStatus.REJECTED ? "Resubmit your" : "Or submit"}
+            tail={user.kycStatus === KycStatus.REJECTED ? "application" : "documents"}
+            description="Upload documents for the PropLink compliance team to review."
           />
-        </PortalSection>
+          <div className="rounded-3xl border border-line bg-white p-6 sm:p-7">
+            <KycSubmissionForm
+              submissionId={draft.submissionId}
+              initialDocumentCount={draft.documentCount}
+            />
+          </div>
+        </section>
       )}
 
       {/* What to expect */}
       {user.kycStatus === KycStatus.NOT_STARTED && (
-        <PortalSection title="What to Expect">
-          <div className="grid gap-4 sm:grid-cols-3">
+        <section className="space-y-5">
+          <InvestorSectionTitle title="What to" tail="expect" />
+          <ol className="grid gap-4 sm:grid-cols-3">
             {[
               {
                 step: "1",
                 title: "Upload Documents",
-                body:
-                  "Upload one or more identity documents. Accepted: passport, driver's licence, national ID, or proof of address.",
+                body: "Upload one or more identity documents. Accepted: passport, driver's licence, national ID, or proof of address.",
               },
               {
                 step: "2",
                 title: "Compliance Review",
-                body:
-                  "The PropLink compliance team reviews your submission in 1–3 business days. You'll be notified of the outcome.",
+                body: "The PropLink compliance team reviews your submission in 1–3 business days. You'll be notified of the outcome.",
               },
               {
                 step: "3",
                 title: "Access Unlocked",
-                body:
-                  "Once approved, financial features appropriate to your investor workspace will be unlocked.",
+                body: "Once approved, financial features appropriate to your investor workspace will be unlocked.",
               },
             ].map((item) => (
-              <div
-                key={item.step}
-                className="rounded-2xl border border-line bg-white p-5"
-              >
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-white">
+              <li key={item.step} className="rounded-3xl border border-line bg-white p-6">
+                <span className="font-display inline-flex h-9 w-9 items-center justify-center rounded-full bg-accent text-sm font-semibold text-white">
                   {item.step}
                 </span>
-                <h4 className="mt-3 font-semibold text-primary">{item.title}</h4>
+                <h3 className="mt-4 font-semibold text-primary">{item.title}</h3>
                 <p className="mt-1.5 text-sm leading-relaxed text-muted">{item.body}</p>
-              </div>
+              </li>
             ))}
-          </div>
-        </PortalSection>
+          </ol>
+        </section>
       )}
 
       {/* Regulatory notice */}
-      <PortalSection title="Security & Compliance Boundary">
-        <div className="rounded-xl border border-line bg-white p-6 text-sm leading-relaxed text-muted">
-          <p>
-            PropLink operates under UK financial and anti-money laundering (AML) regulatory
-            boundaries. Investor identity verification protects all syndicate participants and
-            ensures compliance prior to any financial commitment. Documents are stored in a
-            private, encrypted storage vault and are only accessible to PropLink compliance
-            personnel.
-          </p>
-          <div className="mt-4 flex gap-4">
-            <Link
-              href="/investor"
-              className="text-sm font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
-            >
-              Back to dashboard
-            </Link>
+      <section className="rounded-3xl border border-line bg-surface/70 p-6 sm:p-7">
+        <div className="flex items-start gap-3">
+          <IconChip>
+            <ShieldIcon />
+          </IconChip>
+          <div>
+            <h2 className="font-semibold text-primary">Security & compliance boundary</h2>
+            <p className="mt-1.5 max-w-3xl text-sm leading-relaxed text-muted">
+              PropLink operates under UK financial and anti-money laundering (AML)
+              regulatory boundaries. Investor identity verification protects all syndicate
+              participants and ensures compliance prior to any financial commitment.
+              Documents are stored in a private, encrypted storage vault and are only
+              accessible to PropLink compliance personnel.
+            </p>
+            <div className="mt-4">
+              <ArrowLink href="/investor">Back to dashboard</ArrowLink>
+            </div>
           </div>
         </div>
-      </PortalSection>
+      </section>
     </div>
   );
 }

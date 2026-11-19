@@ -1,39 +1,57 @@
 # PropLink UK — Product Context
 
 > Living document. Update whenever product scope, constraints or phase change
-> (see AGENTS.md § living-docs rule). Full detail: `PropLink_UK_Master_Document.md`.
+> (see AGENTS.md § living-docs rule). Business source of truth: the three PDFs in
+> `docs/business/`; roadmap and rules: `PROPLINK_PHASE_PROMPTS.md`. The older
+> `PropLink_UK_Master_Document.md` is superseded (ADR-019).
 
 ## What we are building
 
-A web-first platform for the UK **distressed property** market combining four things
-that exist nowhere else in one place: a Distressed Asset Marketplace, an Investor
-Syndication Engine, an Agent Portal with verified credibility, and a Market
-Intelligence Toolkit.
+A web-first platform for the UK **distressed property** market. Its private
+property pipeline is **Landlord → Agent → Investor (Lead / Co-Investor) → Retail
+Buyer**, with project-scoped Solicitors, Admin governance and labelled advertiser
+placements.
 
-**Core commercial loop:** agent lists property → investor finds & funds it (or buyer
-purchases) → deal closes on-platform → platform logs a success fee.
+**Core business loop:** a Landlord submits a private property → Admin reviews it
+before an Agent can access it → an authorised Agent manages the mandate → an
+eligible Investor may register an expression of interest → a Retail Buyer may
+purchase through the Agent. The app does not custody, escrow or transfer
+investment funds; subscriptions are the only in-app payments in the current
+business model.
 
 ## Roles
 
-| Role       | Side       | Key actions                                                                                          |
-| ---------- | ---------- | ---------------------------------------------------------------------------------------------------- |
-| `AGENT`    | Supply     | List distressed properties, tag defects, manage leads, build verified profile                        |
-| `INVESTOR` | Capital    | Pass KYC, pledge into syndicates, track refurbs and ledger                                           |
-| `BUYER`    | Demand     | Search, calculate affordability, chat, book viewings, submit offers                                  |
-| `ADMIN`    | Governance | Moderate listings, monitor KYC, manage fees/ads/users. **Seed-only — never self-serve registration** |
+| Role        | Side                 | Key actions                                                                                       |
+| ----------- | -------------------- | ------------------------------------------------------------------------------------------------- |
+| `LANDLORD`  | Supply               | Submit private property details and documents for Admin review; never public self-publish         |
+| `AGENT`     | Intermediary         | Admin-invited; manage an authorised mandate, listings, enquiries and buyer pipeline               |
+| `INVESTOR`  | Capital interest     | Complete KYC and subscription checks; Lead / Co-Investor capability is project-scoped, EOI only   |
+| `BUYER`     | Demand               | Browse approved public listings, enquire, book viewings and submit offers                         |
+| `SOLICITOR` | Project professional | Access only assigned projects; manage legal documentation and record external fund-status updates |
+| `ADMIN`     | Governance           | Invite Agents, review listings, moderate users/KYC and authorise sensitive project access         |
+| Advertiser  | Promotion            | Admin-approved, clearly labelled sponsored placements in designated areas only                    |
 
-## Five portals
+## Portals
 
-Marketplace · Investor Portal · Agent Portal · Market Intelligence · Ecosystem
-Marketplace. The four global metrics — Total Distress Inventory · Completed
-Syndicate Deals · Accrued Success Fees · Vetted Referrals Routed — are on the
-landing page rather than a strip above the header (ADR-005).
+One portal per role, each with its own navigation: **Landlord** (private listings,
+agent proposals, mandate, project view), **Agent** (private-listing marketplace,
+mandates, investor projects, retail listings, buyer pipeline), **Investor**
+(projects, pledges as EOI, agreements, ledger), **Buyer** (Rightmove-style public
+marketplace, saved properties, viewings, offers), **Solicitor** (one assigned
+project), **Admin** (governance), plus Advertiser self-service. The live
+implementation currently includes Agent, Investor, Buyer and Admin surfaces;
+Landlord, Solicitor and Advertiser workflows are future work (Phases 1–6).
+Server-side ownership and relationship checks are required on every private
+surface. Who may do what is defined by the permission matrix in
+`PROPLINK_PHASE_PROMPTS.md` §5.
 
-**Not one shared nav bar.** The global header carries no navigation beyond the
-wordmark and, signed in, a single link to the portal that role owns (ADR-009,
-ADR-016). Each role portal navigates itself. The three self-serve roles —
-`AGENT`, `INVESTOR`, `BUYER` — are strictly separate: `/agent`, `/investor` and
-`/buy` each 403 for the other two.
+**Legacy surfaces not in the business PDFs.** The original plan's Market
+Intelligence and Ecosystem Marketplace portals, the landing-page metrics
+(Total Distress Inventory · Completed Syndicate Deals · Accrued Success Fees ·
+Vetted Referrals Routed, ADR-005) and the `SuccessFee` model come from the
+superseded plan. They are not part of the current business model: do not extend
+them, and decide their removal or replacement when the affected phase touches
+them (ADR-019).
 
 ## The 8 distress tags
 
@@ -42,34 +60,36 @@ WATER_DAMAGE · FIRE_DAMAGE
 
 ## ⚠️ Compliance constraints (never violate)
 
-1. **FCA / EOI mode.** Equity syndication is a regulated activity. Until FCA counsel
-   signs off, the syndicate engine records _pledges only_ — **no money moves**.
-   Guarded by `SYNDICATE_PAYMENTS_ENABLED=false`. Stripe only for agent
-   subscriptions, boosts, ads.
-2. **KYC gate.** Investors must have `kycStatus = APPROVED` before any pledge —
-   server-side enforcement. KYC records retained 5 years (soft-delete only; they
-   survive GDPR erasure as anonymised records).
+1. **No investment money handling.** The app must not charge, custody, escrow,
+   or transfer pooled investment funds. Expressions of interest are non-binding
+   records; `SYNDICATE_PAYMENTS_ENABLED=false` is enforced at server startup.
+   Subscription fees are the only in-app payments in the current model.
+2. **KYC and access gates.** KYC is server-side; sensitive project documents
+   require approved KYC and authorised project access. Retention and legal-hold
+   behavior must follow the business/legal decisions, not be inferred from UI.
 3. **GDPR.** Consent at registration (`gdprConsentAt`), cookie banner, privacy/terms
    pages, right-to-erasure endpoint, data export.
 4. **RICS disclaimer** on every AI valuation/planning output.
 5. **EPC rating** displayed on every listing (UK legal requirement); all material
    information (defects, probate status) disclosed.
 
-## Deferred by design (do NOT build in the 12 weeks)
+## Deferred by design (not in Phases 0–7)
 
 Native mobile apps · Elasticsearch · premium AVM data (Hometrack) · real capital
 movement · multi-language.
 
 ## Current phase
 
-**Sprint 2 (Weeks 3–4) — Agent Portal & Listing Engine: complete** (2026-08-07,
-branch `sprint-2`). All seven tasks are done and verified against a real
-database: S3-shaped uploads, the 5-step listing wizard, the admin moderation
-queue, the agent profile & credibility hub, the public `/marketplace/[id]`
-detail page with enquiries, agent leads & listing analytics, and a 40-listing
-demo catalogue. **Sprint 3 (Weeks 5–6) — Search, Map & Commute — is next.**
-See `sprints/STATUS.md` for the live tracker and `BLOCKERS.md` for what is
-waiting on human tasks.
+**Phase 2 — Landlord Listings, Admin Queue, Agent Interest and Exclusive
+Mandates: in progress** on `phase-2-landlord-pipeline` (started 2026-11-18).
+**Phase 1 — Roles, Access Control, Invites, Verification and Profiles:**
+implemented on `phase-1-roles-access` (PR #1), started 2026-11-16. **Phase 0 closed
+2026-11-18** (owner's manual authentication test passed). All 13 Phase 1 tasks
+are implemented; exit waits on the browser tests and pending keys/decisions. The feature-rich marketplace and portals are
+not production-ready. The roadmap is Phases 0–7 in
+[`PROPLINK_PHASE_PROMPTS.md`](./PROPLINK_PHASE_PROMPTS.md); the original 12-week
+sprint plan stopped at Sprint 3 and is superseded (ADR-019). See
+[`PROJECT-STATUS.md`](./PROJECT-STATUS.md) and [`BLOCKERS.md`](./BLOCKERS.md).
 
 **Mode: LOCAL-ONLY development** (2026-07-23, ADR-004) — no GitHub/Vercel/domains/
 AWS/launch tasks for now; each deferred item has a revive trigger in
@@ -80,5 +100,7 @@ AWS/launch tasks for now; each deferred item has a revive trigger in
 - **EOI** — Expression of Interest: a recorded pledge with no money movement.
 - **GDV** — Gross Development Value: estimated post-refurbishment sale value.
 - **Distressed property** — stock sold below market due to defects, probate, or urgency.
-- **Syndicate** — multiple investors pooling capital into one refurb project with proportional equity.
-- **Success fee** — platform fee logged when a deal completes on-platform.
+- **Lead / Co-Investor** — project-scoped investor capabilities; any
+  co-investment process remains EOI-only until legal review and owner decisions.
+- **Private listing** — landlord-supplied property data not exposed to public
+  search or buyers before required Admin/Agent review.

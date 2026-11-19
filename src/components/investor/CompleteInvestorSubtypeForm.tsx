@@ -24,7 +24,9 @@ const investorSubtypes = [
 
 export function CompleteInvestorSubtypeForm() {
   const router = useRouter();
-  const [selectedType, setSelectedType] = useState<"FLIPPER" | "SYNDICATE" | "BOTH">("FLIPPER");
+  const [selectedType, setSelectedType] = useState<"FLIPPER" | "SYNDICATE" | "BOTH">(
+    "FLIPPER",
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,9 +51,12 @@ export function CompleteInvestorSubtypeForm() {
   return (
     <div className="mx-auto max-w-2xl rounded-2xl border border-line bg-white p-6 shadow-sm sm:p-8">
       <div className="text-center sm:text-left">
-        <h2 className="text-xl font-bold text-primary sm:text-2xl">Complete your investor profile</h2>
+        <h2 className="text-xl font-bold text-primary sm:text-2xl">
+          Complete your investor profile
+        </h2>
         <p className="mt-1.5 text-sm text-muted">
-          Choose how you plan to use PropLink. This preference sets your investor portal workspace.
+          Choose how you plan to use PropLink. This preference sets your investor portal
+          workspace.
         </p>
       </div>
 
@@ -90,7 +95,10 @@ export function CompleteInvestorSubtypeForm() {
         </fieldset>
 
         {error && (
-          <p role="alert" className="rounded-xl bg-danger/10 p-3.5 text-sm font-medium text-danger">
+          <p
+            role="alert"
+            className="rounded-xl bg-danger/10 p-3.5 text-sm font-medium text-danger"
+          >
             {error}
           </p>
         )}

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/authz";
-import { eraseUser } from "@/services/users/erasure";
+import { eraseMember } from "@/services/privacy/erasure";
 
 /**
  * GDPR right-to-erasure. Anonymises the calling user's account;
@@ -11,9 +11,14 @@ export async function DELETE() {
   const authz = await requireRole(); // any authenticated user
   if (!authz.ok) return authz.response;
 
-  const result = await eraseUser(authz.session.user.id);
+  // Phase 7 (ADR-065): legal holds are checked first; running obligations
+  // block erasure and are listed for the member.
+  const result = await eraseMember(authz.session.user.id);
   if (!result.ok) {
-    return NextResponse.json({ error: "Account not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: result.error, blocking: result.blocking ?? [] },
+      { status: result.status },
+    );
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true, retained: result.retained });
 }

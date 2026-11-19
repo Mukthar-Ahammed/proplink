@@ -273,7 +273,7 @@ export function ImageUploader({
               onDragStart={(e) => onThumbDragStart(index, e)}
               onDragOver={(e) => e.preventDefault()}
               onDrop={() => onThumbDrop(index)}
-              className="group relative aspect-[4/3] cursor-grab overflow-hidden rounded-md border border-line bg-surface active:cursor-grabbing"
+              className="group relative aspect-[4/3] cursor-grab overflow-hidden rounded-xl border border-line bg-surface active:cursor-grabbing"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
@@ -300,7 +300,7 @@ export function ImageUploader({
           {pending.map((p) => (
             <li
               key={p.id}
-              className="relative aspect-[4/3] overflow-hidden rounded-md border border-line bg-surface"
+              className="relative aspect-[4/3] overflow-hidden rounded-xl border border-line bg-surface"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img

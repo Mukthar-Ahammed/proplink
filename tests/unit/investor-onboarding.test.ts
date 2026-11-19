@@ -2,15 +2,12 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { Role, InvestorType, KycStatus } from "@/generated/prisma/enums";
+import { Role, InvestorType } from "@/generated/prisma/enums";
 import {
   createSignupIntent,
   investorSignupSchema,
-  signupSchema,
 } from "@/services/auth/supabaseAuthService";
-import {
-  completeInvestorTypeOnboarding,
-} from "@/services/syndicates/investorType";
+import { completeInvestorTypeOnboarding } from "@/services/syndicates/investorType";
 import { getInvestorNav } from "@/app/investor/nav";
 import { db } from "@/lib/db";
 
@@ -180,30 +177,49 @@ describe("PHASE 3 — Investor Subtype Onboarding & Entry UI", () => {
   });
 
   describe("Subtype-Aware Navigation", () => {
-    it("returns base navigation for NULL investorType", () => {
+    it("returns the Phase 4 navigation for every investor", () => {
       const nav = getInvestorNav(null);
       expect(nav).toEqual([
         { href: "/investor", label: "Dashboard" },
+        // Phase 4 (ADR-044): projects for every investor; chat from Phase 3.
+        { href: "/investor/projects", label: "Projects" },
+        { href: "/messages", label: "Messages" },
         { href: "/investor/kyc", label: "Identity & Verification" },
+        // No Billing tab: subscribing starts from the chat prompts and popup.
+        { href: "/account/reviews", label: "Reviews" },
+        { href: "/investor/profile", label: "My profile" },
+        { href: "/account/notifications", label: "Notifications" },
       ]);
     });
 
-    it("includes Flipper Workspace for FLIPPER", () => {
-      const nav = getInvestorNav(InvestorType.FLIPPER);
-      expect(nav.some((n) => n.href === "/investor/flip")).toBe(true);
-      expect(nav.some((n) => n.href === "/investor/syndicates")).toBe(false);
+    it("hides the legacy Flipper workspace while FLIPPER_FLOWS_ENABLED is off", () => {
+      for (const type of [
+        InvestorType.FLIPPER,
+        InvestorType.SYNDICATE,
+        InvestorType.BOTH,
+      ]) {
+        const nav = getInvestorNav(type);
+        expect(nav.some((n) => n.href === "/investor/flip")).toBe(false);
+        // The legacy Syndicate Deals page is replaced by Projects.
+        expect(nav.some((n) => n.href === "/investor/syndicates")).toBe(false);
+        expect(nav.some((n) => n.href === "/investor/projects")).toBe(true);
+      }
     });
 
-    it("includes Syndicate Deals for SYNDICATE", () => {
-      const nav = getInvestorNav(InvestorType.SYNDICATE);
-      expect(nav.some((n) => n.href === "/investor/syndicates")).toBe(true);
-      expect(nav.some((n) => n.href === "/investor/flip")).toBe(false);
-    });
-
-    it("includes both workspaces for BOTH", () => {
-      const nav = getInvestorNav(InvestorType.BOTH);
-      expect(nav.some((n) => n.href === "/investor/flip")).toBe(true);
-      expect(nav.some((n) => n.href === "/investor/syndicates")).toBe(true);
+    it("shows the Flipper workspace to FLIPPER and BOTH only when the flag is on", () => {
+      expect(
+        getInvestorNav(InvestorType.FLIPPER, true).some(
+          (n) => n.href === "/investor/flip",
+        ),
+      ).toBe(true);
+      expect(
+        getInvestorNav(InvestorType.BOTH, true).some((n) => n.href === "/investor/flip"),
+      ).toBe(true);
+      expect(
+        getInvestorNav(InvestorType.SYNDICATE, true).some(
+          (n) => n.href === "/investor/flip",
+        ),
+      ).toBe(false);
     });
   });
 });

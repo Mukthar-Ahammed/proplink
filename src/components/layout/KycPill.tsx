@@ -32,6 +32,10 @@ export function KycPill({ status }: { status: KycStatus }) {
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold whitespace-nowrap",
         STYLES[status],
+        // Over a portal's dark masthead (ChromeGate overlay) the tint turns
+        // muddy and failed WCAG contrast on phones (Phase 7 Task 6): solid
+        // white there keeps every status ink above AA.
+        "group-data-[overlay=true]/chrome:bg-white",
       )}
     >
       {LABELS[status]}

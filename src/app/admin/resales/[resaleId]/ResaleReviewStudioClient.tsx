@@ -63,10 +63,14 @@ export function ResaleReviewStudioClient({
       });
       const json = await res.json();
       if (!res.ok) {
-        if (json.error?.includes("no longer pending") || json.error?.includes("race condition")) {
+        if (
+          json.error?.includes("no longer pending") ||
+          json.error?.includes("race condition")
+        ) {
           setActionFeedback({
             type: "warning",
-            message: "This resale submission has already been reviewed by another Admin. Refreshing state...",
+            message:
+              "This resale submission has already been reviewed by another Admin. Refreshing state...",
           });
           await refreshDetail();
           setShowApproveModal(false);
@@ -120,10 +124,14 @@ export function ResaleReviewStudioClient({
       });
       const json = await res.json();
       if (!res.ok) {
-        if (json.error?.includes("no longer pending") || json.error?.includes("race condition")) {
+        if (
+          json.error?.includes("no longer pending") ||
+          json.error?.includes("race condition")
+        ) {
           setActionFeedback({
             type: "warning",
-            message: "This resale submission has already been reviewed by another Admin. Refreshing state...",
+            message:
+              "This resale submission has already been reviewed by another Admin. Refreshing state...",
           });
           await refreshDetail();
           setShowRejectModal(false);
@@ -134,7 +142,8 @@ export function ResaleReviewStudioClient({
 
       setActionFeedback({
         type: "success",
-        message: "Flipper Resale REJECTED. Investor notified with user-visible explanation.",
+        message:
+          "Flipper Resale REJECTED. Investor notified with user-visible explanation.",
       });
       setShowRejectModal(false);
       await refreshDetail();
@@ -167,13 +176,17 @@ export function ResaleReviewStudioClient({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-line pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-primary">Flipper Resale Governance Studio</h1>
+            <h1 className="text-xl font-bold text-primary">
+              Flipper Resale Governance Studio
+            </h1>
             <span className="text-xs font-bold px-2 py-0.5 rounded bg-accent/10 text-accent uppercase">
               Subtype: {detail.investorType ?? "FLIPPER"}
             </span>
           </div>
           <p className="text-xs text-muted mt-1">
-            Investor: <strong className="text-primary">{detail.investorName}</strong> ({detail.investorEmail}) — Resale ID: <code className="text-xs">{detail.id}</code>
+            Investor: <strong className="text-primary">{detail.investorName}</strong> (
+            {detail.investorEmail}) — Resale ID:{" "}
+            <code className="text-xs">{detail.id}</code>
           </p>
         </div>
 
@@ -181,7 +194,7 @@ export function ResaleReviewStudioClient({
           <StatusBadge status={detail.status} />
           <Link
             href="/admin/resales"
-            className="px-3 py-1.5 text-xs font-semibold rounded-md border border-line bg-white hover:bg-surface text-secondary transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-line bg-white hover:bg-surface text-secondary transition-colors"
           >
             ← Back to Resales Queue
           </Link>
@@ -195,8 +208,8 @@ export function ResaleReviewStudioClient({
             actionFeedback.type === "success"
               ? "bg-success/10 border-success/30 text-success"
               : actionFeedback.type === "warning"
-              ? "bg-warning/10 border-warning/30 text-warning"
-              : "bg-danger/10 border-danger/30 text-danger"
+                ? "bg-warning/10 border-warning/30 text-warning"
+                : "bg-danger/10 border-danger/30 text-danger"
           }`}
         >
           <div>{actionFeedback.message}</div>
@@ -219,26 +232,36 @@ export function ResaleReviewStudioClient({
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Estimated Asking Price</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Estimated Asking Price
+                </span>
                 <span className="font-extrabold text-primary text-sm">
                   {formatPenceGBP(detail.estimatedAskingPriceGBP * 100)}
                 </span>
               </div>
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Location</span>
-                <span className="font-bold text-primary">{detail.city}, {detail.postcode}</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Location
+                </span>
+                <span className="font-bold text-primary">
+                  {detail.city}, {detail.postcode}
+                </span>
               </div>
             </div>
 
             <div>
-              <span className="text-[10px] text-muted font-bold uppercase block mb-1">Marketing Description</span>
+              <span className="text-[10px] text-muted font-bold uppercase block mb-1">
+                Marketing Description
+              </span>
               <div className="p-3 bg-surface border border-line rounded-lg text-xs text-secondary leading-relaxed whitespace-pre-wrap">
                 {detail.description || "No description provided."}
               </div>
             </div>
 
             <div>
-              <span className="text-[10px] text-muted font-bold uppercase block mb-1">Investor Declaration</span>
+              <span className="text-[10px] text-muted font-bold uppercase block mb-1">
+                Investor Declaration
+              </span>
               <div className="p-3 bg-surface border border-line rounded-lg text-xs italic text-secondary leading-relaxed">
                 &quot;{detail.declaration || "No declaration provided."}&quot;
               </div>
@@ -246,9 +269,13 @@ export function ResaleReviewStudioClient({
 
             {/* Media Information Notice */}
             <div className="p-3 bg-surface border border-line rounded-lg text-xs space-y-1">
-              <span className="font-bold text-primary uppercase text-[10px]">Media Source Disclosure</span>
+              <span className="font-bold text-primary uppercase text-[10px]">
+                Media Source Disclosure
+              </span>
               <p className="text-muted leading-relaxed">
-                Media assets for this resale listing are copied from the original acquisition property. Original acquisition property ID: <code className="text-xs">{detail.propertyId}</code>.
+                Media assets for this resale listing are copied from the original
+                acquisition property. Original acquisition property ID:{" "}
+                <code className="text-xs">{detail.propertyId}</code>.
               </p>
             </div>
           </div>
@@ -264,19 +291,29 @@ export function ResaleReviewStudioClient({
 
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div className="bg-surface p-2 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Investor Subtype</span>
-                <span className="font-bold text-accent">{detail.investorType ?? "FLIPPER"}</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Investor Subtype
+                </span>
+                <span className="font-bold text-accent">
+                  {detail.investorType ?? "FLIPPER"}
+                </span>
               </div>
               <div className="bg-surface p-2 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">KYC State</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  KYC State
+                </span>
                 <span className="font-bold text-success">APPROVED</span>
               </div>
               <div className="bg-surface p-2 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Acquisition</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Acquisition
+                </span>
                 <span className="font-bold text-success">COMPLETED</span>
               </div>
               <div className="bg-surface p-2 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Refurb Project</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Refurb Project
+                </span>
                 <span className="font-bold text-success">{detail.projectStatus}</span>
               </div>
             </div>
@@ -291,24 +328,34 @@ export function ResaleReviewStudioClient({
             <div className="space-y-2 text-xs">
               <div className="flex justify-between items-center p-2 bg-surface rounded border border-line">
                 <span className="text-muted">Agreed Acquisition Purchase Price:</span>
-                <span className="font-bold text-primary">£{detail.agreedPriceGBP.toLocaleString()}</span>
+                <span className="font-bold text-primary">
+                  £{detail.agreedPriceGBP.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between items-center p-2 bg-surface rounded border border-line">
                 <span className="text-muted">Total Refurbishment Capex:</span>
-                <span className="font-bold text-primary">£{detail.totalCostsGBP.toLocaleString()}</span>
+                <span className="font-bold text-primary">
+                  £{detail.totalCostsGBP.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between items-center p-2 bg-surface rounded border border-line">
                 <span className="text-muted">Estimated Target Resale Price:</span>
-                <span className="font-bold text-primary">£{detail.estimatedAskingPriceGBP.toLocaleString()}</span>
+                <span className="font-bold text-primary">
+                  £{detail.estimatedAskingPriceGBP.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between items-center p-2.5 bg-success/10 border border-success/30 rounded">
                 <span className="font-bold text-success">Estimated Advisory Profit:</span>
-                <span className="font-black text-success text-sm">£{detail.estimatedProfitGBP.toLocaleString()}</span>
+                <span className="font-black text-success text-sm">
+                  £{detail.estimatedProfitGBP.toLocaleString()}
+                </span>
               </div>
             </div>
 
             <p className="text-[10px] text-muted italic bg-surface p-2 rounded border border-line">
-              * Note: Estimated / Advisory / Not realised profit. Calculated as target resale price minus purchase price and capex ledger. Not guaranteed by PropLink.
+              * Note: Estimated / Advisory / Not realised profit. Calculated as target
+              resale price minus purchase price and capex ledger. Not guaranteed by
+              PropLink.
             </p>
           </div>
 
@@ -331,7 +378,8 @@ export function ResaleReviewStudioClient({
                 )}
                 {detail.rejectionReason && (
                   <div className="text-danger bg-danger/5 p-2 rounded border border-danger/20 font-medium">
-                    <strong>Investor-Visible Rejection Reason:</strong> {detail.rejectionReason}
+                    <strong>Investor-Visible Rejection Reason:</strong>{" "}
+                    {detail.rejectionReason}
                   </div>
                 )}
                 {detail.internalNotes && (
@@ -342,12 +390,17 @@ export function ResaleReviewStudioClient({
               </div>
             ) : isSelfInvestor ? (
               <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning font-semibold">
-                ⚠️ Anti-Self Approval Policy: You cannot approve or reject a resale listing created by your own Investor account. Decision controls are disabled.
+                ⚠️ Anti-Self Approval Policy: You cannot approve or reject a resale
+                listing created by your own Investor account. Decision controls are
+                disabled.
               </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-xs text-muted">
-                  Approving will publish a <strong>distinct new Property</strong> onto the marketplace with <code>listingSource = FLIPPER_RESALE</code> and <code>agentProfileId = null</code>. The original acquisition listing remains historical and unchanged.
+                  Approving will publish a <strong>distinct new Property</strong> onto the
+                  marketplace with <code>listingSource = FLIPPER_RESALE</code> and{" "}
+                  <code>agentProfileId = null</code>. The original acquisition listing
+                  remains historical and unchanged.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -374,23 +427,30 @@ export function ResaleReviewStudioClient({
       {showApproveModal && (
         <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-line">
-            <h3 className="text-base font-bold text-primary">Confirm Flipper Resale Approval</h3>
+            <h3 className="text-base font-bold text-primary">
+              Confirm Flipper Resale Approval
+            </h3>
             <p className="text-xs text-muted leading-relaxed">
-              Are you sure you want to approve resale listing for <strong className="text-primary">{detail.propertyTitle}</strong>?
-              <br /><br />
+              Are you sure you want to approve resale listing for{" "}
+              <strong className="text-primary">{detail.propertyTitle}</strong>?
+              <br />
+              <br />
               This will create a <strong>distinct new Property</strong> with:
               <br />• <code>listingSource = FLIPPER_RESALE</code>
               <br />• <code>status = LIVE</code>
               <br />• <code>agentProfileId = null</code>
-              <br /><br />
-              The original acquisition property ID (<code className="text-xs">{detail.propertyId}</code>) will remain historical and completely unchanged.
+              <br />
+              <br />
+              The original acquisition property ID (
+              <code className="text-xs">{detail.propertyId}</code>) will remain historical
+              and completely unchanged.
             </p>
 
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowApproveModal(false)}
                 disabled={actionProcessing}
-                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-gray-100 text-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-surface text-secondary rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -432,7 +492,8 @@ export function ResaleReviewStudioClient({
 
               <div>
                 <label className="block font-bold text-primary mb-1 uppercase text-[10px]">
-                  Investor-Visible Explanation <span className="text-danger">* (Required)</span>
+                  Investor-Visible Explanation{" "}
+                  <span className="text-danger">* (Required)</span>
                 </label>
                 <textarea
                   rows={3}
@@ -445,7 +506,8 @@ export function ResaleReviewStudioClient({
 
               <div>
                 <label className="block font-bold text-muted mb-1 uppercase text-[10px]">
-                  Confidential Internal Notes <span className="text-muted/60">(Admin Only)</span>
+                  Confidential Internal Notes{" "}
+                  <span className="text-muted/60">(Admin Only)</span>
                 </label>
                 <textarea
                   rows={2}
@@ -461,7 +523,7 @@ export function ResaleReviewStudioClient({
               <button
                 onClick={() => setShowRejectModal(false)}
                 disabled={actionProcessing}
-                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-gray-100 text-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-surface text-secondary rounded-lg transition-colors"
               >
                 Cancel
               </button>

@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireRole } from "@/lib/authz";
-import { Role } from "@/generated/prisma/enums";
+import { requireAdminPermission } from "@/lib/authz";
 import { approveListing } from "@/services/listings/moderationService";
 import { ListingServiceError, listingErrorStatus } from "@/services/listings/errors";
 
@@ -9,7 +8,7 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const authz = await requireRole(Role.ADMIN);
+  const authz = await requireAdminPermission("LISTING_MODERATION");
   if (!authz.ok) return authz.response;
 
   const { id } = await params;

@@ -3,15 +3,17 @@ import type { StaticMapParams, StaticMapService } from "@/services/maps/staticMa
 const DEFAULT_WIDTH = 640;
 const DEFAULT_HEIGHT = 320;
 
-// Mirror `src/app/globals.css`'s `--color-surface`/`--color-secondary` (map)
-// and `--color-body`/`--color-pale` (satellite) — these can't reference the
+// Mirror `src/app/globals.css`'s `--color-surface`/`--color-accent` (map)
+// `--color-body`/`--color-pale` (satellite) and `--color-pale`/`--color-body`
+// (street view) — these can't reference the
 // CSS custom properties directly (this string is built server-side, with no
 // stylesheet in scope), so the values are copied in, same exception already
 // established by `EpcBadge`'s `EPC_COLOURS` in `src/components/ui/badge.tsx`
 // for a generated visual asset rather than a themeable component.
 const PALETTES = {
-  map: { bg: "#f5f8ff", fg: "#003580" },
-  satellite: { bg: "#2d3a4a", fg: "#f5f8ff" },
+  map: { bg: "#f5f7f6", fg: "#0f6b5e" },
+  satellite: { bg: "#2c3431", fg: "#e8f2ef" },
+  streetView: { bg: "#e8f2ef", fg: "#2c3431" },
 } as const;
 
 /** Deterministic local SVG placeholder — no network call, no key required. */
@@ -49,6 +51,14 @@ export class MockStaticMapService implements StaticMapService {
       params,
       "Satellite preview unavailable",
       PALETTES.satellite,
+    );
+  }
+
+  getStreetViewImageUrl(params: StaticMapParams): string {
+    return placeholderDataUri(
+      params,
+      "Street View preview unavailable",
+      PALETTES.streetView,
     );
   }
 }

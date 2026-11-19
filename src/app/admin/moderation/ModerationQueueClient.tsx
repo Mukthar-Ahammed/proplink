@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { PropertyStatus } from "@/generated/prisma/enums";
-import type { AdminListingSummary, ModerationListing } from "@/services/listings/moderationService";
+import type {
+  AdminListingSummary,
+  ModerationListing,
+} from "@/services/listings/moderationService";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { formatPenceGBP } from "@/components/listings/wizardTypes";
@@ -13,12 +16,16 @@ export function ModerationQueueClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const statusParam = (searchParams.get("status") as PropertyStatus | "REJECTED" | "ALL") || PropertyStatus.PENDING_REVIEW;
+  const statusParam =
+    (searchParams.get("status") as PropertyStatus | "REJECTED" | "ALL") ||
+    PropertyStatus.PENDING_REVIEW;
   const searchParam = searchParams.get("search") || "";
   const sortParam = (searchParams.get("sort") as "oldest" | "newest") || "oldest";
   const pageParam = parseInt(searchParams.get("page") || "1", 10);
 
-  const [statusFilter, setStatusFilter] = useState<PropertyStatus | "REJECTED" | "ALL">(statusParam);
+  const [statusFilter, setStatusFilter] = useState<PropertyStatus | "REJECTED" | "ALL">(
+    statusParam,
+  );
   const [search, setSearch] = useState(searchParam);
   const [sortOrder, setSortOrder] = useState<"oldest" | "newest">(sortParam);
   const [page, setPage] = useState(pageParam);
@@ -31,12 +38,7 @@ export function ModerationQueueClient() {
   const [error, setError] = useState<string | null>(null);
 
   const updateUrl = useCallback(
-    (newParams: {
-      status?: string;
-      search?: string;
-      sort?: string;
-      page?: number;
-    }) => {
+    (newParams: { status?: string; search?: string; sort?: string; page?: number }) => {
       const params = new URLSearchParams(searchParams.toString());
       if (newParams.status !== undefined) {
         if (newParams.status === PropertyStatus.PENDING_REVIEW) params.delete("status");
@@ -100,11 +102,17 @@ export function ModerationQueueClient() {
   }, [statusFilter, search, sortOrder, page]);
 
   useEffect(() => {
-    fetchSummary();
+    const timer = window.setTimeout(() => {
+      void fetchSummary();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchSummary]);
 
   useEffect(() => {
-    fetchQueue();
+    const timer = window.setTimeout(() => {
+      void fetchQueue();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [fetchQueue]);
 
   const handleStatusChange = (newStatus: PropertyStatus | "REJECTED" | "ALL") => {
@@ -152,17 +160,23 @@ export function ModerationQueueClient() {
       {/* Queue Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-warning/30 bg-warning/5 p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Pending Moderation</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Pending Moderation
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black tabular-nums text-primary">
               {summary?.pendingCount ?? "—"}
             </span>
-            <span className="text-[11px] font-semibold text-warning">Requires review</span>
+            <span className="text-[11px] font-semibold text-warning">
+              Requires review
+            </span>
           </div>
         </div>
 
         <div className="rounded-xl border border-success/30 bg-success/5 p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Live Marketplace Listings</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Live Marketplace Listings
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black tabular-nums text-primary">
               {summary?.liveCount ?? "—"}
@@ -172,7 +186,9 @@ export function ModerationQueueClient() {
         </div>
 
         <div className="rounded-xl border border-danger/30 bg-danger/5 p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Rejected Listings</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Rejected Listings
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black tabular-nums text-primary">
               {summary?.rejectedCount ?? "—"}
@@ -182,7 +198,9 @@ export function ModerationQueueClient() {
         </div>
 
         <div className="rounded-xl border border-line bg-white p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Oldest Waiting Age</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Oldest Waiting Age
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-lg font-bold text-primary truncate">
               {oldestPendingText}
@@ -232,7 +250,7 @@ export function ModerationQueueClient() {
             onClick={() => handleStatusChange("ALL")}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
               statusFilter === "ALL"
-                ? "bg-brand text-white"
+                ? "bg-accent text-white"
                 : "text-secondary hover:bg-surface"
             }`}
           >
@@ -260,6 +278,7 @@ export function ModerationQueueClient() {
               Sort Order
             </label>
             <select
+              aria-label="Sort order"
               value={sortOrder}
               onChange={(e) => handleSortChange(e.target.value as "oldest" | "newest")}
               className="w-full text-xs border border-line rounded-lg p-2 focus:ring-accent focus:border-accent"
@@ -339,8 +358,12 @@ export function ModerationQueueClient() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-semibold text-primary">{item.agentProfile?.user.name ?? "Platform"}</div>
-                        <div className="text-[11px] text-muted">{item.agentProfile?.agencyName ?? "Independent"}</div>
+                        <div className="font-semibold text-primary">
+                          {item.agentProfile?.user.name ?? "Platform"}
+                        </div>
+                        <div className="text-[11px] text-muted">
+                          {item.agentProfile?.agencyName ?? "Independent"}
+                        </div>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={item.status} />
@@ -355,12 +378,14 @@ export function ModerationQueueClient() {
                               })
                             : "Drafting"}
                         </div>
-                        <div className="text-[10px] font-semibold text-warning">{waitingAge}</div>
+                        <div className="text-[10px] font-semibold text-warning">
+                          {waitingAge}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/admin/moderation/${item.id}`}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-md bg-accent text-white hover:bg-accent/90 transition-colors shadow-xs"
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors shadow-xs"
                         >
                           Review Studio →
                         </Link>
@@ -376,7 +401,9 @@ export function ModerationQueueClient() {
           {totalPages > 1 && (
             <div className="p-4 border-t border-line bg-surface flex items-center justify-between text-xs">
               <span className="text-muted">
-                Showing page <strong className="text-primary">{page}</strong> of <strong className="text-primary">{totalPages}</strong> ({total} total items)
+                Showing page <strong className="text-primary">{page}</strong> of{" "}
+                <strong className="text-primary">{totalPages}</strong> ({total} total
+                items)
               </span>
 
               <div className="flex gap-2">

@@ -2,10 +2,15 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { Role, KycStatus, KycSubmissionStatus, KycDocumentKind, InvestorType } from "@/generated/prisma/enums";
+import {
+  Role,
+  KycStatus,
+  KycSubmissionStatus,
+  KycDocumentKind,
+  InvestorType,
+} from "@/generated/prisma/enums";
 import {
   getOrCreateKycDraft,
-  presignKycDocumentUpload,
   recordKycDocument,
   submitKycApplication,
   getKycStatusSummary,
@@ -162,13 +167,19 @@ describe("PHASE 4 — getOrCreateKycDraft", () => {
   it("denies non-INVESTOR callers", async () => {
     const buyer: KycCaller = { ...ACTIVE_INVESTOR, role: Role.BUYER };
     const result = await getOrCreateKycDraft(buyer);
-    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("Only Investor") });
+    expect(result).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("Only Investor"),
+    });
   });
 
   it("denies inactive callers", async () => {
     const inactive: KycCaller = { ...ACTIVE_INVESTOR, active: false };
     const result = await getOrCreateKycDraft(inactive);
-    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("inactive") });
+    expect(result).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("inactive"),
+    });
   });
 
   it("returns existing DRAFT submission", async () => {
@@ -179,7 +190,10 @@ describe("PHASE 4 — getOrCreateKycDraft", () => {
     } as never);
 
     const result = await getOrCreateKycDraft(ACTIVE_INVESTOR);
-    expect(result).toEqual({ ok: true, data: { submissionId: SUBMISSION_ID, documentCount: 1 } });
+    expect(result).toEqual({
+      ok: true,
+      data: { submissionId: SUBMISSION_ID, documentCount: 1 },
+    });
     expect(mockDb.kycSubmission.create).not.toHaveBeenCalled();
   });
 
@@ -191,7 +205,10 @@ describe("PHASE 4 — getOrCreateKycDraft", () => {
     } as never);
 
     const result = await getOrCreateKycDraft(ACTIVE_INVESTOR);
-    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("pending") });
+    expect(result).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("pending"),
+    });
   });
 
   it("denies when latest submission is APPROVED", async () => {
@@ -202,7 +219,10 @@ describe("PHASE 4 — getOrCreateKycDraft", () => {
     } as never);
 
     const result = await getOrCreateKycDraft(ACTIVE_INVESTOR);
-    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("approved") });
+    expect(result).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("approved"),
+    });
   });
 
   it("creates a new draft when previous was REJECTED (resubmission allowed)", async () => {
@@ -217,7 +237,10 @@ describe("PHASE 4 — getOrCreateKycDraft", () => {
       ...ACTIVE_INVESTOR,
       kycStatus: KycStatus.REJECTED,
     });
-    expect(result).toEqual({ ok: true, data: { submissionId: "new-sub", documentCount: 0 } });
+    expect(result).toEqual({
+      ok: true,
+      data: { submissionId: "new-sub", documentCount: 0 },
+    });
     expect(mockDb.kycSubmission.create).toHaveBeenCalledWith({
       data: { userId: ACTIVE_INVESTOR.userId },
     });
@@ -228,7 +251,10 @@ describe("PHASE 4 — getOrCreateKycDraft", () => {
     mockDb.kycSubmission.create.mockResolvedValue({ id: "brand-new-sub" } as never);
 
     const result = await getOrCreateKycDraft(ACTIVE_INVESTOR);
-    expect(result).toEqual({ ok: true, data: { submissionId: "brand-new-sub", documentCount: 0 } });
+    expect(result).toEqual({
+      ok: true,
+      data: { submissionId: "brand-new-sub", documentCount: 0 },
+    });
   });
 });
 
@@ -245,7 +271,10 @@ describe("PHASE 4 — recordKycDocument", () => {
       contentType: "application/pdf",
       sizeBytes: 1024,
     });
-    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("does not belong") });
+    expect(result).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("does not belong"),
+    });
   });
 
   it("rejects documents added to a non-DRAFT submission", async () => {
@@ -308,7 +337,8 @@ describe("PHASE 4 — recordKycDocument", () => {
 // ─── submitKycApplication ─────────────────────────────────────────────────────
 
 describe("PHASE 4 — submitKycApplication", () => {
-  const VALID_DECLARATION = "I confirm all documents provided are genuine and accurate as of today.";
+  const VALID_DECLARATION =
+    "I confirm all documents provided are genuine and accurate as of today.";
 
   it("denies submission when kycStatus is PENDING", async () => {
     const pendingCaller: KycCaller = { ...ACTIVE_INVESTOR, kycStatus: KycStatus.PENDING };
@@ -316,16 +346,25 @@ describe("PHASE 4 — submitKycApplication", () => {
       submissionId: SUBMISSION_ID,
       declaration: VALID_DECLARATION,
     });
-    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("NOT_STARTED") });
+    expect(result).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("NOT_STARTED"),
+    });
   });
 
   it("denies submission when kycStatus is APPROVED", async () => {
-    const approvedCaller: KycCaller = { ...ACTIVE_INVESTOR, kycStatus: KycStatus.APPROVED };
+    const approvedCaller: KycCaller = {
+      ...ACTIVE_INVESTOR,
+      kycStatus: KycStatus.APPROVED,
+    };
     const result = await submitKycApplication(approvedCaller, {
       submissionId: SUBMISSION_ID,
       declaration: VALID_DECLARATION,
     });
-    expect(result).toMatchObject({ ok: false, error: expect.stringContaining("NOT_STARTED") });
+    expect(result).toMatchObject({
+      ok: false,
+      error: expect.stringContaining("NOT_STARTED"),
+    });
   });
 
   it("denies submission with no documents attached", async () => {
@@ -399,7 +438,10 @@ describe("PHASE 4 — submitKycApplication", () => {
   });
 
   it("allows resubmission from REJECTED kycStatus", async () => {
-    const rejectedCaller: KycCaller = { ...ACTIVE_INVESTOR, kycStatus: KycStatus.REJECTED };
+    const rejectedCaller: KycCaller = {
+      ...ACTIVE_INVESTOR,
+      kycStatus: KycStatus.REJECTED,
+    };
     mockDb.kycSubmission.findUnique.mockResolvedValue({
       id: SUBMISSION_ID,
       userId: ACTIVE_INVESTOR.userId,
@@ -443,7 +485,9 @@ describe("PHASE 4 — getKycStatusSummary", () => {
   });
 
   it("returns null latestSubmission when no submission exists", async () => {
-    mockDb.user.findUnique.mockResolvedValue({ kycStatus: KycStatus.NOT_STARTED } as never);
+    mockDb.user.findUnique.mockResolvedValue({
+      kycStatus: KycStatus.NOT_STARTED,
+    } as never);
     mockDb.kycSubmission.findFirst.mockResolvedValue(null as never);
 
     const result = await getKycStatusSummary(ACTIVE_INVESTOR);
@@ -469,7 +513,6 @@ describe("PHASE 4 — KYC financial eligibility remains blocked for non-APPROVED
     // Verify PENDING is not APPROVED by comparing the enum value string
     const status: KycStatus = pendingUser.kycStatus;
     expect(status).not.toBe(KycStatus.APPROVED);
-
   });
 
   it("SUBMITTED KycSubmission does NOT auto-approve kycStatus", () => {

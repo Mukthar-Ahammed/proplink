@@ -1,8 +1,10 @@
 import { createHash } from "node:crypto";
 import { config } from "dotenv";
 import pg from "pg";
+import { assertConfiguredSupabaseProject } from "./lib/supabase-project-guard.mjs";
 
 config({ path: ".env.local", quiet: true });
+assertConfiguredSupabaseProject();
 
 const required = [
   "NEXT_PUBLIC_SUPABASE_URL",

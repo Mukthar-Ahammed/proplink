@@ -16,7 +16,6 @@ import {
   submitFlipperResale,
   resubmitFlipperResale,
   getFlipperResaleDetail,
-  listInvestorResales,
 } from "@/services/flipper/flipperResaleService";
 import {
   getAdminResaleQueue,
@@ -307,7 +306,6 @@ describe("Phase 8: Flipper Resale & Exit Workflow", () => {
       expect(res.ok).toBe(true);
 
       // Verify update call used the new price and recalculated profit
-      const updateSpy = vi.spyOn(db.flipperResale, "update");
       // The mock has already been called; the test verifies no error occurred
     });
 
@@ -675,7 +673,9 @@ describe("Phase 8: Flipper Resale & Exit Workflow", () => {
         resalePropertyId: null,
       } as never);
 
-      vi.spyOn(db.property, "findUnique").mockResolvedValueOnce(origPropertySnapshot as never);
+      vi.spyOn(db.property, "findUnique").mockResolvedValueOnce(
+        origPropertySnapshot as never,
+      );
 
       const spyPropCreate = vi.spyOn(db.property, "create").mockResolvedValueOnce({
         id: "resale-prop-new-999",
@@ -690,7 +690,9 @@ describe("Phase 8: Flipper Resale & Exit Workflow", () => {
       vi.spyOn(db, "$executeRaw").mockResolvedValueOnce(1); // 1 row updated in FlipperResale
       const spyAudit = vi.spyOn(db.auditLog, "create").mockResolvedValue({} as never);
 
-      const res = await approveFlipperResale(adminCaller, { resaleId: "resale-submitted-1" });
+      const res = await approveFlipperResale(adminCaller, {
+        resaleId: "resale-submitted-1",
+      });
 
       expect(res.ok).toBe(true);
       if (res.ok) {
@@ -768,7 +770,9 @@ describe("Phase 8: Flipper Resale & Exit Workflow", () => {
         status: FlipperResaleStatus.SUBMITTED,
       } as never);
 
-      const res = await approveFlipperResale(adminCaller, { resaleId: "resale-admin-own" });
+      const res = await approveFlipperResale(adminCaller, {
+        resaleId: "resale-admin-own",
+      });
 
       expect(res.ok).toBe(false);
       if (!res.ok) {
@@ -813,7 +817,8 @@ describe("Phase 8: Flipper Resale & Exit Workflow", () => {
 
       const res = await rejectFlipperResale(adminCaller, {
         resaleId: "resale-reject-ok",
-        rejectionReason: "Estimated asking price appears significantly above comparable market data for this area.",
+        rejectionReason:
+          "Estimated asking price appears significantly above comparable market data for this area.",
         internalNotes: "Internal: check for market manipulation patterns",
       });
 
@@ -910,7 +915,12 @@ describe("Phase 8: Flipper Resale & Exit Workflow", () => {
         submittedAt: new Date(),
         reviewedAt: null,
         createdAt: new Date(),
-        property: { id: "prop-1", title: "123 Test St", city: "London", postcode: "E1 6AN" },
+        property: {
+          id: "prop-1",
+          title: "123 Test St",
+          city: "London",
+          postcode: "E1 6AN",
+        },
         investor: {
           id: "investor-flipper-1",
           name: "Jane Flipper",
@@ -1011,7 +1021,10 @@ describe("Phase 8: Flipper Resale & Exit Workflow", () => {
 
       const res = await requestViewing(
         { userId: "buyer-1", role: Role.BUYER },
-        { propertyId: "flipper-resale-prop-1", slotStart: new Date(Date.now() + 86400000).toISOString() },
+        {
+          propertyId: "flipper-resale-prop-1",
+          slotStart: new Date(Date.now() + 86400000).toISOString(),
+        },
       );
 
       expect(res.ok).toBe(false);

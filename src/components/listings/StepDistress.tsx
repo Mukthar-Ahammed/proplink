@@ -30,7 +30,7 @@ export function StepDistress({
         />
       </div>
 
-      <div className="rounded-lg border border-line bg-surface p-4">
+      <div className="rounded-2xl border border-line bg-surface p-4">
         <label className="flex items-start gap-3 text-sm text-body">
           <input
             id="pricingSafeguardAck"

@@ -20,7 +20,6 @@ import {
   PropertyStatus,
   FlipperResaleStatus,
   Role,
-  InvestorType,
   ListingSource,
 } from "@/generated/prisma/enums";
 
@@ -57,13 +56,11 @@ vi.mock("@/lib/db", () => ({ db: mockDb }));
 import {
   getAdminListingSummary,
   getAdminListingQueue,
-  getListingForModeration,
 } from "@/services/listings/moderationService";
 
 import {
   getAdminResaleSummary,
   getAdminResaleQueue,
-  getAdminResaleDetail,
   approveFlipperResale,
   rejectFlipperResale,
 } from "@/services/admin/flipperResaleAdminService";
@@ -111,19 +108,22 @@ describe("Phase A4 — Listing & Flipper Resale Moderation Studio", () => {
     it("denies non-Admin role BUYER from accessing resale moderation queue", async () => {
       const res = await getAdminResaleQueue(mockBuyerCaller);
       expect(res.ok).toBe(false);
-      if (!res.ok) expect(res.error).toBe("Only Admin accounts can perform resale reviews");
+      if (!res.ok)
+        expect(res.error).toBe("Only Admin accounts can perform resale reviews");
     });
 
     it("denies non-Admin role AGENT from accessing resale moderation queue", async () => {
       const res = await getAdminResaleQueue(mockAgentCaller);
       expect(res.ok).toBe(false);
-      if (!res.ok) expect(res.error).toBe("Only Admin accounts can perform resale reviews");
+      if (!res.ok)
+        expect(res.error).toBe("Only Admin accounts can perform resale reviews");
     });
 
     it("denies non-Admin role INVESTOR from accessing resale moderation queue", async () => {
       const res = await getAdminResaleQueue(mockInvestorCaller);
       expect(res.ok).toBe(false);
-      if (!res.ok) expect(res.error).toBe("Only Admin accounts can perform resale reviews");
+      if (!res.ok)
+        expect(res.error).toBe("Only Admin accounts can perform resale reviews");
     });
 
     it("denies inactive ADMIN from accessing resale moderation queue", async () => {
@@ -149,7 +149,9 @@ describe("Phase A4 — Listing & Flipper Resale Moderation Studio", () => {
         expect(res.data.approvedCount).toBe(8);
         expect(res.data.rejectedCount).toBe(1);
         expect(res.data.totalCount).toBe(12);
-        expect(res.data.oldestPendingSubmittedAt).toEqual(new Date("2026-10-02T12:00:00Z"));
+        expect(res.data.oldestPendingSubmittedAt).toEqual(
+          new Date("2026-10-02T12:00:00Z"),
+        );
       }
     });
   });
@@ -187,7 +189,10 @@ describe("Phase A4 — Listing & Flipper Resale Moderation Studio", () => {
           listingSource: ListingSource.AGENT,
           status: PropertyStatus.PENDING_REVIEW,
           submittedAt: new Date(),
-          agentProfile: { agencyName: "Northern Estates", user: { name: "Agent Bob", email: "bob@agent.uk" } },
+          agentProfile: {
+            agencyName: "Northern Estates",
+            user: { name: "Agent Bob", email: "bob@agent.uk" },
+          },
           distressTags: [],
           images: [],
         },
@@ -308,7 +313,9 @@ describe("Phase A4 — Listing & Flipper Resale Moderation Studio", () => {
         resalePropertyId: "existing-resale-prop-555",
       });
 
-      const res = await approveFlipperResale(mockAdmin, { resaleId: "resale-already-approved" });
+      const res = await approveFlipperResale(mockAdmin, {
+        resaleId: "resale-already-approved",
+      });
       expect(res.ok).toBe(true);
       if (res.ok) {
         expect(res.data.resalePropertyId).toBe("existing-resale-prop-555");
@@ -333,7 +340,8 @@ describe("Phase A4 — Listing & Flipper Resale Moderation Studio", () => {
 
       const res = await rejectFlipperResale(mockAdmin, {
         resaleId: "resale-reject-1",
-        rejectionReason: "PRICE_UNREALISTIC: Estimated asking price exceeds local comparable ceiling.",
+        rejectionReason:
+          "PRICE_UNREALISTIC: Estimated asking price exceeds local comparable ceiling.",
         internalNotes: "CONFIDENTIAL: Internal valuation note #77",
       });
 
@@ -344,7 +352,8 @@ describe("Phase A4 — Listing & Flipper Resale Moderation Studio", () => {
             action: "FLIPPER_RESALE_REJECTED",
             entityId: "resale-reject-1",
             metaJson: expect.objectContaining({
-              rejectionReason: "PRICE_UNREALISTIC: Estimated asking price exceeds local comparable ceiling.",
+              rejectionReason:
+                "PRICE_UNREALISTIC: Estimated asking price exceeds local comparable ceiling.",
             }),
           }),
         }),

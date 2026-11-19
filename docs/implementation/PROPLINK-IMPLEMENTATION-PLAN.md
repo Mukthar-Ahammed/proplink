@@ -1,5 +1,13 @@
 # PropLink secure workflow implementation plan
 
+> **SUPERSEDED (2026-11-16, ADR-019).** Phases 1–8 of this plan were implemented
+> (investor subtype, authorization/RLS, onboarding, KYC submission and review,
+> Flipper acquisition, project and resale). Its remaining phases and its
+> four-role assumption conflict with the business PDFs in `docs/business/`, which
+> add `LANDLORD` and `SOLICITOR` roles and have no investor-buys-and-flips path.
+> The roadmap is now `docs/PROPLINK_PHASE_PROMPTS.md`; Flipper code stays behind
+> `FLIPPER_FLOWS_ENABLED=false`. Read this file only to understand existing code.
+
 > Planning baseline: commit `15d2b3dda4b9937b7aa221c6701a5f093c586209` plus the uncommitted Supabase Auth/RLS working tree, audited 2026-10-07.
 >
 > This is a design document, not authorization to implement. Execute one phase at a time on staging, stop at every exit gate, and require explicit approval before the next phase. Production is out of scope until Phase 13 is approved.
