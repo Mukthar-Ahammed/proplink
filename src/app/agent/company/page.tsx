@@ -55,7 +55,7 @@ export default async function AgentCompanyPage() {
     <>
       <PortalSection title="Company check">
         <div
-          className="rounded-lg border border-line bg-white p-5"
+          className="rounded-2xl border border-line bg-white p-5"
           data-testid="company-check-status"
         >
           <p className={`text-sm font-semibold ${copy.tone}`}>{copy.label}</p>

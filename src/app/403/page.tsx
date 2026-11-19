@@ -15,7 +15,7 @@ export default function ForbiddenPage() {
       </p>
       <Link
         href="/"
-        className="mt-6 rounded-md bg-primary px-5 py-2.5 font-semibold text-white hover:bg-accent"
+        className="mt-6 rounded-lg bg-accent px-5 py-2.5 font-semibold text-white hover:bg-accent-strong"
       >
         Back to home
       </Link>

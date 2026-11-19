@@ -18,6 +18,7 @@ import {
   RateLimitBackendUnavailableError,
 } from "@/lib/security/rate-limit";
 import { createMiddlewareClient } from "@/lib/supabase/proxy";
+import { PORTAL_HOME } from "@/lib/portalHome";
 
 const GATES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/admin", roles: ["ADMIN"] },
@@ -28,6 +29,9 @@ const GATES: Array<{ prefix: string; roles: string[] }> = [
   { prefix: "/verify", roles: ["LANDLORD", "INVESTOR"] },
   { prefix: "/landlord", roles: ["LANDLORD"] },
 ];
+
+/** Public sign-in/sign-up entry points a signed-in user is redirected away from. */
+const AUTH_ENTRY_PATHS = new Set(["/login", "/register"]);
 
 /**
  * Refreshes Supabase Auth cookies and provides an optimistic portal gate.
@@ -147,6 +151,48 @@ export async function proxy(request: NextRequest) {
     );
   }
 
+  // A signed-in, verified user has no use for the public login/sign-up pages:
+  // send them to the portal their role owns (ADR-016), as every major site
+  // does, instead of showing a form for an account they already hold. Only a
+  // healthy profile is redirected; an inactive or inconsistent one falls
+  // through to the login page, so this can never loop with the portal gates
+  // below (which send such profiles back to /login).
+  //
+  // The landing page gets the same treatment for **admins only**. It is the
+  // public front door and its calls to action speak to visitors and portal
+  // users; an admin's home is the separate `/admin` workspace (ADR-073), so an
+  // admin who opens `/` or clicks the logo is taken back there. Other roles
+  // still see the landing page, with their portal in place of sign-up prompts.
+  const isAdminOnlyEntry = pathname === "/";
+  if ((AUTH_ENTRY_PATHS.has(pathname) || isAdminOnlyEntry) && user?.email_confirmed_at) {
+    const entryProfile = await db.profile.findUnique({
+      where: { id: user.id },
+      select: {
+        role: true,
+        active: true,
+        kycStatus: true,
+        legacyUser: { select: { role: true, active: true, kycStatus: true } },
+      },
+    });
+    if (
+      entryProfile?.active &&
+      entryProfile.legacyUser?.active &&
+      entryProfile.role === entryProfile.legacyUser.role &&
+      entryProfile.kycStatus === entryProfile.legacyUser.kycStatus &&
+      (!isAdminOnlyEntry || entryProfile.role === "ADMIN")
+    ) {
+      return secureResponse(
+        applyCookies(
+          NextResponse.redirect(new URL(PORTAL_HOME[entryProfile.role], request.url)),
+        ),
+        request,
+        requestId,
+        nonce,
+        contentSecurityPolicy,
+      );
+    }
+  }
+
   const gate = GATES.find(
     (candidate) =>
       pathname === candidate.prefix || pathname.startsWith(`${candidate.prefix}/`),
@@ -208,9 +254,7 @@ export async function proxy(request: NextRequest) {
 
   if (!gate.roles.includes(profile.role)) {
     return secureResponse(
-      applyCookies(
-        NextResponse.rewrite(new URL("/403", request.url), { status: 403 }),
-      ),
+      applyCookies(NextResponse.rewrite(new URL("/403", request.url), { status: 403 })),
       request,
       requestId,
       nonce,
@@ -243,12 +287,18 @@ function secureResponse(
   response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
   response.headers.set("X-Frame-Options", "DENY");
   if (process.env.NODE_ENV === "production") {
-    response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    response.headers.set(
+      "Strict-Transport-Security",
+      "max-age=31536000; includeSubDomains",
+    );
   }
 
   const { pathname } = request.nextUrl;
   if (isPrivateResponsePath(pathname)) {
-    response.headers.set("Cache-Control", "private, no-store, max-age=0, must-revalidate");
+    response.headers.set(
+      "Cache-Control",
+      "private, no-store, max-age=0, must-revalidate",
+    );
     response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
   if (pathname === "/auth/confirm" || pathname === "/reset-password") {

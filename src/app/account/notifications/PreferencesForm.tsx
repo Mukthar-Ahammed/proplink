@@ -19,7 +19,7 @@ export function PreferencesForm({
 
   return (
     <form action={formAction} className="space-y-6">
-      <div className="overflow-x-auto rounded-lg border border-line bg-white">
+      <div className="overflow-x-auto rounded-2xl border border-line bg-white">
         <table className="w-full text-left text-sm">
           <caption className="sr-only">Notification preferences</caption>
           <thead className="text-xs tracking-wide text-muted uppercase">
@@ -71,7 +71,7 @@ export function PreferencesForm({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
           {pending ? "Saving…" : "Save preferences"}
         </button>

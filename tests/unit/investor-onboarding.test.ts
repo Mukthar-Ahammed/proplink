@@ -7,9 +7,7 @@ import {
   createSignupIntent,
   investorSignupSchema,
 } from "@/services/auth/supabaseAuthService";
-import {
-  completeInvestorTypeOnboarding,
-} from "@/services/syndicates/investorType";
+import { completeInvestorTypeOnboarding } from "@/services/syndicates/investorType";
 import { getInvestorNav } from "@/app/investor/nav";
 import { db } from "@/lib/db";
 
@@ -184,7 +182,7 @@ describe("PHASE 3 — Investor Subtype Onboarding & Entry UI", () => {
       expect(nav).toEqual([
         { href: "/investor", label: "Dashboard" },
         { href: "/investor/kyc", label: "Identity & Verification" },
-        { href: "/account/profile", label: "My profile" },
+        { href: "/investor/profile", label: "My profile" },
         { href: "/account/notifications", label: "Notifications" },
       ]);
     });

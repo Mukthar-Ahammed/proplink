@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { saveUploadSettingsAction, type SettingsState } from "./actions";
 
 const INPUT =
-  "w-40 rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
+  "w-40 rounded-2xl border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
 
 export function SettingsForm({
   maxFileMb,
@@ -51,7 +51,7 @@ export function SettingsForm({
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
       >
         {pending ? "Saving…" : "Save limits"}
       </button>

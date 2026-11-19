@@ -37,7 +37,7 @@ export default async function AgentPortalProfilePage() {
         <section
           key={profile.id}
           data-testid={`agent-profile-card-${profile.id}`}
-          className="rounded-lg border border-line bg-white p-6"
+          className="rounded-2xl border border-line bg-white p-6"
         >
           <div className="flex items-start justify-between gap-3">
             <div>

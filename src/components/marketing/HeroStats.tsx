@@ -44,26 +44,21 @@ export async function HeroStats() {
   if (stats.length === 0) return null;
 
   return (
-    // Editorial stat row: oversized display figures over hairline-topped
-    // columns, centered to match the heading block above.
+    // A compact frosted card in the hero copy column, left-aligned with the
+    // text above it; one column per figure, however many survive the zero filter.
     <dl
       data-testid="hero-stats"
-      className="mx-auto mt-14 grid max-w-3xl grid-cols-1 gap-x-10 gap-y-10 text-center sm:grid-cols-3"
+      className="grid auto-cols-fr grid-flow-col divide-x divide-line rounded-2xl border border-white bg-white/70 shadow-lg shadow-accent/5 backdrop-blur-md"
     >
       {stats.map((stat) => (
         // `flex-col-reverse` renders the figure above its caption while keeping
         // the `dt`-before-`dd` order the spec (and screen readers) expect.
-        <div
-          key={stat.label}
-          className="flex flex-col-reverse items-center justify-center text-center border-t border-line pt-4"
-        >
-          <dt className="mt-2 text-[11px] tracking-[0.14em] text-muted uppercase">
-            {stat.label}
-          </dt>
+        <div key={stat.label} className="flex flex-col-reverse items-start px-5 py-4">
+          <dt className="mt-0.5 text-xs text-muted sm:text-sm">{stat.label}</dt>
           <dd
             data-testid="metric-value"
             title={stat.title}
-            className="font-display text-4xl font-semibold tracking-tight text-primary sm:text-5xl"
+            className="font-display text-2xl font-semibold tracking-tight text-primary sm:text-3xl"
           >
             {stat.value}
           </dd>

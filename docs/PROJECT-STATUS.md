@@ -15,6 +15,15 @@ step) and `phase-1-roles-access` (Phase 1 in progress, ADR-020).
 - **Phase 2 started** on `phase-2-landlord-pipeline` (Landlord listings, Admin
   queue, Agent proposals, exclusive mandates). See `docs/phases/PHASE-2-REPORT.md`.
 
+## 2026-11-18 website redesign (branch `design-refresh`)
+
+- Whole-site UI redesigned to a clean, light, modern look from the owner's two
+  reference images (ADR-071, spec `docs/design/WEBSITE-DESIGN-SPEC.md`): new
+  tokens (deep teal accent), Instrument Serif headline accent, new header,
+  footer, landing page, auth shell, portal/admin shells and marketplace pages.
+  Typecheck, lint and all 1,356 unit tests pass; integration tests need a local
+  test DB; Playwright and an in-browser review are still to run.
+
 ## 2026-11-17 update
 
 - **Phase 1 Task 4 (Companies House check) done** on `phase-1-roles-access`

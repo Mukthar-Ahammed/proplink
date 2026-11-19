@@ -30,7 +30,7 @@ export default async function AdminAgentDetailPage({
       <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/admin/agents"
-          className="text-sm font-semibold text-brand hover:underline"
+          className="text-sm font-semibold text-accent hover:underline"
         >
           ← Back to agents
         </Link>

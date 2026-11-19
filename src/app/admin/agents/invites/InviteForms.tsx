@@ -5,9 +5,9 @@ import { useActionState } from "react";
 import { createInviteAction, resendInviteAction, type InviteFormState } from "./actions";
 
 const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
+  "w-full rounded-2xl border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
 const BUTTON =
-  "rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
+  "rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
 
 function Outcome({ state }: { state: InviteFormState }) {
   if (state.kind === "error") {

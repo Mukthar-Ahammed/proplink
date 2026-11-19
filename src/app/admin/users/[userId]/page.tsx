@@ -57,7 +57,7 @@ export default async function AdminUserDetailPage({
       <div className="flex flex-wrap items-center gap-3">
         <Link
           href="/admin/users"
-          className="text-sm font-semibold text-brand hover:underline"
+          className="text-sm font-semibold text-accent hover:underline"
         >
           ← Back to users
         </Link>
@@ -144,7 +144,7 @@ export default async function AdminUserDetailPage({
                 <Link
                   key={agent.id}
                   href={`/admin/agents/${agent.id}`}
-                  className="rounded-md border border-line p-4 hover:border-brand"
+                  className="rounded-xl border border-line p-4 hover:border-brand"
                 >
                   <div className="font-semibold text-primary">{agent.agencyName}</div>
                   <div className="mt-1 text-sm text-muted">
@@ -177,7 +177,7 @@ export default async function AdminUserDetailPage({
                   </div>
                   <Link
                     href={`/admin/kyc/${submission.id}`}
-                    className="text-sm font-semibold text-brand hover:underline"
+                    className="text-sm font-semibold text-accent hover:underline"
                   >
                     Open KYC review
                   </Link>

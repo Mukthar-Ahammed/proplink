@@ -14,7 +14,7 @@ export function AdminShell({ children, userName, userEmail }: AdminShellProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-surface/50 text-body flex flex-col font-sans">
+    <div className="min-h-screen bg-surface text-body flex flex-col font-sans">
       <div className="flex flex-1">
         {/* Sidebar */}
         <AdminSidebar

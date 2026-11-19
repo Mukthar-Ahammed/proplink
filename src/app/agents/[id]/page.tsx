@@ -170,7 +170,7 @@ export default async function AgentProfilePage({ params }: PageProps) {
         ) : (
           <ul className="mt-4 space-y-3">
             {profile.appraisals.map((a) => (
-              <li key={a.id} className="rounded-lg border border-line bg-white p-4">
+              <li key={a.id} className="rounded-2xl border border-line bg-white p-4">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-semibold text-primary">
                     ★ {a.rating}/5 — {a.reviewerName}

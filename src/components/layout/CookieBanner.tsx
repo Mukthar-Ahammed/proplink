@@ -25,25 +25,25 @@ export function CookieBanner() {
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-line bg-primary px-6 py-4 text-white">
-      <div className="mx-auto flex max-w-6xl flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="fixed inset-x-3 bottom-3 z-50 rounded-3xl border border-line bg-white px-5 py-4 text-body shadow-2xl sm:inset-x-auto sm:right-4 sm:bottom-4 sm:max-w-xl">
+      <div className="flex flex-col items-start gap-3">
         <p className="text-sm">
           We use essential cookies to run PropLink UK. Analytics cookies are only set with
           your consent.{" "}
-          <Link href="/privacy" className="underline">
+          <Link href="/privacy" className="font-medium text-accent underline">
             Privacy policy
           </Link>
         </p>
         <div className="flex shrink-0 gap-2">
           <button
             onClick={() => choose("essential")}
-            className="rounded-md border border-white/40 px-4 py-2 text-sm font-medium hover:bg-white/10"
+            className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong"
           >
             Essential only
           </button>
           <button
             onClick={() => choose("accepted")}
-            className="rounded-md bg-accent px-4 py-2 text-sm font-semibold hover:opacity-90"
+            className="rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong"
           >
             Accept all
           </button>

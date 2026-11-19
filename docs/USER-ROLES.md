@@ -461,8 +461,10 @@ No separate production-ready Admin invitation/creation tool was found: **Not imp
   [`src/services/listings/statusMachine.ts:22-28`](../src/services/listings/statusMachine.ts#L22-L28)).
 - `/admin/kyc` — **Not implemented**; placeholder says Sprint 4 Task 4.1
   ([`src/app/admin/kyc/page.tsx:1-7`](../src/app/admin/kyc/page.tsx#L1-L7)).
-- `/admin/fees` — **Not implemented**; placeholder says Sprint 5 Task 5.6
-  ([`src/app/admin/fees/page.tsx:1-7`](../src/app/admin/fees/page.tsx#L1-L7)).
+- `/admin/fees` — read-only "Fees & Billing Rules" reference: subscriptions
+  (Agents, Lead Investors, Co-Investors) are the only payments; no success fees,
+  no investment money, advertising unpriced (OD-11). Prices are set on the Phase 3
+  billing page ([`src/app/admin/fees/page.tsx`](../src/app/admin/fees/page.tsx)).
 - `/admin/ads` — **Not implemented**; placeholder says Sprint 6 Task 6.3
   ([`src/app/admin/ads/page.tsx:1-7`](../src/app/admin/ads/page.tsx#L1-L7)).
 - Admin is allowed through every role-portal proxy gate, and several role pages also include

@@ -39,7 +39,7 @@ export function ConfirmForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
       >
         {pending ? "Confirming…" : "Confirm my account"}
       </button>

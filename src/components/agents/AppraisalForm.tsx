@@ -62,7 +62,7 @@ export function AppraisalForm({ agentProfileId }: { agentProfileId: string }) {
   return (
     <form
       onSubmit={onSubmit}
-      className="max-w-md space-y-3 rounded-lg border border-line bg-white p-4"
+      className="max-w-md space-y-3 rounded-2xl border border-line bg-white p-4"
     >
       <Select
         id="appraisal-rating"
@@ -81,7 +81,7 @@ export function AppraisalForm({ agentProfileId }: { agentProfileId: string }) {
           onChange={(e) => setReview(e.target.value)}
           rows={4}
           placeholder="Share how this agency handled your enquiry or deal…"
-          className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+          className="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
         />
       </div>
       {error && (

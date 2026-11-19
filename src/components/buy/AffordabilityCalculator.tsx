@@ -28,7 +28,7 @@ const GBP = new Intl.NumberFormat("en-GB", {
 });
 
 const FIELD =
-  "mt-1 w-full rounded-lg border border-line bg-background px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none";
+  "mt-1 w-full rounded-2xl border border-line bg-background px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none";
 
 function Field({
   label,
@@ -62,6 +62,10 @@ function Field({
   );
 }
 
+/**
+ * Rendered inside the buyer search bar's "What can you spend?" panel
+ * (`<SearchFilters variant="bar" calculator>`), so it has no frame of its own.
+ */
 export function AffordabilityCalculator() {
   const [deposit, setDeposit] = useState(50_000);
   const [income, setIncome] = useState(60_000);
@@ -84,19 +88,30 @@ export function AffordabilityCalculator() {
   const budgetPounds = Math.floor(result.maxBudgetGBP / 100);
 
   return (
-    <section
-      data-testid="affordability"
-      aria-labelledby="affordability-heading"
-      className="rounded-2xl border border-line bg-surface p-6"
-    >
-      <h2 id="affordability-heading" className="text-lg font-semibold text-primary">
-        What can you spend?
-      </h2>
-      <p className="mt-1 text-sm text-muted">
-        A guide, not a mortgage decision — lenders apply their own affordability checks.
-      </p>
+    <section data-testid="affordability" aria-labelledby="affordability-heading">
+      <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3">
+        <div>
+          <h2 id="affordability-heading" className="text-base font-semibold text-primary">
+            What can you spend?
+          </h2>
+          <p className="mt-0.5 text-xs text-muted">
+            A guide, not a mortgage decision — lenders apply their own checks.
+          </p>
+        </div>
+        <p className="flex items-baseline gap-2">
+          <span
+            data-testid="max-budget"
+            className="text-2xl font-semibold tracking-tight text-primary"
+          >
+            {GBP.format(result.maxBudgetGBP / 100)}
+          </span>
+          <span className="text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
+            Max budget
+          </span>
+        </p>
+      </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-5 grid gap-4 sm:grid-cols-3 lg:grid-cols-5">
         <Field
           label="Deposit"
           suffix="£"
@@ -127,52 +142,36 @@ export function AffordabilityCalculator() {
         <Field label="Term" suffix="years" value={term} onChange={setTerm} />
       </div>
 
-      <dl className="mt-8 grid gap-x-8 gap-y-6 border-t border-line pt-6 sm:grid-cols-3">
-        <div>
-          <dd
-            data-testid="max-budget"
-            className="text-3xl font-semibold tracking-tight text-primary"
-          >
-            {GBP.format(result.maxBudgetGBP / 100)}
-          </dd>
-          <dt className="mt-2 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
-            Maximum budget
-          </dt>
-        </div>
-        <div>
-          <dd className="text-3xl font-semibold tracking-tight text-primary">
-            {GBP.format(result.maxBorrowGBP / 100)}
-          </dd>
-          <dt className="mt-2 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
-            Borrowing
-          </dt>
-        </div>
-        <div>
-          <dd className="text-3xl font-semibold tracking-tight text-primary">
-            {GBP.format(result.monthlyRepaymentGBP / 100)}
-          </dd>
-          <dt className="mt-2 text-[11px] font-semibold tracking-[0.12em] text-muted uppercase">
-            Per month
-          </dt>
-        </div>
-      </dl>
-
-      <div className="mt-6 flex flex-wrap items-center gap-x-6 gap-y-3">
-        {/* The calculator's whole reason for sitting on a search page. */}
-        <Link
-          href={`/buy?maxPrice=${budgetPounds}`}
-          className="rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-        >
-          Show listings up to {GBP.format(budgetPounds)}
-        </Link>
+      <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm">
+        <dl className="flex flex-wrap items-center gap-x-8 gap-y-2">
+          <div className="flex items-baseline gap-2">
+            <dt className="text-muted">Borrowing</dt>
+            <dd className="font-semibold text-primary">
+              {GBP.format(result.maxBorrowGBP / 100)}
+            </dd>
+          </div>
+          <div className="flex items-baseline gap-2">
+            <dt className="text-muted">Per month</dt>
+            <dd className="font-semibold text-primary">
+              {GBP.format(result.monthlyRepaymentGBP / 100)}
+            </dd>
+          </div>
+        </dl>
         <a
           href="https://www.moneyhelper.org.uk/en/homes/buying-a-home/mortgage-agreement-in-principle"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-sm font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
+          className="font-semibold text-primary underline decoration-line underline-offset-4 hover:decoration-accent"
         >
           About decisions in principle
         </a>
+        {/* The calculator's whole reason for sitting on a search page. */}
+        <Link
+          href={`/buy?maxPrice=${budgetPounds}`}
+          className="inline-flex h-11 items-center rounded-full bg-accent px-5 font-semibold text-white transition-colors hover:bg-accent-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 sm:ml-auto"
+        >
+          Show listings up to {GBP.format(budgetPounds)}
+        </Link>
       </div>
     </section>
   );

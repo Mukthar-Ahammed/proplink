@@ -17,7 +17,7 @@ export default async function NewListingPage() {
 
   if (profiles.length === 0) {
     return (
-      <div className="rounded-lg border border-line bg-white p-6 text-sm text-body">
+      <div className="rounded-2xl border border-line bg-white p-6 text-sm text-body">
         <p className="font-semibold text-primary">No agency profile yet</p>
         <p className="mt-1 text-muted">
           You need an active agency profile before you can create a listing. Agency

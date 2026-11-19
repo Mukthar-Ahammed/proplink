@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { createOnBehalfAction, type OnBehalfState } from "./actions";
 
 const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
+  "w-full rounded-2xl border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
 
 function Text({
   name,
@@ -102,7 +102,7 @@ export function OnBehalfForm() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
       >
         {pending ? "Creating…" : "Create for this Landlord"}
       </button>

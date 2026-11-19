@@ -166,7 +166,7 @@ export function CaseStudyManager({
 
       <ul className="space-y-3">
         {caseStudies.map((cs) => (
-          <li key={cs.id} className="rounded-lg border border-line bg-pale/40 p-4">
+          <li key={cs.id} className="rounded-2xl border border-line bg-pale/40 p-4">
             {editingId === cs.id ? (
               <form
                 onSubmit={(e) => {
@@ -213,7 +213,7 @@ export function CaseStudyManager({
                       setEditForm((f) => ({ ...f, description: e.target.value }))
                     }
                     rows={3}
-                    className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                    className="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
                   />
                 </div>
                 <Input
@@ -286,7 +286,7 @@ export function CaseStudyManager({
       {adding ? (
         <form
           onSubmit={onAdd}
-          className="space-y-3 rounded-lg border border-line bg-white p-4"
+          className="space-y-3 rounded-2xl border border-line bg-white p-4"
         >
           <Input
             id={`add-title-${agentProfileId}`}
@@ -322,7 +322,7 @@ export function CaseStudyManager({
               value={addForm.description}
               onChange={(e) => setAddForm((f) => ({ ...f, description: e.target.value }))}
               rows={3}
-              className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+              className="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
             />
           </div>
           <Input

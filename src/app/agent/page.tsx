@@ -51,7 +51,7 @@ export default async function AgentHomePage() {
         <div
           role="status"
           data-testid="migration-prompt"
-          className="mb-4 flex flex-col gap-2 rounded-lg border border-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+          className="mb-4 flex flex-col gap-2 rounded-2xl border border-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <p className="text-sm text-primary">{migrationPrompt}</p>
           {access.kind === "needs_confirmation" && (
@@ -69,7 +69,7 @@ export default async function AgentHomePage() {
         <div
           role="status"
           data-testid="company-check-prompt"
-          className="mb-8 flex flex-col gap-2 rounded-lg border border-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+          className="mb-8 flex flex-col gap-2 rounded-2xl border border-line bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
         >
           <p className="text-sm text-primary">{companyPrompt}</p>
           <Link

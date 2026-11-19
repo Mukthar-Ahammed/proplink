@@ -202,7 +202,11 @@ test("a signed-in viewer sees the full address and the map", async ({ page }) =>
   await expect(page.locator("address")).toContainText("12 Example Road");
   await expect(page.locator("address")).toContainText("M1 1AE");
 
-  // Static map (mock provider — no Google key locally, H2.2/H3.1) + satellite toggle.
+  // Static map (mock provider — no Google key locally, H2.2/H3.1) + satellite
+  // toggle, inside the expandable location card (ADR-071).
+  const expand = page.getByRole("button", { name: /Show map of 12 Example Road/i });
+  await expect(expand).toHaveAttribute("aria-expanded", "false");
+  await expand.click();
   const map = page.getByTestId("property-map-image");
   await expect(map).toBeVisible();
   await expect(map).toHaveAttribute("alt", /Map view of 12 Example Road, Manchester/i);
@@ -211,6 +215,9 @@ test("a signed-in viewer sees the full address and the map", async ({ page }) =>
     "alt",
     /Satellite view of 12 Example Road, Manchester/i,
   );
+  await page.getByRole("tab", { name: "Street View" }).click();
+  await expect(map).toHaveAttribute("alt", /Street View of 12 Example Road, Manchester/i);
+  await expect(page.getByRole("link", { name: /Explore in Google Maps/i })).toBeVisible();
 });
 
 test("a logged-in buyer posts an enquiry and it lands as an Enquiry row for the agent", async ({

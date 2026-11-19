@@ -16,9 +16,9 @@ import {
 } from "./actions";
 
 const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
+  "w-full rounded-2xl border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
 const BUTTON =
-  "rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
+  "rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
 
 function CodeField({ id, label }: { id: string; label: string }) {
   return (
@@ -49,7 +49,7 @@ function RecoveryCodes({ codes, next }: { codes: string[]; next: string }) {
         once if you lose your phone. They are shown only now.
       </p>
       <ul
-        className="grid grid-cols-2 gap-2 rounded-lg border border-line bg-white p-4 font-mono text-sm"
+        className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-white p-4 font-mono text-sm"
         data-testid="recovery-codes"
       >
         {codes.map((code) => (
@@ -112,7 +112,7 @@ export function EnrollForm({ next }: { next: string }) {
       <img
         src={enrollment.qrCode}
         alt="QR code to add PropLink to your authenticator app"
-        className="h-48 w-48 rounded-lg border border-line bg-white p-2"
+        className="h-48 w-48 rounded-2xl border border-line bg-white p-2"
       />
       <p className="text-xs text-muted">
         Can&apos;t scan? Enter this key instead:{" "}
@@ -194,7 +194,7 @@ export function RecoveryForm({ next }: { next: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary disabled:opacity-60"
+        className="rounded-2xl border border-line px-4 py-2 text-sm font-semibold text-primary disabled:opacity-60"
       >
         {pending ? "Checking…" : "Use recovery code"}
       </button>
@@ -214,7 +214,7 @@ export function RegenerateCodes() {
   if (state.kind === "codes") {
     return (
       <ul
-        className="grid grid-cols-2 gap-2 rounded-lg border border-line bg-white p-4 font-mono text-sm"
+        className="grid grid-cols-2 gap-2 rounded-2xl border border-line bg-white p-4 font-mono text-sm"
         role="status"
       >
         {state.codes.map((code) => (
@@ -228,7 +228,7 @@ export function RegenerateCodes() {
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary disabled:opacity-60"
+        className="rounded-2xl border border-line px-4 py-2 text-sm font-semibold text-primary disabled:opacity-60"
       >
         {pending ? "Generating…" : "Generate new recovery codes"}
       </button>

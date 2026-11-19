@@ -10,6 +10,7 @@ import {
   AUTH_LABEL,
   AuthShell,
 } from "@/components/auth/AuthShell";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import type { CompanySummary } from "@/services/companiesHouse/types";
 
 import {
@@ -105,20 +106,6 @@ export function AcceptAgentInviteForm() {
     <AuthShell
       title="Join PropLink UK as an agent"
       subtitle="Set your password to accept your invitation."
-      aside={{
-        headline: (
-          <>
-            Invitation only,
-            <span className="mt-1 block font-light">verified from day one</span>
-          </>
-        ),
-        points: [
-          "Agent accounts are created by PropLink invitation",
-          "Your invitation works once and only for your email",
-          "Your company is checked against Companies House",
-          "You will land straight in your agent dashboard",
-        ],
-      }}
     >
       {view.kind === "loading" && (
         <p className="text-sm text-muted">Checking your invitation…</p>
@@ -169,9 +156,9 @@ export function AcceptAgentInviteForm() {
             <label htmlFor="password" className={AUTH_LABEL}>
               Password
             </label>
-            <input
+            <PasswordInput
               id="password"
-              type="password"
+
               autoComplete="new-password"
               required
               minLength={8}

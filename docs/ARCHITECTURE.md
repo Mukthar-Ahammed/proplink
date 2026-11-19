@@ -17,7 +17,7 @@
 | Auth        | Supabase Auth (active)                                                                                                                                  | `@supabase/ssr` clients and the `profiles` identity bridge are active. Roles/KYC come from server-controlled profile/database fields, never client-writable metadata. Auth.js runtime has been removed; legacy identity records remain bridged. |
 | Storage     | Existing `StorageService` remains active; Supabase Storage security foundation added                                                                    | `kyc-documents` is private; `property-images` is public-delivery but not anonymously listable. Application upload wiring remains a later migration phase.                                                                                       |
 | AI          | Anthropic API — Sonnet (Advisor/AVM/Planning), Haiku (Enhancer/tagging)                                                                                 | Arrives Sprint 5; Redis-cached, budget-capped                                                                                                                                                                                                   |
-| Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active | Distance Matrix API is Legacy — do not use. Two distinct keys: `GOOGLE_MAPS_SERVER_KEY` (geocoding) and `GOOGLE_MAPS_API_KEY` (browser-restricted: static maps, and the Sprint 3 interactive map) — see `docs/BLOCKERS.md`                      |
+| Maps        | Google Maps JS API + Routes API `computeRouteMatrix`; `GeocodingService` + `StaticMapService` interfaces (`src/services/maps/`), both with mocks active | Distance Matrix API is Legacy — do not use. Two distinct keys: `GOOGLE_MAPS_SERVER_KEY` (geocoding) and `GOOGLE_MAPS_API_KEY` (browser-restricted: static maps, Street View Static, and the Sprint 3 interactive map) — see `docs/BLOCKERS.md`  |
 | KYC         | Sumsub (sandbox) behind `KycService` + mock                                                                                                             | Arrives Sprint 4                                                                                                                                                                                                                                |
 | Payments    | Stripe (test mode) — subscriptions ONLY (Agents, Lead Investors, Co-Investors); no boosts; ad billing undecided (OD-11)                                 | Arrives Phase 3. Investment funds never pass through the app; syndicate charges forbidden while `SYNDICATE_PAYMENTS_ENABLED=false` (ADR-019)                                                                                                    |
 | Realtime    | Supabase Realtime private Broadcast channels (RLS on `realtime.messages`)                                                                               | Arrives Phase 3 for one-to-one chat; replaces the earlier Pusher plan (ADR-019)                                                                                                                                                                 |
@@ -272,7 +272,10 @@ The complete one-line policy rationale is in
   `viewProfile()` (`src/services/profiles/userProfiles.ts`) is the single visibility decision
   (self/Admin full; private Investor hidden; public Investor anonymous; project Agent via
   `isProjectAgentFor()`, implemented in Phase 4). Track record computed at read time.
-  Photos via the upload pipeline and 5-minute signed links. UI `/account/profile`, `/u/<id>`.
+  Photos via the upload pipeline and 5-minute signed links. UI `/account/profile`, `/u/<id>`;
+  investors edit theirs at `/investor/profile` inside the investor portal (`/account/profile`
+  redirects them). Both use `ProfileEditor`: a section-card form with a sticky save bar beside
+  a preview card (name, public ID, track record, visibility) of the saved profile.
 - **Permission matrix (Phase 1, ADR-033):** `src/lib/authz/permissionMatrix.ts` is the section 5
   matrix as data; `tests/unit/permission-matrix.test.ts` checks every cell through the real
   routes/actions. Undelivered capabilities must deny everyone until their phase flips them.
@@ -288,7 +291,9 @@ The complete one-line policy rationale is in
   profiles, grant `CO_INVESTOR` when a profile becomes INVESTOR, and remove all
   rows when it stops being one. Lead Investor is granted by Admin through
   `src/services/investors/investorCapabilities.ts` (audited). This is separate
-  from the legacy Flipper/Syndicate `investorType`.
+  from the legacy Flipper/Syndicate `investorType`. Sign-up no longer asks for
+  a sub-type: the server records `SYNDICATE` for every new investor and rejects
+  a request that sends one (ADR-072); Lead vs Co-Investor is per project.
 - `KycRecord`, `VerificationToken` and Prisma migration history are server-only.
   Pledge inserts require role INVESTOR, authoritative KYC APPROVED, ownership,
   positive pence amount and an OPEN project. No pledge DELETE policy exists.
@@ -501,6 +506,17 @@ cookieValue)` is a pure function (cookie value if it's one of the user's
   `src/services/maps/index.ts`, same pattern as geocoding. **Not** wrapped in
   `cached()` — both methods return a URL string for an `<img src>` rather than
   making a request, so there is no provider call to cache.
+  `getStreetViewImageUrl` (Street View Static API, same browser key; the
+  Street View Static API must be enabled on that key's Google Cloud project)
+  builds an outdoor-only street-level photo URL with `return_error_code=true`,
+  so Google answers 404 where no imagery exists and `<PropertyMap>` shows its
+  own "No Street View imagery here" panel instead of Google's grey tile, with no
+  server-side metadata call. The mock returns a third SVG placeholder. Street
+  View only renders where the map does: for a signed-in viewer (exact
+  coordinates, ADR-022) on a publicly visible listing, so it never shows a
+  private Landlord listing or the exact door to a signed-out visitor. The
+  Street View tab also links out to Google Maps' public panorama URL
+  (`map_action=pano`, no key).
 - **Listing visibility** (`src/services/listings/listingService.ts`):
   `isPubliclyVisibleStatus()` (LIVE/UNDER_OFFER/SOLD) is the single source of
   truth, consumed by both the page and `EnquiryService` so the two can't drift.
@@ -530,7 +546,7 @@ cookieValue)` is a pure function (cookie value if it's one of the user's
   absolute ones. Sections: `<PropertyGallery>` (main image + `role="tab"`
   thumbnails — native `<button>`s, so keyboard support is free),
   distress chips, EPC badge, price/bedrooms/type/ROI in a `<dl>`, description,
-  `<PropertyMap>` (map/satellite toggle over `StaticMapService`), agent card
+  `<PropertyMap>` (Map / Satellite / Street View toggle over `StaticMapService`), agent card
   (reusing Task 2.4's `getAgentProfilePublic`), `<EnquiryForm>`, and the
   comparables / price-history placeholders.
 - **Public pages use `<main>`** (`/marketplace/[id]`, `/agents/[id]`) — a
@@ -654,10 +670,10 @@ in `index.ts` (**no Elasticsearch in this build**).
 
 ## Marketplace search UI (Task 3.2)
 
-**Shell, not rhythm** (ADR-015). The page opens on a `primary` masthead that runs
-to the top of the viewport — `/marketplace` is in `<ChromeGate>`'s
-`OVERLAY_ROUTES`, so the header floats on it and inverts to white exactly as on
-the landing hero. The heading takes the reference's treatment at _tool_ scale
+**Shell, not rhythm** (ADR-015). The page opens on a compact teal-mist banner card
+(ADR-071): a live total (`searchService.count({})`, unfiltered — the filter panel
+shows the match count), the `h1`, one line of context, and a cropped slice of
+the landing page's dotted UK map (`UkListingsMap`). The heading takes the reference's treatment at _tool_ scale
 (`clamp(2rem, 4vw, 3.25rem)`, semibold paired with light). **Below the band
 nothing changed**: same sidebar, same grid, same gaps. Density is the feature on
 a search page, and the marketing language would cost it.
@@ -688,6 +704,9 @@ a search page, and the marketing language would cost it.
   Lighthouse's `heading-order` audit and misleads heading navigation.
 
 ## Marketing landing page (`/`)
+
+> **Superseded by ADR-071.** The current landing layout is described under
+> **Design system** below; this section records the earlier design.
 
 Built to a reference the product owner supplied — a third-party Webflow rebuild
 of Mollie's Plink, from which **only the structure and design language are
@@ -814,11 +833,47 @@ arrive to search, so `/buy` _is_ the search — reusing `searchService`,
 `SearchFilters` and `PropertyCard`, with the distress filters **collapsed**
 (Task 5.7) because a wall of defect chips is the wrong opening question for a
 consumer. `SearchFilters` and `SearchPagination` take a `basePath`, so
-`/marketplace` and `/buy` share one sidebar rather than two copies.
+`/marketplace` and `/buy` share one filter component rather than two copies.
+`/buy` passes `variant="bar"` (ADR-071): a compact toolbar with search, sort and
+a "Filters" button that opens the remaining controls in a panel (kept mounted,
+`hidden` when closed); applied filters show as removable chips. `/marketplace`
+keeps the default sidebar. State and URL handling are shared by both. In the
+bar, sort, property type and bedrooms use `Dropdown` (`src/components/ui/dropdown.tsx`),
+a styled select-only combobox (button + listbox, full keyboard support,
+framer-motion fade that respects reduced motion); the sidebar keeps native
+`<Select>`s.
 
 **The affordability calculator feeds the search.** `@/lib/affordability` is pure
 and unit-tested; its budget becomes `maxPrice` in the query. Labelled a guide,
-not a mortgage decision.
+not a mortgage decision. On `/buy` it opens from a "What can you spend?" button
+in the same search bar (the `calculator` prop of `SearchFilters`), one panel at
+a time with Filters.
+
+**Banner masthead.** `PortalShell` takes an optional `banner` photo: the
+masthead then runs up behind the header pill and lays the photo under
+`banner-ground` (the landing hero glows plus a left-heavy teal-mist wash that
+fades to `background`) and `hero-grid`. The buyer portal uses
+`public/banners/buyer portal banner.png`, the investor portal
+`public/banners/investor portal banner.png` and the landlord portal
+`public/banners/landloard portal banner.png` (filename as supplied); the route must also be listed in
+`ChromeGate`'s `OVERLAY_PREFIXES`.
+
+**Investor portal content (2026-11-19).** Built from
+`src/components/investor/InvestorUi.tsx` (section title with serif tail, stat
+strip, pledge card with an `accent` → `intel` funding bar, icon chips, empty
+state). The dashboard opens with the identity-check card (`kyc-card`) beside the
+EOI card (`eoi-notice`), which must stay above every money figure; then the
+overview figures, pledges and shortcuts. Presentational only — data still comes
+from `getInvestorDashboard`.
+
+**Landlord portal content (2026-11-19).** Reuses the `InvestorUi` blocks (plus
+`HomeIcon`, `FileIcon`, `UploadIcon`, `PenIcon`, `EyeIcon`) and
+`src/components/landlord/ListingCard.tsx`. Overview: identity-check card
+(`landlord-kyc` while unverified, four-step progress, `VerifyButton`) beside a
+"Private by design" card, a stat strip, listing cards and shortcuts. Listing
+forms share styles from `src/app/landlord/listings/ui.ts` (radio choices as
+selectable cards). `STATUS_TONE` now maps listing statuses to `StatusPill`
+tones. Presentational only; services and actions are unchanged.
 
 **The write flows are real and unregulated.** The EOI constraint and the KYC gate
 cover _syndicate pledges_ only (CONTEXT §1–2) — a viewing request or an offer is
@@ -844,142 +899,115 @@ stale values, which is the bug rather than the fix.
 
 ## Design system
 
-Tokens defined once in `src/app/globals.css` (`@theme`): `primary #1B1F1E`
-(near-black ink), `secondary #33403C` (slate green-grey), `accent #B4573C`
-(terracotta ember), `surface #F2F5F4`, `pale #E6EFEE`, `success #0A6640`,
-`intel #0099A8`, `warning #A05A00`, `danger #C0152A`, `body #2F3733`,
-`muted #5F6B66`, `line #D5DCD9` (the brief's "border" — renamed, see ADR-002).
-Never hardcode brand hex values in components.
+**Current direction: ADR-071 (website redesign, 2026-11-18).** Full spec:
+`docs/design/WEBSITE-DESIGN-SPEC.md`; reference images in
+`docs/design/references/`. A clean, light, modern look: white grounds, quiet
+neutral surfaces, hairline borders, generous rounding, pill controls, and one
+deep teal for every primary action.
 
-The palette was navy + electric blue until ADR-009 retuned it in place; because
-every component goes through tokens, that was a `globals.css` change. The
-semantic four — `success`, `warning`, `danger`, `intel` — sit deliberately
-outside the brand family and were not retuned.
+**Tokens** — defined once in `src/app/globals.css` (`@theme`); never hardcode
+brand hex values in components:
 
-**`--color-brand` (`#0E4A55`, deep petrol) is a band ground only** — the landing
-hero and its closing CTA (ADR-014). Never type, never a product surface. White on
-it is 9.86:1 and `pale` 8.43:1; **`accent` on it is 2.05:1**, so ember there is a
-fill with white type and never text.
+| Token                                | Value     | Role                                                                  |
+| ------------------------------------ | --------- | --------------------------------------------------------------------- |
+| `background`                         | `#FFFFFF` | Page ground                                                           |
+| `surface`                            | `#F5F7F6` | Quiet panels: mastheads, filter rail, step cards, footer              |
+| `pale`                               | `#E8F2EF` | Teal mist: soft buttons, selected states, chips                       |
+| `primary`                            | `#141A18` | Ink: headings (17.6:1)                                                |
+| `secondary`                          | `#3B4643` | Secondary emphasis, icons                                             |
+| `body`                               | `#2C3431` | Body text                                                             |
+| `muted`                              | `#5F6B67` | Captions, helper text (5.4:1)                                         |
+| `line`                               | `#E3E8E6` | Hairline borders (`border-line`; the brief's "border")                |
+| `accent`                             | `#0F6B5E` | Deep teal — primary buttons, links, active, focus (white on it 6.4:1) |
+| `accent-strong`                      | `#0A5148` | Hover/pressed for `accent` fills                                      |
+| `brand`                              | `#0F1F1C` | Dark card ground only (closing CTA, bento dark card)                  |
+| `success` `warning` `danger` `intel` | unchanged | Semantic status colours, outside the brand family                     |
 
-**`primary` is the action, `accent` is the response to one.** `Button`'s
-`primary` variant is `bg-primary hover:bg-accent`; ember carries hovers, focus,
-selection and progress. It is never the resting fill of a main action, because a
-terracotta CTA beside `bg-danger` is a hazard, not a taste call (ADR-009).
-`accent` on `primary` is **3.46:1** and must not be used — it was 3.32:1 under
-navy and the constraint is unchanged.
+`Button`'s `primary` variant is `bg-accent hover:bg-accent-strong`. `danger`
+stays red, so the main and destructive actions never share a colour family.
 
-**There is no marketing-only colour.** ADR-007 briefly added `mist`/`ink`/`ember`
-for the landing hero; ADR-009 made them the platform's own palette, so all three
-were deleted as duplicates of `pale`/`primary`/`accent`.
+**Type.** **Figtree** (variable, via `next/font`) for all UI and headlines
+(`font-sans`, `font-display`); **Instrument Serif italic** (`font-serif italic`,
+`--font-instrument-serif`) as the editorial accent — one or two words inside a
+headline ("Redefining distressed _property investment_"), never body or UI text.
+`<SectionHeading>` (`src/components/marketing/SectionHeading.tsx`) builds that
+pairing with a pill eyebrow.
 
-**Type.** One family, two roles. **Figtree** (variable, 300–900, self-hosted and
-subset by `next/font`) is the whole project's typeface since ADR-012, which
-replaced Inter _and_ Playfair Display. `--font-sans` (`font-sans`, the default)
-covers all product UI and body copy; `--font-display` (`font-display`) marks
-marketing headline type and resolves to the same family.
+**Shape.** Buttons and chips are pills (`rounded-full`); inputs `rounded-xl`;
+cards `rounded-2xl`/`rounded-3xl` with a `border-line` hairline rather than a
+shadow; shadows only on hover lift, menus and modals.
 
-`--font-display` is deliberately **not** collapsed into `--font-sans` despite
-holding the same value: unlike the duplicate colour tokens deleted in ADR-009, it
-marks a role that is still enforced — display scale, uppercase, `font-semibold` —
-and re-pointing it at a real display face later is one line rather than an edit
-at every heading.
+**Motion.** `animate-rise` (in `@theme`) for the hero entrance; small hover
+lifts on cards. Everything is off under `prefers-reduced-motion`.
+`framer-motion` is used for one component only: the property detail page’s
+expandable location card (`src/components/ui/expand-map.tsx`, wrapped by
+`PropertyMap`), which tilts toward the pointer and springs open into the static
+map with its Map/Satellite toggle (ADR-071). Keep other motion in CSS.
 
-**Headline weight is not optional.** Playfair carried headline scale on stroke
-contrast alone; Figtree at 400 does not, so every `font-display` heading is
-`font-semibold`, and display headings track tightly — a geometric sans at 78px
-needs far more negative tracking than a didone did.
+**Global chrome.** `SiteHeader` is sticky and white with a hairline: logo
+(`<Logo>`), centred public links (Properties, How it works, Who it's for —
+existing pages only), and `Log in` + teal `Get started` on the right; below `md`
+the links fold into a `<details>` menu. Signed in it shows exactly one portal
+link (ADR-016), the investor `KycPill`, avatar initial, name and `Sign out`.
+Signed in, the landing page also swaps its sign-up calls to action for the
+viewer's portal (own "Who it's for" card highlighted; `/register` buttons
+hidden; the Why PropLink "Create an account" button opens the portal; closing
+CTA becomes "Pick up where you left off"; the footer's Account column shows the
+portal link instead of "Create an account" / "Log in"), and `src/proxy.ts`
+redirects a signed-in, verified user with a healthy profile from `/login` or
+`/register` to `PORTAL_HOME[role]` (inactive or inconsistent profiles fall
+through to the login page, so it cannot loop with the portal gates). It also
+redirects a signed-in admin from `/` to `/admin` (ADR-073); other roles still
+see the landing page. One role per account until OD-23 is decided.
+`<ChromeGate>` hides the chrome on the auth routes and on `/admin/*` (which has
+its own `AdminShell` header), and floats the header transparently over the hero
+on `/` only. `SiteFooter` is a `surface` panel with link columns, the EOI/RICS
+notices, image credits and copyright.
 
-**Global chrome.** `SiteHeader` is a flush, unfilled bar under a single hairline,
-`h-16` — wordmark left, account right, and **nothing between them** (ADR-009).
-Interior pages give it `bg-background/85 backdrop-blur-md`. It is **not sticky**,
-deliberately.
+**Password fields.** Every password input (login, register, admin login, reset
+password, agent invite) is `<PasswordInput>` (`src/components/auth/`): a drop-in
+for `<input type="password">` with an accessible show/hide eye toggle
+(`aria-pressed`, action-named label) that blinks (`animate-blink`) and draws a
+slash when the password is visible; motion is off under reduced motion.
 
-It carries no navigation at all: the centred portal links and the `Log in` link
-were both removed on the product owner's instruction. Signed out, the bar is
-wordmark + `Get started`; signed in, wordmark + `KycPill` + name + `Sign out`.
+**Shells.** `<AuthShell>`: one centred white card (no logo above it, EOI note below)
+on the `auth-ground` gradient mesh with an `auth-grid` hairline grid (the landing
+hero's technique); no photo panel. Spacing tightens on short viewports so every
+auth form, sign-up included, fits a 1280×720 screen without scrolling; sign-up
+uses the `wide` card with name and email side by side, and a segmented role
+switch whose description sits in one fixed two-line slot, so choosing a role
+never changes the page height (2026-11-19). `<PortalShell>`: light `surface` masthead with pill eyebrow, serif
+title tail and a tabbed sub-nav; content on white. `AdminShell`: white sidebar
+with teal-mist active items on a `surface` ground.
 
-**Chrome variants are published by route, not passed as props.** `SiteHeader` is
-an async server component and the root layout has no pathname, so it cannot be
-told which page it is on. `<ChromeGate>` — already the client boundary that knows
-the route — wraps the chrome in a `display: contents` element carrying
-`group/chrome` and `data-overlay="true"` for the routes in its `OVERLAY_ROUTES`,
-and the header's own utilities respond with `group-data-[overlay=true]/chrome:…`.
-On `/` that lifts the bar out of flow onto the hero's `brand` band and inverts
-every control to white — its ink wordmark measured **1.73:1** on petrol
-(ADR-014). Adding a route to that list is the whole cost of giving another page a
-full-bleed header; that page then owes its own top padding, since the header no
-longer reserves space. **Utilities, never a hand-written class** — see
-`plateWash.ts` for why a bespoke rule in `globals.css` goes stale under Turbopack.
+**Landing page (`/`).** Light hero on a teal-mist gradient (`pale` → white, with
+blurred `accent` glows) that fades into the next section: headline, CTAs and
+trust ticks on the left; on the right a dot-matrix UK map
+(`src/lib/ukDotMap.ts`, hand-simplified coastline → server-computed dot grid;
+`UkListingsMap`) whose pins pulse (`animate-blip`) or pop in and fade
+(`animate-blip-pop`) to suggest new listings. The pins are illustrative regional
+markers, not real listing positions, and the map is `aria-hidden`. The header is a
+floating white pill (`SiteHeader`) that takes no layout space; an untinted
+spacer reserves its height on ordinary pages, and on `/` (`OVERLAY_ROUTES`) and
+every `/buy` page (`OVERLAY_PREFIXES`) the spacer is dropped so the hero or
+banner runs up behind the pill, which turns more
+translucent there so header and hero read as one surface. The hero ground is a
+layered mesh gradient plus a faded hairline grid (`hero-ground` / `hero-grid`
+utilities in `globals.css`). The live stats card (`HeroStats`) sits
+left-aligned in the copy column under the trust points, and the "New listings
+across the UK" chip sits in flow below the map so it never covers it. Then How
+it works (`HowItWorksBento`: a bento grid — three illustrated step cards whose
+illustrations sit on tinted `step-stage` panels, then a wide dark `step-finale`
+final-step card drawing the Landlords → Agents → Investors → Buyers chain;
+text only from the page's existing `STEPS` and audience titles) →
+category image cards → Why PropLink comparison (`WhyPropLink`: a PropLink
+safeguards card beside a muted "usual route" card, each row the absence of the
+matching safeguard — no named competitors) → Who it's for (four roles) → dark closing
+CTA card (the restoration photo under a brand-ink + teal gradient, `cta-ground`). The scroll-orbit hero object, `RenderObject` stand-ins and the
+ecosystem marquee were removed (ADR-071).
 
-`PLATE_WASH` (`src/lib/plateWash.ts`) is the three-radial ink → ember wash. It
-was shared by the old navy header pill and the old navy hero plate so the two
-could not drift apart; both are gone, and `<AuthShell>` is now its only consumer.
-It stays a shared constant because it is still the definition of a PropLink dark
-plate, and the next one should match rather than invent a second recipe.
-
-**Scroll-driven motion.** One primitive, `src/lib/scrollOrbit.ts`, and one
-consumer, `<HeroStage>`. The maths is pure and DOM-free —
-`heroProgress(top, height)` turns an element's `getBoundingClientRect()` into
-0–1, `orbitTransform(progress, damping)` interpolates a keyframe track into a CSS
-`transform` string — which is what makes it unit-testable
-(`tests/unit/scroll-orbit.test.ts`); the component contributes a single
-`rAF`-throttled `scroll` listener and an `IntersectionObserver` that stops the
-work once the element is off-screen. No motion library, and none should be added
-for one effect: ADR-008 records the trade-off, and why
-`animation-timeline: scroll()` is the eventual answer but not yet — it now runs
-in Chrome, Firefox and Safari, and is held back only by not being Baseline.
-
-**Entrance animation is transitions on utilities, never `@keyframes`.**
-`<HeroStage>` flips `data-entered` after mount and children respond with
-`group-data-[entered=true]/hero:` — which keeps the whole thing inside Tailwind
-(no stale-CSS trap) and lets `motion-reduce:` disable it with no second code
-path. If a real `@keyframes` animation is needed, declare it inside `@theme` as
-an `--animate-*` token so Tailwind owns it and emits it with the utility —
-`--animate-scroll-hint` and `--animate-marquee` are the only two.
-
-**Reduced motion is a hard stop, not a damping.** Anything scroll-linked must
-attach no listener at all under `prefers-reduced-motion: reduce`, and expose the
-fact in the DOM (`data-orbit="static"`) so an e2e test can assert it. Scroll-
-linked scale is the specific thing that provokes vestibular discomfort, so a
-"gentler version" is not an acceptable substitute.
-
-**Auth routes are chrome-free.** The five `(auth)` pages render `<AuthShell>` — a
-full-bleed split: a dark brand plate carrying `PLATE_WASH` plus a seed photograph
-at `mix-blend-luminosity`, and the form beside it. `<ChromeGate>` suppresses
-`SiteHeader`/`SiteFooter` on those paths; the cookie banner is **not** gated,
-because consent must be offered everywhere. The plate's wordmark is the only
-route back to `/` once the header is gone, and the plate restates the EOI
-position that would otherwise be lost with the footer.
-
-`ChromeGate` is a client component reading `usePathname` rather than a `(site)`
-route group. The group is the more idiomatic answer but would move every non-auth
-route under `src/app/(site)/`, dragging `@/app/agent/actions` — used by a
-component and a unit test — to `@/app/(site)/agent/actions`. `usePathname`
-resolves during SSR, so the chrome is absent from the server-rendered HTML too.
-
-**Glyphs.** Icons are inline SVG, never an icon package: `viewBox="0 0 24 24"`,
-`fill="none"`, 1.6 stroke, round caps and joins, `aria-hidden`. Draw for the
-concept, not the object — the Investor Portal's glyph is an exploded pie (a share
-of a whole) rather than coins, because under EOI mode no money moves.
-
-**Contrast.** `Badge`'s tinted tones put a brand colour on a low-opacity tint of
-itself, which sits right on the AA boundary:
-
-- `warning` uses a `/10` tint rather than its siblings' `/15` — at `/15` it is
-  4.31:1, at `/10` it is 4.65:1. Distress chips use this tone.
-- `intel` uses `text-primary` ink rather than `text-intel` — `#0099A8` on its own
-  tint is 2.89:1 and **no** tint fixes it, whereas the brand ink on that tint is
-  13.5:1. The tint still carries the hue, so the tone still reads as "intel".
-  `EpcBadge` uses the same dark-ink-on-light-band trick.
-
-**EPC bands: the colour is fixed, the ink is the variable.** UK law requires the
-rating on every listing and the band colours are conventional, so each band takes
-whichever of white or `primary` clears AA — A 4.98 and G 4.53 on white, B 6.12,
-C 8.76, D 11.71, E 8.78 and F 6.17 on ink. B and F were white at **2.72:1 and
-2.70:1** until a page-wide sweep caught them (ADR-015).
-
-Check contrast when adding a tone — a tinted-self pair often lands the wrong side
-of the boundary.
+Earlier palettes and decisions (navy, then ink + terracotta with a petrol band —
+ADR-009/012/014) are superseded; their ADRs remain as history.
 
 ## Testing & CI
 

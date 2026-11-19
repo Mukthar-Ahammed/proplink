@@ -40,9 +40,7 @@ export default async function AgentLayout({ children }: { children: React.ReactN
             activeId={activeId}
           />
         ) : profiles.length === 1 ? (
-          <span className="text-sm font-medium text-pale/75">
-            {profiles[0].agencyName}
-          </span>
+          <span className="text-sm font-medium text-muted">{profiles[0].agencyName}</span>
         ) : null
       }
     >

@@ -40,7 +40,7 @@ function toWizardState(listing: OwnedListing): WizardFormState {
 
 function NoticeCard({ title, body }: { title: string; body: string }) {
   return (
-    <div className="rounded-lg border border-line bg-white p-6 text-sm text-body">
+    <div className="rounded-2xl border border-line bg-white p-6 text-sm text-body">
       <p className="font-semibold text-primary">{title}</p>
       <p className="mt-1 text-muted">{body}</p>
       <Link href="/agent/listings" className="mt-3 inline-block text-accent underline">

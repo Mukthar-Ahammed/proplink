@@ -49,29 +49,49 @@ function KpiCard({
   const s = toneStyles[tone];
 
   return (
-    <div className={`rounded-xl border p-5 flex flex-col gap-3 shadow-xs transition-shadow hover:shadow-sm ${s.card}`}>
+    <div
+      className={`rounded-xl border p-5 flex flex-col gap-3 shadow-xs transition-shadow hover:shadow-sm ${s.card}`}
+    >
       <div className="flex items-start justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted">{label}</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
+          {label}
+        </p>
         {(tone === "urgent" || tone === "warning") && value > 0 && (
           <span className="relative flex h-2.5 w-2.5 mt-0.5">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${s.dot}`} />
+            <span
+              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${s.dot}`}
+            />
             <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${s.dot}`} />
           </span>
         )}
       </div>
       <div className="flex items-end justify-between gap-2">
-        <span className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-2xl font-black tabular-nums leading-none ${s.badge}`}>
+        <span
+          className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-2xl font-black tabular-nums leading-none ${s.badge}`}
+        >
           {value}
         </span>
-        <p className="text-[11px] text-muted leading-snug text-right max-w-[120px]">{description}</p>
+        <p className="text-[11px] text-muted leading-snug text-right max-w-[120px]">
+          {description}
+        </p>
       </div>
       <Link
         href={href}
         className="mt-auto inline-flex items-center gap-1.5 text-xs font-semibold text-accent hover:underline underline-offset-2 transition-colors"
       >
         {cta}
-        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+        <svg
+          className="h-3.5 w-3.5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2.5}
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
+          />
         </svg>
       </Link>
     </div>
@@ -92,7 +112,7 @@ const KIND_META: Record<
   LISTING_PENDING: {
     label: "Listing",
     icon: "🏠",
-    className: "bg-brand/10 text-brand border-brand/30",
+    className: "bg-pale text-accent border-accent/20",
   },
   RESALE_SUBMITTED: {
     label: "Resale",
@@ -119,7 +139,9 @@ function AttentionRow({ item, index }: { item: AttentionItem; index: number }) {
       <span
         className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${meta.className}`}
       >
-        <span role="img" aria-label={meta.label}>{meta.icon}</span>
+        <span role="img" aria-label={meta.label}>
+          {meta.icon}
+        </span>
         {meta.label}
       </span>
 
@@ -132,14 +154,23 @@ function AttentionRow({ item, index }: { item: AttentionItem; index: number }) {
       </div>
 
       {/* Age */}
-      <span className="shrink-0 text-[11px] font-medium text-muted/70 tabular-nums">{age}</span>
+      <span className="shrink-0 text-[11px] font-medium text-muted/70 tabular-nums">
+        {age}
+      </span>
 
       {/* Arrow */}
       <svg
         className="shrink-0 h-4 w-4 text-muted/40 group-hover:text-accent transition-colors"
-        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
       >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M8.25 4.5l7.5 7.5-7.5 7.5"
+        />
       </svg>
     </Link>
   );
@@ -174,8 +205,10 @@ function QuickNavCard({
 
   if (disabled) {
     return (
-      <div className="flex items-start gap-3 rounded-lg border border-line/50 bg-white/50 p-4 opacity-50 cursor-not-allowed select-none">
-        <span className="text-xl" role="img" aria-label={label}>{icon}</span>
+      <div className="flex items-start gap-3 rounded-2xl border border-line/50 bg-white/50 p-4 opacity-50 cursor-not-allowed select-none">
+        <span className="text-xl" role="img" aria-label={label}>
+          {icon}
+        </span>
         <div>
           <p className="text-xs font-semibold text-primary">{label}</p>
           <p className="text-[11px] text-muted">{description}</p>
@@ -190,18 +223,29 @@ function QuickNavCard({
   return (
     <Link
       href={href}
-      className="group flex items-start gap-3 rounded-lg border border-line bg-white p-4 hover:border-accent/40 hover:bg-surface transition-all shadow-xs"
+      className="group flex items-start gap-3 rounded-2xl border border-line bg-white p-4 hover:border-accent/40 hover:bg-surface transition-all shadow-xs"
     >
-      <span className="text-xl" role="img" aria-label={label}>{icon}</span>
+      <span className="text-xl" role="img" aria-label={label}>
+        {icon}
+      </span>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-primary group-hover:text-accent transition-colors">{label}</p>
+        <p className="text-xs font-semibold text-primary group-hover:text-accent transition-colors">
+          {label}
+        </p>
         <p className="text-[11px] text-muted leading-snug">{description}</p>
       </div>
       <svg
         className="mt-0.5 shrink-0 h-3.5 w-3.5 text-muted/40 group-hover:text-accent transition-colors"
-        fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2.5}
       >
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M8.25 4.5l7.5 7.5-7.5 7.5"
+        />
       </svg>
     </Link>
   );
@@ -226,10 +270,7 @@ export default async function AdminDashboardPage() {
   let attentionItems: Awaited<ReturnType<typeof getAttentionItems>>;
 
   try {
-    [kpis, attentionItems] = await Promise.all([
-      getDashboardKpis(),
-      getAttentionItems(),
-    ]);
+    [kpis, attentionItems] = await Promise.all([getDashboardKpis(), getAttentionItems()]);
   } catch {
     return (
       <div className="space-y-8">
@@ -240,7 +281,8 @@ export default async function AdminDashboardPage() {
         <div className="rounded-xl border border-danger/30 bg-danger/5 p-8 text-center">
           <p className="text-sm font-semibold text-danger">Dashboard data unavailable</p>
           <p className="mt-1 text-xs text-muted">
-            Could not load queue metrics. The database may be temporarily unreachable. Retry shortly or navigate directly to a queue.
+            Could not load queue metrics. The database may be temporarily unreachable.
+            Retry shortly or navigate directly to a queue.
           </p>
         </div>
       </div>
@@ -332,10 +374,13 @@ export default async function AdminDashboardPage() {
         <div className="rounded-xl border border-line bg-white shadow-xs overflow-hidden">
           {attentionItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-              <div className="text-4xl" role="img" aria-label="All clear">✅</div>
+              <div className="text-4xl" role="img" aria-label="All clear">
+                ✅
+              </div>
               <p className="text-sm font-semibold text-primary">All queues are clear</p>
               <p className="text-xs text-muted max-w-xs">
-                No pending KYC submissions, listing reviews, or resale approvals at this time.
+                No pending KYC submissions, listing reviews, or resale approvals at this
+                time.
               </p>
             </div>
           ) : (
@@ -382,10 +427,10 @@ export default async function AdminDashboardPage() {
           />
           <QuickNavCard
             href="/admin/fees"
-            label="Fee Settings"
+            label="Fees & Billing"
             icon="💷"
-            description="Platform fee configuration (placeholder)"
-            status="placeholder"
+            description="What PropLink charges for: subscriptions only"
+            status="active"
           />
           <QuickNavCard
             href="/admin/audit"

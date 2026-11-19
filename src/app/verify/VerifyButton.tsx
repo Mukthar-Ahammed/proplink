@@ -14,7 +14,7 @@ export function VerifyButton({ label = "Verify my identity" }: { label?: string 
       <button
         type="submit"
         disabled={pending}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+        className="inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-accent-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-60"
       >
         {pending ? "Opening…" : label}
       </button>

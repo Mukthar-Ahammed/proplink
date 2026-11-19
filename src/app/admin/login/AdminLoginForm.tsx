@@ -11,6 +11,7 @@ import {
   AUTH_LABEL,
   AuthShell,
 } from "@/components/auth/AuthShell";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 import { TurnstileWidget } from "@/components/security/TurnstileWidget";
 import { runAuthAction } from "@/lib/security/auth-action-client";
 
@@ -60,19 +61,6 @@ export function AdminLoginForm() {
     <AuthShell
       title="Admin sign in"
       subtitle="Restricted access for PropLink platform administrators."
-      aside={{
-        headline: (
-          <>
-            Platform operations,
-            <span className="mt-1 block font-light">securely separated</span>
-          </>
-        ),
-        points: [
-          "Review platform users and account status",
-          "Moderate listings through server-authorized controls",
-          "Access administrative queues with least privilege",
-        ],
-      }}
     >
       <form onSubmit={onSubmit} className="space-y-5">
         <div>
@@ -93,9 +81,9 @@ export function AdminLoginForm() {
           <label htmlFor="admin-password" className={AUTH_LABEL}>
             Password
           </label>
-          <input
+          <PasswordInput
             id="admin-password"
-            type="password"
+
             autoComplete="current-password"
             required
             value={form.password}

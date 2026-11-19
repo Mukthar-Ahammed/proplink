@@ -67,7 +67,7 @@ export default async function AdminAgentsPage({
       </div>
       <form
         method="get"
-        className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-white p-4"
+        className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4"
       >
         <div className="min-w-[240px] flex-1">
           <label
@@ -81,7 +81,7 @@ export default async function AdminAgentsPage({
             name="q"
             defaultValue={params.q ?? ""}
             placeholder="Name, email, agency or compliance code"
-            className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-xl border border-line px-4 py-2.5 text-sm"
           />
         </div>
         <div>
@@ -95,7 +95,7 @@ export default async function AdminAgentsPage({
             id="active"
             name="active"
             defaultValue={params.active ?? ""}
-            className="mt-1 rounded-md border border-line bg-white px-3 py-2 text-sm"
+            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
           >
             <option value="">All</option>
             <option value="true">Active</option>
@@ -103,14 +103,14 @@ export default async function AdminAgentsPage({
           </select>
         </div>
         <button
-          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
           type="submit"
         >
           Search
         </button>
         <Link
           href="/admin/agents"
-          className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-secondary"
+          className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-secondary"
         >
           Clear
         </Link>

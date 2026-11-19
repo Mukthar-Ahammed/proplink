@@ -23,9 +23,11 @@ export function DataTable<T>({
   className,
 }: DataTableProps<T>) {
   return (
-    <div className={cn("overflow-x-auto rounded-lg border border-line", className)}>
+    <div
+      className={cn("overflow-x-auto rounded-2xl border border-line bg-white", className)}
+    >
       <table className="w-full min-w-max text-left text-sm">
-        <thead className="bg-surface text-xs uppercase tracking-wide text-muted">
+        <thead className="bg-surface text-xs font-medium tracking-wide text-muted uppercase">
           <tr>
             {columns.map((c) => (
               <th key={c.key} className={cn("px-4 py-3 font-semibold", c.className)}>

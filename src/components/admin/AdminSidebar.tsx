@@ -47,7 +47,7 @@ const NAVIGATION_GROUPS: NavGroup[] = [
   {
     title: "COMMERCIAL",
     items: [
-      { label: "Fee Settings", href: "/admin/fees", status: "placeholder" },
+      { label: "Fees & Billing", href: "/admin/fees", status: "active" },
       { label: "Ad Campaigns", href: "/admin/ads", status: "placeholder" },
     ],
   },
@@ -96,9 +96,9 @@ export function AdminSidebar({
         aria-label="Admin Navigation Sidebar"
       >
         {/* Brand Area */}
-        <div className="flex h-16 items-center justify-between border-b border-line px-5">
+        <div className="flex h-[72px] items-center justify-between border-b border-line px-5">
           <Link href="/admin" className="flex items-center gap-2.5 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-brand text-xs font-black tracking-widest text-white shadow-xs">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent text-xs font-bold tracking-wider text-white">
               PL
             </div>
             <div>
@@ -114,7 +114,7 @@ export function AdminSidebar({
           {/* Close button for mobile */}
           <button
             onClick={onCloseMobile}
-            className="rounded-md p-1.5 text-muted hover:bg-surface hover:text-primary lg:hidden"
+            className="rounded-full p-2 text-muted hover:bg-surface hover:text-primary lg:hidden"
             aria-label="Close navigation sidebar"
           >
             ✕
@@ -131,13 +131,14 @@ export function AdminSidebar({
               <ul className="space-y-0.5">
                 {group.items.map((item) => {
                   const active = isItemActive(item);
-                  const isAvailable = item.status === "active" || item.status === "placeholder";
+                  const isAvailable =
+                    item.status === "active" || item.status === "placeholder";
 
                   if (!isAvailable) {
                     return (
                       <li key={item.label}>
                         <div
-                          className="flex items-center justify-between rounded-md px-3 py-2 text-xs font-medium text-muted/60 bg-transparent opacity-60 cursor-not-allowed select-none"
+                          className="flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium text-muted bg-transparent opacity-60 cursor-not-allowed select-none"
                           title="Operational surface under development (Phase A4-A8)"
                         >
                           <span>{item.label}</span>
@@ -155,9 +156,9 @@ export function AdminSidebar({
                         href={item.href}
                         onClick={onCloseMobile}
                         aria-current={active ? "page" : undefined}
-                        className={`flex items-center justify-between rounded-md px-3 py-2 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                        className={`flex items-center justify-between rounded-xl px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                           active
-                            ? "bg-primary text-white font-semibold shadow-xs"
+                            ? "bg-pale text-accent font-semibold"
                             : "text-secondary hover:bg-surface hover:text-primary"
                         }`}
                       >
@@ -165,9 +166,7 @@ export function AdminSidebar({
                         {item.status === "placeholder" && (
                           <span
                             className={`rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase ${
-                              active
-                                ? "bg-white/20 text-white"
-                                : "bg-pale text-secondary"
+                              active ? "bg-white text-accent" : "bg-pale text-secondary"
                             }`}
                           >
                             Placeholder
@@ -184,7 +183,7 @@ export function AdminSidebar({
 
         {/* Footer Security Badge */}
         <div className="border-t border-line p-4">
-          <div className="rounded-md bg-surface p-2.5 text-center">
+          <div className="rounded-2xl bg-surface p-3 text-center">
             <div className="text-[11px] font-semibold text-primary">
               🔒 Admin Security Portal
             </div>

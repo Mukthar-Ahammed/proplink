@@ -3,10 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import {
-  KycSubmissionStatus,
-  InvestorType,
-} from "@/generated/prisma/enums";
+import { KycSubmissionStatus, InvestorType } from "@/generated/prisma/enums";
 import type {
   AdminKycQueueItem,
   AdminKycSummary,
@@ -19,13 +16,17 @@ export function KycQueueClient() {
   const searchParams = useSearchParams();
 
   // Read URL search params with sensible defaults
-  const statusParam = (searchParams.get("status") as KycSubmissionStatus | "ALL") || KycSubmissionStatus.SUBMITTED;
+  const statusParam =
+    (searchParams.get("status") as KycSubmissionStatus | "ALL") ||
+    KycSubmissionStatus.SUBMITTED;
   const subtypeParam = searchParams.get("investorType") || "ALL";
   const searchParam = searchParams.get("search") || "";
   const sortParam = (searchParams.get("sort") as "oldest" | "newest") || "oldest";
   const pageParam = parseInt(searchParams.get("page") || "1", 10);
 
-  const [statusFilter, setStatusFilter] = useState<KycSubmissionStatus | "ALL">(statusParam);
+  const [statusFilter, setStatusFilter] = useState<KycSubmissionStatus | "ALL">(
+    statusParam,
+  );
   const [subtypeFilter, setSubtypeFilter] = useState<string>(subtypeParam);
   const [search, setSearch] = useState(searchParam);
   const [sortOrder, setSortOrder] = useState<"oldest" | "newest">(sortParam);
@@ -182,17 +183,23 @@ export function KycQueueClient() {
       {/* Queue Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border border-warning/30 bg-warning/5 p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Pending Review</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Pending Review
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black tabular-nums text-primary">
               {summary?.pendingCount ?? "—"}
             </span>
-            <span className="text-[11px] font-semibold text-warning">Requires action</span>
+            <span className="text-[11px] font-semibold text-warning">
+              Requires action
+            </span>
           </div>
         </div>
 
         <div className="rounded-xl border border-success/30 bg-success/5 p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Approved Investors</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Approved Investors
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black tabular-nums text-primary">
               {summary?.approvedCount ?? "—"}
@@ -202,7 +209,9 @@ export function KycQueueClient() {
         </div>
 
         <div className="rounded-xl border border-danger/30 bg-danger/5 p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Rejected Submissions</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Rejected Submissions
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-2xl font-black tabular-nums text-primary">
               {summary?.rejectedCount ?? "—"}
@@ -212,7 +221,9 @@ export function KycQueueClient() {
         </div>
 
         <div className="rounded-xl border border-line bg-white p-4 space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">Oldest Waiting Age</p>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted">
+            Oldest Waiting Age
+          </p>
           <div className="flex items-baseline justify-between">
             <span className="text-lg font-bold text-primary truncate">
               {oldestPendingText}
@@ -262,7 +273,7 @@ export function KycQueueClient() {
             onClick={() => handleStatusChange("ALL")}
             className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-colors ${
               statusFilter === "ALL"
-                ? "bg-brand text-white"
+                ? "bg-accent text-white"
                 : "text-secondary hover:bg-surface"
             }`}
           >
@@ -401,7 +412,9 @@ export function KycQueueClient() {
                               })
                             : "Drafting"}
                         </div>
-                        <div className="text-[10px] font-semibold text-warning">{waitingAge}</div>
+                        <div className="text-[10px] font-semibold text-warning">
+                          {waitingAge}
+                        </div>
                       </td>
                       <td className="px-4 py-3 font-semibold text-primary">
                         {item.documentCount} doc(s)
@@ -409,7 +422,7 @@ export function KycQueueClient() {
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/admin/kyc/${item.id}`}
-                          className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-md bg-accent text-white hover:bg-accent/90 transition-colors shadow-xs"
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-semibold rounded-lg bg-accent text-white hover:bg-accent/90 transition-colors shadow-xs"
                         >
                           Review Studio →
                         </Link>
@@ -425,7 +438,9 @@ export function KycQueueClient() {
           {totalPages > 1 && (
             <div className="p-4 border-t border-line bg-surface flex items-center justify-between text-xs">
               <span className="text-muted">
-                Showing page <strong className="text-primary">{page}</strong> of <strong className="text-primary">{totalPages}</strong> ({total} total items)
+                Showing page <strong className="text-primary">{page}</strong> of{" "}
+                <strong className="text-primary">{totalPages}</strong> ({total} total
+                items)
               </span>
 
               <div className="flex gap-2">

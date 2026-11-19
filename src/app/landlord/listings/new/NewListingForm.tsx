@@ -3,18 +3,16 @@
 import { useActionState } from "react";
 
 import { createListingAction, type FormState } from "../actions";
-
-const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
+import { BUTTON, CHOICE, INPUT, LABEL } from "../ui";
 
 export function NewListingForm() {
   const [state, formAction, pending] = useActionState(createListingAction, {
     kind: "idle",
   } as FormState);
   return (
-    <form action={formAction} className="max-w-xl space-y-5">
-      <div className="space-y-1">
-        <label htmlFor="title" className="block text-sm font-medium text-primary">
+    <form action={formAction} className="space-y-6">
+      <div className="space-y-1.5">
+        <label htmlFor="title" className={LABEL}>
           Title
         </label>
         <input
@@ -27,31 +25,48 @@ export function NewListingForm() {
           className={INPUT}
         />
       </div>
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-primary">
-          What are you listing?
-        </legend>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="radio" name="propertyKind" value="PROPERTY" defaultChecked />A
-          property (house, flat, commercial building)
-        </label>
-        <label className="flex items-center gap-2 text-sm">
-          <input type="radio" name="propertyKind" value="LAND" />
-          Development land
-        </label>
+      <fieldset>
+        <legend className={`${LABEL} mb-2`}>What are you listing?</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className={CHOICE}>
+            <input
+              className="accent-accent"
+              type="radio"
+              name="propertyKind"
+              value="PROPERTY"
+              defaultChecked
+            />
+            <span>
+              <span className="block font-semibold text-primary">A property</span>
+              <span className="text-xs text-muted">House, flat, commercial building</span>
+            </span>
+          </label>
+          <label className={CHOICE}>
+            <input
+              className="accent-accent"
+              type="radio"
+              name="propertyKind"
+              value="LAND"
+            />
+            <span>
+              <span className="block font-semibold text-primary">Development land</span>
+              <span className="text-xs text-muted">
+                Plots, paddocks, brownfield sites
+              </span>
+            </span>
+          </label>
+        </div>
       </fieldset>
-      <button
-        type="submit"
-        disabled={pending}
-        className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
-      >
-        {pending ? "Creating…" : "Create draft"}
-      </button>
-      {state.kind === "error" && (
-        <p role="alert" className="text-sm text-danger">
-          {state.message}
-        </p>
-      )}
+      <div className="flex flex-wrap items-center gap-4">
+        <button type="submit" disabled={pending} className={BUTTON}>
+          {pending ? "Creating…" : "Create draft"}
+        </button>
+        {state.kind === "error" && (
+          <p role="alert" className="text-sm text-danger">
+            {state.message}
+          </p>
+        )}
+      </div>
     </form>
   );
 }

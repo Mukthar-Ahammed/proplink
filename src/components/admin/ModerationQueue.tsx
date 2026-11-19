@@ -120,7 +120,10 @@ export function ModerationQueue({ listings }: { listings: ModerationListingView[
       />
 
       <div className="flex items-center justify-between text-xs text-muted">
-        <span>{listings.length} listing{listings.length === 1 ? "" : "s"} awaiting moderation review</span>
+        <span>
+          {listings.length} listing{listings.length === 1 ? "" : "s"} awaiting moderation
+          review
+        </span>
       </div>
 
       <DataTable
@@ -289,7 +292,7 @@ export function ModerationQueue({ listings }: { listings: ModerationListingView[
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   rows={2}
-                  className="w-full rounded-md border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none"
+                  className="w-full rounded-xl border border-line px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
                   placeholder="e.g. Missing EPC certificate"
                 />
                 <Button

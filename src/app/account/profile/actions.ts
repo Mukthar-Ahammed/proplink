@@ -30,5 +30,6 @@ export async function saveProfileAction(
   );
   if (!result.ok) return { kind: "error", message: result.error };
   revalidatePath("/account/profile");
+  revalidatePath("/investor/profile");
   return { kind: "saved" };
 }

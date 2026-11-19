@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { cn } from "@/lib/cn";
 
 export interface CategoryTile {
   label: string;
+  /** One-line description shown on the card. */
+  blurb?: string;
   /** Live listing count for the tile's filter, from `searchService.count`. */
   count: number;
   /** A real `/marketplace` search — same URL contract as the filter sidebar. */
@@ -15,33 +16,21 @@ export interface CategoryTile {
 }
 
 /**
- * Staggered category mosaic. Each tile is a genuine pre-filtered marketplace
- * search rather than decoration, so the row doubles as the fastest route into
- * the catalogue for someone who knows which kind of distress they buy.
- *
- * Each tile is a photograph blended into the navy rather than laid on top of
- * it: `mix-blend-luminosity` keeps only the photo's light and shade and takes
- * its colour from the plate beneath, so four unrelated stock shots come out as
- * one family in the brand navy. The radial wash then sits *above* the photo, so
- * the accent bloom lights its lower corner the way it lights an empty tile.
- *
- * The photography is committed placeholder stock, not listing photography — the
- * seeded catalogue's plates are six copies of one elevation and would have made
- * four indistinguishable tiles. Provenance and licences:
- * `public/marketing/categories/LICENSES.md`.
+ * Category cards: a full-bleed photograph with the label over a soft scrim, a
+ * live count chip, and a white pill action at the foot (ADR-071). Each card is a
+ * genuine pre-filtered marketplace search, so the row is the fastest route into
+ * the catalogue.
  */
 export function CategoryTiles({ tiles }: { tiles: CategoryTile[] }) {
   return (
-    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-6">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {tiles.map((tile) => (
         <Link
           key={tile.label}
           href={tile.href}
-          className={cn(
-            "group relative isolate flex flex-col justify-end overflow-hidden rounded-3xl bg-primary/90 p-6 aspect-[3/4] sm:aspect-[4/5] lg:aspect-[3/4] transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 border border-white/10",
-          )}
+          className="group relative isolate flex aspect-[4/5] flex-col justify-end overflow-hidden rounded-3xl bg-primary p-3 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
         >
-          {/* Decorative: the label below carries the meaning, so `alt` is empty.
+          {/* Decorative: the label carries the meaning, so `alt` is empty.
               Intrinsic size is declared to keep the tile out of CLS. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -51,45 +40,30 @@ export function CategoryTiles({ tiles }: { tiles: CategoryTile[] }) {
             height={750}
             loading="lazy"
             decoding="async"
-            className="pointer-events-none absolute inset-0 -z-10 h-full w-full object-cover opacity-45 mix-blend-luminosity transition-opacity duration-300 group-hover:opacity-65"
+            className="pointer-events-none absolute inset-0 -z-20 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
-
           <div
             aria-hidden
-            className="pointer-events-none absolute inset-0 -z-10 opacity-80 transition-opacity duration-300 group-hover:opacity-100"
-            style={{
-              backgroundImage:
-                "radial-gradient(20rem 16rem at 20% 0%, var(--color-secondary), transparent 70%), radial-gradient(16rem 12rem at 100% 100%, var(--color-accent), transparent 70%)",
-            }}
+            className="pointer-events-none absolute inset-0 -z-10 bg-gradient-to-t from-primary/90 via-primary/30 to-transparent"
           />
 
-          {/* Scrim: the photo's own values cannot be relied on for the contrast
-              the label needs, so the bottom of every tile resolves to navy. */}
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 -z-10 h-3/5 bg-gradient-to-t from-primary via-primary/55 to-transparent"
-          />
-
-          <span className="absolute top-4 right-4 inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/25 text-white transition-colors group-hover:bg-white group-hover:text-primary">
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={1.6}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="h-4 w-4"
-            >
-              <path d="M7 17 17 7m0 0H9m8 0v8" />
-            </svg>
-          </span>
-
-          <span className="font-display font-semibold text-lg text-white">
-            {tile.label}
-          </span>
-          <span className="mt-1 text-xs tracking-wide text-pale/70 uppercase">
+          <span className="absolute top-4 right-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-primary backdrop-blur-sm">
             {tile.count} {tile.count === 1 ? "listing" : "listings"}
+          </span>
+
+          <div className="px-3 pb-4">
+            <span className="block text-xl font-semibold text-white">{tile.label}</span>
+            {tile.blurb && (
+              <span className="mt-1 block text-sm leading-snug text-white/75">
+                {tile.blurb}
+              </span>
+            )}
+          </div>
+          <span
+            aria-hidden
+            className="flex w-full items-center justify-center rounded-full bg-white py-3 text-sm font-semibold text-primary transition-colors group-hover:bg-pale"
+          >
+            Explore
           </span>
         </Link>
       ))}

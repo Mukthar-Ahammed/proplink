@@ -21,10 +21,10 @@ import { readApiError } from "@/lib/security/rate-limit-client";
 const TAB =
   "border-b-2 pb-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent";
 const INPUT =
-  "mt-1 w-full rounded-lg border border-line bg-background px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none";
+  "mt-1 w-full rounded-2xl border border-line bg-background px-3 py-2 text-sm text-primary focus:border-accent focus:outline-none";
 const LABEL = "text-[11px] font-semibold tracking-[0.12em] text-muted uppercase";
 const SUBMIT =
-  "rounded-full bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
+  "rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-strong disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2";
 
 type Action = "viewing" | "offer" | "message";
 
@@ -85,7 +85,7 @@ export function BuyerActions({
     <section
       data-testid="buyer-actions"
       aria-labelledby="buyer-actions-heading"
-      className="rounded-2xl border border-line bg-surface p-6"
+      className="rounded-3xl border border-line bg-white p-6"
     >
       <h2 id="buyer-actions-heading" className="text-lg font-semibold text-primary">
         Take it further

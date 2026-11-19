@@ -12,9 +12,9 @@ import {
 } from "./actions";
 
 const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
+  "w-full rounded-2xl border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
 const BUTTON =
-  "rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
+  "rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
 
 function statusLabel(status: string): string {
   const label = status.replace(/-/g, " ");
@@ -115,7 +115,7 @@ export function CompanyLookup() {
               No companies match “{state.query}”. Try the company number instead.
             </p>
           ) : (
-            <ul className="rounded-lg border border-line bg-white px-4">
+            <ul className="rounded-2xl border border-line bg-white px-4">
               {state.results.map((company) => (
                 <ResultRow key={company.companyNumber} company={company} />
               ))}

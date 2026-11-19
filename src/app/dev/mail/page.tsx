@@ -57,7 +57,7 @@ export default async function DevMailPage() {
         <form action={clearAction}>
           <button
             type="submit"
-            className="rounded-lg border border-line px-3 py-1.5 text-sm font-semibold text-primary"
+            className="rounded-2xl border border-line px-3 py-1.5 text-sm font-semibold text-primary"
           >
             Clear
           </button>
@@ -70,7 +70,7 @@ export default async function DevMailPage() {
           {mails.map((mail) => (
             <li
               key={mail.id}
-              className="rounded-lg border border-line bg-white p-4"
+              className="rounded-2xl border border-line bg-white p-4"
               data-testid="dev-mail"
             >
               <p className="text-xs text-muted">

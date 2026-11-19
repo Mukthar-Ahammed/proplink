@@ -7,9 +7,9 @@ import { ProjectDetailClient } from "./ProjectDetailClient";
 
 export const metadata = { title: "Investor — Refurbishment Project Detail" };
 
-export default async function ProjectDetailPage(
-  props: { params: Promise<{ id: string }> },
-) {
+export default async function ProjectDetailPage(props: {
+  params: Promise<{ id: string }>;
+}) {
   const session = await requirePageRole(Role.INVESTOR);
 
   const isFlipperEligible =

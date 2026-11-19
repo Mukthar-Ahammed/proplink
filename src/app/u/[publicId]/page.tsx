@@ -45,7 +45,7 @@ export default async function PublicProfilePage({
         </p>
         <Link
           href={`/login?callbackUrl=${encodeURIComponent(`/u/${view.publicId}`)}`}
-          className="mt-6 inline-block rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+          className="mt-6 inline-block rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
         >
           Sign in to view
         </Link>
@@ -97,7 +97,7 @@ export default async function PublicProfilePage({
         </h2>
         <dl className="mt-3 grid gap-4 sm:grid-cols-3">
           {view.trackRecord.map((item) => (
-            <div key={item.label} className="rounded-lg border border-line bg-white p-4">
+            <div key={item.label} className="rounded-2xl border border-line bg-white p-4">
               <dt className="text-xs text-muted">{item.label}</dt>
               <dd className="text-xl font-semibold text-primary">{item.value}</dd>
             </div>

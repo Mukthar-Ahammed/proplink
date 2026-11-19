@@ -91,7 +91,7 @@ export default async function AdminUsersPage({
 
       <form
         method="get"
-        className="flex flex-wrap items-end gap-3 rounded-lg border border-line bg-white p-4 shadow-xs"
+        className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4 shadow-xs"
       >
         <div className="flex-1 min-w-[200px]">
           <label
@@ -105,7 +105,7 @@ export default async function AdminUsersPage({
             name="q"
             defaultValue={params.q ?? ""}
             placeholder="Search by email or name..."
-            className="mt-1 w-full rounded-md border border-line px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="mt-1 w-full rounded-xl border border-line px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
           />
         </div>
         <div>
@@ -119,7 +119,7 @@ export default async function AdminUsersPage({
             id="role"
             name="role"
             defaultValue={role ?? ""}
-            className="mt-1 rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
           >
             <option value="">All roles</option>
             {ROLES.map((r) => (
@@ -140,7 +140,7 @@ export default async function AdminUsersPage({
             id="active"
             name="active"
             defaultValue={params.active ?? ""}
-            className="mt-1 rounded-md border border-line bg-white px-3 py-2 text-sm"
+            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
           >
             <option value="">All states</option>
             <option value="true">Active</option>
@@ -158,7 +158,7 @@ export default async function AdminUsersPage({
             id="investorType"
             name="investorType"
             defaultValue={params.investorType ?? ""}
-            className="mt-1 rounded-md border border-line bg-white px-3 py-2 text-sm"
+            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
           >
             <option value="">All subtypes</option>
             <option value="FLIPPER">Flipper</option>
@@ -177,7 +177,7 @@ export default async function AdminUsersPage({
             id="kycStatus"
             name="kycStatus"
             defaultValue={params.kycStatus ?? ""}
-            className="mt-1 rounded-md border border-line bg-white px-3 py-2 text-sm"
+            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
           >
             <option value="">All KYC</option>
             <option value="NOT_STARTED">Not started</option>
@@ -188,13 +188,13 @@ export default async function AdminUsersPage({
         </div>
         <button
           type="submit"
-          className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-accent transition-colors"
+          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong transition-colors"
         >
           Filter
         </button>
         <Link
           href="/admin/users"
-          className="rounded-md border border-line px-4 py-2 text-sm font-semibold text-secondary hover:border-brand"
+          className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-secondary hover:border-brand"
         >
           Clear filters
         </Link>

@@ -17,6 +17,7 @@ export default async function InvestorLayout({
       titleTail="your position"
       standfirst="Expressions of interest, funding progress and the projects behind them."
       nav={nav}
+      banner={{ src: "/banners/investor%20portal%20banner.png" }}
     >
       {children}
     </PortalShell>

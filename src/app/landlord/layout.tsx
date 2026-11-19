@@ -20,6 +20,7 @@ export default async function LandlordLayout({
       titleTail="privately"
       standfirst="Listings stay private: only PropLink-verified agents see them, after our review."
       nav={LANDLORD_NAV}
+      banner={{ src: "/banners/landloard%20portal%20banner.png" }}
     >
       {children}
     </PortalShell>

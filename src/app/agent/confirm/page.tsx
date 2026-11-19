@@ -35,7 +35,7 @@ export default async function AgentConfirmPage() {
             confirm the details below so PropLink can authorise your account for new
             features such as landlord chat and investor publishing.
           </p>
-          <dl className="grid gap-3 rounded-lg border border-line bg-white p-5 text-sm sm:grid-cols-2">
+          <dl className="grid gap-3 rounded-2xl border border-line bg-white p-5 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-xs tracking-wide text-muted uppercase">Name</dt>
               <dd className="font-medium text-primary">{session.user.name ?? "—"}</dd>

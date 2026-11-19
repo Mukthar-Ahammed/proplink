@@ -31,6 +31,7 @@ business model and are **superseded** (ADR-019).
 | `docs/BLOCKERS.md`                         | What is blocked on human-task outputs, and which mock covers it                                | Start of every phase                    |
 | `docs/HUMAN_TASKS.md`                      | Every manual task the human must do (accounts, keys, legal)                                    | When the human asks "what do I owe?"    |
 | `docs/adr/`                                | Architecture Decision Records — one file per significant decision                              | When questioning "why is X like this?"  |
+| `docs/design/WEBSITE-DESIGN-SPEC.md`       | Website redesign spec (draft): colours, type, layout, chrome, every page; refs in `references/` | Before any UI/design work               |
 | `docs/PropLink_UK_Master_Document.md`      | **Superseded** original master plan (earlier business model)                                   | Historical reference only               |
 | `docs/PropLink_Sprint_Plan_Claude_Code.md` | **Superseded** 12-week build brief; Sprints 1–3 acceptance criteria still describe built code  | Historical reference only               |
 

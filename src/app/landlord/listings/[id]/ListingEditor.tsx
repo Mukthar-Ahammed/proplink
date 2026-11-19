@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import {
   attachFileAction,
@@ -11,13 +11,7 @@ import {
   withdrawListingAction,
   type FormState,
 } from "../actions";
-
-const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
-const BUTTON =
-  "rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white disabled:opacity-60";
-const SECONDARY =
-  "rounded-lg border border-line px-4 py-2 text-sm font-semibold text-primary disabled:opacity-60";
+import { BUTTON, CHOICE, INPUT, LABEL, SECONDARY } from "../ui";
 
 export type EditableFields = {
   id: string;
@@ -73,7 +67,7 @@ function Field({
 }) {
   return (
     <div className="space-y-1">
-      <label htmlFor={name} className="block text-sm font-medium text-primary">
+      <label htmlFor={name} className={LABEL}>
         {label}
       </label>
       {multiline ? (
@@ -107,7 +101,10 @@ export function ListingFieldsForm({ initial }: { initial: EditableFields }) {
     kind: "idle",
   } as FormState);
   return (
-    <form action={formAction} className="space-y-6">
+    <form
+      action={formAction}
+      className="space-y-6 rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-7"
+    >
       <input type="hidden" name="id" value={initial.id} />
       <Field name="title" label="Title" defaultValue={initial.title} max={120} />
       <div className="grid gap-4 sm:grid-cols-3">
@@ -136,14 +133,15 @@ export function ListingFieldsForm({ initial }: { initial: EditableFields }) {
         />
       </div>
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-primary">Property or land</legend>
-        <div className="flex flex-wrap gap-6">
+        <legend className={`${LABEL} mb-2`}>Property or land</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
           {[
             ["PROPERTY", "A property"],
             ["LAND", "Development land"],
           ].map(([value, label]) => (
-            <label key={value} className="flex items-center gap-2 text-sm">
+            <label key={value} className={CHOICE}>
               <input
+                className="accent-accent"
                 type="radio"
                 name="propertyKind"
                 value={value}
@@ -194,16 +192,15 @@ export function ListingFieldsForm({ initial }: { initial: EditableFields }) {
         multiline
       />
       <fieldset className="space-y-2">
-        <legend className="text-sm font-medium text-primary">
-          What would you like to happen?
-        </legend>
-        <div className="flex flex-wrap gap-6">
+        <legend className={`${LABEL} mb-2`}>What would you like to happen?</legend>
+        <div className="grid gap-3 sm:grid-cols-2">
           {[
             ["REFURBISHMENT", "Refurbishment"],
             ["DEVELOPMENT_JV", "Development joint venture"],
           ].map(([value, label]) => (
-            <label key={value} className="flex items-center gap-2 text-sm">
+            <label key={value} className={CHOICE}>
               <input
+                className="accent-accent"
                 type="radio"
                 name="desiredOutcome"
                 value={value}
@@ -236,10 +233,25 @@ export function FileUploader({ listingId }: { listingId: string }) {
   const [kind, setKind] = useState("OWNERSHIP_DOCUMENT");
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // Local preview of the photo being uploaded (an object URL: never leaves the
+  // browser). Shown while it uploads and is scanned, and after it is added,
+  // until the next pick; the attached list shows the stored copy.
+  const [preview, setPreview] = useState<{ url: string; name: string } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview.url);
+    };
+  }, [preview]);
 
   async function upload(file: File) {
     setBusy(true);
     setStatus("Uploading and scanning…");
+    setPreview(
+      file.type.startsWith("image/")
+        ? { url: URL.createObjectURL(file), name: file.name }
+        : null,
+    );
     try {
       const response = await fetch("/api/uploads/files", {
         method: "POST",
@@ -257,27 +269,30 @@ export function FileUploader({ listingId }: { listingId: string }) {
       };
       if (!response.ok || !body.fileId) {
         setStatus(body.error ?? "Upload failed. Please try again.");
+        setPreview(null);
         return;
       }
       const attached = await attachFileAction(listingId, body.fileId, kind);
       if (!attached.ok) {
         setStatus(attached.error ?? "Could not attach the file.");
+        setPreview(null);
         return;
       }
       setStatus(`${KIND_LABEL[kind]} added.`);
       router.refresh();
     } catch {
       setStatus("Upload failed. Please try again.");
+      setPreview(null);
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <div className="space-y-3 rounded-lg border border-line bg-white p-4">
-      <div className="flex flex-wrap items-end gap-4">
+    <div className="space-y-4 rounded-2xl border border-dashed border-accent/30 bg-pale/40 p-5">
+      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] sm:items-end">
         <div className="space-y-1">
-          <label htmlFor="file-kind" className="block text-sm font-medium text-primary">
+          <label htmlFor="file-kind" className={LABEL}>
             What is it?
           </label>
           <select
@@ -294,7 +309,7 @@ export function FileUploader({ listingId }: { listingId: string }) {
           </select>
         </div>
         <div className="space-y-1">
-          <label htmlFor="file-input" className="block text-sm font-medium text-primary">
+          <label htmlFor="file-input" className={LABEL}>
             File
           </label>
           <input
@@ -307,7 +322,7 @@ export function FileUploader({ listingId }: { listingId: string }) {
               if (file) void upload(file);
               event.target.value = "";
             }}
-            className="text-sm"
+            className="block w-full text-sm text-muted file:mr-3 file:rounded-full file:border-0 file:bg-accent file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-accent-strong"
           />
         </div>
       </div>
@@ -315,10 +330,33 @@ export function FileUploader({ listingId }: { listingId: string }) {
         Every file is scanned for malware and kept private. Only you, PropLink and (after
         approval) verified agents can open it.
       </p>
-      {status && (
-        <p role="status" aria-live="polite" className="text-sm text-muted">
-          {status}
-        </p>
+      {(status || preview) && (
+        <div className="flex items-center gap-3">
+          {preview && (
+            <span className="relative shrink-0 overflow-hidden rounded-xl border border-line bg-surface">
+              {/* eslint-disable-next-line @next/next/no-img-element -- local object URL of the file just picked; next/image can't load blob: URLs. */}
+              <img
+                src={preview.url}
+                alt={`Preview of ${preview.name}`}
+                data-testid="upload-preview"
+                className={`h-20 w-28 object-cover transition-opacity ${busy ? "opacity-60" : ""}`}
+                width={112}
+                height={80}
+              />
+              {busy && (
+                <span
+                  aria-hidden
+                  className="absolute inset-0 m-auto h-6 w-6 animate-spin rounded-full border-2 border-white border-t-transparent motion-reduce:animate-none"
+                />
+              )}
+            </span>
+          )}
+          {status && (
+            <p role="status" aria-live="polite" className="text-sm text-muted">
+              {status}
+            </p>
+          )}
+        </div>
       )}
     </div>
   );
@@ -365,7 +403,7 @@ export function ConfirmAction({
   return (
     <form
       action={formAction}
-      className="space-y-3 rounded-lg border border-danger/40 bg-danger/5 p-4"
+      className="space-y-3 rounded-2xl border border-danger/30 bg-danger/5 p-5"
       role="alertdialog"
       aria-labelledby={`confirm-${action}`}
     >
@@ -379,7 +417,7 @@ export function ConfirmAction({
         <button
           type="submit"
           disabled={pending}
-          className="rounded-lg bg-danger px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="rounded-full bg-danger px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
         >
           {pending ? "Working…" : verb}
         </button>

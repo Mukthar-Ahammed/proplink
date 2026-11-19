@@ -36,7 +36,7 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
 
   if (!sessionUser) {
     return (
-      <div className="rounded-lg border border-line bg-white p-4 text-sm text-muted">
+      <div className="rounded-2xl bg-surface p-4 text-sm text-muted">
         <Link href="/login" className="text-accent underline">
           Log in
         </Link>{" "}
@@ -80,11 +80,7 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
   }
 
   return (
-    <form
-      onSubmit={onSubmit}
-      aria-label="Post enquiry"
-      className="max-w-lg space-y-3 rounded-lg border border-line bg-white p-4"
-    >
+    <form onSubmit={onSubmit} aria-label="Post enquiry" className="space-y-3">
       <div>
         <span className="block text-xs font-medium uppercase tracking-wide text-muted">
           From
@@ -105,7 +101,7 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
           rows={4}
           required
           placeholder="I'd like to know more about this property…"
-          className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+          className="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
         />
       </div>
 
@@ -119,7 +115,7 @@ export function EnquiryForm({ propertyId, sessionUser }: EnquiryFormProps) {
           value={contactPhone}
           onChange={(e) => setContactPhone(e.target.value)}
           placeholder="07700 900123"
-          className="mt-1 w-full rounded-md border border-line bg-white px-3 py-2 text-sm focus:border-accent focus:outline-none"
+          className="mt-1 w-full rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
         />
       </div>
 

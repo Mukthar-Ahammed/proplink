@@ -4,9 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import {
-  KycSubmissionStatus,
-} from "@/generated/prisma/enums";
+import { KycSubmissionStatus } from "@/generated/prisma/enums";
 import type { AdminKycSubmissionDetail } from "@/services/admin/kycAdminService";
 import { KYC_REJECTION_REASONS } from "@/services/admin/kycConstants";
 import { StatusBadge } from "@/components/admin/StatusBadge";
@@ -35,7 +33,8 @@ export function KycReviewStudioClient({
   // Decision Modal state
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
-  const [rejectionReasonCode, setRejectionReasonCode] = useState<string>("DOCUMENT_UNREADABLE");
+  const [rejectionReasonCode, setRejectionReasonCode] =
+    useState<string>("DOCUMENT_UNREADABLE");
   const [rejectionExplanation, setRejectionExplanation] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
   const [actionProcessing, setActionProcessing] = useState(false);
@@ -70,7 +69,9 @@ export function KycReviewStudioClient({
       }
       setPreviewUrl(json.url);
     } catch (err: unknown) {
-      setPreviewError(err instanceof Error ? err.message : "Failed to load document preview");
+      setPreviewError(
+        err instanceof Error ? err.message : "Failed to load document preview",
+      );
     } finally {
       setPreviewLoading(false);
     }
@@ -94,10 +95,14 @@ export function KycReviewStudioClient({
       });
       const json = await res.json();
       if (!res.ok) {
-        if (json.error?.includes("no longer pending") || json.error?.includes("race condition")) {
+        if (
+          json.error?.includes("no longer pending") ||
+          json.error?.includes("race condition")
+        ) {
           setActionFeedback({
             type: "warning",
-            message: "This submission has already been reviewed by another Admin. Refreshing state...",
+            message:
+              "This submission has already been reviewed by another Admin. Refreshing state...",
           });
           await refreshDetail();
           setShowApproveModal(false);
@@ -151,10 +156,14 @@ export function KycReviewStudioClient({
       });
       const json = await res.json();
       if (!res.ok) {
-        if (json.error?.includes("no longer pending") || json.error?.includes("race condition")) {
+        if (
+          json.error?.includes("no longer pending") ||
+          json.error?.includes("race condition")
+        ) {
           setActionFeedback({
             type: "warning",
-            message: "This submission has already been reviewed by another Admin. Refreshing state...",
+            message:
+              "This submission has already been reviewed by another Admin. Refreshing state...",
           });
           await refreshDetail();
           setShowRejectModal(false);
@@ -165,7 +174,8 @@ export function KycReviewStudioClient({
 
       setActionFeedback({
         type: "success",
-        message: "KYC Application REJECTED. Investor notified with user-visible explanation.",
+        message:
+          "KYC Application REJECTED. Investor notified with user-visible explanation.",
       });
       setShowRejectModal(false);
       await refreshDetail();
@@ -209,7 +219,9 @@ export function KycReviewStudioClient({
             </span>
           </div>
           <p className="text-xs text-muted mt-1">
-            Investor: <strong className="text-primary">{detail.investorName}</strong> ({detail.investorEmail}) — Submission ID: <code className="text-xs">{detail.id}</code>
+            Investor: <strong className="text-primary">{detail.investorName}</strong> (
+            {detail.investorEmail}) — Submission ID:{" "}
+            <code className="text-xs">{detail.id}</code>
           </p>
         </div>
 
@@ -218,7 +230,7 @@ export function KycReviewStudioClient({
           <StatusBadge status={detail.profileKycStatus} />
           <Link
             href="/admin/kyc"
-            className="px-3 py-1.5 text-xs font-semibold rounded-md border border-line bg-white hover:bg-surface text-secondary transition-colors"
+            className="px-3 py-1.5 text-xs font-semibold rounded-xl border border-line bg-white hover:bg-surface text-secondary transition-colors"
           >
             ← Back to Queue
           </Link>
@@ -232,8 +244,8 @@ export function KycReviewStudioClient({
             actionFeedback.type === "success"
               ? "bg-success/10 border-success/30 text-success"
               : actionFeedback.type === "warning"
-              ? "bg-warning/10 border-warning/30 text-warning"
-              : "bg-danger/10 border-danger/30 text-danger"
+                ? "bg-warning/10 border-warning/30 text-warning"
+                : "bg-danger/10 border-danger/30 text-danger"
           }`}
         >
           {actionFeedback.message}
@@ -265,12 +277,13 @@ export function KycReviewStudioClient({
                       className={`px-3 py-2 rounded-lg text-xs font-semibold border transition-all text-left flex flex-col ${
                         active
                           ? "bg-accent/10 border-accent text-accent shadow-xs"
-                          : "bg-surface border-line text-secondary hover:border-gray-300"
+                          : "bg-surface border-line text-secondary hover:border-line"
                       }`}
                     >
                       <span className="font-bold uppercase">{doc.kind}</span>
                       <span className="text-[10px] text-muted truncate max-w-[140px]">
-                        {(doc.sizeBytes / 1024).toFixed(0)} KB · {doc.contentType.split("/")[1] ?? doc.contentType}
+                        {(doc.sizeBytes / 1024).toFixed(0)} KB ·{" "}
+                        {doc.contentType.split("/")[1] ?? doc.contentType}
                       </span>
                     </button>
                   );
@@ -281,9 +294,10 @@ export function KycReviewStudioClient({
             {/* Document Inline Viewer Panel */}
             {selectedDoc && (
               <div className="space-y-3">
-                <div className="flex items-center justify-between text-xs text-muted bg-surface p-2.5 rounded-lg border border-line">
+                <div className="flex items-center justify-between text-xs text-muted bg-surface p-2.5 rounded-2xl border border-line">
                   <div>
-                    <span className="font-bold text-primary">{selectedDoc.kind}</span> ({selectedDoc.contentType})
+                    <span className="font-bold text-primary">{selectedDoc.kind}</span> (
+                    {selectedDoc.contentType})
                   </div>
                   {previewUrl && (
                     <a
@@ -297,17 +311,20 @@ export function KycReviewStudioClient({
                   )}
                 </div>
 
-                <div className="min-h-[420px] bg-gray-900 rounded-lg border border-line flex items-center justify-center overflow-hidden relative">
+                <div className="min-h-[420px] bg-primary rounded-2xl border border-line flex items-center justify-center overflow-hidden relative">
                   {previewLoading ? (
-                    <div className="text-xs text-gray-300 flex items-center gap-2">
-                      <span className="animate-spin text-lg">⏳</span> Loading secure preview...
+                    <div className="text-xs text-muted flex items-center gap-2">
+                      <span className="animate-spin text-lg">⏳</span> Loading secure
+                      preview...
                     </div>
                   ) : previewError ? (
-                    <div className="p-6 text-center text-xs text-red-300 space-y-2">
+                    <div className="p-6 text-center text-xs text-danger space-y-2">
                       <p className="font-bold">Document preview unavailable</p>
-                      <p className="text-gray-400">{previewError}</p>
+                      <p className="text-muted">{previewError}</p>
                       <button
-                        onClick={() => selectedDocId && loadDocumentPreview(selectedDocId)}
+                        onClick={() =>
+                          selectedDocId && loadDocumentPreview(selectedDocId)
+                        }
                         className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded font-semibold transition-colors"
                       >
                         Retry Preview
@@ -335,8 +352,11 @@ export function KycReviewStudioClient({
                       />
                     ) : (
                       /* Generic File preview fallback */
-                      <div className="p-8 text-center text-xs text-gray-300 space-y-3">
-                        <p>Inline preview not supported for media type: {selectedDoc.contentType}</p>
+                      <div className="p-8 text-center text-xs text-muted space-y-3">
+                        <p>
+                          Inline preview not supported for media type:{" "}
+                          {selectedDoc.contentType}
+                        </p>
                         <a
                           href={previewUrl}
                           target="_blank"
@@ -364,21 +384,33 @@ export function KycReviewStudioClient({
 
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Name</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Name
+                </span>
                 <span className="font-semibold text-primary">{detail.investorName}</span>
               </div>
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Subtype</span>
-                <span className="font-bold text-accent">{detail.investorType ?? "NOT_SET"}</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Subtype
+                </span>
+                <span className="font-bold text-accent">
+                  {detail.investorType ?? "NOT_SET"}
+                </span>
               </div>
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Account</span>
-                <span className={`font-semibold ${detail.accountActive ? "text-success" : "text-danger"}`}>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Account
+                </span>
+                <span
+                  className={`font-semibold ${detail.accountActive ? "text-success" : "text-danger"}`}
+                >
                   {detail.accountActive ? "Active" : "Inactive"}
                 </span>
               </div>
               <div className="bg-surface p-2.5 rounded border border-line">
-                <span className="text-[10px] text-muted font-bold uppercase block">Waiting Time</span>
+                <span className="text-[10px] text-muted font-bold uppercase block">
+                  Waiting Time
+                </span>
                 <span className="font-semibold text-primary">{waitingAgeText}</span>
               </div>
             </div>
@@ -412,7 +444,9 @@ export function KycReviewStudioClient({
                 >
                   <div className="flex items-center justify-between font-semibold">
                     <div className="flex items-center gap-2">
-                      <span className="font-bold text-primary">Attempt #{att.attemptNumber}</span>
+                      <span className="font-bold text-primary">
+                        Attempt #{att.attemptNumber}
+                      </span>
                       {att.isCurrent && (
                         <span className="text-[9px] font-bold bg-accent text-white px-1.5 py-0.2 rounded uppercase">
                           Current
@@ -425,7 +459,8 @@ export function KycReviewStudioClient({
                     {att.submittedAt
                       ? `Submitted: ${new Date(att.submittedAt).toLocaleDateString("en-GB")}`
                       : "Draft"}
-                    {att.reviewedAt && ` · Reviewed: ${new Date(att.reviewedAt).toLocaleDateString("en-GB")}`}
+                    {att.reviewedAt &&
+                      ` · Reviewed: ${new Date(att.reviewedAt).toLocaleDateString("en-GB")}`}
                   </div>
                   {att.rejectionReason && (
                     <div className="text-[11px] text-danger bg-danger/5 p-1.5 rounded border border-danger/20">
@@ -447,7 +482,8 @@ export function KycReviewStudioClient({
               <div className="p-4 bg-surface border border-line rounded-lg space-y-2 text-xs">
                 <div className="font-bold text-primary">Review Completed</div>
                 <div className="text-muted">
-                  Decision outcome: <strong className="text-primary">{detail.submissionStatus}</strong>
+                  Decision outcome:{" "}
+                  <strong className="text-primary">{detail.submissionStatus}</strong>
                 </div>
                 {detail.reviewedAt && (
                   <div className="text-muted">
@@ -456,7 +492,8 @@ export function KycReviewStudioClient({
                 )}
                 {detail.rejectionReason && (
                   <div className="text-danger bg-danger/5 p-2 rounded border border-danger/20 font-medium">
-                    <strong>Investor-Visible Rejection Reason:</strong> {detail.rejectionReason}
+                    <strong>Investor-Visible Rejection Reason:</strong>{" "}
+                    {detail.rejectionReason}
                   </div>
                 )}
                 {detail.internalNotes && (
@@ -467,12 +504,17 @@ export function KycReviewStudioClient({
               </div>
             ) : isSelf ? (
               <div className="p-4 bg-warning/10 border border-warning/30 rounded-lg text-xs text-warning font-semibold">
-                ⚠️ Anti-Self Approval Policy: As the owner of this submission, you cannot approve or reject your own KYC application. Decision controls are disabled.
+                ⚠️ Anti-Self Approval Policy: As the owner of this submission, you cannot
+                approve or reject your own KYC application. Decision controls are
+                disabled.
               </div>
             ) : (
               <div className="space-y-3">
                 <p className="text-xs text-muted">
-                  Review the attached documents and investor declaration. Approval unlocks financial actions for <strong className="text-primary">{detail.investorType}</strong>. Rejection requires a safe explanation.
+                  Review the attached documents and investor declaration. Approval unlocks
+                  financial actions for{" "}
+                  <strong className="text-primary">{detail.investorType}</strong>.
+                  Rejection requires a safe explanation.
                 </p>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -501,16 +543,20 @@ export function KycReviewStudioClient({
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4 border border-line">
             <h3 className="text-base font-bold text-primary">Confirm KYC Approval</h3>
             <p className="text-xs text-muted leading-relaxed">
-              Are you sure you want to approve Investor <strong className="text-primary">{detail.investorName}</strong>?
+              Are you sure you want to approve Investor{" "}
+              <strong className="text-primary">{detail.investorName}</strong>?
               <br />
-              This will update their Profile KYC Status to <strong className="text-success">APPROVED</strong> and unlock financial eligibility for <strong className="text-primary">{detail.investorType}</strong>.
+              This will update their Profile KYC Status to{" "}
+              <strong className="text-success">APPROVED</strong> and unlock financial
+              eligibility for{" "}
+              <strong className="text-primary">{detail.investorType}</strong>.
             </p>
 
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowApproveModal(false)}
                 disabled={actionProcessing}
-                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-gray-100 text-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-surface text-secondary rounded-lg transition-colors"
               >
                 Cancel
               </button>
@@ -552,7 +598,8 @@ export function KycReviewStudioClient({
 
               <div>
                 <label className="block font-bold text-primary mb-1 uppercase text-[10px]">
-                  Investor-Visible Explanation <span className="text-danger">* (Required)</span>
+                  Investor-Visible Explanation{" "}
+                  <span className="text-danger">* (Required)</span>
                 </label>
                 <textarea
                   rows={3}
@@ -565,7 +612,8 @@ export function KycReviewStudioClient({
 
               <div>
                 <label className="block font-bold text-muted mb-1 uppercase text-[10px]">
-                  Confidential Internal Notes <span className="text-muted/60">(Admin Only)</span>
+                  Confidential Internal Notes{" "}
+                  <span className="text-muted/60">(Admin Only)</span>
                 </label>
                 <textarea
                   rows={2}
@@ -581,7 +629,7 @@ export function KycReviewStudioClient({
               <button
                 onClick={() => setShowRejectModal(false)}
                 disabled={actionProcessing}
-                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-gray-100 text-secondary rounded-lg transition-colors"
+                className="px-4 py-2 text-xs font-semibold bg-surface border border-line hover:bg-surface text-secondary rounded-lg transition-colors"
               >
                 Cancel
               </button>

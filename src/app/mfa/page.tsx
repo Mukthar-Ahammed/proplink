@@ -64,7 +64,7 @@ export default async function MfaPage({
             <ChallengeForm next={next} label="6-digit code" />
           </div>
           {!reauth && (
-            <details className="rounded-lg border border-line bg-white p-4">
+            <details className="rounded-2xl border border-line bg-white p-4">
               <summary className="cursor-pointer text-sm font-medium text-primary">
                 Lost your phone? Use a recovery code
               </summary>

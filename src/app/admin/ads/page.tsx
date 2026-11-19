@@ -14,12 +14,15 @@ export default async function AdsPage() {
       />
 
       <div className="rounded-xl border border-line bg-white p-8 text-center shadow-xs">
-        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-pale text-brand mb-4">
+        <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-pale text-accent mb-4">
           📢
         </div>
-        <h2 className="text-base font-bold text-primary">Operational Surface Placeholder</h2>
+        <h2 className="text-base font-bold text-primary">
+          Operational Surface Placeholder
+        </h2>
         <p className="mt-2 text-xs text-muted max-w-md mx-auto">
-          Ad campaign dashboard arrives with the Ecosystem Marketplace (Sprint 6, Task 6.3 / Phase A7).
+          Ad campaign dashboard arrives with the Ecosystem Marketplace (Sprint 6, Task 6.3
+          / Phase A7).
         </p>
       </div>
     </div>

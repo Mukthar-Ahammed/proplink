@@ -32,7 +32,7 @@ export default async function MockVerificationPage() {
           type="submit"
           name="decision"
           value="APPROVED"
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white"
+          className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white"
         >
           Approve
         </button>

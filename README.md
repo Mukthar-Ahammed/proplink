@@ -15,7 +15,7 @@ intelligence and an ecosystem marketplace.
 npm install                # also runs prisma generate
 cp .env.example .env.local # fill in what you have (see docs/HUMAN_TASKS.md)
 npm run db:migrate         # needs DIRECT_URL (Supabase)
-npm run db:seed            # 4 users (one per role, password: Password123!)
+npm run db:seed            # seed users incl. admin, agent, investor, buyer, landlord@proplink.test (password: Password123!)
 npm run dev                # http://localhost:3000
 ```
 

@@ -10,13 +10,17 @@ export const STATUS_LABEL: Record<LandlordListingStatus, string> = {
   WITHDRAWN: "Withdrawn",
 };
 
-export const STATUS_TONE: Record<LandlordListingStatus, string> = {
-  DRAFT: "border-line text-muted",
-  AWAITING_LANDLORD_CONFIRMATION: "border-warning/40 text-warning",
-  SUBMITTED: "border-accent/40 text-accent",
-  APPROVED: "border-success/40 text-success",
-  REJECTED: "border-danger/40 text-danger",
-  WITHDRAWN: "border-line text-muted",
+/** `StatusPill` tone for each status. */
+export const STATUS_TONE: Record<
+  LandlordListingStatus,
+  "neutral" | "accent" | "success" | "warning" | "danger"
+> = {
+  DRAFT: "neutral",
+  AWAITING_LANDLORD_CONFIRMATION: "warning",
+  SUBMITTED: "accent",
+  APPROVED: "success",
+  REJECTED: "danger",
+  WITHDRAWN: "neutral",
 };
 
 export function formatDate(value: Date | null): string {

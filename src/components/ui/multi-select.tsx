@@ -40,7 +40,7 @@ export function MultiSelect({
               aria-pressed={selected}
               onClick={() => toggle(o.value)}
               className={cn(
-                "rounded-full border px-3 py-1 text-xs font-semibold transition-colors",
+                "rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors",
                 selected
                   ? "border-accent bg-accent text-white"
                   : "border-line bg-white text-secondary hover:border-accent",

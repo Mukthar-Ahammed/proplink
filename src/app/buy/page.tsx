@@ -18,9 +18,13 @@ interface PageProps {
  *
  * Buyers are the B2C side: they arrive to look for a house, not to read their
  * own metrics. So this is the marketplace with a buyer's framing — the
- * affordability calculator above it feeding `maxPrice` straight into the query,
- * and the distress filters collapsed (Task 5.7) because a wall of defect chips
- * is the wrong opening question for a consumer.
+ * affordability calculator feeding `maxPrice` straight into the query, and the
+ * distress filters collapsed (Task 5.7) because a wall of defect chips is the
+ * wrong opening question for a consumer.
+ *
+ * Layout (ADR-071): one compact search bar — search, sort, a "Filters" button
+ * that opens the rest, and "What can you spend?" that opens the affordability
+ * calculator — then a full-width results grid.
  *
  * The URL is the single source of truth for filter state, exactly as on
  * `/marketplace` — `<SearchFilters>` rewrites it with `basePath="/buy"` and this
@@ -41,45 +45,43 @@ export default async function BuyerSearchPage({ searchParams }: PageProps) {
   const financialPromotionsReviewed = isFinancialPromotionsReviewed();
 
   return (
-    <>
-      <AffordabilityCalculator />
+    <div className="space-y-4">
+      <SearchFilters
+        initial={params}
+        resultCount={results.total}
+        basePath="/buy"
+        collapseDistress
+        variant="bar"
+        calculator={<AffordabilityCalculator />}
+        financialPromotionsReviewed={financialPromotionsReviewed}
+      />
 
-      <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
-        <SearchFilters
-          initial={params}
-          resultCount={results.total}
-          basePath="/buy"
-          collapseDistress
-          financialPromotionsReviewed={financialPromotionsReviewed}
-        />
+      <section aria-label="Search results" className="pt-4">
+        {results.items.length === 0 ? (
+          <PortalEmpty>
+            No properties match that search. Try widening your budget, clearing a filter,
+            or searching a nearby city.
+          </PortalEmpty>
+        ) : (
+          <>
+            <div
+              data-testid="results-grid"
+              className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+            >
+              {results.items.map((listing) => (
+                <PropertyCard key={listing.id} listing={listing} />
+              ))}
+            </div>
 
-        <section aria-label="Search results">
-          {results.items.length === 0 ? (
-            <PortalEmpty>
-              No properties match that search. Try widening your budget, clearing a
-              filter, or searching a nearby city.
-            </PortalEmpty>
-          ) : (
-            <>
-              <div
-                data-testid="results-grid"
-                className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
-              >
-                {results.items.map((listing) => (
-                  <PropertyCard key={listing.id} listing={listing} />
-                ))}
-              </div>
-
-              <SearchPagination
-                params={params}
-                page={results.page}
-                totalPages={results.totalPages}
-                basePath="/buy"
-              />
-            </>
-          )}
-        </section>
-      </div>
-    </>
+            <SearchPagination
+              params={params}
+              page={results.page}
+              totalPages={results.totalPages}
+              basePath="/buy"
+            />
+          </>
+        )}
+      </section>
+    </div>
   );
 }

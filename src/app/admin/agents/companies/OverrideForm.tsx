@@ -5,7 +5,7 @@ import { useActionState, useId } from "react";
 import { overrideCompanyCheckAction, type OverrideFormState } from "./actions";
 
 const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
+  "w-full rounded-2xl border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
 
 export function OverrideForm({ profileId }: { profileId: string }) {
   const [state, formAction, pending] = useActionState(overrideCompanyCheckAction, {
@@ -34,7 +34,7 @@ export function OverrideForm({ profileId }: { profileId: string }) {
           name="decision"
           value="APPROVED"
           disabled={pending}
-          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+          className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
         >
           Approve
         </button>

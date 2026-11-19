@@ -5,7 +5,7 @@ import { z } from "zod";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { Role, type Role as AppRole } from "@/generated/prisma/enums";
+import { InvestorType, Role, type Role as AppRole } from "@/generated/prisma/enums";
 import { createClient } from "@/lib/supabase/server";
 import {
   appOrigin,
@@ -16,8 +16,6 @@ import {
   createSignupIntent,
   credentialsSchema,
   discardSignupIntent,
-  investorSignupSchema,
-  investorTypeEnumSchema,
   loginLimits,
   passwordSchema,
   rateLimitsExceeded,
@@ -29,7 +27,10 @@ import {
   signupSchema,
   tokenWasConsumed,
 } from "@/services/auth/supabaseAuthService";
-import { completeInvestorTypeOnboarding, investorTypeSchema } from "@/services/syndicates/investorType";
+import {
+  completeInvestorTypeOnboarding,
+  investorTypeSchema,
+} from "@/services/syndicates/investorType";
 import { isAuthenticationAudienceAllowed, requireRole } from "@/lib/authz";
 import { auth } from "@/lib/auth";
 import { verifyTurnstileToken } from "@/services/security/turnstile";
@@ -59,9 +60,7 @@ async function requestIp(): Promise<string> {
   );
 }
 
-async function verifyHuman(
-  token: string | undefined,
-): Promise<AuthActionResult | null> {
+async function verifyHuman(token: string | undefined): Promise<AuthActionResult | null> {
   const result = await verifyTurnstileToken(token, await requestIp());
   if (result.ok) return null;
   return {
@@ -80,8 +79,7 @@ async function minimumResponseTime(startedAt: number, milliseconds = 500) {
 
 async function signupAs(role: AppRole, raw: unknown): Promise<AuthActionResult> {
   const startedAt = Date.now();
-  const isInvestor = role === Role.INVESTOR;
-  const schema = (isInvestor ? investorSignupSchema : signupSchema)
+  const schema = signupSchema
     .extend({ turnstileToken: z.string().max(2048).optional() })
     .strict();
   const parsed = schema.safeParse(raw);
@@ -89,24 +87,19 @@ async function signupAs(role: AppRole, raw: unknown): Promise<AuthActionResult> 
     return { kind: "error", message: parsed.error.issues[0]?.message };
   }
 
-  const parsedInvestorType =
-    isInvestor && "investorType" in parsed.data
-      ? investorTypeEnumSchema.safeParse(parsed.data.investorType)
-      : null;
-  if (isInvestor && !parsedInvestorType?.success) {
-    return { kind: "error", message: "Select a valid investor type" };
-  }
-  const investorType = parsedInvestorType?.success
-    ? parsedInvestorType.data
-    : null;
+  // The server, not the visitor, sets the investor sub-type (ADR-072). The
+  // business PDFs have one Investor sign-up (TRD REG-3: "individual and
+  // Co-Investor/Syndicate Member"); Lead Investor vs Co-Investor is decided per
+  // project (CI-1, OD-13), and the old Flipper path is not part of the model.
+  // Capability comes from `InvestorCapabilityGrant` (every investor is
+  // CO_INVESTOR; Admin grants LEAD_INVESTOR); `SYNDICATE` is the legacy
+  // sub-type value that matches it and keeps Flipper flows off.
+  const investorType = role === Role.INVESTOR ? InvestorType.SYNDICATE : null;
 
   const ip = await requestIp();
   const humanVerification = await verifyHuman(parsed.data.turnstileToken);
   if (humanVerification) return humanVerification;
-  const allowed = await consumeRateLimits(
-    "signup",
-    signupLimits(parsed.data.email, ip),
-  );
+  const allowed = await consumeRateLimits("signup", signupLimits(parsed.data.email, ip));
   if (!allowed) {
     await minimumResponseTime(startedAt);
     return { kind: "success", message: GENERIC_SIGNUP };
@@ -376,7 +369,9 @@ export async function requestPasswordResetAction(
   return { kind: "success", message: GENERIC_RESET, cooldownSeconds: 60 };
 }
 
-export async function resetPasswordAction(rawPassword: unknown): Promise<AuthActionResult> {
+export async function resetPasswordAction(
+  rawPassword: unknown,
+): Promise<AuthActionResult> {
   const parsed = passwordSchema.safeParse(rawPassword);
   if (!parsed.success) {
     return { kind: "error", message: parsed.error.issues[0]?.message };

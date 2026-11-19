@@ -9,7 +9,7 @@ import {
 } from "./actions";
 
 const BUTTON =
-  "rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60";
+  "rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60";
 
 function Outcome({ state }: { state: MigrationFormState }) {
   if (state.kind === "error") {

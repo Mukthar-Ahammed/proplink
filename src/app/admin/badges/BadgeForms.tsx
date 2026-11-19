@@ -5,7 +5,7 @@ import { useActionState, useId } from "react";
 import { awardBadgeAction, revokeBadgeAction, type BadgeFormState } from "./actions";
 
 const INPUT =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
+  "w-full rounded-2xl border border-line bg-white px-3 py-2 text-sm text-body focus:border-accent focus:outline-none";
 
 function Outcome({ state, done }: { state: BadgeFormState; done: string }) {
   if (state.kind === "error") {
@@ -41,7 +41,7 @@ export function AwardForm({ profileId, name }: { profileId: string; name: string
         type="submit"
         disabled={pending}
         aria-label={`Award verified badge to ${name}`}
-        className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+        className="rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
       >
         {pending ? "Awarding…" : "Award badge"}
       </button>
