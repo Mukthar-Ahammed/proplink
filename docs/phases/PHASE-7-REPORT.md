@@ -30,8 +30,8 @@ secret store, backups and restore on the real database, and every open
 | ------------------------------ | ------------------------------------------------------ | --------------- |
 | 1. Security review             | Done (local); pen test and staging scans are H7.1/H7.2 | THREAT-MODEL.md |
 | 2. RLS and authorisation audit | Done (local); Security Advisor is H7.2                 | ADR-063         |
-| 3. Rate-limit and abuse        | Not started                                            |                 |
-| 4. Privacy and compliance      | Not started                                            |                 |
+| 3. Rate-limit and abuse        | Done (local); staging load test is H7.2                | ADR-064         |
+| 4. Privacy and compliance      | In progress                                            |                 |
 | 5. Resilience and performance  | Not started                                            |                 |
 | 6. Quality gates               | Not started                                            |                 |
 | 7. Deployment readiness        | Not started                                            |                 |
@@ -90,3 +90,21 @@ deployment (H7.2); the penetration test is H7.1.
 
 **Not done here:** the Supabase Security Advisor needs the real projects
 (H7.2).
+
+## Task 3 — Rate-limit and abuse verification (2026-11-19)
+
+**Delivered** (ADR-064)
+
+- Outage behaviour changed: read-only classes degrade safely (served,
+  logged) instead of the whole site returning 503; every sensitive class
+  (sign-in, reset, sign-up, uploads, KYC, chat, transactions, writes
+  including pledges, Admin, webhooks) still fails closed.
+- `docs/security/RATE-LIMITS.md`: both layers, every class with its limit
+  and outage behaviour, the Postgres-backed action limits.
+- `tests/unit/rate-limit-behaviour.test.ts` (19): 1,000 concurrent sign-ins
+  → exactly 5 allowed, the rest 429 with `Retry-After`, then a 15-minute
+  block; independent addresses; public search limit; memory backend refused
+  in production; Redis unreachable → 12 sensitive routes fail closed, reads
+  degrade safely.
+
+**Not done here:** a load test and forced outage against staging (H7.2).
