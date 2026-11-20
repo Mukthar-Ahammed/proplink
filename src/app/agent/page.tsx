@@ -4,6 +4,7 @@ import Link from "next/link";
 import { requirePageRole } from "@/lib/authz";
 import { getAgentDashboard } from "@/services/agents/agentDashboard";
 import { PortalAnnouncements } from "@/components/portal/Announcements";
+import { Panel } from "@/components/portal/Detail";
 import { listActiveAnnouncements } from "@/services/announcements/announcements";
 import { getOwnCompanyCheck } from "@/services/agents/companyCheck";
 import { getAgentAccessState } from "@/services/agents/agentMigration";
@@ -12,7 +13,6 @@ import {
   ArrowIcon,
   ArrowLink,
   ChartIcon,
-  CheckIcon,
   FileIcon,
   HomeIcon,
   IconChip,
@@ -30,10 +30,9 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Agent portal — PropLink UK" };
 
 /**
- * The agent portal's front door (ADR-016), in the ADR-071 portal look shared
- * with the buyer, investor and landlord portals. It replaced a bare
- * `redirect("/agent/listings")`, which left the portal with no home and no
- * overview.
+ * The agent portal's front door (ADR-016), laid out per ADR-080: what needs
+ * the agent first, then the figures, then the work grouped by who it is for
+ * (landlords, buyers, investors).
  *
  * `requireRole` again despite the middleware gate: the middleware reads the JWT
  * at the edge and is a routing concern, while this is the server-side check
@@ -59,33 +58,59 @@ export default async function AgentHomePage() {
       : company.status === "NEEDS_REVIEW" || company.status === "REJECTED_BY_ADMIN"
         ? "Your company check needs attention."
         : null;
+  const hasAttention = Boolean(migrationPrompt || companyPrompt || data.newLeads > 0);
+  const brandNew =
+    data.recentLeads.length === 0 && data.liveListings === 0 && data.draftListings === 0;
 
   return (
-    <div className="space-y-12">
+    <div className="space-y-10">
       <PortalAnnouncements items={announcements} />
       <SubscriptionBanner />
 
-      {(migrationPrompt || companyPrompt) && (
-        <div className="space-y-4">
-          {migrationPrompt && (
-            <Prompt
-              testId="migration-prompt"
-              title="Account confirmation"
-              text={migrationPrompt}
-              href={access.kind === "needs_confirmation" ? "/agent/confirm" : undefined}
-              cta="Confirm account"
-            />
-          )}
-          {companyPrompt && (
-            <Prompt
-              testId="company-check-prompt"
-              title="Company check"
-              text={companyPrompt}
-              href="/agent/company"
-              cta="Company check"
-            />
-          )}
-        </div>
+      {/* ------------------------------------------- needs your attention */}
+      {hasAttention && (
+        <section aria-labelledby="attention-heading">
+          <h2 id="attention-heading" className="sr-only">
+            Next steps
+          </h2>
+          <Panel
+            title="Needs your attention"
+            description="Things waiting on you, most important first."
+            tone="attention"
+          >
+            <ul className="divide-y divide-warning/20">
+              {migrationPrompt && (
+                <AttentionItem
+                  testId="migration-prompt"
+                  title="Account confirmation"
+                  text={migrationPrompt}
+                  href={
+                    access.kind === "needs_confirmation" ? "/agent/confirm" : undefined
+                  }
+                  cta="Confirm account"
+                />
+              )}
+              {companyPrompt && (
+                <AttentionItem
+                  testId="company-check-prompt"
+                  title="Company check"
+                  text={companyPrompt}
+                  href="/agent/company"
+                  cta="Company check"
+                />
+              )}
+              {data.newLeads > 0 && (
+                <AttentionItem
+                  testId="new-leads-prompt"
+                  title={`${data.newLeads} new ${data.newLeads === 1 ? "enquiry" : "enquiries"}`}
+                  text="Buyers have contacted you about a live listing and nobody has replied yet."
+                  href="/agent/leads"
+                  cta="Open leads"
+                />
+              )}
+            </ul>
+          </Panel>
+        </section>
       )}
 
       {/* ------------------------------------------------------- overview */}
@@ -114,34 +139,34 @@ export default async function AgentHomePage() {
         />
       </section>
 
+      {brandNew && (
+        <InvestorEmpty
+          title="Start with your first listing"
+          action={<PrimaryLink href="/agent/listings/new">Create a listing</PrimaryLink>}
+        >
+          Listings go to PropLink moderation before buyers see them. Drafts save as you
+          go.
+        </InvestorEmpty>
+      )}
+
       {/* ---------------------------------------------- leads + record */}
-      <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
-        <section className="flex flex-col rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-7">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <IconChip>
-                <UserIcon />
-              </IconChip>
-              <div>
-                <p className="text-xs font-semibold tracking-[0.14em] text-muted uppercase">
-                  Enquiries
-                </p>
-                <h2 className="mt-0.5 font-semibold text-primary">Latest leads</h2>
-              </div>
-            </div>
-            <ArrowLink href="/agent/leads">All leads</ArrowLink>
-          </div>
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <Panel
+          title="Latest leads"
+          description="Buyer enquiries on your live listings."
+          action={<ArrowLink href="/agent/leads">View all</ArrowLink>}
+        >
           {data.recentLeads.length === 0 ? (
-            <p className="mt-6 rounded-2xl border border-dashed border-line bg-surface/60 px-5 py-8 text-center text-sm text-muted">
+            <p className="rounded-xl border border-dashed border-line bg-surface/60 px-5 py-8 text-center text-sm text-muted">
               No enquiries yet. Leads appear here the moment a buyer contacts you about a
               live listing.
             </p>
           ) : (
-            <ul className="mt-5 divide-y divide-line border-t border-line">
+            <ul className="divide-y divide-line border-t border-line">
               {data.recentLeads.map((lead) => (
                 <li
                   key={lead.id}
-                  className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-4"
+                  className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 py-3.5"
                 >
                   <Link
                     href={`/marketplace/${lead.propertyId}`}
@@ -156,9 +181,9 @@ export default async function AgentHomePage() {
               ))}
             </ul>
           )}
-        </section>
+        </Panel>
 
-        <section className="relative isolate overflow-hidden rounded-3xl border border-accent/20 bg-pale/70 p-6 sm:p-7">
+        <section className="relative isolate overflow-hidden rounded-2xl border border-accent/20 bg-pale/70 p-5 sm:p-6">
           <div
             aria-hidden
             className="absolute -top-16 -right-16 -z-10 h-48 w-48 rounded-full bg-intel/15 blur-3xl"
@@ -167,7 +192,7 @@ export default async function AgentHomePage() {
             <IconChip>
               <ShieldIcon />
             </IconChip>
-            <h2 className="font-semibold text-primary">Verified record</h2>
+            <h3 className="font-semibold text-primary">Verified record</h3>
           </div>
           <p className="font-display mt-5 text-4xl font-semibold tracking-[-0.02em] text-primary tabular-nums">
             {data.verifiedDealCount}
@@ -186,47 +211,77 @@ export default async function AgentHomePage() {
         </section>
       </div>
 
-      {/* ------------------------------------------------------ shortcuts */}
+      {/* ------------------------------------------------ work by audience */}
       <section className="space-y-5">
-        <InvestorSectionTitle title="Keep" tail="moving" />
-        <div className="grid gap-4 md:grid-cols-3">
-          <QuickLink
-            href="/agent/marketplace"
+        <InvestorSectionTitle
+          title="Your"
+          tail="work"
+          description="Everything you do on PropLink, grouped by who it is for."
+        />
+        <div className="grid gap-6 md:grid-cols-2">
+          <WorkPanel
             icon={<HomeIcon />}
-            eyebrow="Private stock"
-            title="Landlord listings"
-            body="Approved landlord properties, visible only to verified agents. Send a proposal."
+            title="Landlords"
+            description="Private landlord stock: find a property, propose, then manage the mandate."
+            links={[
+              {
+                href: "/agent/marketplace",
+                label: "Landlord listings",
+                hint: "Approved properties, visible only to verified agents",
+              },
+              {
+                href: "/agent/mandates",
+                label: "Your mandates",
+                hint: "Properties you are instructed on, and what each needs next",
+              },
+            ]}
           />
-          <QuickLink
-            href="/agent/mandates"
-            icon={<FileIcon />}
-            eyebrow="Mandates"
-            title="Your mandates"
-            body="Properties a landlord has instructed you on, and what each one needs next."
+          <WorkPanel
+            icon={<UserIcon />}
+            title="Buyers"
+            description="Public listings, the enquiries they bring in and the offers made."
+            links={[
+              {
+                href: "/agent/listings",
+                label: "Your listings",
+                hint: `${data.liveListings} live · ${data.draftListings} draft`,
+              },
+              { href: "/agent/leads", label: "Leads", hint: "Buyer enquiries" },
+              { href: "/agent/offers", label: "Offers", hint: "Offers on your listings" },
+            ]}
           />
-          <QuickLink
-            href="/agent/projects"
+          <WorkPanel
             icon={<ChartIcon />}
-            eyebrow="Investors"
-            title="Investor projects"
-            body="Projects you have published to verified investors and how funding is going."
+            title="Investors"
+            description="Projects you open to verified investors, and how funding is going."
+            links={[
+              {
+                href: "/agent/projects",
+                label: "Investor projects",
+                hint: "Funding, Lead Investor and works",
+              },
+            ]}
+          />
+          <WorkPanel
+            icon={<FileIcon />}
+            title="Your business"
+            description="How PropLink and your clients see you, and your subscription."
+            links={[
+              {
+                href: "/agent/profile",
+                label: "Public profile",
+                hint: "Your agency page and verified record",
+              },
+              {
+                href: "/agent/company",
+                label: "Company check",
+                hint: "Your Companies House record",
+              },
+              { href: "/account/billing", label: "Billing", hint: "Your subscription" },
+            ]}
           />
         </div>
       </section>
-
-      {data.recentLeads.length === 0 &&
-        data.liveListings === 0 &&
-        data.draftListings === 0 && (
-          <InvestorEmpty
-            title="Start with your first listing"
-            action={
-              <PrimaryLink href="/agent/listings/new">Create a listing</PrimaryLink>
-            }
-          >
-            Listings go to PropLink moderation before buyers see them. Drafts save as you
-            go.
-          </InvestorEmpty>
-        )}
 
       {/* Phase 6 (ADR-060): one designated sponsored slot; nothing renders without a live ad. */}
       <AdSlot slot="AGENT_DASHBOARD" />
@@ -239,7 +294,7 @@ function humanise(value: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
-function Prompt({
+function AttentionItem({
   testId,
   title,
   text,
@@ -253,60 +308,69 @@ function Prompt({
   cta: string;
 }) {
   return (
-    <div
+    <li
       role="status"
       data-testid={testId}
-      className="flex flex-col gap-4 rounded-3xl border border-warning/30 bg-warning/5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"
+      className="flex flex-col gap-3 py-3 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex items-start gap-3">
-        <IconChip tone="warning">
-          <AlertIcon />
-        </IconChip>
+        <AlertIcon className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
         <div>
           <p className="font-semibold text-primary">{title}</p>
-          <p className="mt-1 text-sm leading-relaxed text-body">{text}</p>
+          <p className="mt-0.5 text-sm leading-relaxed text-body">{text}</p>
         </div>
       </div>
       {href && (
         <Link
           href={href}
-          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full border border-line bg-white px-4 py-2 text-sm font-semibold text-primary transition-colors hover:border-accent hover:text-accent sm:self-auto"
+          className="inline-flex shrink-0 items-center gap-1.5 self-start rounded-full bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong sm:self-auto"
         >
           {cta}
-          <CheckIcon className="h-4 w-4" />
+          <ArrowIcon className="h-4 w-4" />
         </Link>
       )}
-    </div>
+    </li>
   );
 }
 
-function QuickLink({
-  href,
+function WorkPanel({
   icon,
-  eyebrow,
   title,
-  body,
+  description,
+  links,
 }: {
-  href: string;
   icon: React.ReactNode;
-  eyebrow: string;
   title: string;
-  body: string;
+  description: string;
+  links: { href: string; label: string; hint?: string }[];
 }) {
   return (
-    <Link
-      href={href}
-      className="group flex flex-col rounded-3xl border border-line bg-white p-6 transition hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-    >
-      <div className="flex items-center justify-between">
+    <section className="flex flex-col rounded-2xl border border-line bg-white p-5 sm:p-6">
+      <div className="flex items-center gap-3">
         <IconChip>{icon}</IconChip>
-        <ArrowIcon className="h-5 w-5 text-muted transition-all group-hover:translate-x-0.5 group-hover:text-accent" />
+        <h3 className="font-semibold text-primary">{title}</h3>
       </div>
-      <p className="mt-5 text-xs font-semibold tracking-[0.14em] text-muted uppercase">
-        {eyebrow}
-      </p>
-      <p className="mt-1 font-semibold text-primary">{title}</p>
-      <p className="mt-1.5 text-sm leading-relaxed text-muted">{body}</p>
-    </Link>
+      <p className="mt-3 text-sm leading-relaxed text-muted">{description}</p>
+      <ul className="mt-4 divide-y divide-line border-t border-line">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              className="group flex items-center justify-between gap-3 py-3"
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold text-primary group-hover:text-accent">
+                  {link.label}
+                </span>
+                {link.hint ? (
+                  <span className="block text-xs text-muted">{link.hint}</span>
+                ) : null}
+              </span>
+              <ArrowIcon className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-0.5 group-hover:text-accent" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -204,6 +204,31 @@ body {
     );
 }
 
+/*
+ * Peak Chart card ground (`src/components/ui/peak-chart.tsx`): the same teal /
+ * cyan glow mesh as the hero and auth grounds, in a card — teal top-left, cyan
+ * at the foot behind the headline number, on the teal-mist wash.
+ */
+@utility peak-ground {
+  background:
+    radial-gradient(
+      70% 45% at 0% 0%,
+      color-mix(in oklab, var(--color-accent) 22%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      75% 45% at 100% 100%,
+      color-mix(in oklab, var(--color-intel) 26%, transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      55% 35% at 50% 78%,
+      color-mix(in oklab, var(--color-background) 80%, transparent),
+      transparent 75%
+    ),
+    linear-gradient(170deg, var(--color-pale) 0%, var(--color-surface) 100%);
+}
+
 /* Hairline grid over the hero ground, masked to fade out at the bottom and edges. */
 @utility hero-grid {
   background-image:

@@ -9,7 +9,11 @@ export async function POST(request: Request) {
   const authResult = await requireRole(Role.INVESTOR);
   if (!authResult.ok) return authResult.response;
 
-  let body: { acquisitionId?: string; plannedBudgetGBP?: number; targetCompletionDate?: string };
+  let body: {
+    acquisitionId?: string;
+    plannedBudgetGBP?: number;
+    targetCompletionDate?: string;
+  };
   try {
     body = await request.json();
   } catch {

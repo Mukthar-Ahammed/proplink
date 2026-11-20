@@ -5,10 +5,7 @@ import { requireRole } from "@/lib/authz";
 import { Role } from "@/generated/prisma/enums";
 import { rejectFlipperOffer } from "@/services/flipper/flipperService";
 
-export async function POST(
-  request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const authResult = await requireRole(Role.AGENT);
   if (!authResult.ok) return authResult.response;
 

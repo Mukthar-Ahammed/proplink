@@ -16,7 +16,7 @@
    subscription. Favourites are per investor; "Saved only" filters the
    list. Compare shows up to four projects side by side (expected figures
    only when `FINANCIAL_PROMOTIONS_REVIEWED`).
-3. **Q&A** (`project_questions`): the project's investors ask; the project's
+3. **Q&A** (`project_questions`) — _UI removed by ADR-078; investors use project Messages_: the project's investors ask; the project's
    Agent answers once; answered questions are visible to the project's
    investors with the asker shown as "An investor" (the asker sees "You";
    the Agent and Admin see names). Admin hides with a reason (final). The

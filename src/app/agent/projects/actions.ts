@@ -9,7 +9,6 @@ import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
 import { announceSafely, type Actor } from "@/services/projects/common";
 import { ensureProjectThread } from "@/services/chat/threads";
-import { answerProjectQuestion } from "@/services/projects/community";
 import { nominateLead, withdrawNomination } from "@/services/projects/lead";
 import {
   announceProject,
@@ -96,23 +95,6 @@ export async function leadNominationAction(
         ? "Nomination withdrawn."
         : "Nominated. The investor accepts, then PropLink approves.",
   };
-}
-
-/** Task 3: answer a project question (shared with the project's investors). */
-export async function answerQuestionAction(
-  _previous: ProjectFormState,
-  formData: FormData,
-): Promise<ProjectFormState> {
-  const agent = await agentActor();
-  if (!agent) return { kind: "error", message: "Sign in as an Agent" };
-  const result = await answerProjectQuestion(
-    agent,
-    text(formData, "questionId"),
-    text(formData, "answer"),
-  );
-  if (!result.ok) return { kind: "error", message: result.error };
-  revalidatePath(`/agent/projects/${text(formData, "projectId")}`);
-  return { kind: "done", message: "Answered." };
 }
 
 /** Task 3: ask PropLink to open a chat with one of the project's investors. */

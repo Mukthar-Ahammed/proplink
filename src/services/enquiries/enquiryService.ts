@@ -28,7 +28,10 @@ async function findEnquirableProperty(propertyId: string) {
     throw new EnquiryServiceError("Listing not found", "NOT_FOUND");
   }
   if (property.listingSource === "FLIPPER_RESALE" || !property.agentProfile) {
-    throw new EnquiryServiceError("Direct buyer enquiries for Flipper resale listings are not currently supported.", "FORBIDDEN");
+    throw new EnquiryServiceError(
+      "Direct buyer enquiries for Flipper resale listings are not currently supported.",
+      "FORBIDDEN",
+    );
   }
   const agentProfile = property.agentProfile;
   if (!agentProfile.active || !agentProfile.user.active) {

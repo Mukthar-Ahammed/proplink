@@ -1,3 +1,4 @@
+import { isVerified, PersonName } from "@/components/profiles/PersonName";
 import { day } from "@/components/projects/format";
 import { formatPence } from "@/services/projects/common";
 
@@ -7,7 +8,7 @@ type Row = {
   status: string;
   createdAt: Date;
   share: string;
-  investor: { name: string | null };
+  investor: { name: string | null; verificationBadge?: { profileId: string } | null };
 };
 
 const STATUS: Record<string, string> = {
@@ -36,7 +37,12 @@ export function PledgeTable({ pledges }: { pledges: Row[] }) {
       <tbody>
         {pledges.map((pledge) => (
           <tr key={pledge.id} className="border-t border-line">
-            <td className="py-2">{pledge.investor.name ?? "Investor"}</td>
+            <td className="py-2">
+              <PersonName
+                name={pledge.investor.name ?? "Investor"}
+                verified={isVerified(pledge.investor)}
+              />
+            </td>
             <td>{formatPence(pledge.amountGBP)}</td>
             <td>{pledge.share}</td>
             <td>{STATUS[pledge.status] ?? pledge.status}</td>

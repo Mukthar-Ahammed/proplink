@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { PortalNav } from "@/components/portal/PortalNav";
 import { cn } from "@/lib/cn";
 
@@ -47,6 +48,8 @@ export function PortalShell({
   nav,
   aside,
   banner,
+  compact,
+  back,
   children,
 }: {
   eyebrow: string;
@@ -60,6 +63,13 @@ export function PortalShell({
   aside?: React.ReactNode;
   /** Photo behind the masthead; its subject should sit on the right. */
   banner?: { src: string };
+  /**
+   * A short masthead for working pages that need the height (Messages):
+   * no banner, smaller headline, same sub-nav (ADR-081).
+   */
+  compact?: boolean;
+  /** A "back to" link above the eyebrow. */
+  back?: { href: string; label: string };
   children: React.ReactNode;
 }) {
   return (
@@ -89,9 +99,22 @@ export function PortalShell({
         <div
           className={cn(
             "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8",
-            banner ? "pt-[6.5rem] sm:pt-32" : "pt-10 sm:pt-12",
+            banner
+              ? "pt-[6.5rem] sm:pt-32"
+              : compact
+                ? // Messages is an overlay route: clear the floating header pill.
+                  "pt-[6.5rem] sm:pt-28"
+                : "pt-10 sm:pt-12",
           )}
         >
+          {back ? (
+            <Link
+              href={back.href}
+              className="mb-3 inline-flex items-center gap-1 text-sm font-medium text-muted hover:text-accent"
+            >
+              <span aria-hidden>←</span> {back.label}
+            </Link>
+          ) : null}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="inline-flex items-center rounded-full border border-line bg-white/80 px-4 backdrop-blur-sm py-1.5 text-[11px] font-semibold tracking-[0.18em] text-secondary uppercase">
               {eyebrow}
@@ -100,11 +123,18 @@ export function PortalShell({
           </div>
           <div
             className={cn(
-              "mt-5 flex flex-wrap gap-x-10 gap-y-4",
+              compact
+                ? "mt-3 flex flex-wrap gap-x-10 gap-y-2"
+                : "mt-5 flex flex-wrap gap-x-10 gap-y-4",
               banner ? "flex-col" : "items-end justify-between",
             )}
           >
-            <h1 className="font-display max-w-2xl text-[clamp(1.875rem,3.5vw,2.75rem)] leading-[1.08] font-semibold tracking-[-0.03em] text-primary">
+            <h1
+              className={cn(
+                "font-display max-w-2xl leading-[1.08] font-semibold tracking-[-0.03em] text-primary",
+                compact ? "text-2xl sm:text-3xl" : "text-[clamp(1.875rem,3.5vw,2.75rem)]",
+              )}
+            >
               {title}
               {titleTail ? (
                 <span className="font-serif font-normal tracking-normal italic">
@@ -131,7 +161,12 @@ export function PortalShell({
         </div>
       </section>
 
-      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+      <div
+        className={cn(
+          "mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8",
+          compact ? "py-4 sm:py-6" : "py-8 sm:py-10",
+        )}
+      >
         {children}
       </div>
     </main>

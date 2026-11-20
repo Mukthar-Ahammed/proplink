@@ -1,11 +1,13 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { SubscriptionGate } from "@/components/billing/SubscriptionGate";
+import { MessagesShell } from "@/components/chat/MessagesShell";
+import { ThreadList } from "@/components/chat/ThreadList";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { listMessages } from "@/services/chat/messages";
-import { contextTitles, counterpartLabel } from "@/services/chat/threads";
+import { contextTitles, counterpartLabel, listThreadsFor } from "@/services/chat/threads";
+import { photoUrlsFor } from "@/services/profiles/userProfiles";
 
 import { ChatWindow } from "./ChatWindow";
 
@@ -37,7 +39,7 @@ export default async function ConversationPage({
   const { thread } = result.access;
   const counterpart = await db.profile.findUnique({
     where: { id: result.access.counterpartId },
-    select: { name: true },
+    select: { name: true, verificationBadge: { select: { profileId: true } } },
   });
   const titles = await contextTitles([thread]);
   const counterpartName = counterpartLabel(
@@ -46,37 +48,54 @@ export default async function ConversationPage({
     counterpart?.name ?? null,
   );
 
+  const threads = await listThreadsFor(viewer);
+  // Lead/co-investor chats are anonymised, so the counterpart never gets a photo.
+  const anonymised = thread.pairType === "LEAD_CO_INVESTOR";
+  const photos = await photoUrlsFor(viewer, [
+    viewer.profileId,
+    ...(anonymised ? [] : [result.access.counterpartId]),
+  ]);
+  const title = titles.get(`${thread.contextType}:${thread.contextId}`) ?? "Conversation";
+
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <Link href="/messages" className="text-sm font-semibold text-primary underline">
-        All messages
-      </Link>
-      <h1 className="mt-3 text-xl font-bold text-primary">
-        {titles.get(`${thread.contextType}:${thread.contextId}`) ?? "Conversation"}
-      </h1>
-      <p className="text-sm text-muted">With {counterpartName}</p>
-      {result.access.blocked === "your_subscription" && (
-        <div
-          data-testid="chat-subscribe"
-          className="mt-6 flex flex-col gap-3 rounded-2xl border border-accent/30 bg-pale/60 p-4 sm:flex-row sm:items-center sm:justify-between"
-        >
-          <p className="text-sm text-body">
-            You need an active subscription to send messages in this chat.
-          </p>
-          {/* Opens the popup straight away: this is the moment it is needed. */}
-          <SubscriptionGate autoOpen />
+    <MessagesShell
+      conversationOpen
+      list={<ThreadList threads={threads} activeId={thread.id} />}
+    >
+      <div className="flex h-full min-h-0 flex-col gap-3">
+        <h2 className="sr-only">
+          {title}, with {counterpartName}
+        </h2>
+        {result.access.blocked === "your_subscription" && (
+          <div
+            data-testid="chat-subscribe"
+            className="flex flex-col gap-3 rounded-2xl border border-accent/30 bg-pale p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p className="text-sm text-body">
+              You need an active subscription to send messages in this chat.
+            </p>
+            {/* Opens the popup straight away: this is the moment it is needed. */}
+            <SubscriptionGate autoOpen />
+          </div>
+        )}
+        <div className="h-[calc(100dvh-10rem)] min-h-[28rem] lg:h-auto lg:min-h-0 lg:flex-1">
+          <ChatWindow
+            threadId={thread.id}
+            viewerId={viewer.profileId}
+            viewerName={session.user.name}
+            counterpart={counterpartName}
+            counterpartVerified={Boolean(counterpart?.verificationBadge)}
+            counterpartPhotoUrl={
+              anonymised ? null : (photos.get(result.access.counterpartId) ?? null)
+            }
+            viewerPhotoUrl={photos.get(viewer.profileId) ?? null}
+            context={title}
+            initialMessages={result.messages}
+            initialCanSend={result.access.canSend}
+            initialNotice={result.access.blocked ? NOTICE[result.access.blocked] : null}
+          />
         </div>
-      )}
-      <div className="mt-6">
-        <ChatWindow
-          threadId={thread.id}
-          viewerId={viewer.profileId}
-          counterpart={counterpartName}
-          initialMessages={result.messages}
-          initialCanSend={result.access.canSend}
-          initialNotice={result.access.blocked ? NOTICE[result.access.blocked] : null}
-        />
       </div>
-    </main>
+    </MessagesShell>
   );
 }

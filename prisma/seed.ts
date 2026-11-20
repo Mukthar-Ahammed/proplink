@@ -569,6 +569,24 @@ async function seedComparableSales() {
     }
   }
 
+  // Private landlord listings too, so the investor project page's local
+  // price chart (ADR-082) has a line. Base: the project's market value when
+  // one exists (capped to the column's Int range), else a plain £250,000.
+  const landlordListings = await db.landlordListing.findMany({
+    where: { postcode: { not: null } },
+    select: { postcode: true, projects: { select: { marketValueGBP: true }, take: 1 } },
+  });
+  for (const l of landlordListings) {
+    const district = (l.postcode ?? "").trim().toUpperCase().split(/s+/)[0];
+    if (!district || byDistrict.has(district)) continue;
+    const market = l.projects[0]?.marketValueGBP;
+    const base =
+      market && market > BigInt(0) && market < BigInt(2_000_000_000)
+        ? Number(market)
+        : 25_000_000;
+    byDistrict.set(district, { base, propertyType: "RESIDENTIAL" });
+  }
+
   const rows: {
     postcodeDistrict: string;
     address: string;
@@ -859,9 +877,10 @@ async function main() {
   const caseStudyCount = await seedCaseStudies(profileIds);
   const { enquiryCount, appraisalCount } = await seedEnquiriesAndAppraisals(profileIds);
   const savedCount = await seedSavedProperties();
-  const comparableCount = await seedComparableSales();
   const buyerActivity = await seedBuyerActivity();
   const landlordListingCount = await seedLandlordListings();
+  // After the landlord listings: their districts get sample comparables too.
+  const comparableCount = await seedComparableSales();
 
   console.log(
     `Seeded ${userCount} users, ${profiles.length} agent profiles, ` +

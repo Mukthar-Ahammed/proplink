@@ -8,16 +8,24 @@ import { requirePageRole } from "@/lib/authz";
 import { db } from "@/lib/db";
 import {
   AlertIcon,
-  ArrowIcon,
   CheckIcon,
   ClockIcon,
   FileIcon,
-  HomeIcon,
   IconChip,
-  InvestorSectionTitle,
   PenIcon,
-  StatusPill,
 } from "@/components/investor/InvestorUi";
+import {
+  DetailColumns,
+  DetailHeader,
+  DetailTabs,
+  FactList,
+  KeyFacts,
+  Panel,
+  TabBody,
+  pickTab,
+  type DetailTab,
+} from "@/components/portal/Detail";
+import { Badge } from "@/components/ui/badge";
 import {
   EDITABLE,
   getOwnListing,
@@ -44,17 +52,32 @@ const KIND_LABEL: Record<string, string> = {
   DOCUMENT: "Document",
 };
 
+/** `StatusPill` tones mapped onto the shared `Badge` tones. */
+const BADGE_TONE = {
+  neutral: "default",
+  accent: "intel",
+  success: "success",
+  warning: "warning",
+  danger: "danger",
+} as const;
+
+const PRIMARY_LINK =
+  "inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-strong";
+
 /**
- * One of the Landlord's own listings (Phase 2 Task 1, ADR-034). Loaded by
+ * One of the Landlord's own listings (Phase 2 Task 1, ADR-034), split into
+ * tabs (ADR-080): Overview · Property details · Photos & documents. Loaded by
  * owner and ID; anyone else gets "not found".
  */
 export default async function LandlordListingPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const { user } = await requirePageRole("LANDLORD");
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const listing = await getOwnListing(user.authUserId, id);
   if (!listing) notFound();
 
@@ -87,262 +110,387 @@ export default async function LandlordListingPage({
   );
   const awaitingConfirmation =
     listing.status === LandlordListingStatus.AWAITING_LANDLORD_CONFIRMATION;
+  const rejected = listing.status === LandlordListingStatus.REJECTED;
+  const approved = listing.status === LandlordListingStatus.APPROVED;
+  const path = `/landlord/listings/${listing.id}`;
+  const proposalsHref = `${path}/proposals`;
 
-  const details: [string, string | null][] = [
-    [
-      "Address",
-      [listing.addressLine1, listing.city, listing.postcode].filter(Boolean).join(", "),
-    ],
-    [
-      "Property or land",
-      listing.propertyKind === "LAND" ? "Development land" : "Property",
-    ],
-    ["Type", listing.propertyType],
-    [
-      "Land area",
-      listing.landAreaSqm ? `${listing.landAreaSqm.toLocaleString("en-GB")} m²` : null,
-    ],
-    [
-      "Desired outcome",
-      listing.desiredOutcome === "DEVELOPMENT_JV"
-        ? "Development joint venture"
-        : "Refurbishment",
-    ],
-    ["Description", listing.description],
-    ["Known defects", listing.defects],
-    ["Work required", listing.requiredWork],
+  const address = [listing.addressLine1, listing.city, listing.postcode]
+    .filter(Boolean)
+    .join(", ");
+  const kindLabel = listing.propertyKind
+    ? listing.propertyKind === "LAND"
+      ? "Development land"
+      : "Property"
+    : null;
+  const outcomeLabel = listing.desiredOutcome
+    ? listing.desiredOutcome === "DEVELOPMENT_JV"
+      ? "Development joint venture"
+      : "Refurbishment"
+    : null;
+  const details = [
+    { label: "Address", value: address },
+    { label: "Property or land", value: kindLabel },
+    { label: "Type", value: listing.propertyType },
+    {
+      label: "Land area",
+      value: listing.landAreaSqm
+        ? `${listing.landAreaSqm.toLocaleString("en-GB")} m²`
+        : null,
+    },
+    { label: "Desired outcome", value: outcomeLabel },
+    { label: "Description", value: listing.description, wide: true },
+    { label: "Known defects", value: listing.defects },
+    { label: "Work required", value: listing.requiredWork },
   ];
   const canDelete =
     listing.status === LandlordListingStatus.DRAFT &&
     listing.createdBy === user.authUserId &&
     !listing.submittedAt;
   const canWithdraw = WITHDRAWABLE.includes(listing.status);
+  const photoCount = files.filter((file) => file.kind === "PHOTO").length;
+
+  const tabs: DetailTab[] = [
+    {
+      key: "overview",
+      label: "Overview",
+      attention: awaitingConfirmation || rejected,
+    },
+    { key: "details", label: "Property details" },
+    { key: "files", label: "Photos & documents", count: files.length },
+  ];
+  const tab = pickTab(query.tab, tabs);
 
   return (
-    <div className="space-y-10">
-      <div className="space-y-4">
-        <Link
-          href="/landlord/listings"
-          className="group inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-accent-strong"
-        >
-          <ArrowIcon className="h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-0.5" />
-          My properties
-        </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <IconChip>
-            <HomeIcon />
-          </IconChip>
-          <h2 className="font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-primary sm:text-[1.75rem]">
-            {listing.title}
-          </h2>
-          <span data-testid="listing-status">
-            <StatusPill tone={STATUS_TONE[listing.status]}>
-              {STATUS_LABEL[listing.status]}
-            </StatusPill>
-          </span>
-        </div>
-      </div>
-
-      {awaitingConfirmation && (
-        <Notice
-          tone="warning"
-          icon={<PenIcon />}
-          title="PropLink prepared this listing for you"
-        >
-          Check every detail, add your ownership documents, then confirm to send it for
-          review.
-        </Notice>
-      )}
-      {listing.status === LandlordListingStatus.REJECTED && listing.rejectionReason && (
-        <Notice tone="danger" icon={<AlertIcon />} title="PropLink asked for changes">
-          {listing.rejectionReason}
-        </Notice>
-      )}
-      {listing.status === LandlordListingStatus.SUBMITTED && (
-        <Notice tone="accent" icon={<ClockIcon />} title="In PropLink review">
-          Submitted {formatDate(listing.submittedAt)}. PropLink usually reviews listings
-          within 30–60 minutes; we&apos;ll notify you.
-        </Notice>
-      )}
-      {listing.status === LandlordListingStatus.APPROVED && (
-        <Notice tone="success" icon={<CheckIcon />} title="Approved">
-          Verified agents can now see this listing and send you proposals. It stays
-          private: never public, never in search.{" "}
-          <Link
-            href={`/landlord/listings/${listing.id}/proposals`}
-            className="font-semibold text-accent underline underline-offset-4 hover:text-accent-strong"
+    <div>
+      <DetailHeader
+        back={{ href: "/landlord/listings", label: "My properties" }}
+        eyebrow={kindLabel ?? "Your property"}
+        title={listing.title}
+        badges={
+          <Badge
+            tone={BADGE_TONE[STATUS_TONE[listing.status]]}
+            data-testid="listing-status"
           >
-            Compare proposals
-          </Link>
-        </Notice>
-      )}
+            {STATUS_LABEL[listing.status]}
+          </Badge>
+        }
+        subtitle={address || undefined}
+        actions={
+          approved ? (
+            <Link href={proposalsHref} className={PRIMARY_LINK}>
+              Compare proposals
+            </Link>
+          ) : editable && tab !== "overview" ? (
+            <Link href={path} scroll={false} className={PRIMARY_LINK}>
+              {awaitingConfirmation ? "Confirm and submit" : "Submit for review"}
+            </Link>
+          ) : null
+        }
+      />
 
-      <section className="space-y-5">
-        <InvestorSectionTitle title="Property" tail="details" />
-        {editable ? (
-          <ListingFieldsForm
-            aiAssistant={getServerEnv().AI_PROVIDER !== "disabled"}
-            initial={{
-              id: listing.id,
-              title: listing.title,
-              addressLine1: listing.addressLine1 ?? "",
-              city: listing.city ?? "",
-              postcode: listing.postcode ?? "",
-              propertyKind: listing.propertyKind ?? "",
-              propertyType: listing.propertyType ?? "",
-              description: listing.description ?? "",
-              defects: listing.defects ?? "",
-              requiredWork: listing.requiredWork ?? "",
-              landAreaSqm: listing.landAreaSqm ? String(listing.landAreaSqm) : "",
-              desiredOutcome: listing.desiredOutcome ?? "",
-            }}
-          />
-        ) : (
-          <dl className="grid gap-x-8 gap-y-5 rounded-3xl border border-line bg-white p-6 text-sm shadow-sm sm:grid-cols-2 sm:p-7">
-            {details.map(([label, value]) => (
-              <div key={label} className="space-y-1">
-                <dt className="text-xs font-semibold tracking-[0.14em] text-muted uppercase">
-                  {label}
-                </dt>
-                <dd className="whitespace-pre-line text-body">{value || "—"}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
-      </section>
+      <KeyFacts
+        items={[
+          { label: "Status", value: STATUS_LABEL[listing.status] },
+          { label: "Desired outcome", value: outcomeLabel ?? "Not set" },
+          { label: "Type", value: listing.propertyType ?? kindLabel ?? "Not set" },
+          {
+            label: "Photos & documents",
+            value: files.length,
+            hint: `${photoCount} photo${photoCount === 1 ? "" : "s"}`,
+          },
+          {
+            label: "Submitted",
+            value: listing.submittedAt ? formatDate(listing.submittedAt) : "Not yet",
+          },
+        ]}
+      />
 
-      <section className="space-y-5">
-        <InvestorSectionTitle
-          title="Photos and"
-          tail="documents"
-          description="Every file is scanned for malware and kept private."
-        />
-        {files.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-line bg-surface/60 px-5 py-6 text-center text-sm text-muted">
-            Nothing attached yet.
-          </p>
-        ) : (
-          <ul className="divide-y divide-line overflow-hidden rounded-3xl border border-line bg-white shadow-sm">
-            {files.map((file) => (
-              <li
-                key={file.fileId}
-                className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm"
+      <DetailTabs basePath={path} tabs={tabs} current={tab} label="Property sections" />
+
+      {tab === "overview" && (
+        <TabBody>
+          {awaitingConfirmation && (
+            <Notice
+              tone="warning"
+              icon={<PenIcon />}
+              title="PropLink prepared this listing for you"
+            >
+              Check every detail, add your ownership documents, then confirm to send it
+              for review.
+            </Notice>
+          )}
+          {rejected && listing.rejectionReason && (
+            <Notice tone="danger" icon={<AlertIcon />} title="PropLink asked for changes">
+              {listing.rejectionReason}
+            </Notice>
+          )}
+          {listing.status === LandlordListingStatus.SUBMITTED && (
+            <Notice tone="accent" icon={<ClockIcon />} title="In PropLink review">
+              Submitted {formatDate(listing.submittedAt)}. PropLink usually reviews
+              listings within 30–60 minutes; we&apos;ll notify you.
+            </Notice>
+          )}
+          {approved && (
+            <Notice tone="success" icon={<CheckIcon />} title="Approved">
+              Verified agents can now see this listing and send you proposals. It stays
+              private: never public, never in search.{" "}
+              <Link
+                href={proposalsHref}
+                className="font-semibold text-accent underline underline-offset-4 hover:text-accent-strong"
               >
-                <span className="flex min-w-0 items-center gap-3">
-                  {file.previewUrl ? (
-                    <a
-                      href={file.previewUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`Open photo ${file.name}`}
-                      className="shrink-0 overflow-hidden rounded-xl border border-line bg-surface transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL from the private upload pipeline; next/image would cache it. */}
-                      <img
-                        src={file.previewUrl}
-                        alt=""
-                        data-testid="listing-photo-preview"
-                        className="h-16 w-24 object-cover"
-                        width={96}
-                        height={64}
-                      />
-                    </a>
-                  ) : (
-                    <IconChip>
-                      <FileIcon />
-                    </IconChip>
-                  )}
-                  <span className="min-w-0">
-                    <span className="block truncate font-semibold text-primary">
-                      {file.name}
-                    </span>
-                    <span className="text-xs text-muted">{KIND_LABEL[file.kind]}</span>
-                  </span>
-                </span>
-                <span className="flex items-center gap-4">
-                  {file.url && (
-                    <a
-                      href={file.url}
-                      className="text-xs font-semibold text-accent hover:text-accent-strong"
-                    >
-                      Download
-                    </a>
-                  )}
-                  {editable && (
-                    <form action={detachFileAction}>
-                      <input type="hidden" name="listingId" value={listing.id} />
-                      <input type="hidden" name="fileId" value={file.fileId} />
-                      <SubmitButton
-                        type="submit"
-                        className="text-xs font-semibold text-danger hover:underline"
-                      >
-                        Remove
-                      </SubmitButton>
-                    </form>
-                  )}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-        {editable && <FileUploader listingId={listing.id} />}
-      </section>
+                Compare proposals
+              </Link>
+            </Notice>
+          )}
 
-      {editable && (
-        <section className="space-y-5">
-          <InvestorSectionTitle
-            title={awaitingConfirmation ? "Confirm and" : "Submit for"}
-            tail={awaitingConfirmation ? "submit" : "review"}
+          <DetailColumns
+            main={
+              <>
+                {editable && (
+                  <Panel
+                    title={
+                      awaitingConfirmation ? "Confirm and submit" : "Submit for review"
+                    }
+                    description="PropLink checks every listing before verified agents can see it."
+                    tone={missing.length > 0 ? "attention" : "default"}
+                  >
+                    {missing.length > 0 ? (
+                      <div className="mb-5 text-sm">
+                        <p className="font-semibold text-primary">
+                          Still needed before you can submit:
+                        </p>
+                        <ul
+                          className="mt-3 space-y-2 text-body"
+                          data-testid="missing-list"
+                        >
+                          {missing.map((item) => (
+                            <li key={item} className="flex items-start gap-2.5">
+                              <span
+                                aria-hidden
+                                className="mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-accent/50"
+                              />
+                              {item}
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="mt-4 text-muted">
+                          Fill these in on the{" "}
+                          <Link
+                            href={`${path}?tab=details`}
+                            scroll={false}
+                            className="font-semibold text-accent underline"
+                          >
+                            Property details
+                          </Link>{" "}
+                          and{" "}
+                          <Link
+                            href={`${path}?tab=files`}
+                            scroll={false}
+                            className="font-semibold text-accent underline"
+                          >
+                            Photos &amp; documents
+                          </Link>{" "}
+                          tabs.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mb-5 flex items-start gap-2.5 text-sm text-body">
+                        <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                        Everything&apos;s in place. PropLink will review it, usually
+                        within 30–60 minutes, before verified agents can see it.
+                      </p>
+                    )}
+                    {user.kycStatus !== KycStatus.APPROVED && (
+                      <p className="mb-5 flex items-start gap-2.5 text-sm text-warning">
+                        <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                        You&apos;ll need to finish your identity check on your{" "}
+                        <Link href="/landlord" className="font-semibold underline">
+                          dashboard
+                        </Link>{" "}
+                        before submitting.
+                      </p>
+                    )}
+                    <SubmitListing
+                      id={listing.id}
+                      label={
+                        awaitingConfirmation ? "Confirm and submit" : "Submit for review"
+                      }
+                    />
+                  </Panel>
+                )}
+                <Panel
+                  title="At a glance"
+                  action={
+                    <Link
+                      href={`${path}?tab=details`}
+                      scroll={false}
+                      className="text-sm font-semibold text-accent hover:text-accent-strong"
+                    >
+                      {editable ? "Edit details" : "All details"}
+                    </Link>
+                  }
+                >
+                  <FactList items={details.slice(0, 5)} />
+                </Panel>
+              </>
+            }
+            side={
+              <>
+                <Panel
+                  title="Agent proposals"
+                  description={
+                    approved
+                      ? "Compare agents side by side and choose one for an exclusive mandate."
+                      : "Agents can send proposals once PropLink approves your listing."
+                  }
+                >
+                  {approved ? (
+                    <Link href={proposalsHref} className={PRIMARY_LINK}>
+                      Compare proposals
+                    </Link>
+                  ) : null}
+                </Panel>
+                {(canWithdraw || canDelete) && (
+                  <Panel title="Manage this listing" tone="muted">
+                    <div className="flex flex-wrap gap-4">
+                      {canWithdraw && (
+                        <ConfirmAction
+                          id={listing.id}
+                          title={listing.title}
+                          action="withdraw"
+                        />
+                      )}
+                      {canDelete && (
+                        <ConfirmAction
+                          id={listing.id}
+                          title={listing.title}
+                          action="delete"
+                        />
+                      )}
+                    </div>
+                  </Panel>
+                )}
+              </>
+            }
           />
-          <div className="rounded-3xl border border-accent/20 bg-pale/70 p-6 sm:p-7">
-            {missing.length > 0 ? (
-              <div className="mb-5 text-sm">
-                <p className="font-semibold text-primary">
-                  Still needed before you can submit:
-                </p>
-                <ul className="mt-3 space-y-2 text-body" data-testid="missing-list">
-                  {missing.map((item) => (
-                    <li key={item} className="flex items-start gap-2.5">
-                      <span
-                        aria-hidden
-                        className="mt-1 h-3 w-3 shrink-0 rounded-full border-2 border-accent/50"
-                      />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <p className="mb-5 flex items-start gap-2.5 text-sm text-body">
-                <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                Everything&apos;s in place. PropLink will review it, usually within 30–60
-                minutes, before verified agents can see it.
-              </p>
-            )}
-            {user.kycStatus !== KycStatus.APPROVED && (
-              <p className="mb-5 flex items-start gap-2.5 text-sm text-warning">
-                <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
-                You&apos;ll need to finish your identity check (see Overview) before
-                submitting.
-              </p>
-            )}
-            <SubmitListing
-              id={listing.id}
-              label={awaitingConfirmation ? "Confirm and submit" : "Submit for review"}
-            />
-          </div>
-        </section>
+        </TabBody>
       )}
 
-      {(canWithdraw || canDelete) && (
-        <div className="flex flex-wrap gap-4 border-t border-line pt-8">
-          {canWithdraw && (
-            <ConfirmAction id={listing.id} title={listing.title} action="withdraw" />
+      {tab === "details" && (
+        <TabBody>
+          {editable ? (
+            <ListingFieldsForm
+              aiAssistant={getServerEnv().AI_PROVIDER !== "disabled"}
+              initial={{
+                id: listing.id,
+                title: listing.title,
+                addressLine1: listing.addressLine1 ?? "",
+                city: listing.city ?? "",
+                postcode: listing.postcode ?? "",
+                propertyKind: listing.propertyKind ?? "",
+                propertyType: listing.propertyType ?? "",
+                description: listing.description ?? "",
+                defects: listing.defects ?? "",
+                requiredWork: listing.requiredWork ?? "",
+                landAreaSqm: listing.landAreaSqm ? String(listing.landAreaSqm) : "",
+                desiredOutcome: listing.desiredOutcome ?? "",
+              }}
+            />
+          ) : (
+            <Panel
+              title="Property details"
+              description="These can't be changed while PropLink or agents are working with the listing."
+            >
+              <FactList items={details} />
+            </Panel>
           )}
-          {canDelete && (
-            <ConfirmAction id={listing.id} title={listing.title} action="delete" />
+        </TabBody>
+      )}
+
+      {tab === "files" && (
+        <TabBody>
+          <Panel
+            title="Photos and documents"
+            description="Every file is scanned for malware and kept private."
+          >
+            {files.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-line bg-surface/60 px-5 py-6 text-center text-sm text-muted">
+                Nothing attached yet.
+              </p>
+            ) : (
+              <ul className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-white">
+                {files.map((file) => (
+                  <li
+                    key={file.fileId}
+                    className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm"
+                  >
+                    <span className="flex min-w-0 items-center gap-3">
+                      {file.previewUrl ? (
+                        <a
+                          href={file.previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Open photo ${file.name}`}
+                          className="shrink-0 overflow-hidden rounded-xl border border-line bg-surface transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL from the private upload pipeline; next/image would cache it. */}
+                          <img
+                            src={file.previewUrl}
+                            alt=""
+                            data-testid="listing-photo-preview"
+                            className="h-16 w-24 object-cover"
+                            width={96}
+                            height={64}
+                          />
+                        </a>
+                      ) : (
+                        <IconChip>
+                          <FileIcon />
+                        </IconChip>
+                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate font-semibold text-primary">
+                          {file.name}
+                        </span>
+                        <span className="text-xs text-muted">
+                          {KIND_LABEL[file.kind]}
+                        </span>
+                      </span>
+                    </span>
+                    <span className="flex items-center gap-4">
+                      {file.url && (
+                        <a
+                          href={file.url}
+                          className="text-xs font-semibold text-accent hover:text-accent-strong"
+                        >
+                          Download
+                        </a>
+                      )}
+                      {editable && (
+                        <form action={detachFileAction}>
+                          <input type="hidden" name="listingId" value={listing.id} />
+                          <input type="hidden" name="fileId" value={file.fileId} />
+                          <SubmitButton
+                            type="submit"
+                            className="text-xs font-semibold text-danger hover:underline"
+                          >
+                            Remove
+                          </SubmitButton>
+                        </form>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
+          {editable && (
+            <Panel title="Add files">
+              <FileUploader listingId={listing.id} />
+            </Panel>
           )}
-        </div>
+        </TabBody>
       )}
     </div>
   );
@@ -369,7 +517,7 @@ function Notice({
   return (
     <div
       role="status"
-      className={`flex items-start gap-3 rounded-3xl border p-5 sm:p-6 ${NOTICE_TONE[tone]}`}
+      className={`flex items-start gap-3 rounded-2xl border p-5 sm:p-6 ${NOTICE_TONE[tone]}`}
     >
       <IconChip tone={tone}>{icon}</IconChip>
       <div>

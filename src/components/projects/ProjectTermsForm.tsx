@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { startTransition, useActionState, type FormEvent } from "react";
 
 export type ProjectFormState =
   | { kind: "idle" }
@@ -32,6 +32,7 @@ function Field({
   defaultValue,
   type = "text",
   required = true,
+  money = false,
 }: {
   label: string;
   name: string;
@@ -39,18 +40,36 @@ function Field({
   defaultValue?: string;
   type?: string;
   required?: boolean;
+  /** Shows a fixed £ prefix, so only the number is typed. */
+  money?: boolean;
 }) {
+  const field = (
+    <input
+      name={name}
+      type={type}
+      required={required}
+      defaultValue={defaultValue}
+      inputMode={money ? "decimal" : name === "expectedMonths" ? "numeric" : undefined}
+      placeholder={money ? "0" : undefined}
+      className={money ? `${input} pl-7` : input}
+    />
+  );
   return (
     <label className="block text-sm font-medium text-primary">
       {label}
-      <input
-        name={name}
-        type={type}
-        required={required}
-        defaultValue={defaultValue}
-        inputMode={type === "text" && name !== "title" ? "decimal" : undefined}
-        className={input}
-      />
+      {money ? (
+        <span className="relative block">
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute top-1/2 left-3 mt-0.5 -translate-y-1/2 text-sm text-muted"
+          >
+            £
+          </span>
+          {field}
+        </span>
+      ) : (
+        field
+      )}
       {hint && <span className="mt-1 block text-xs font-normal text-muted">{hint}</span>}
     </label>
   );
@@ -75,8 +94,15 @@ export function ProjectTermsForm({
   notice: string;
 }) {
   const [state, formAction, pending] = useActionState(action, IDLE);
+  // Submitting through onSubmit (not the form's `action` prop) stops React
+  // from resetting the fields, so a failed publish keeps what was typed.
+  const onSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    startTransition(() => formAction(formData));
+  };
   return (
-    <form action={formAction} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4">
       {Object.entries(hidden).map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
@@ -112,12 +138,14 @@ export function ProjectTermsForm({
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
-          label="Total capital required (£)"
+          label="Total capital required"
+          money
           name="capitalRequired"
           defaultValue={defaults.capitalRequired}
         />
         <Field
-          label="Minimum pledge (£)"
+          label="Minimum pledge"
+          money
           name="minimumPledge"
           defaultValue={defaults.minimumPledge}
         />
@@ -128,17 +156,20 @@ export function ProjectTermsForm({
           defaultValue={defaults.fundingDeadline}
         />
         <Field
-          label="Purchase amount (£)"
+          label="Purchase amount"
+          money
           name="purchase"
           defaultValue={defaults.purchase}
         />
         <Field
-          label="Market value (£)"
+          label="Market value"
+          money
           name="marketValue"
           defaultValue={defaults.marketValue}
         />
         <Field
-          label="Expected profit (£, optional)"
+          label="Expected profit (optional)"
+          money
           name="expectedProfit"
           required={false}
           defaultValue={defaults.expectedProfit}

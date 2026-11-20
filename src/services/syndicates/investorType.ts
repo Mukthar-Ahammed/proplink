@@ -76,10 +76,16 @@ export async function completeInvestorTypeOnboarding(params: {
     return { ok: false, error: "Active profile not found" };
   }
   if (profile.role !== Role.INVESTOR) {
-    return { ok: false, error: "Only Investor accounts can complete investor subtype onboarding" };
+    return {
+      ok: false,
+      error: "Only Investor accounts can complete investor subtype onboarding",
+    };
   }
   if (profile.investorType !== null) {
-    return { ok: false, error: "Investor subtype has already been set and cannot be modified" };
+    return {
+      ok: false,
+      error: "Investor subtype has already been set and cannot be modified",
+    };
   }
 
   const updatedCount = await db.$executeRaw`

@@ -504,7 +504,7 @@ export async function ledgerView(viewer: Actor, projectId: string) {
   if (!relation) return null;
   const manager =
     relation === "SOLICITOR" || relation === "ADMIN" || relation === "AGENT";
-  const [sale, entries, corrections] = await Promise.all([
+  const [sale, entries, corrections, ownPledge] = await Promise.all([
     db.projectSale.findUnique({ where: { projectId } }),
     db.distributionLedgerEntry.findMany({
       where: { projectId, ...(manager ? {} : { partyId: viewer.profileId }) },
@@ -517,10 +517,22 @@ export async function ledgerView(viewer: Actor, projectId: string) {
           orderBy: { proposedAt: "desc" },
         })
       : Promise.resolve([]),
+    // Same test as partyStatement: a live pledge or a ledger entry of one's own.
+    db.projectPledge.findFirst({
+      where: {
+        projectId,
+        investorId: viewer.profileId,
+        status: { in: [PledgeState.PLEDGED, PledgeState.BINDING] },
+      },
+      select: { id: true },
+    }),
   ]);
   return {
     relation,
     sale,
+    /** The viewer's own statement has content (else partyStatement 404s). */
+    hasOwnStatement:
+      ownPledge !== null || entries.some((entry) => entry.partyId === viewer.profileId),
     entries: entries.map((entry) => ({
       id: entry.id,
       partyId: entry.partyId,

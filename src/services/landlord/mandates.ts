@@ -322,7 +322,15 @@ export async function mandatesForOwner(landlord: LandlordActor, listingId: strin
   const mandates = await db.mandate.findMany({
     where: { listingId, listing: { ownerId: landlord.profileId } },
     orderBy: { offeredAt: "desc" },
-    include: { agent: { select: { id: true, name: true } } },
+    include: {
+      agent: {
+        select: {
+          id: true,
+          name: true,
+          verificationBadge: { select: { profileId: true } },
+        },
+      },
+    },
   });
   const live = mandates.find((mandate) => LIVE.includes(mandate.status)) ?? null;
   const contract = live?.termsFileId
@@ -451,7 +459,9 @@ export async function getMandateForAgent(agent: AgentActor, mandateId: string) {
           requiredWork: true,
           landAreaSqm: true,
           desiredOutcome: true,
-          owner: { select: { name: true } },
+          owner: {
+            select: { name: true, verificationBadge: { select: { profileId: true } } },
+          },
           files: { orderBy: { createdAt: "asc" }, select: { fileId: true, kind: true } },
         },
       },
@@ -482,7 +492,11 @@ export async function getMandateForAgent(agent: AgentActor, mandateId: string) {
   return {
     ...mandate,
     listing: active
-      ? { ...listing, landlordName: owner.name ?? "The landlord" }
+      ? {
+          ...listing,
+          landlordName: owner.name ?? "The landlord",
+          landlordVerified: Boolean(owner.verificationBadge),
+        }
       : { id: listing.id, title: listing.title, city: listing.city, landlordName: null },
     documents,
     contractUrl: contract?.ok ? contract.url : null,

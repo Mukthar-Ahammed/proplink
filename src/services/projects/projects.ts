@@ -12,6 +12,7 @@ import {
   Role,
 } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
+import { VERIFIED } from "@/lib/verifiedSelect";
 import { writeAudit } from "@/services/admin/audit";
 import { consumeRateLimits } from "@/services/auth/supabaseAuthService";
 import { sendProjectEmail } from "@/services/email/mailer";
@@ -339,15 +340,17 @@ export async function getManagedProject(actor: Actor, projectId: string) {
       ...(actor.role === Role.AGENT ? { agentId: actor.profileId } : {}),
     },
     include: {
-      agent: { select: { id: true, name: true } },
-      lead: { select: { id: true, name: true } },
+      agent: { select: { id: true, name: true, ...VERIFIED } },
+      lead: { select: { id: true, name: true, ...VERIFIED } },
       listing: { select: { id: true, title: true, city: true, ownerId: true } },
       interests: {
         where: { withdrawnAt: null },
         select: {
           investorId: true,
           createdAt: true,
-          investor: { select: { name: true, kycStatus: true, active: true } },
+          investor: {
+            select: { name: true, kycStatus: true, active: true, ...VERIFIED },
+          },
         },
         orderBy: { createdAt: "asc" },
       },
@@ -361,7 +364,7 @@ export async function getManagedProject(actor: Actor, projectId: string) {
           decidedAt: true,
           reason: true,
           investorId: true,
-          investor: { select: { name: true } },
+          investor: { select: { name: true, ...VERIFIED } },
         },
       },
     },

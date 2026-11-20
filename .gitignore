@@ -71,3 +71,6 @@ next-env.d.ts
 /gitleaks-dir.json
 /gitleaks-report.json
 .data/
+
+# Local Netlify folder
+.netlify

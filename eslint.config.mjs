@@ -15,6 +15,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "src/generated/**",
+    // Netlify build output (the hosted demo, ADR-076); git ignores it too.
+    ".netlify/**",
   ]),
 ]);
 

@@ -1,270 +1,215 @@
 import Link from "next/link";
-import { requirePageRole } from "@/lib/authz";
-import { getDashboardKpis, getAttentionItems } from "@/services/admin/dashboardService";
-import type { AttentionItem } from "@/services/admin/dashboardService";
+
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
+import { KeyFacts, Panel } from "@/components/portal/Detail";
+import { requirePageRole } from "@/lib/authz";
+import { mayOpenAdminPath } from "@/lib/authz/adminRoutes";
+import { adminPermissionsOf } from "@/services/admin/permissions";
+import { getAttentionItems, getDashboardKpis } from "@/services/admin/dashboardService";
+import type { AttentionItem } from "@/services/admin/dashboardService";
 
 export const metadata = { title: "Admin — Operations Dashboard | PropLink" };
 
-// ─── KPI Card ─────────────────────────────────────────────────────────────────
+/**
+ * The Admin overview (ADR-080): what needs a decision first, then the
+ * headline figures, then every Admin area grouped by the job it serves.
+ * Links the Admin lacks the permission for are hidden; each page still
+ * checks on the server (ADR-058).
+ */
 
-function KpiCard({
-  label,
-  value,
-  tone,
-  href,
-  cta,
-  description,
-}: {
-  label: string;
-  value: number;
-  tone: "urgent" | "warning" | "neutral" | "positive";
-  href: string;
-  cta: string;
-  description: string;
-}) {
-  const toneStyles: Record<typeof tone, { card: string; badge: string; dot: string }> = {
-    urgent: {
-      card: "border-danger/30 bg-danger/5",
-      badge: "bg-danger text-white",
-      dot: "bg-danger",
-    },
-    warning: {
-      card: "border-warning/30 bg-warning/5",
-      badge: "bg-warning text-white",
-      dot: "bg-warning",
-    },
-    neutral: {
-      card: "border-line bg-white",
-      badge: "bg-secondary text-white",
-      dot: "bg-secondary",
-    },
-    positive: {
-      card: "border-success/30 bg-success/5",
-      badge: "bg-success text-white",
-      dot: "bg-success",
-    },
-  };
-
-  const s = toneStyles[tone];
-
-  return (
-    <div
-      className={`rounded-xl border p-5 flex flex-col gap-3 shadow-xs transition-shadow hover:shadow-sm ${s.card}`}
-    >
-      <div className="flex items-start justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-          {label}
-        </p>
-        {(tone === "urgent" || tone === "warning") && value > 0 && (
-          <span className="relative flex h-2.5 w-2.5 mt-0.5">
-            <span
-              className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-60 ${s.dot}`}
-            />
-            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${s.dot}`} />
-          </span>
-        )}
-      </div>
-      <div className="flex items-end justify-between gap-2">
-        <span
-          className={`inline-flex items-center justify-center rounded-lg px-3 py-1.5 text-2xl font-black tabular-nums leading-none ${s.badge}`}
-        >
-          {value}
-        </span>
-        <p className="text-[11px] text-muted leading-snug text-right max-w-[120px]">
-          {description}
-        </p>
-      </div>
-      <Link
-        href={href}
-        className="mt-auto inline-flex items-center gap-1.5 text-xs font-semibold text-primary underline underline-offset-2 transition-colors hover:text-secondary hover:decoration-2"
-      >
-        {cta}
-        <svg
-          className="h-3.5 w-3.5"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2.5}
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"
-          />
-        </svg>
-      </Link>
-    </div>
-  );
-}
-
-// ─── Attention Item Row ────────────────────────────────────────────────────────
-
-const KIND_META: Record<
-  AttentionItem["kind"],
-  { label: string; icon: string; className: string }
-> = {
-  KYC_SUBMITTED: {
-    label: "KYC",
-    icon: "🪪",
-    className: "bg-warning/10 text-warning border-warning/30",
-  },
-  LISTING_PENDING: {
-    label: "Listing",
-    icon: "🏠",
-    className: "bg-pale text-accent border-accent/20",
-  },
-  RESALE_SUBMITTED: {
-    label: "Resale",
-    icon: "🔄",
-    className: "bg-accent/10 text-accent border-accent/30",
-  },
+const KIND_LABEL: Record<AttentionItem["kind"], string> = {
+  KYC_SUBMITTED: "KYC",
+  LISTING_PENDING: "Listing",
+  RESALE_SUBMITTED: "Resale",
 };
 
-function AttentionRow({ item, index }: { item: AttentionItem; index: number }) {
-  const meta = KIND_META[item.kind];
-  const age = formatAge(item.at);
+type Area = { href: string; label: string; description: string };
 
-  return (
-    <Link
-      href={item.href}
-      className="group flex items-center gap-4 rounded-lg px-4 py-3 hover:bg-surface transition-colors border-b border-line last:border-0"
-    >
-      {/* Index */}
-      <span className="w-5 shrink-0 text-center text-xs font-bold text-muted/60 tabular-nums">
-        {index + 1}
-      </span>
-
-      {/* Kind pill */}
-      <span
-        className={`shrink-0 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${meta.className}`}
-      >
-        <span role="img" aria-label={meta.label}>
-          {meta.icon}
-        </span>
-        {meta.label}
-      </span>
-
-      {/* Description */}
-      <div className="flex-1 min-w-0">
-        <p className="truncate text-sm font-semibold text-primary group-hover:text-accent transition-colors">
-          {item.title}
-        </p>
-        <p className="truncate text-xs text-muted">{item.subtitle}</p>
-      </div>
-
-      {/* Age */}
-      <span className="shrink-0 text-[11px] font-medium text-muted tabular-nums">
-        {age}
-      </span>
-
-      {/* Arrow */}
-      <svg
-        className="shrink-0 h-4 w-4 text-muted/40 group-hover:text-accent transition-colors"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M8.25 4.5l7.5 7.5-7.5 7.5"
-        />
-      </svg>
-    </Link>
-  );
-}
+const AREAS: { title: string; description: string; links: Area[] }[] = [
+  {
+    title: "People",
+    description: "Accounts, agents and who can do what in Admin.",
+    links: [
+      { href: "/admin/users", label: "Users", description: "Every account, any role" },
+      {
+        href: "/admin/agents",
+        label: "Agents",
+        description: "Agent profiles and status",
+      },
+      {
+        href: "/admin/agents/agencies",
+        label: "Agencies",
+        description: "Agency profiles",
+      },
+      {
+        href: "/admin/agents/invites",
+        label: "Agent invites",
+        description: "Invite agents to join",
+      },
+      {
+        href: "/admin/agents/companies",
+        label: "Company checks",
+        description: "Companies House checks",
+      },
+      {
+        href: "/admin/agents/migration",
+        label: "Existing agents",
+        description: "Move agents onto PropLink",
+      },
+      {
+        href: "/admin/badges",
+        label: "Verified badges",
+        description: "Grant or remove badges",
+      },
+      {
+        href: "/admin/roles",
+        label: "Admin roles",
+        description: "Admin permissions",
+      },
+    ],
+  },
+  {
+    title: "Listings & projects",
+    description: "Properties coming in and the projects built on them.",
+    links: [
+      {
+        href: "/admin/landlord-listings",
+        label: "Landlord listings",
+        description: "Private listings from landlords",
+      },
+      {
+        href: "/admin/moderation",
+        label: "Listing moderation",
+        description: "Approve agent listings",
+      },
+      {
+        href: "/admin/resales",
+        label: "Flipper resales",
+        description: "Resales onto the marketplace",
+      },
+      {
+        href: "/admin/projects",
+        label: "Investor projects",
+        description: "Leads, pledges, progress",
+      },
+      {
+        href: "/admin/chats",
+        label: "Chats",
+        description: "Authorise and review chats",
+      },
+    ],
+  },
+  {
+    title: "Money",
+    description: "Subscriptions only: no investment money moves through PropLink.",
+    links: [
+      {
+        href: "/admin/billing",
+        label: "Subscriptions",
+        description: "Plans and prices",
+      },
+      {
+        href: "/admin/fees",
+        label: "Fee rules",
+        description: "What PropLink charges for",
+      },
+    ],
+  },
+  {
+    title: "Trust & safety",
+    description: "Identity checks, reviews, complaints and data requests.",
+    links: [
+      {
+        href: "/admin/kyc",
+        label: "KYC checks",
+        description: "Investor identity checks",
+      },
+      { href: "/admin/reviews", label: "Reviews", description: "Moderate reviews" },
+      { href: "/admin/cases", label: "Cases", description: "Complaints and disputes" },
+      {
+        href: "/admin/privacy",
+        label: "Data requests",
+        description: "Access and erasure requests",
+      },
+    ],
+  },
+  {
+    title: "Platform",
+    description: "Messages to users, advertising, settings and system health.",
+    links: [
+      {
+        href: "/admin/announcements",
+        label: "Announcements",
+        description: "Notices in the portals",
+      },
+      { href: "/admin/ads", label: "Advertising", description: "Sponsored placements" },
+      { href: "/admin/system", label: "KPIs", description: "Platform figures" },
+      {
+        href: "/admin/system/integrations",
+        label: "Integrations",
+        description: "Providers and keys",
+      },
+      {
+        href: "/admin/system/security",
+        label: "Security events",
+        description: "Sign-ins and alerts",
+      },
+      {
+        href: "/admin/settings/uploads",
+        label: "Upload limits",
+        description: "File sizes and types",
+      },
+      {
+        href: "/admin/settings/track-record",
+        label: "Track record",
+        description: "Public track record",
+      },
+    ],
+  },
+];
 
 function formatAge(iso: string): string {
-  const delta = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(delta / 60_000);
+  const mins = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 60_000));
   if (mins < 60) return `${mins}m ago`;
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  return `${days}d ago`;
+  return `${Math.floor(hrs / 24)}d ago`;
 }
 
-// ─── Quick-Nav Card ───────────────────────────────────────────────────────────
-
-function QuickNavCard({
-  href,
+function QueueTile({
   label,
-  icon,
+  count,
   description,
-  status,
+  href,
 }: {
-  href: string;
   label: string;
-  icon: string;
+  count: number;
   description: string;
-  status?: "active" | "placeholder" | "soon";
+  href: string;
 }) {
-  const disabled = status === "soon";
-
-  if (disabled) {
-    return (
-      <div
-        className="flex items-start gap-3 rounded-2xl border border-dashed border-line bg-surface/60 p-4 cursor-not-allowed select-none"
-        aria-disabled="true"
-      >
-        <span className="text-xl" role="img" aria-label={label}>
-          {icon}
-        </span>
-        <div>
-          <p className="text-xs font-semibold text-primary">{label}</p>
-          <p className="text-[11px] text-muted">{description}</p>
-        </div>
-        <span className="ml-auto shrink-0 rounded bg-surface px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted tracking-wider">
-          Soon
-        </span>
-      </div>
-    );
-  }
-
+  const waiting = count > 0;
   return (
     <Link
       href={href}
-      className="group flex items-start gap-3 rounded-2xl border border-line bg-white p-4 hover:border-accent/40 hover:bg-surface transition-all shadow-xs"
+      className={`group flex flex-col rounded-xl border p-4 transition-colors ${
+        waiting
+          ? "border-warning/40 bg-white hover:border-warning"
+          : "border-line bg-white hover:border-accent/40"
+      }`}
     >
-      <span className="text-xl" role="img" aria-label={label}>
-        {icon}
-      </span>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-primary group-hover:text-accent transition-colors">
-          {label}
-        </p>
-        <p className="text-[11px] text-muted leading-snug">{description}</p>
-      </div>
-      <svg
-        className="mt-0.5 shrink-0 h-3.5 w-3.5 text-muted/40 group-hover:text-accent transition-colors"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2.5}
+      <span className="text-sm font-medium text-muted">{label}</span>
+      <span
+        className={`mt-1 text-3xl font-semibold tabular-nums ${waiting ? "text-warning" : "text-success"}`}
       >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M8.25 4.5l7.5 7.5-7.5 7.5"
-        />
-      </svg>
+        {count}
+      </span>
+      <span className="mt-1 text-xs text-muted">{description}</span>
+      <span className="mt-3 text-xs font-semibold text-accent group-hover:underline">
+        {waiting ? "Review now →" : "Open queue →"}
+      </span>
     </Link>
   );
 }
-
-// ─── Section Header ───────────────────────────────────────────────────────────
-
-function SectionHeading({ children }: { children: React.ReactNode }) {
-  return (
-    <h2 className="text-[10px] font-bold uppercase tracking-widest text-muted mb-3">
-      {children}
-    </h2>
-  );
-}
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function AdminDashboardPage({
   searchParams,
@@ -272,7 +217,7 @@ export default async function AdminDashboardPage({
   searchParams?: Promise<{ denied?: string }>;
 }) {
   // Any Admin may open the overview; each area checks its own permission (ADR-058).
-  await requirePageRole("ADMIN");
+  const session = await requirePageRole("ADMIN");
   const denied = (await searchParams)?.denied;
   const deniedNotice =
     denied && /^[A-Z_]{3,40}$/.test(denied) ? (
@@ -288,9 +233,14 @@ export default async function AdminDashboardPage({
 
   let kpis: Awaited<ReturnType<typeof getDashboardKpis>>;
   let attentionItems: Awaited<ReturnType<typeof getAttentionItems>>;
+  let permissions: string[];
 
   try {
-    [kpis, attentionItems] = await Promise.all([getDashboardKpis(), getAttentionItems()]);
+    [kpis, attentionItems, permissions] = await Promise.all([
+      getDashboardKpis(),
+      getAttentionItems(),
+      adminPermissionsOf(session.user.authUserId).then((set) => [...set]),
+    ]);
   } catch {
     return (
       <div className="space-y-8">
@@ -298,25 +248,49 @@ export default async function AdminDashboardPage({
           title="Operations Dashboard"
           description="Live view of all queues requiring Admin attention across PropLink."
         />
-        <div className="rounded-xl border border-danger/30 bg-danger/5 p-8 text-center">
-          <p className="text-sm font-semibold text-danger">Dashboard data unavailable</p>
-          <p className="mt-1 text-xs text-muted">
+        {deniedNotice}
+        <Panel title="Dashboard data unavailable" tone="attention">
+          <p className="text-sm text-muted">
             Could not load queue metrics. The database may be temporarily unreachable.
-            Retry shortly or navigate directly to a queue.
+            Retry shortly or open a queue from the menu.
           </p>
-        </div>
+        </Panel>
       </div>
     );
   }
 
+  const may = (href: string) => mayOpenAdminPath(permissions, href);
   const totalPending = kpis.pendingKyc + kpis.pendingModeration + kpis.pendingResales;
+  const queues = [
+    {
+      label: "KYC checks",
+      count: kpis.pendingKyc,
+      description: "Investor identity checks awaiting a decision",
+      href: "/admin/kyc",
+    },
+    {
+      label: "Listing moderation",
+      count: kpis.pendingModeration,
+      description: "Agent listings waiting for approval",
+      href: "/admin/moderation",
+    },
+    {
+      label: "Flipper resales",
+      count: kpis.pendingResales,
+      description: "Resales waiting to go on the marketplace",
+      href: "/admin/resales",
+    },
+  ].filter((queue) => may(queue.href));
+  const areas = AREAS.map((area) => ({
+    ...area,
+    links: area.links.filter((link) => may(link.href)),
+  })).filter((area) => area.links.length > 0);
 
   return (
     <div className="space-y-8">
-      {/* Page Header */}
       <AdminPageHeader
         title="Operations Dashboard"
-        description="Live view of all queues requiring Admin attention across PropLink."
+        description="What needs a decision, the headline figures, and every Admin area in one place."
         badge={
           totalPending > 0
             ? { label: `${totalPending} pending`, tone: "danger" }
@@ -325,134 +299,111 @@ export default async function AdminDashboardPage({
       />
       {deniedNotice}
 
-      {/* ── Section 1: Review Queues ─────────────────────────────────── */}
-      <section aria-label="Review queue KPI cards">
-        <SectionHeading>Requires Attention</SectionHeading>
-        <div className="grid gap-4 sm:grid-cols-3">
-          <KpiCard
-            label="KYC Queue"
-            value={kpis.pendingKyc}
-            tone={kpis.pendingKyc > 0 ? "urgent" : "positive"}
-            href="/admin/kyc"
-            cta="Review KYC submissions"
-            description="Investor identity verifications awaiting decision"
-          />
-          <KpiCard
-            label="Listing Moderation"
-            value={kpis.pendingModeration}
-            tone={kpis.pendingModeration > 0 ? "warning" : "positive"}
-            href="/admin/moderation"
-            cta="Review listings"
-            description="Agent listings pending approval or rejection"
-          />
-          <KpiCard
-            label="Resale Approvals"
-            value={kpis.pendingResales}
-            tone={kpis.pendingResales > 0 ? "warning" : "positive"}
-            href="/admin/resales"
-            cta="Review resale approvals"
-            description="Investor flipper resales pending marketplace approval"
-          />
-        </div>
-      </section>
-
-      {/* ── Section 2: Marketplace Snapshot ─────────────────────────── */}
-      <section aria-label="Marketplace snapshot">
-        <SectionHeading>Marketplace Snapshot</SectionHeading>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <KpiCard
-            label="Registered Users"
-            value={kpis.totalUsers}
-            tone="neutral"
-            href="/admin/users"
-            cta="Open users directory"
-            description="All active and inactive accounts across all roles"
-          />
-          <KpiCard
-            label="Live Listings"
-            value={kpis.liveListings}
-            tone="neutral"
-            href="/admin/moderation"
-            cta="Open moderation queue"
-            description="Properties with status LIVE (excludes UNDER_OFFER)"
-          />
-        </div>
-      </section>
-
-      {/* ── Section 3: Requires Attention Stream ─────────────────────── */}
-      <section aria-label="Requires attention items">
-        <div className="flex items-center justify-between mb-3">
-          <SectionHeading>
-            Priority Queue
-            {attentionItems.length > 0 && (
-              <span className="ml-2 inline-flex items-center justify-center rounded-full bg-danger px-1.5 py-0.5 text-[9px] font-black text-white leading-none">
-                {attentionItems.length}
-              </span>
-            )}
-          </SectionHeading>
-        </div>
-
-        <div className="rounded-xl border border-line bg-white shadow-xs overflow-hidden">
+      <section aria-labelledby="attention-heading" className="space-y-4">
+        <h2 id="attention-heading" className="text-lg font-semibold text-primary">
+          {totalPending > 0 ? "Needs your attention" : "Review queues"}
+        </h2>
+        {queues.length > 0 && (
+          <div className="grid gap-4 sm:grid-cols-3">
+            {queues.map((queue) => (
+              <QueueTile key={queue.href} {...queue} />
+            ))}
+          </div>
+        )}
+        <Panel
+          title="Oldest items first"
+          description={
+            attentionItems.length > 0
+              ? `${attentionItems.length} item${attentionItems.length === 1 ? "" : "s"} waiting. Open one to decide.`
+              : undefined
+          }
+          tone={attentionItems.length > 0 ? "attention" : "default"}
+        >
           {attentionItems.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
-              <div className="text-4xl" role="img" aria-label="All clear">
-                ✅
-              </div>
-              <p className="text-sm font-semibold text-primary">All queues are clear</p>
-              <p className="text-xs text-muted max-w-xs">
-                No pending KYC submissions, listing reviews, or resale approvals at this
-                time.
-              </p>
-            </div>
+            <p className="text-sm text-muted">
+              All queues are clear: no KYC checks, listing reviews or resale approvals
+              waiting.
+            </p>
           ) : (
-            <div>
-              {attentionItems.map((item, i) => (
-                <AttentionRow key={item.id} item={item} index={i} />
+            <ul className="divide-y divide-line">
+              {attentionItems.map((item) => (
+                <li key={item.id}>
+                  <Link
+                    href={item.href}
+                    className="group flex items-center gap-4 py-3 transition-colors"
+                  >
+                    <span className="w-16 shrink-0 rounded-full bg-white px-2 py-0.5 text-center text-xs font-semibold text-secondary ring-1 ring-line">
+                      {KIND_LABEL[item.kind]}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-primary group-hover:text-accent">
+                        {item.title}
+                      </span>
+                      <span className="block truncate text-xs text-muted">
+                        {item.subtitle}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs text-muted tabular-nums">
+                      {formatAge(item.at)}
+                    </span>
+                  </Link>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </Panel>
       </section>
 
-      {/* ── Section 4: Quick Navigation ──────────────────────────────── */}
-      <section aria-label="Quick navigation">
-        <SectionHeading>Where Next</SectionHeading>
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          <QuickNavCard
-            href="/admin/kyc"
-            label="KYC Queue"
-            icon="🪪"
-            description="Approve or reject investor identity verifications"
-            status="active"
-          />
-          <QuickNavCard
-            href="/admin/moderation"
-            label="Listing Moderation"
-            icon="🏠"
-            description="Approve or reject agent property submissions"
-            status="active"
-          />
-          <QuickNavCard
-            href="/admin/resales"
-            label="Flipper Resales"
-            icon="🔄"
-            description="Approve investor resale listings onto the marketplace"
-            status="active"
-          />
-          <QuickNavCard
-            href="/admin/users"
-            label="Users Directory"
-            icon="👥"
-            description="Search, inspect and manage all registered accounts"
-            status="active"
-          />
-          <QuickNavCard
-            href="/admin/fees"
-            label="Fees & Billing"
-            icon="💷"
-            description="What PropLink charges for: subscriptions only"
-            status="active"
-          />
+      <section aria-labelledby="figures-heading">
+        <h2 id="figures-heading" className="text-lg font-semibold text-primary">
+          Marketplace at a glance
+        </h2>
+        <KeyFacts
+          className="mt-4"
+          items={[
+            {
+              label: "Registered users",
+              value: kpis.totalUsers.toLocaleString("en-GB"),
+              hint: "All roles, active and inactive",
+            },
+            {
+              label: "Live listings",
+              value: kpis.liveListings.toLocaleString("en-GB"),
+              hint: "On the public marketplace",
+            },
+            {
+              label: "Waiting for a decision",
+              value: totalPending.toLocaleString("en-GB"),
+              hint: "KYC, moderation and resales",
+            },
+          ]}
+        />
+      </section>
+
+      <section aria-labelledby="areas-heading">
+        <h2 id="areas-heading" className="text-lg font-semibold text-primary">
+          Admin areas
+        </h2>
+        <div className="mt-4 grid gap-6 lg:grid-cols-2">
+          {areas.map((area) => (
+            <Panel key={area.title} title={area.title} description={area.description}>
+              <ul className="grid gap-2 sm:grid-cols-2">
+                {area.links.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="group block rounded-lg border border-line px-3 py-2.5 transition-colors hover:border-accent/40 hover:bg-surface"
+                    >
+                      <span className="block text-sm font-semibold text-primary group-hover:text-accent">
+                        {link.label} →
+                      </span>
+                      <span className="block text-xs text-muted">{link.description}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          ))}
         </div>
       </section>
     </div>

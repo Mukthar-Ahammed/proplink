@@ -348,5 +348,14 @@ Each phase adds its section here when its build is complete.
       People, Support & compliance, Revenue & marketing, System & settings.
       Click a group title to open or close it; the group for the page you
       are on stays open. Every link opens a working page (no "Soon" items).
+      On a desktop-width window, scroll a long Admin page: the sidebar and
+      top bar stay put and only the page content scrolls.
       Sign in as an Admin with fewer permissions: groups they can't open
       are hidden.
+- [ ] **Profile photos in chat (design refresh).** Give a Landlord and an
+      Agent a profile photo (`/account/profile`). In Messages, each sees the
+      other's photo in the conversation list, the chat header and beside
+      their messages, and their own photo beside their own messages; people
+      without a photo show initials. An Investor's photo shows only to the
+      Agent on one of their projects (and Admins); lead/co-investor chats
+      never show photos.

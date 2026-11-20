@@ -38,11 +38,13 @@ import {
 import {
   answerProjectQuestion,
   askProjectQuestion,
+  coInvestorAlias,
   coInvestorsForLead,
   compareProjects,
   favouriteIds,
   hideProjectQuestion,
   listProjectQuestions,
+  resolveCoInvestorAlias,
   toggleFavourite,
 } from "@/services/projects/community";
 import {
@@ -328,13 +330,21 @@ describe.skipIf(!hasDb)("project chats (Agent ↔ Investor, Lead ↔ Co-Investor
     );
     if (!pledged.ok) throw new Error(pledged.error);
 
-    // The Lead sees co-investors numbered, without names or amounts.
+    // The Lead sees co-investors by project alias: no names, ids or amounts (ADR-079).
     const list = await coInvestorsForLead(as(lead, Role.INVESTOR), chain.projectId);
     expect(list.map((row) => row.label)).toEqual([
-      "Investor 1 (interested)",
-      "Investor 2 (pledged)",
+      `${coInvestorAlias(chain.projectId, co.profileId)} (interested)`,
+      `${coInvestorAlias(chain.projectId, pledger.profileId)} (pledged)`,
     ]);
     expect(json(list)).not.toContain("Name ");
+    expect(json(list)).not.toContain(pledger.profileId);
+    expect(
+      await resolveCoInvestorAlias(
+        as(lead, Role.INVESTOR),
+        chain.projectId,
+        coInvestorAlias(chain.projectId, pledger.profileId),
+      ),
+    ).toBe(pledger.profileId);
     expect(await coInvestorsForLead(as(co, Role.INVESTOR), chain.projectId)).toEqual([]);
 
     const fromCo = await ensureProjectThread(
@@ -359,10 +369,14 @@ describe.skipIf(!hasDb)("project chats (Agent ↔ Investor, Lead ↔ Co-Investor
     // Labels, not names.
     const thread = {
       pairType: "LEAD_CO_INVESTOR" as const,
+      contextId: chain.projectId,
       participantA: lead.profileId,
+      participantB: co.profileId,
     };
-    expect(counterpartLabel(thread, lead.profileId, "Real Name")).toBe("A co-investor");
-    expect(counterpartLabel(thread, co.profileId, "Real Name")).toBe("The Lead Investor");
+    expect(counterpartLabel(thread, lead.profileId, "Real Name")).toBe(
+      coInvestorAlias(chain.projectId, co.profileId),
+    );
+    expect(counterpartLabel(thread, co.profileId, "Real Name")).toBe("Lead Investor");
   });
 });
 

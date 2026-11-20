@@ -52,10 +52,18 @@ export async function saveDevUpload(form: FormData): Promise<DevUploadResult> {
     }
     const allowed: readonly string[] = KYC_ALLOWED_CONTENT_TYPES;
     if (!allowed.includes(contentType)) {
-      return { ok: false, status: 415, error: "Content-type not allowed for KYC documents" };
+      return {
+        ok: false,
+        status: 415,
+        error: "Content-type not allowed for KYC documents",
+      };
     }
     if (file.size > MAX_KYC_DOCUMENT_BYTES) {
-      return { ok: false, status: 413, error: "File exceeds the KYC document size limit" };
+      return {
+        ok: false,
+        status: 413,
+        error: "File exceeds the KYC document size limit",
+      };
     }
     if (file.type && file.type !== contentType) {
       return { ok: false, status: 400, error: "File content-type mismatch" };

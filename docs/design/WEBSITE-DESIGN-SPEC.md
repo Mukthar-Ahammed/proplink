@@ -391,6 +391,19 @@ screen with a photo card on the right was dropped.)
 - **Messages** (P3): a two-pane chat (thread list + conversation; single pane on
   mobile). Shows pending/authorised/read-only states, attachments with scan status,
   read receipts, and a report button. **No ads.**
+  _Built (2026-11-20):_ `<MessagesShell>` lays a full-width two-pane layout
+  (list `22rem` + conversation, up to `max-w-7xl`, viewport height) over the
+  auth screens' gradient mesh and hairline grid (`auth-ground` + `auth-grid`);
+  `/messages` is an overlay route, so the ground runs behind the header pill.
+  Phones show one pane: the list, or the conversation with a back arrow. The
+  conversation is one card. Header: initials avatar,
+  name, live/polling dot, ⋮ menu ("Report this chat"). Bubbles with avatars
+  (own messages in `accent`, theirs in `surface`), day dividers, time under
+  each bubble and a hover ⋯ menu (Copy; Report on the other person's
+  messages). Composer: attach icon, auto-growing box, send icon. The thread
+  list shows avatar, name, property, status dot and unread badge. No delete
+  or block actions: messages are a permanent record. Shared pieces:
+  `src/components/ui/avatar.tsx`, `src/components/ui/action-menu.tsx`.
 
 ### 8.4 Role portals (sidebar items)
 

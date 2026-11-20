@@ -11,11 +11,32 @@ import { KycPill } from "@/components/layout/KycPill";
 import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { AccountStateAction } from "@/components/admin/AccountStateAction";
+import { Panel } from "@/components/portal/Detail";
 import type { InvestorType, KycStatus, Role } from "@/generated/prisma/enums";
+import { cn } from "@/lib/cn";
 
 export const metadata = { title: "Admin — Users Directory | PropLink" };
 
 const ROLES: Role[] = ["AGENT", "INVESTOR", "BUYER", "ADMIN"];
+
+/** Role tabs: one click per audience, keeping every other filter. */
+const ROLE_TABS: { role: Role | undefined; label: string }[] = [
+  { role: undefined, label: "Everyone" },
+  { role: "AGENT", label: "Agents" },
+  { role: "INVESTOR", label: "Investors" },
+  { role: "BUYER", label: "Buyers" },
+  { role: "ADMIN", label: "Admins" },
+];
+
+function roleHref(params: Record<string, string | undefined>, role: Role | undefined) {
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (value && key !== "page" && key !== "role") query.set(key, value);
+  }
+  if (role) query.set("role", role);
+  const text = query.toString();
+  return text ? `/admin/users?${text}` : "/admin/users";
+}
 
 function pageHref(params: Record<string, string | undefined>, page: number) {
   const query = new URLSearchParams();
@@ -88,226 +109,257 @@ export default async function AdminUsersPage({
     <div className="space-y-6">
       <AdminPageHeader
         title="Users Directory"
-        description="Inspect registered accounts, manage role permissions, and control account activation states."
+        description="Every account on PropLink. Pick a role, narrow it with the filters, then open a user or change their account state."
       />
 
-      <Form
-        action=""
-        className="flex flex-wrap items-end gap-3 rounded-2xl border border-line bg-white p-4 shadow-xs"
+      <nav
+        aria-label="Users by role"
+        className="flex gap-1 overflow-x-auto border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
       >
-        <div className="flex-1 min-w-[200px]">
-          <label
-            htmlFor="q"
-            className="block text-xs font-semibold uppercase tracking-wider text-muted"
-          >
-            Search Directory
-          </label>
-          <input
-            id="q"
-            name="q"
-            defaultValue={params.q ?? ""}
-            placeholder="Search by email or name..."
-            className="mt-1 w-full rounded-xl border border-line px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
-          />
-        </div>
-        <div>
-          <label
-            htmlFor="role"
-            className="block text-xs font-semibold uppercase tracking-wider text-muted"
-          >
-            Filter Role
-          </label>
-          <select
-            id="role"
-            name="role"
-            defaultValue={role ?? ""}
-            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
-          >
-            <option value="">All roles</option>
-            {ROLES.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label
-            htmlFor="active"
-            className="block text-xs font-semibold uppercase tracking-wider text-muted"
-          >
-            Account state
-          </label>
-          <select
-            id="active"
-            name="active"
-            defaultValue={params.active ?? ""}
-            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
-          >
-            <option value="">All states</option>
-            <option value="true">Active</option>
-            <option value="false">Inactive</option>
-          </select>
-        </div>
-        <div>
-          <label
-            htmlFor="investorType"
-            className="block text-xs font-semibold uppercase tracking-wider text-muted"
-          >
-            Investor subtype
-          </label>
-          <select
-            id="investorType"
-            name="investorType"
-            defaultValue={params.investorType ?? ""}
-            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
-          >
-            <option value="">All subtypes</option>
-            <option value="FLIPPER">Flipper</option>
-            <option value="SYNDICATE">Syndicate</option>
-            <option value="BOTH">Both</option>
-          </select>
-        </div>
-        <div>
-          <label
-            htmlFor="kycStatus"
-            className="block text-xs font-semibold uppercase tracking-wider text-muted"
-          >
-            KYC state
-          </label>
-          <select
-            id="kycStatus"
-            name="kycStatus"
-            defaultValue={params.kycStatus ?? ""}
-            className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
-          >
-            <option value="">All KYC</option>
-            <option value="NOT_STARTED">Not started</option>
-            <option value="PENDING">Pending</option>
-            <option value="APPROVED">Approved</option>
-            <option value="REJECTED">Rejected</option>
-          </select>
-        </div>
-        <SubmitButton
-          type="submit"
-          className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong transition-colors"
-        >
-          Filter
-        </SubmitButton>
-        <Link
-          href="/admin/users"
-          className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-secondary hover:border-brand"
-        >
-          Clear filters
-        </Link>
-      </Form>
+        {ROLE_TABS.map((tab) => {
+          const current = tab.role === role;
+          return (
+            <Link
+              key={tab.label}
+              href={roleHref(params, tab.role)}
+              aria-current={current ? "page" : undefined}
+              className={cn(
+                "-mb-px border-b-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors",
+                current
+                  ? "border-accent text-accent"
+                  : "border-transparent text-muted hover:border-line hover:text-primary",
+              )}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </nav>
 
-      <DataTable
-        label="Users"
-        rows={users}
-        rowKey={(u) => u.id}
-        emptyMessage="No matching users found in directory."
-        columns={[
-          {
-            key: "user",
-            header: "User Details",
-            render: (u) => (
-              <div>
-                <a
-                  href={`/admin/users/${u.id}`}
-                  className="font-semibold text-primary hover:underline"
-                >
-                  {u.name}
-                </a>
-                <div className="text-xs text-muted">{u.email}</div>
-              </div>
-            ),
-          },
-          {
-            key: "subtype",
-            header: "Subtype",
-            render: (u) =>
-              u.authProfile?.investorType ? (
-                <Badge tone="intel">{u.authProfile.investorType}</Badge>
-              ) : (
-                <span className="text-muted">—</span>
+      <Panel
+        title="Filters"
+        description="Search by name or email, or narrow by account state, investor subtype and KYC."
+      >
+        <Form action="" className="flex flex-wrap items-end gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <label
+              htmlFor="q"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted"
+            >
+              Search Directory
+            </label>
+            <input
+              id="q"
+              name="q"
+              defaultValue={params.q ?? ""}
+              placeholder="Search by email or name..."
+              className="mt-1 w-full rounded-xl border border-line px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
+            />
+          </div>
+          <div>
+            <label
+              htmlFor="role"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted"
+            >
+              Filter Role
+            </label>
+            <select
+              id="role"
+              name="role"
+              defaultValue={role ?? ""}
+              className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm focus:border-accent focus:outline-none"
+            >
+              <option value="">All roles</option>
+              {ROLES.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="active"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted"
+            >
+              Account state
+            </label>
+            <select
+              id="active"
+              name="active"
+              defaultValue={params.active ?? ""}
+              className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
+            >
+              <option value="">All states</option>
+              <option value="true">Active</option>
+              <option value="false">Inactive</option>
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="investorType"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted"
+            >
+              Investor subtype
+            </label>
+            <select
+              id="investorType"
+              name="investorType"
+              defaultValue={params.investorType ?? ""}
+              className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
+            >
+              <option value="">All subtypes</option>
+              <option value="FLIPPER">Flipper</option>
+              <option value="SYNDICATE">Syndicate</option>
+              <option value="BOTH">Both</option>
+            </select>
+          </div>
+          <div>
+            <label
+              htmlFor="kycStatus"
+              className="block text-xs font-semibold uppercase tracking-wider text-muted"
+            >
+              KYC state
+            </label>
+            <select
+              id="kycStatus"
+              name="kycStatus"
+              defaultValue={params.kycStatus ?? ""}
+              className="mt-1 rounded-xl border border-line bg-white px-4 py-2.5 text-sm"
+            >
+              <option value="">All KYC</option>
+              <option value="NOT_STARTED">Not started</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="REJECTED">Rejected</option>
+            </select>
+          </div>
+          <SubmitButton
+            type="submit"
+            className="rounded-lg bg-accent px-4 py-2 text-sm font-semibold text-white hover:bg-accent-strong transition-colors"
+          >
+            Filter
+          </SubmitButton>
+          <Link
+            href="/admin/users"
+            className="rounded-xl border border-line px-4 py-2 text-sm font-semibold text-secondary hover:border-brand"
+          >
+            Clear filters
+          </Link>
+        </Form>
+      </Panel>
+
+      <Panel
+        title={`${ROLE_TABS.find((tab) => tab.role === role)?.label ?? "Everyone"} (${total})`}
+        description="Open a name for the full profile, KYC and activity."
+      >
+        <DataTable
+          label="Users"
+          rows={users}
+          rowKey={(u) => u.id}
+          emptyMessage="No matching users found in directory."
+          columns={[
+            {
+              key: "user",
+              header: "User Details",
+              render: (u) => (
+                <div>
+                  <a
+                    href={`/admin/users/${u.id}`}
+                    className="font-semibold text-primary hover:underline"
+                  >
+                    {u.name}
+                  </a>
+                  <div className="text-xs text-muted">{u.email}</div>
+                </div>
               ),
-          },
-          {
-            key: "role",
-            header: "Role",
-            render: (u) => (
-              <Badge
-                tone={(u.authProfile?.role ?? u.role) === "ADMIN" ? "intel" : "default"}
-              >
-                {u.authProfile?.role ?? u.role}
-              </Badge>
-            ),
-          },
-          {
-            key: "kyc",
-            header: "KYC Authorization",
-            render: (u) => <KycPill status={u.authProfile?.kycStatus ?? u.kycStatus} />,
-          },
-          {
-            key: "status",
-            header: "Account State",
-            render: (u) => (
-              <StatusBadge
-                status={(u.authProfile?.active ?? u.active) ? "ACTIVE" : "DEACTIVATED"}
-              />
-            ),
-          },
-          {
-            key: "joined",
-            header: "Registered",
-            render: (u) => (
-              <span className="text-xs text-muted">
-                {u.createdAt.toISOString().slice(0, 10)}
-              </span>
-            ),
-          },
-          {
-            key: "actions",
-            header: "Action",
-            className: "text-right",
-            render: (u) => (
-              <AccountStateAction
-                userId={u.id}
-                active={u.authProfile?.active ?? u.active}
-                action={toggleActive}
-              />
-            ),
-          },
-        ]}
-      />
+            },
+            {
+              key: "subtype",
+              header: "Subtype",
+              render: (u) =>
+                u.authProfile?.investorType ? (
+                  <Badge tone="intel">{u.authProfile.investorType}</Badge>
+                ) : (
+                  <span className="text-muted">—</span>
+                ),
+            },
+            {
+              key: "role",
+              header: "Role",
+              render: (u) => (
+                <Badge
+                  tone={(u.authProfile?.role ?? u.role) === "ADMIN" ? "intel" : "default"}
+                >
+                  {u.authProfile?.role ?? u.role}
+                </Badge>
+              ),
+            },
+            {
+              key: "kyc",
+              header: "KYC Authorization",
+              render: (u) => <KycPill status={u.authProfile?.kycStatus ?? u.kycStatus} />,
+            },
+            {
+              key: "status",
+              header: "Account State",
+              render: (u) => (
+                <StatusBadge
+                  status={(u.authProfile?.active ?? u.active) ? "ACTIVE" : "DEACTIVATED"}
+                />
+              ),
+            },
+            {
+              key: "joined",
+              header: "Registered",
+              render: (u) => (
+                <span className="text-xs text-muted">
+                  {u.createdAt.toISOString().slice(0, 10)}
+                </span>
+              ),
+            },
+            {
+              key: "actions",
+              header: "Action",
+              className: "text-right",
+              render: (u) => (
+                <AccountStateAction
+                  userId={u.id}
+                  active={u.authProfile?.active ?? u.active}
+                  action={toggleActive}
+                />
+              ),
+            },
+          ]}
+        />
 
-      <div className="flex items-center justify-between text-xs text-muted pt-2">
-        <span>
-          Showing {users.length} of {total} user{total === 1 ? "" : "s"}
-        </span>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between text-xs text-muted pt-4">
           <span>
-            Page {page} of {pages}
+            Showing {users.length} of {total} user{total === 1 ? "" : "s"}
           </span>
-          {page > 1 && (
-            <Link
-              href={pageHref(params, page - 1)}
-              className="rounded border border-line px-2 py-1 text-secondary hover:border-brand"
-            >
-              Previous
-            </Link>
-          )}
-          {page < pages && (
-            <Link
-              href={pageHref(params, page + 1)}
-              className="rounded border border-line px-2 py-1 text-secondary hover:border-brand"
-            >
-              Next
-            </Link>
-          )}
+          <div className="flex items-center gap-3">
+            <span>
+              Page {page} of {pages}
+            </span>
+            {page > 1 && (
+              <Link
+                href={pageHref(params, page - 1)}
+                className="rounded border border-line px-2 py-1 text-secondary hover:border-brand"
+              >
+                Previous
+              </Link>
+            )}
+            {page < pages && (
+              <Link
+                href={pageHref(params, page + 1)}
+                className="rounded border border-line px-2 py-1 text-secondary hover:border-brand"
+              >
+                Next
+              </Link>
+            )}
+          </div>
         </div>
-      </div>
+      </Panel>
     </div>
   );
 }

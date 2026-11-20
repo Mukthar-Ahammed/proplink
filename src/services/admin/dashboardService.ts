@@ -24,27 +24,22 @@ export type DashboardKpis = {
 
 /** Run all counts in parallel — safe to call from Server Components. */
 export async function getDashboardKpis(): Promise<DashboardKpis> {
-  const [
-    pendingKyc,
-    pendingModeration,
-    pendingResales,
-    totalUsers,
-    liveListings,
-  ] = await Promise.all([
-    db.kycSubmission.count({
-      where: { status: KycSubmissionStatus.SUBMITTED },
-    }),
-    db.property.count({
-      where: { status: PropertyStatus.PENDING_REVIEW },
-    }),
-    db.flipperResale.count({
-      where: { status: FlipperResaleStatus.SUBMITTED },
-    }),
-    db.user.count(),
-    db.property.count({
-      where: { status: PropertyStatus.LIVE },
-    }),
-  ]);
+  const [pendingKyc, pendingModeration, pendingResales, totalUsers, liveListings] =
+    await Promise.all([
+      db.kycSubmission.count({
+        where: { status: KycSubmissionStatus.SUBMITTED },
+      }),
+      db.property.count({
+        where: { status: PropertyStatus.PENDING_REVIEW },
+      }),
+      db.flipperResale.count({
+        where: { status: FlipperResaleStatus.SUBMITTED },
+      }),
+      db.user.count(),
+      db.property.count({
+        where: { status: PropertyStatus.LIVE },
+      }),
+    ]);
 
   return {
     pendingKyc,
@@ -57,10 +52,7 @@ export async function getDashboardKpis(): Promise<DashboardKpis> {
 
 // ─── "Requires Attention" Stream ─────────────────────────────────────────────
 
-export type AttentionItemKind =
-  | "KYC_SUBMITTED"
-  | "LISTING_PENDING"
-  | "RESALE_SUBMITTED";
+export type AttentionItemKind = "KYC_SUBMITTED" | "LISTING_PENDING" | "RESALE_SUBMITTED";
 
 export type AttentionItem = {
   id: string;

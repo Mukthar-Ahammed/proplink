@@ -961,7 +961,7 @@ map with its Map/Satellite toggle (ADR-071). Keep other motion in CSS.
 (`<Logo>`), centred public links (Properties, How it works, Who it's for —
 existing pages only), and `Log in` + teal `Get started` on the right; below `md`
 the links fold into a `<details>` menu. Signed in it shows exactly one portal
-link (ADR-016), the investor `KycPill`, avatar initial, name and `Sign out`.
+link (ADR-016), the investor `KycPill`, avatar (the profile photo from `ownProfilePhotoUrl` when one is set, else the initial), name and `Sign out`.
 Signed in, the landing page also swaps its sign-up calls to action for the
 viewer's portal (own "Who it's for" card highlighted; `/register` buttons
 hidden; the Why PropLink "Create an account" button opens the portal; closing
@@ -1227,7 +1227,8 @@ ADR-009/012/014) are superseded; their ADRs remain as history.
   slice), non-KYC investors, edits and deletes; another keeps the project
   FUNDED exactly when fully pledged.
 - `community.ts` (Task 3, ADR-046): project membership (`isProjectMember`),
-  favourites, compare, the moderated Q&A, the Lead's anonymous co-investor
+  favourites, compare, the moderated Q&A (service only — no UI since ADR-078;
+  investors ask the Agent through project Messages), the Lead's anonymous co-investor
   list. `landlordView.ts` (Task 3a): explicit-select Landlord view.
 - Chat: `ensureProjectThread` / `closeProjectThreads` / `counterpartLabel` in
   `src/services/chat/threads.ts`; `threadAccess` re-checks project
@@ -1497,9 +1498,12 @@ npx next dev --port 3100`. `DataTable` is a focusable named region.
 
 ## Loading states (ADR-077)
 
-- **Route loaders:** `src/app/loading.tsx` covers the whole site. Each portal
-  (`admin`, `agent`, `investor`, `landlord`, `buy`, `solicitor`) has its own
-  `loading.tsx`, which keeps the portal frame on screen. All of them render
+- **Route loaders:** each portal (`admin`, `agent`, `investor`, `landlord`,
+  `buy`, `solicitor`) and `messages` has its own `loading.tsx`, which keeps the
+  portal frame on screen. Each top-level public folder has a `loading.tsx` that
+  re-exports `src/components/ui/SiteLoading.tsx`. There is deliberately no root
+  `src/app/loading.tsx`: it blanked the whole page when moving from a portal to
+  Messages. Add a `loading.tsx` to any new top-level folder. All of them render
   `PageLoader` (`src/components/ui/page-loader.tsx`).
 - **Spinner:** `Spinner` (`src/components/ui/spinner.tsx`) is the only spinner.
   It takes `currentColor`.
@@ -1507,3 +1511,22 @@ npx next dev --port 3100`. `DataTable` is a focusable named region.
   (`src/components/ui/submit-button.tsx`, based on `useFormStatus`) instead of a
   raw `<button>`. GET filter/search forms use `next/form`. Client forms pass
   `loading={pending}` to `Button`.
+
+## Lead ↔ Co-Investor anonymity (ADR-079)
+
+- A co-investor appears to the Lead as `coInvestorAlias(projectId, investorId)`
+  ("Co-investor K7Q2M": a keyed hash, different on each project, never
+  stored). The same alias is on the Lead's project page and in the chat. The
+  co-investor sees "Lead Investor". The Lead opens a chat by alias
+  (`resolveCoInvestorAlias`); no account id reaches the browser.
+- `ChatMessageView.senderId` is the viewer's own id or `"counterpart"`
+  (`COUNTERPART_SENDER`), for every chat. Only Admin's logged read keeps
+  real ids. Realtime broadcasts carry no profile ids.
+
+## Portal page layout (ADR-080)
+
+Detail pages (project, listing, mandate) use `src/components/portal/Detail.tsx`: `DetailHeader` → `KeyFacts` → `DetailTabs` (server-rendered `?tab=` links, chosen via `pickTab`) → `Panel`s per tab, with `FactList` and `DetailColumns`. Dashboards use the same `Panel`/`KeyFacts` blocks with an attention panel first. A `KeyFact` with `wide` spans the whole strip as its own row; the investor project page uses it for `ValueChart` (two comparisons, each on its own scale: _price and value_ — purchase price, market value and the local median — and _funding_ — pledged so far against capital required; the only place on the page that states the market value) with the local sold-price `PeakChart` (headed by the district's latest median) (`src/components/ui/peak-chart.tsx`, `peak-ground` card, colours from tokens) beside it (ADR-082). Simple list pages keep `PortalSection`.
+
+## Messages frame (ADR-081)
+
+`/messages` renders inside the viewer's portal frame (`src/app/messages/layout.tsx`). Agents, Investors, Landlords and Buyers get their portal's full banner masthead and tabs from `src/components/portal/portalFrames.ts`, the same source as the portal layouts, so the Messages tab only swaps the content under the tabs. Admin and Solicitor get `PortalShell compact` with a back link. `/messages` is an overlay route in `ChromeGate`. `MessagesShell` is only the two-pane grid.

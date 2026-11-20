@@ -448,10 +448,28 @@ export async function getSolicitorProject(viewer: Actor) {
   return db.investorProject.findUnique({
     where: { id: projectId },
     include: {
-      agent: { select: { id: true, name: true } },
-      lead: { select: { id: true, name: true } },
+      agent: {
+        select: {
+          id: true,
+          name: true,
+          verificationBadge: { select: { profileId: true } },
+        },
+      },
+      lead: {
+        select: {
+          id: true,
+          name: true,
+          verificationBadge: { select: { profileId: true } },
+        },
+      },
       listing: {
-        select: { title: true, ownerId: true, owner: { select: { name: true } } },
+        select: {
+          title: true,
+          ownerId: true,
+          owner: {
+            select: { name: true, verificationBadge: { select: { profileId: true } } },
+          },
+        },
       },
     },
   });

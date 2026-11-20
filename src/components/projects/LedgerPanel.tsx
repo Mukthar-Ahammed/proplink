@@ -239,7 +239,7 @@ export function LedgerPanel({
       )}
 
       <div className="flex flex-wrap gap-4 text-sm">
-        {party && (
+        {party && view.hasOwnStatement && (
           <a
             href={`/api/projects/${projectId}/statement`}
             className="font-semibold text-primary underline"

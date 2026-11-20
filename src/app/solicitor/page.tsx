@@ -1,3 +1,4 @@
+import { isVerified, PersonName } from "@/components/profiles/PersonName";
 import { PortalSection } from "@/components/portal/PortalShell";
 import { ActionButton } from "@/components/projects/ActionButton";
 import {
@@ -64,8 +65,20 @@ export default async function SolicitorHomePage() {
     <>
       <PortalSection title={project.title}>
         <p className="mb-4 text-sm text-muted">
-          Agent {project.agent.name ?? "—"} · Lead Investor{" "}
-          {project.lead?.name ?? "not confirmed yet"}
+          Agent{" "}
+          <PersonName
+            name={project.agent.name ?? "—"}
+            verified={isVerified(project.agent)}
+          />{" "}
+          · Lead Investor{" "}
+          {project.lead ? (
+            <PersonName
+              name={project.lead.name ?? "Lead Investor"}
+              verified={isVerified(project.lead)}
+            />
+          ) : (
+            "not confirmed yet"
+          )}
         </p>
         <ProjectSummary project={project} showExpected />
       </PortalSection>
