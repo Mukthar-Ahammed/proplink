@@ -3,12 +3,12 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/authz";
 import { Role, FlipperMilestoneStatus } from "@/generated/prisma/enums";
-import { createProjectMilestone, updateProjectMilestone } from "@/services/flipper/flipperProjectService";
+import {
+  createProjectMilestone,
+  updateProjectMilestone,
+} from "@/services/flipper/flipperProjectService";
 
-export async function POST(
-  request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const authResult = await requireRole(Role.INVESTOR);
   if (!authResult.ok) return authResult.response;
 
@@ -48,7 +48,12 @@ export async function PATCH(request: Request) {
   const authResult = await requireRole(Role.INVESTOR);
   if (!authResult.ok) return authResult.response;
 
-  let body: { milestoneId?: string; status?: FlipperMilestoneStatus; title?: string; description?: string };
+  let body: {
+    milestoneId?: string;
+    status?: FlipperMilestoneStatus;
+    title?: string;
+    description?: string;
+  };
   try {
     body = await request.json();
   } catch {

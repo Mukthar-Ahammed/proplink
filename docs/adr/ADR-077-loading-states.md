@@ -18,10 +18,13 @@ built with `useActionState`/`useTransition` already showed a pending label.
   `currentColor`, so it suits filled and outline buttons and pages without
   hardcoded colours.
 - **Route loaders**: `src/components/ui/page-loader.tsx` (`PageLoader`) is
-  rendered by `src/app/loading.tsx` (site-wide) and by a `loading.tsx` in each
-  portal (`admin`, `agent`, `investor`, `landlord`, `buy`, `solicitor`). The
-  portal ones sit below the portal layout, so the portal header and sub-nav stay
-  on screen while the page loads.
+  rendered by a `loading.tsx` in each portal (`admin`, `agent`, `investor`,
+  `landlord`, `buy`, `solicitor`) and in `messages`. These sit below the portal
+  layout, so the portal header and sub-nav stay on screen while the page loads.
+  Each top-level public folder re-exports `src/components/ui/SiteLoading.tsx`.
+  (Amended 2026-11-20: there is no root `src/app/loading.tsx` any more. A root
+  boundary blanked the whole page whenever the top-level folder changed, so a
+  portal tab leading to `/messages` flashed a bare spinner screen; ADR-081.)
 - **Submit buttons**: `src/components/ui/submit-button.tsx` (`SubmitButton`,
   client) reads `useFormStatus()`. It shows the spinner and disables every
   button in the form while it submits. When a form has several named buttons,

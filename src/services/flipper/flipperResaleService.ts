@@ -1,7 +1,11 @@
 import "server-only";
 
 import { z } from "zod";
-import { Role, FlipperProjectStatus, FlipperResaleStatus } from "@/generated/prisma/enums";
+import {
+  Role,
+  FlipperProjectStatus,
+  FlipperResaleStatus,
+} from "@/generated/prisma/enums";
 import { FlipperCaller, hasFlipperCapability } from "./flipperService";
 
 // ─── Input Schemas ────────────────────────────────────────────────────────────
@@ -25,7 +29,12 @@ export const updateResaleDraftSchema = z.object({
     .positive("Estimated asking price must be positive")
     .optional(),
   description: z.string().trim().max(2000).optional(),
-  declaration: z.string().trim().min(10, "Declaration must be at least 10 characters").max(2000).optional(),
+  declaration: z
+    .string()
+    .trim()
+    .min(10, "Declaration must be at least 10 characters")
+    .max(2000)
+    .optional(),
 });
 
 export type UpdateResaleDraftInput = z.infer<typeof updateResaleDraftSchema>;
@@ -35,7 +44,10 @@ export const submitResaleSchema = z.object({
   declaration: z
     .string()
     .trim()
-    .min(10, "A declaration confirming listing accuracy is required (minimum 10 characters)")
+    .min(
+      10,
+      "A declaration confirming listing accuracy is required (minimum 10 characters)",
+    )
     .max(2000),
 });
 
@@ -44,8 +56,7 @@ export type SubmitResaleInput = z.infer<typeof submitResaleSchema>;
 // ─── Result Type ─────────────────────────────────────────────────────────────
 
 export type FlipperResaleResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+  { ok: true; data: T } | { ok: false; error: string };
 
 // ─── Detail Type ─────────────────────────────────────────────────────────────
 
@@ -78,7 +89,8 @@ export type FlipperResaleDetail = {
 
 function requireFlipperEligible(caller: FlipperCaller): string | null {
   if (!caller.active) return "Account is inactive";
-  if (caller.role !== Role.INVESTOR) return "Only Investor accounts can manage Flipper resale listings";
+  if (caller.role !== Role.INVESTOR)
+    return "Only Investor accounts can manage Flipper resale listings";
   if (!hasFlipperCapability(caller))
     return "Flipper resale is restricted to FLIPPER and BOTH investor subtypes";
   return null;
@@ -111,7 +123,10 @@ export async function createFlipperResaleDraft(
 
   const parse = createResaleSchema.safeParse(input);
   if (!parse.success) {
-    return { ok: false, error: parse.error.issues[0]?.message ?? "Invalid resale parameters" };
+    return {
+      ok: false,
+      error: parse.error.issues[0]?.message ?? "Invalid resale parameters",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -149,7 +164,8 @@ export async function createFlipperResaleDraft(
   if (existing) {
     return {
       ok: false,
-      error: "A resale listing already exists for this project. Update the existing draft instead.",
+      error:
+        "A resale listing already exists for this project. Update the existing draft instead.",
     };
   }
 
@@ -210,7 +226,10 @@ export async function updateFlipperResaleDraft(
 
   const parse = updateResaleDraftSchema.safeParse(input);
   if (!parse.success) {
-    return { ok: false, error: parse.error.issues[0]?.message ?? "Invalid update parameters" };
+    return {
+      ok: false,
+      error: parse.error.issues[0]?.message ?? "Invalid update parameters",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -238,7 +257,8 @@ export async function updateFlipperResaleDraft(
   if (resale.status !== FlipperResaleStatus.DRAFT) {
     return {
       ok: false,
-      error: "Only DRAFT resale listings can be edited. A submitted listing cannot be changed.",
+      error:
+        "Only DRAFT resale listings can be edited. A submitted listing cannot be changed.",
     };
   }
 
@@ -285,7 +305,10 @@ export async function submitFlipperResale(
 
   const parse = submitResaleSchema.safeParse(input);
   if (!parse.success) {
-    return { ok: false, error: parse.error.issues[0]?.message ?? "Invalid submission parameters" };
+    return {
+      ok: false,
+      error: parse.error.issues[0]?.message ?? "Invalid submission parameters",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -335,7 +358,8 @@ export async function submitFlipperResale(
   if (updatedCount === 0) {
     return {
       ok: false,
-      error: "Resale listing could not be submitted (already submitted or race condition)",
+      error:
+        "Resale listing could not be submitted (already submitted or race condition)",
     };
   }
 
@@ -386,7 +410,8 @@ export async function resubmitFlipperResale(
   if (resale.status !== FlipperResaleStatus.REJECTED) {
     return {
       ok: false,
-      error: "Only REJECTED resale listings can be resubmitted. Please contact support if you believe this is incorrect.",
+      error:
+        "Only REJECTED resale listings can be resubmitted. Please contact support if you believe this is incorrect.",
     };
   }
 

@@ -1,11 +1,11 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 
 import { z } from "zod";
 
 import { PledgeState, ProjectQuestionStatus, Role } from "@/generated/prisma/enums";
-import { isFinancialPromotionsReviewed } from "@/env";
+import { getServerEnv, isFinancialPromotionsReviewed } from "@/env";
 import { db } from "@/lib/db";
 import { writeAudit } from "@/services/admin/audit";
 import { consumeRateLimits } from "@/services/auth/supabaseAuthService";
@@ -53,11 +53,43 @@ export async function isProjectMember(projectId: string, profileId: string) {
 
 const uuid = z.uuid();
 
+// ── Co-investor aliases (ADR-079) ─────────────────────────────────────────
+
+const ALIAS_ALPHABET = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+const ALIAS_PATTERN = /^Co-investor [0-9A-HJKMNP-TV-Z]{5}$/;
+
+function aliasKey(): string {
+  const env = getServerEnv();
+  const secret =
+    env.AUTH_SECURITY_SECRET ??
+    (env.NODE_ENV === "production" ? undefined : "proplink-local-co-investor-alias-only");
+  if (!secret)
+    throw new Error("AUTH_SECURITY_SECRET is required for co-investor aliases");
+  return `co-investor-alias:${secret}`;
+}
+
 /**
- * For the Lead only: the project's other investors, numbered, without names
- * or amounts (Q4), so the Lead can ask to message them.
+ * How a co-investor appears to the Lead Investor, e.g. "Co-investor K7Q2M".
+ * Investor profiles are private from co-investors (business Q4), so the Lead
+ * never sees a name or an account ID. The alias is a keyed hash of
+ * (project, investor). That makes it:
+ * - stable: the same on the Lead's project page and in every chat;
+ * - unlinkable: the same person gets a different alias on each project;
+ * - not reversible without the server secret;
+ * - not stored anywhere: it is worked out each time.
  */
-export async function coInvestorsForLead(lead: Actor, projectId: string) {
+export function coInvestorAlias(projectId: string, investorId: string): string {
+  const digest = createHmac("sha256", aliasKey())
+    .update(`${projectId}:${investorId}`)
+    .digest();
+  let code = "";
+  for (let i = 0; i < 5; i += 1)
+    code += ALIAS_ALPHABET[digest[i]! % ALIAS_ALPHABET.length];
+  return `Co-investor ${code}`;
+}
+
+/** The project's other investors (interested or pledged), oldest first. */
+async function coInvestorRows(lead: Actor, projectId: string) {
   if (lead.role !== Role.INVESTOR || !uuid.safeParse(projectId).success) return [];
   const project = await db.investorProject.findFirst({
     where: { id: projectId, leadInvestorId: lead.profileId },
@@ -89,10 +121,35 @@ export async function coInvestorsForLead(lead: Actor, projectId: string) {
   }
   return [...seen.entries()]
     .sort((a, b) => a[1].since.getTime() - b[1].since.getTime())
-    .map(([investorId, info], index) => ({
+    .map(([investorId, info]) => ({
       investorId,
-      label: `Investor ${index + 1}${info.pledged ? " (pledged)" : " (interested)"}`,
+      alias: coInvestorAlias(projectId, investorId),
+      pledged: info.pledged,
     }));
+}
+
+/**
+ * For the Lead only: the project's other investors, by alias, with no names,
+ * account IDs or amounts (Q4), so the Lead can ask to message them. The
+ * alias is also how the Lead picks one, so no account ID reaches the browser.
+ */
+export async function coInvestorsForLead(lead: Actor, projectId: string) {
+  return (await coInvestorRows(lead, projectId)).map((row) => ({
+    alias: row.alias,
+    pledged: row.pledged,
+    label: `${row.alias} (${row.pledged ? "pledged" : "interested"})`,
+  }));
+}
+
+/** Resolves an alias the Lead picked back to that co-investor; null if none. */
+export async function resolveCoInvestorAlias(
+  lead: Actor,
+  projectId: string,
+  alias: string,
+): Promise<string | null> {
+  if (!ALIAS_PATTERN.test(alias)) return null;
+  const rows = await coInvestorRows(lead, projectId);
+  return rows.find((row) => row.alias === alias)?.investorId ?? null;
 }
 
 // ── Favourites and compare ───────────────────────────────────────────────

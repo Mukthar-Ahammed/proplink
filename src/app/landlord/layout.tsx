@@ -1,4 +1,5 @@
 import { PortalShell } from "@/components/portal/PortalShell";
+import { LANDLORD_FRAME } from "@/components/portal/portalFrames";
 import { LANDLORD_NAV } from "@/app/landlord/nav";
 import { requirePageRole } from "@/lib/authz";
 
@@ -14,14 +15,7 @@ export default async function LandlordLayout({
   await requirePageRole("LANDLORD");
 
   return (
-    <PortalShell
-      eyebrow="Landlord portal"
-      title="Your property,"
-      titleTail="privately"
-      standfirst="Listings stay private: only PropLink-verified agents see them, after our review."
-      nav={LANDLORD_NAV}
-      banner={{ src: "/banners/landloard%20portal%20banner.png" }}
-    >
+    <PortalShell {...LANDLORD_FRAME} nav={LANDLORD_NAV}>
       {children}
     </PortalShell>
   );

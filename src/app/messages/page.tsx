@@ -1,24 +1,13 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { SubscriptionBanner } from "@/components/billing/SubscriptionGate";
+import { MessagesShell } from "@/components/chat/MessagesShell";
+import { ThreadList } from "@/components/chat/ThreadList";
 import { auth } from "@/lib/auth";
 import { listThreadsFor } from "@/services/chat/threads";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Messages — PropLink UK", robots: { index: false } };
-
-const PAIR: Record<string, string> = {
-  LANDLORD_AGENT: "Landlord and agent",
-  AGENT_INVESTOR: "Agent and investor",
-  LEAD_CO_INVESTOR: "Lead and co-investor",
-  BUYER_AGENT: "Buyer and agent",
-};
-const STATUS: Record<string, string> = {
-  PENDING: "Waiting for PropLink to authorise",
-  AUTHORIZED: "Open",
-  CLOSED: "Closed (read-only)",
-};
 
 /** Every one-to-one chat the signed-in person is part of (Phase 3, ADR-043). */
 export default async function MessagesPage() {
@@ -30,42 +19,49 @@ export default async function MessagesPage() {
   });
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
-      <h1 className="text-2xl font-bold text-primary">Messages</h1>
-      <p className="mt-2 text-sm text-muted">
-        One-to-one conversations about a property. A chat opens once PropLink authorises
-        it (buyer enquiries open straight away).
-      </p>
-      <div className="mt-6">
-        <SubscriptionBanner />
-      </div>
-      {threads.length === 0 ? (
-        <p className="mt-8 text-sm text-muted">No conversations yet.</p>
-      ) : (
-        <ul className="mt-6 space-y-3">
-          {threads.map((thread) => (
-            <li key={thread.id}>
-              <Link
-                href={`/messages/${thread.id}`}
-                className="block rounded-lg border border-line bg-white p-4 hover:border-accent"
-                data-testid={`thread-${thread.id}`}
-              >
-                <span className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-primary">{thread.title}</span>
-                  {thread.unread > 0 && (
-                    <span className="rounded-full bg-accent px-2 py-0.5 text-xs font-semibold text-white">
-                      {thread.unread} new
-                    </span>
-                  )}
-                </span>
-                <span className="mt-1 block text-sm text-muted">
-                  {thread.counterpart} · {PAIR[thread.pairType]} · {STATUS[thread.status]}
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </main>
+    <MessagesShell
+      conversationOpen={false}
+      list={
+        <div className="flex h-full min-h-0 flex-col gap-3">
+          {/* Phones see only this pane, so the subscription notice sits here too. */}
+          <div className="lg:hidden">
+            <SubscriptionBanner />
+          </div>
+          <div className="min-h-[24rem] flex-1 lg:min-h-0">
+            <ThreadList threads={threads} />
+          </div>
+        </div>
+      }
+    >
+      <section className="flex h-full flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-line bg-surface p-8 text-center">
+        <span
+          aria-hidden
+          className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white text-accent ring-1 ring-line"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="h-8 w-8"
+          >
+            <path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z" />
+            <path d="M8.5 11h7M8.5 14h4" />
+          </svg>
+        </span>
+        <div>
+          <h2 className="text-lg font-semibold text-primary">Pick a conversation</h2>
+          <p className="mt-1 max-w-md text-sm text-muted">
+            Choose one from the list. Each chat is one-to-one and about one property. A
+            chat opens once PropLink authorises it (buyer enquiries open straight away).
+          </p>
+        </div>
+        <div className="w-full max-w-lg text-left">
+          <SubscriptionBanner />
+        </div>
+      </section>
+    </MessagesShell>
   );
 }

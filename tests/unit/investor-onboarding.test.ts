@@ -183,6 +183,8 @@ describe("PHASE 3 — Investor Subtype Onboarding & Entry UI", () => {
         { href: "/investor", label: "Dashboard" },
         // Phase 4 (ADR-044): projects for every investor; chat from Phase 3.
         { href: "/investor/projects", label: "Projects" },
+        // Saved projects (★) and saved marketplace listings.
+        { href: "/investor/saved", label: "Saved" },
         { href: "/messages", label: "Messages" },
         { href: "/investor/kyc", label: "Identity & Verification" },
         // No Billing tab: subscribing starts from the chat prompts and popup.

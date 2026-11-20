@@ -3,18 +3,23 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/authz";
 import { Role, FlipperCostCategory } from "@/generated/prisma/enums";
-import { addFlipperProjectCost, removeFlipperProjectCost } from "@/services/flipper/flipperProjectService";
+import {
+  addFlipperProjectCost,
+  removeFlipperProjectCost,
+} from "@/services/flipper/flipperProjectService";
 
-export async function POST(
-  request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
+export async function POST(request: Request, props: { params: Promise<{ id: string }> }) {
   const authResult = await requireRole(Role.INVESTOR);
   if (!authResult.ok) return authResult.response;
 
   const { id } = await props.params;
 
-  let body: { category?: FlipperCostCategory; description?: string; amountGBP?: number; incurredAt?: string };
+  let body: {
+    category?: FlipperCostCategory;
+    description?: string;
+    amountGBP?: number;
+    incurredAt?: string;
+  };
   try {
     body = await request.json();
   } catch {

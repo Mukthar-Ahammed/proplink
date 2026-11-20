@@ -3,26 +3,27 @@ import { notFound } from "next/navigation";
 
 import { ContractUploader } from "@/components/mandates/ContractUploader";
 import {
-  AlertIcon,
-  ArrowIcon,
-  CheckIcon,
-  ClockIcon,
-  EyeIcon,
-  FileIcon,
-  IconChip,
-  InvestorSectionTitle,
-  PrimaryLink,
-  StatusPill,
-} from "@/components/investor/InvestorUi";
+  DetailColumns,
+  DetailHeader,
+  DetailTabs,
+  FactList,
+  KeyFacts,
+  Panel,
+  TabBody,
+  pickTab,
+  type DetailTab,
+} from "@/components/portal/Detail";
+import { PersonName } from "@/components/profiles/PersonName";
+import { Badge } from "@/components/ui/badge";
 import { MandateStatus, Role } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
+import { DISCLOSURE_FIELDS } from "@/services/landlord/disclosure";
 import { getMandateForAgent } from "@/services/landlord/mandates";
 import { formatFee, formatPence } from "@/services/landlord/marketplace";
 
 import { attachAgentContractAction } from "../actions";
 import { RespondToOffer, TerminateMandate } from "./AgentMandateControls";
 import { DisclosureForm } from "./DisclosureForm";
-import { DISCLOSURE_FIELDS } from "@/services/landlord/disclosure";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Agent — Mandate", robots: { index: false } };
@@ -42,31 +43,23 @@ const STATUS: Record<string, string> = {
 };
 const day = (value: Date | null) => (value ? value.toISOString().slice(0, 10) : "—");
 
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="space-y-1">
-      <dt className="text-xs font-semibold tracking-[0.14em] text-muted uppercase">
-        {label}
-      </dt>
-      <dd className="text-sm whitespace-pre-line text-body">{value || "—"}</dd>
-    </div>
-  );
-}
-
-const CARD = "rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-7";
-const EYEBROW = "text-xs font-semibold tracking-[0.14em] text-muted uppercase";
+const PRIMARY_LINK =
+  "inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-strong";
 
 /**
- * One mandate for the Agent (Phase 2 Task 6, ADR-039). The Landlord's name,
- * the full listing and its documents are shown only while it is ACTIVE.
+ * One mandate for the Agent (Phase 2 Task 6, ADR-039), split into tabs
+ * (ADR-080): Overview · Property & documents · Investor view. The Landlord's
+ * name, the full listing and its documents are shown only while it is ACTIVE.
  */
 export default async function AgentMandatePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const session = await requirePageRole(Role.AGENT);
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const mandate = await getMandateForAgent(
     {
       profileId: session.user.authUserId,
@@ -79,101 +72,153 @@ export default async function AgentMandatePage({
   const active = mandate.status === MandateStatus.ACTIVE;
   const offered = mandate.status === MandateStatus.OFFERED;
   const { listing } = mandate;
-  const tone = active ? "success" : offered ? "warning" : "neutral";
+  const path = `/agent/mandates/${mandate.id}`;
+  const fullListing = active && "addressLine1" in listing ? listing : null;
+  const canPublish = active && mandate.disclosure && mandate.investorPreview;
+
+  const tabs: DetailTab[] = [{ key: "overview", label: "Overview", attention: offered }];
+  if (fullListing) {
+    tabs.push({
+      key: "property",
+      label: "Property & documents",
+      count: mandate.documents.length,
+      attention: !mandate.contractUrl,
+    });
+  }
+  if (canPublish) tabs.push({ key: "investors", label: "What investors see" });
+  const tab = pickTab(query.tab, tabs);
 
   return (
-    <div className="space-y-12">
-      <section className="space-y-5">
-        <div className="space-y-4">
-          <Link
-            href="/agent/mandates"
-            className="group inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-accent-strong"
-          >
-            <ArrowIcon className="h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-0.5" />
-            All mandates
-          </Link>
-          <InvestorSectionTitle
-            title={listing.title}
-            action={<StatusPill tone={tone}>{STATUS[mandate.status]}</StatusPill>}
-          />
-        </div>
-
-        <div className={`${CARD} space-y-5`}>
-          <div className="flex items-start gap-3">
-            <IconChip tone={active ? "success" : offered ? "warning" : "danger"}>
-              {active ? <CheckIcon /> : offered ? <ClockIcon /> : <AlertIcon />}
-            </IconChip>
-            <p
-              className="pt-2 text-sm font-semibold text-primary"
-              data-testid="mandate-status"
+    <>
+      <DetailHeader
+        back={{ href: "/agent/mandates", label: "All mandates" }}
+        eyebrow="Mandate"
+        title={listing.title}
+        badges={
+          <Badge tone={active ? "success" : offered ? "warning" : "default"}>
+            {STATUS[mandate.status]}
+          </Badge>
+        }
+        actions={
+          canPublish ? (
+            <Link
+              href={`/agent/projects/new?mandate=${mandate.id}`}
+              className={PRIMARY_LINK}
             >
-              {offered
-                ? "The landlord chose you for an exclusive mandate."
-                : active
-                  ? `Active since ${day(mandate.acceptedAt)}; contract ends ${day(mandate.endsAt)}.`
-                  : `This mandate is ${mandate.status.toLowerCase()}. You no longer have access to the listing's documents.`}
-            </p>
-          </div>
-          <dl className="grid gap-x-8 gap-y-5 border-t border-line pt-5 sm:grid-cols-2">
-            <Row label="Valuation" value={formatPence(mandate.valuationGBP)} />
-            <Row label="Your fee" value={formatFee(mandate)} />
-            <Row label="Contract period" value={`${mandate.contractMonths} months`} />
-            <Row label="Renewal" value={mandate.renewalTerms} />
-            <div className="sm:col-span-2">
-              <Row label="Agreed terms" value={mandate.terms} />
-            </div>
-            {mandate.terminationReason && (
-              <div className="sm:col-span-2">
-                <Row label="Termination reason" value={mandate.terminationReason} />
-              </div>
-            )}
-          </dl>
-          {(offered || active) && (
-            <div className="space-y-4 border-t border-line pt-5">
-              {offered && <RespondToOffer mandateId={mandate.id} />}
-              {active && <TerminateMandate mandateId={mandate.id} />}
-            </div>
-          )}
-        </div>
-      </section>
+              Publish to investors
+            </Link>
+          ) : null
+        }
+      />
 
-      {active && "addressLine1" in listing && (
-        <section className="space-y-5">
-          <InvestorSectionTitle title="Property and" tail="landlord" />
-          <dl className={`${CARD} grid gap-x-8 gap-y-5 sm:grid-cols-2`}>
-            <Row label="Landlord" value={listing.landlordName} />
-            <Row
-              label="Address"
-              value={[listing.addressLine1, listing.city, listing.postcode]
-                .filter(Boolean)
-                .join(", ")}
+      <KeyFacts
+        items={[
+          { label: "Valuation", value: formatPence(mandate.valuationGBP) },
+          { label: "Your fee", value: formatFee(mandate) },
+          { label: "Contract period", value: `${mandate.contractMonths} months` },
+          {
+            label: active ? "Contract ends" : "Accepted",
+            value: active ? day(mandate.endsAt) : day(mandate.acceptedAt),
+          },
+        ]}
+      />
+
+      <DetailTabs basePath={path} tabs={tabs} current={tab} label="Mandate sections" />
+
+      {tab === "overview" && (
+        <TabBody>
+          <DetailColumns
+            main={
+              <Panel title="Agreed terms">
+                <FactList
+                  items={[
+                    { label: "Valuation", value: formatPence(mandate.valuationGBP) },
+                    { label: "Your fee", value: formatFee(mandate) },
+                    {
+                      label: "Contract period",
+                      value: `${mandate.contractMonths} months`,
+                    },
+                    { label: "Renewal", value: mandate.renewalTerms },
+                    { label: "Agreed terms", value: mandate.terms, wide: true },
+                    ...(mandate.terminationReason
+                      ? [
+                          {
+                            label: "Termination reason",
+                            value: mandate.terminationReason,
+                            wide: true,
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
+              </Panel>
+            }
+            side={
+              <Panel
+                title={offered ? "Your answer" : "Status"}
+                tone={offered ? "attention" : active ? "default" : "muted"}
+              >
+                <p
+                  className="text-sm font-semibold text-primary"
+                  data-testid="mandate-status"
+                >
+                  {offered
+                    ? "The landlord chose you for an exclusive mandate."
+                    : active
+                      ? `Active since ${day(mandate.acceptedAt)}; contract ends ${day(mandate.endsAt)}.`
+                      : `This mandate is ${mandate.status.toLowerCase()}. You no longer have access to the listing's documents.`}
+                </p>
+                {fullListing ? (
+                  <p className="mt-2 text-sm text-body">
+                    Landlord:{" "}
+                    <PersonName
+                      name={fullListing.landlordName ?? "—"}
+                      verified={fullListing.landlordVerified}
+                    />
+                  </p>
+                ) : null}
+                {(offered || active) && (
+                  <div className="mt-4 space-y-4 border-t border-line pt-4">
+                    {offered && <RespondToOffer mandateId={mandate.id} />}
+                    {active && <TerminateMandate mandateId={mandate.id} />}
+                  </div>
+                )}
+              </Panel>
+            }
+          />
+        </TabBody>
+      )}
+
+      {tab === "property" && fullListing && (
+        <TabBody>
+          <Panel title="Property and landlord">
+            <FactList
+              items={[
+                { label: "Landlord", value: fullListing.landlordName },
+                {
+                  label: "Address",
+                  value: [
+                    fullListing.addressLine1,
+                    fullListing.city,
+                    fullListing.postcode,
+                  ]
+                    .filter(Boolean)
+                    .join(", "),
+                },
+                { label: "Description", value: fullListing.description, wide: true },
+                { label: "Known defects", value: fullListing.defects },
+                { label: "Work required", value: fullListing.requiredWork },
+              ]}
             />
-            <div className="sm:col-span-2">
-              <Row label="Description" value={listing.description} />
-            </div>
-            <Row label="Known defects" value={listing.defects} />
-            <Row label="Work required" value={listing.requiredWork} />
-          </dl>
-
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className={CARD}>
-              <div className="flex items-center gap-3">
-                <IconChip>
-                  <FileIcon />
-                </IconChip>
-                <div>
-                  <p className={EYEBROW}>Files</p>
-                  <h3 className="mt-0.5 font-semibold text-primary">
-                    Documents and photos
-                  </h3>
-                </div>
-              </div>
+          </Panel>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Panel title="Documents and photos">
               {mandate.documents.length === 0 ? (
-                <p className="mt-5 rounded-2xl border border-dashed border-line bg-surface/60 px-5 py-6 text-center text-sm text-muted">
+                <p className="rounded-2xl border border-dashed border-line bg-surface px-5 py-6 text-center text-sm text-muted">
                   None attached.
                 </p>
               ) : (
-                <ul className="mt-5 divide-y divide-line border-t border-line text-sm">
+                <ul className="divide-y divide-line text-sm">
                   {mandate.documents.map((document, index) => (
                     <li key={`${document.kind}-${index}`} className="py-3">
                       {document.url ? (
@@ -181,9 +226,8 @@ export default async function AgentMandatePage({
                           href={document.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 font-semibold text-accent hover:text-accent-strong"
+                          className="font-semibold text-accent hover:text-accent-strong"
                         >
-                          <FileIcon className="h-4 w-4" />
                           {KIND[document.kind]} {index + 1}
                         </a>
                       ) : (
@@ -195,25 +239,20 @@ export default async function AgentMandatePage({
                   ))}
                 </ul>
               )}
-            </div>
-
-            <div className={CARD}>
-              <div className="flex items-center gap-3">
-                <IconChip>
-                  <FileIcon />
-                </IconChip>
-                <div>
-                  <p className={EYEBROW}>Agreement</p>
-                  <h3 className="mt-0.5 font-semibold text-primary">Contract</h3>
-                </div>
-              </div>
-              <div className="mt-5 space-y-3 border-t border-line pt-4 text-sm">
+            </Panel>
+            <Panel
+              title="Contract"
+              description={
+                mandate.contractUrl ? undefined : "Upload the signed mandate contract."
+              }
+              tone={mandate.contractUrl ? "default" : "attention"}
+            >
+              <div className="space-y-3 text-sm">
                 {mandate.contractUrl && (
                   <a
                     href={mandate.contractUrl}
-                    className="inline-flex items-center gap-1.5 font-semibold text-accent hover:text-accent-strong"
+                    className="font-semibold text-accent hover:text-accent-strong"
                   >
-                    <FileIcon className="h-4 w-4" />
                     Signed contract
                   </a>
                 )}
@@ -223,25 +262,18 @@ export default async function AgentMandatePage({
                   hasContract={Boolean(mandate.contractUrl)}
                 />
               </div>
-            </div>
+            </Panel>
           </div>
-        </section>
+        </TabBody>
       )}
 
-      {active && mandate.disclosure && mandate.investorPreview && (
-        <section className="space-y-5">
-          <InvestorSectionTitle
-            title="What investors"
-            tail="will see"
-            description="When you publish this property to investors, only the details you tick are shown."
-            action={
-              <PrimaryLink href={`/agent/projects/new?mandate=${mandate.id}`}>
-                Publish to investors
-              </PrimaryLink>
-            }
-          />
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className={CARD}>
+      {tab === "investors" && canPublish && (
+        <TabBody>
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Panel
+              title="Choose what to disclose"
+              description="When you publish this property to investors, only the details you tick are shown."
+            >
               <DisclosureForm
                 mandateId={mandate.id}
                 fields={DISCLOSURE_FIELDS.map((field) => ({
@@ -251,57 +283,57 @@ export default async function AgentMandatePage({
                   checked: mandate.disclosure![field.key],
                 }))}
               />
-            </div>
-            <div className="rounded-3xl border border-accent/20 bg-pale/60 p-6 sm:p-7">
-              <div className="flex items-center gap-3">
-                <IconChip>
-                  <EyeIcon />
-                </IconChip>
-                <div>
-                  <p className={EYEBROW}>Preview</p>
-                  <h3 className="mt-0.5 font-semibold text-primary">The investor view</h3>
-                </div>
-              </div>
-              <dl
-                className="mt-5 grid gap-4 border-t border-accent/20 pt-5"
-                data-testid="investor-preview"
+            </Panel>
+            <Panel title="The investor view" tone="muted">
+              <FactList
+                columns={2}
+                testId="investor-preview"
+                items={[
+                  {
+                    label: "Landlord",
+                    value: mandate.investorPreview!.landlordName ?? "Hidden",
+                  },
+                  {
+                    label: "Location",
+                    value: [
+                      mandate.investorPreview!.addressLine1,
+                      mandate.investorPreview!.city,
+                      mandate.investorPreview!.postcode ??
+                        mandate.investorPreview!.postcodeDistrict,
+                    ]
+                      .filter(Boolean)
+                      .join(", "),
+                  },
+                  {
+                    label: "Description",
+                    value: mandate.investorPreview!.description ?? "Hidden",
+                    wide: true,
+                  },
+                  {
+                    label: "Known defects",
+                    value: mandate.investorPreview!.defects ?? "Hidden",
+                  },
+                  {
+                    label: "Work required",
+                    value: mandate.investorPreview!.requiredWork ?? "Hidden",
+                  },
+                  {
+                    label: "Photos and documents",
+                    value: `${mandate.investorPreview!.photoFileIds.length} photos, ${mandate.investorPreview!.documentFileIds.length} documents`,
+                    wide: true,
+                  },
+                ]}
+              />
+              <Link
+                href={`/agent/projects/new?mandate=${mandate.id}`}
+                className={`mt-5 ${PRIMARY_LINK}`}
               >
-                <Row
-                  label="Landlord"
-                  value={mandate.investorPreview.landlordName ?? "Hidden"}
-                />
-                <Row
-                  label="Location"
-                  value={[
-                    mandate.investorPreview.addressLine1,
-                    mandate.investorPreview.city,
-                    mandate.investorPreview.postcode ??
-                      mandate.investorPreview.postcodeDistrict,
-                  ]
-                    .filter(Boolean)
-                    .join(", ")}
-                />
-                <Row
-                  label="Description"
-                  value={mandate.investorPreview.description ?? "Hidden"}
-                />
-                <Row
-                  label="Known defects"
-                  value={mandate.investorPreview.defects ?? "Hidden"}
-                />
-                <Row
-                  label="Work required"
-                  value={mandate.investorPreview.requiredWork ?? "Hidden"}
-                />
-                <Row
-                  label="Photos and documents"
-                  value={`${mandate.investorPreview.photoFileIds.length} photos, ${mandate.investorPreview.documentFileIds.length} documents`}
-                />
-              </dl>
-            </div>
+                Publish to investors
+              </Link>
+            </Panel>
           </div>
-        </section>
+        </TabBody>
       )}
-    </div>
+    </>
   );
 }

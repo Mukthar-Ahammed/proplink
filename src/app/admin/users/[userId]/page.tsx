@@ -5,12 +5,21 @@ import { revalidatePath } from "next/cache";
 import { requireAdminPagePermission, requireAdminPermission } from "@/lib/authz";
 import { getUserDetails, setUserActive } from "@/services/admin/users";
 import { Role } from "@/generated/prisma/enums";
-import { Card, CardBody, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/admin/StatusBadge";
 import { KycPill } from "@/components/layout/KycPill";
-import { AdminPageHeader } from "@/components/admin/AdminPageHeader";
 import { AccountStateAction } from "@/components/admin/AccountStateAction";
+import {
+  DetailColumns,
+  DetailHeader,
+  DetailTabs,
+  FactList,
+  KeyFacts,
+  Panel,
+  TabBody,
+  pickTab,
+  type DetailTab,
+} from "@/components/portal/Detail";
 
 export const metadata = { title: "Admin — User detail | PropLink" };
 
@@ -36,115 +45,129 @@ async function changeAccountState(formData: FormData) {
   revalidatePath("/admin/users");
 }
 
+/** One account for Admin, in tabs (ADR-080): Account · Agent profiles · KYC · Audit. */
 export default async function AdminUserDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ userId: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   await requireAdminPagePermission("SUSPENSION");
-  const { userId } = await params;
+  const [{ userId }, query] = await Promise.all([params, searchParams]);
   const details = await getUserDetails(userId);
   if (!details) notFound();
   const { user, activityMetrics } = details;
   const profile = user.authProfile;
+  const path = `/admin/users/${user.id}`;
+  const kycPending = user.kycSubmissions.some(
+    (submission) => submission.status === "SUBMITTED",
+  );
+
+  const tabs: DetailTab[] = [{ key: "account", label: "Account" }];
+  if (user.agentProfiles.length > 0) {
+    tabs.push({
+      key: "agent",
+      label: "Agent profiles",
+      count: user.agentProfiles.length,
+    });
+  }
+  if (user.kycSubmissions.length > 0) {
+    tabs.push({
+      key: "kyc",
+      label: "Identity checks",
+      count: user.kycSubmissions.length,
+      attention: kycPending,
+    });
+  }
+  tabs.push({ key: "audit", label: "Audit history", count: details.auditLogs.length });
+  const tab = pickTab(query.tab, tabs);
 
   return (
-    <div className="space-y-6">
-      <AdminPageHeader
+    <div>
+      <h1 className="sr-only">User detail</h1>
+      <DetailHeader
+        back={{ href: "/admin/users", label: "Back to users" }}
+        eyebrow="Account"
         title={user.name}
-        description="Purpose-limited account governance and operational context."
+        badges={
+          <>
+            <StatusBadge status={user.active ? "ACTIVE" : "DEACTIVATED"} />
+            <Badge tone={user.role === Role.ADMIN ? "intel" : "default"}>
+              {user.role}
+            </Badge>
+            <KycPill status={profile?.kycStatus ?? user.kycStatus} />
+          </>
+        }
+        subtitle="Purpose-limited account governance and operational context."
+        actions={
+          <AccountStateAction
+            userId={user.id}
+            active={user.active}
+            action={changeAccountState}
+          />
+        }
       />
-      <div className="flex flex-wrap items-center gap-3">
-        <Link
-          href="/admin/users"
-          className="text-sm font-semibold text-accent hover:underline"
-        >
-          ← Back to users
-        </Link>
-        <StatusBadge status={user.active ? "ACTIVE" : "DEACTIVATED"} />
-        <Badge tone={user.role === Role.ADMIN ? "intel" : "default"}>{user.role}</Badge>
-        <AccountStateAction
-          userId={user.id}
-          active={user.active}
-          action={changeAccountState}
-        />
-      </div>
 
-      <section className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardTitle>Account</CardTitle>
-          <CardBody>
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Name</dt>
-                <dd className="font-semibold text-primary">{user.name}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Email</dt>
-                <dd>{user.email}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">
-                  Primary role
-                </dt>
-                <dd>{user.role}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">Joined</dt>
-                <dd>{user.createdAt.toISOString().slice(0, 10)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">
-                  KYC authorization
-                </dt>
-                <dd>
-                  <KycPill status={profile?.kycStatus ?? user.kycStatus} />
-                </dd>
-              </div>
-              <div>
-                <dt className="text-xs uppercase tracking-wide text-muted">
-                  Investor subtype
-                </dt>
-                <dd>{profile?.investorType ?? "Not applicable / not assigned"}</dd>
-              </div>
-            </dl>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardTitle>Operational summary</CardTitle>
-          <CardBody>
-            <dl className="space-y-3">
-              <div className="flex justify-between">
-                <dt>Listings</dt>
-                <dd className="font-semibold">{activityMetrics.propertyCount}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Buyer offers</dt>
-                <dd className="font-semibold">{activityMetrics.offerCount}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Flipper resales</dt>
-                <dd className="font-semibold">{activityMetrics.resaleCount}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Syndicate pledges</dt>
-                <dd className="font-semibold">{activityMetrics.pledgeCount}</dd>
-              </div>
-            </dl>
-          </CardBody>
-        </Card>
-      </section>
+      <KeyFacts
+        items={[
+          { label: "Listings", value: activityMetrics.propertyCount },
+          { label: "Buyer offers", value: activityMetrics.offerCount },
+          { label: "Flipper resales", value: activityMetrics.resaleCount },
+          { label: "Syndicate pledges", value: activityMetrics.pledgeCount },
+          { label: "Joined", value: user.createdAt.toISOString().slice(0, 10) },
+        ]}
+      />
 
-      {user.agentProfiles.length > 0 && (
-        <Card>
-          <CardTitle>Agent profile context</CardTitle>
-          <CardBody>
+      <DetailTabs basePath={path} tabs={tabs} current={tab} label="Account sections" />
+
+      {tab === "account" && (
+        <TabBody>
+          <DetailColumns
+            main={
+              <Panel title="Account">
+                <FactList
+                  items={[
+                    { label: "Name", value: user.name },
+                    { label: "Email", value: user.email },
+                    { label: "Primary role", value: user.role },
+                    { label: "Joined", value: user.createdAt.toISOString().slice(0, 10) },
+                    {
+                      label: "KYC authorization",
+                      value: <KycPill status={profile?.kycStatus ?? user.kycStatus} />,
+                    },
+                    {
+                      label: "Investor subtype",
+                      value: profile?.investorType ?? "Not applicable / not assigned",
+                    },
+                  ]}
+                />
+              </Panel>
+            }
+            side={
+              <Panel
+                title="Account state"
+                tone={user.active ? "default" : "attention"}
+                description={
+                  user.active
+                    ? "Active. Suspending (button above) needs a reason and a recent sign-in check, and is audited."
+                    : "Suspended: this person cannot sign in. Reactivate with the button above."
+                }
+              />
+            }
+          />
+        </TabBody>
+      )}
+
+      {tab === "agent" && (
+        <TabBody>
+          <Panel title="Agent profiles" description="Open a profile to manage it.">
             <div className="grid gap-3 md:grid-cols-2">
               {user.agentProfiles.map((agent) => (
                 <Link
                   key={agent.id}
                   href={`/admin/agents/${agent.id}`}
-                  className="rounded-xl border border-line p-4 hover:border-brand"
+                  className="rounded-xl border border-line p-4 hover:border-accent"
                 >
                   <div className="font-semibold text-primary">{agent.agencyName}</div>
                   <div className="mt-1 text-sm text-muted">
@@ -154,14 +177,13 @@ export default async function AdminUserDetailPage({
                 </Link>
               ))}
             </div>
-          </CardBody>
-        </Card>
+          </Panel>
+        </TabBody>
       )}
 
-      {user.kycSubmissions.length > 0 && (
-        <Card>
-          <CardTitle>KYC history summary</CardTitle>
-          <CardBody>
+      {tab === "kyc" && (
+        <TabBody>
+          <Panel title="Identity checks" tone={kycPending ? "attention" : "default"}>
             <div className="divide-y divide-line">
               {user.kycSubmissions.map((submission) => (
                 <div
@@ -184,27 +206,30 @@ export default async function AdminUserDetailPage({
                 </div>
               ))}
             </div>
-          </CardBody>
-        </Card>
+          </Panel>
+        </TabBody>
       )}
 
-      <Card>
-        <CardTitle>Recent audit history</CardTitle>
-        <CardBody>
-          {details.auditLogs.length === 0 ? (
-            <p className="text-muted">No related audit events.</p>
-          ) : (
-            <div className="divide-y divide-line">
-              {details.auditLogs.map((event) => (
-                <div key={event.id} className="py-2 text-sm">
-                  <span className="font-semibold">{event.action}</span>
-                  <span className="ml-2 text-muted">{event.createdAt.toISOString()}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardBody>
-      </Card>
+      {tab === "audit" && (
+        <TabBody>
+          <Panel title="Recent audit history">
+            {details.auditLogs.length === 0 ? (
+              <p className="text-sm text-muted">No related audit events.</p>
+            ) : (
+              <div className="divide-y divide-line">
+                {details.auditLogs.map((event) => (
+                  <div key={event.id} className="py-2 text-sm">
+                    <span className="font-semibold">{event.action}</span>
+                    <span className="ml-2 text-muted">
+                      {event.createdAt.toISOString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Panel>
+        </TabBody>
+      )}
     </div>
   );
 }

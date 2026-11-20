@@ -343,7 +343,9 @@ export async function listProjectPledges(actor: Actor, projectId: string) {
       status: true,
       createdAt: true,
       investorId: true,
-      investor: { select: { name: true } },
+      investor: {
+        select: { name: true, verificationBadge: { select: { profileId: true } } },
+      },
     },
   });
   return pledges.map((pledge) => ({

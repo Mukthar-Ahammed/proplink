@@ -49,7 +49,11 @@ export async function getAdminListingSummary(): Promise<AdminListingSummary> {
         where: { status: PropertyStatus.LIVE, listingSource: "AGENT" },
       }),
       db.property.count({
-        where: { status: PropertyStatus.DRAFT, rejectionReason: { not: null }, listingSource: "AGENT" },
+        where: {
+          status: PropertyStatus.DRAFT,
+          rejectionReason: { not: null },
+          listingSource: "AGENT",
+        },
       }),
       db.property.count({
         where: { listingSource: "AGENT" },
@@ -93,10 +97,10 @@ export async function getAdminListingQueue(
     params?.status === "REJECTED"
       ? { status: PropertyStatus.DRAFT, rejectionReason: { not: null } }
       : params?.status && params.status !== "ALL"
-      ? { status: params.status }
-      : params?.status === "ALL"
-      ? {}
-      : { status: PropertyStatus.PENDING_REVIEW };
+        ? { status: params.status }
+        : params?.status === "ALL"
+          ? {}
+          : { status: PropertyStatus.PENDING_REVIEW };
 
   const searchFilter = params?.search?.trim()
     ? {
@@ -107,8 +111,18 @@ export async function getAdminListingQueue(
             agentProfile: {
               user: {
                 OR: [
-                  { name: { contains: params.search.trim(), mode: "insensitive" as const } },
-                  { email: { contains: params.search.trim(), mode: "insensitive" as const } },
+                  {
+                    name: {
+                      contains: params.search.trim(),
+                      mode: "insensitive" as const,
+                    },
+                  },
+                  {
+                    email: {
+                      contains: params.search.trim(),
+                      mode: "insensitive" as const,
+                    },
+                  },
                 ],
               },
             },

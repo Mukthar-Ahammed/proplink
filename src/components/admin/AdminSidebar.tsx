@@ -227,7 +227,7 @@ export function AdminSidebar({
 
       {/* Sidebar Container */}
       <aside
-        className={`fixed bottom-0 top-0 left-0 z-50 flex w-64 flex-col border-r border-line bg-white transition-transform duration-200 ease-in-out lg:static lg:z-auto lg:translate-x-0 ${
+        className={`fixed bottom-0 top-0 left-0 z-50 flex w-64 flex-col border-r border-line bg-white transition-transform duration-200 ease-in-out lg:sticky lg:bottom-auto lg:h-screen lg:shrink-0 lg:z-auto lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         aria-label="Admin Navigation Sidebar"

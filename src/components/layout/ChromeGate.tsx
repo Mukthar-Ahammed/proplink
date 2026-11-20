@@ -42,7 +42,7 @@ const SHELL_PREFIXES = ["/admin"];
 
 const OVERLAY_ROUTES = ["/"];
 /** Every page under these opens on a banner masthead (`<PortalShell banner>`). */
-const OVERLAY_PREFIXES = ["/agent", "/buy", "/investor", "/landlord"];
+const OVERLAY_PREFIXES = ["/agent", "/buy", "/investor", "/landlord", "/messages"];
 
 export function ChromeGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

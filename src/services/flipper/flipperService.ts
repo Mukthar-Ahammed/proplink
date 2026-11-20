@@ -46,8 +46,7 @@ export type AgentCaller = {
 };
 
 export type FlipperServiceResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+  { ok: true; data: T } | { ok: false; error: string };
 
 // ─── Authorization Guards ────────────────────────────────────────────────────
 
@@ -62,7 +61,8 @@ export function hasFlipperCapability(caller: FlipperCaller): boolean {
 
 function requireFlipperSubtype(caller: FlipperCaller): string | null {
   if (!caller.active) return "Account is inactive";
-  if (caller.role !== Role.INVESTOR) return "Only Investor accounts can access Flipper workspace";
+  if (caller.role !== Role.INVESTOR)
+    return "Only Investor accounts can access Flipper workspace";
   if (!hasFlipperCapability(caller)) {
     return "Flipper workspace is restricted to FLIPPER and BOTH investor subtypes";
   }
@@ -115,7 +115,10 @@ export async function createFlipperOpportunity(
 
   // Anti-Self Dealing Guard
   if (property.agentProfile && property.agentProfile.userId === caller.userId) {
-    return { ok: false, error: "You cannot create a Flipper opportunity on your own listing" };
+    return {
+      ok: false,
+      error: "You cannot create a Flipper opportunity on your own listing",
+    };
   }
 
   const opp = await db.flipperOpportunity.upsert({
@@ -278,7 +281,10 @@ export async function submitFlipperOffer(
 
   const parse = submitFlipperOfferSchema.safeParse(input);
   if (!parse.success) {
-    return { ok: false, error: parse.error.issues[0]?.message ?? "Invalid offer parameters" };
+    return {
+      ok: false,
+      error: parse.error.issues[0]?.message ?? "Invalid offer parameters",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -298,7 +304,10 @@ export async function submitFlipperOffer(
 
   // Anti-Self Dealing Guard
   if (property.agentProfile && property.agentProfile.userId === caller.userId) {
-    return { ok: false, error: "You cannot submit an acquisition offer on your own listing" };
+    return {
+      ok: false,
+      error: "You cannot submit an acquisition offer on your own listing",
+    };
   }
 
   // Prevent duplicate active SUBMITTED offer
@@ -313,7 +322,8 @@ export async function submitFlipperOffer(
   if (existingActive) {
     return {
       ok: false,
-      error: "You already have an active submitted offer on this property. Please wait for the agent to respond or withdraw your current offer.",
+      error:
+        "You already have an active submitted offer on this property. Please wait for the agent to respond or withdraw your current offer.",
     };
   }
 
@@ -439,8 +449,14 @@ export async function acceptFlipperOffer(
   if (!offer) return { ok: false, error: "Offer not found" };
 
   // Agent Ownership Guard
-  if (!offer.property.agentProfile || offer.property.agentProfile.userId !== agentCaller.userId) {
-    return { ok: false, error: "Forbidden: Agent A cannot manage offers for Agent B's listing" };
+  if (
+    !offer.property.agentProfile ||
+    offer.property.agentProfile.userId !== agentCaller.userId
+  ) {
+    return {
+      ok: false,
+      error: "Forbidden: Agent A cannot manage offers for Agent B's listing",
+    };
   }
 
   if (offer.status !== FlipperOfferStatus.SUBMITTED) {
@@ -460,7 +476,10 @@ export async function acceptFlipperOffer(
   `;
 
   if (updatedCount === 0) {
-    return { ok: false, error: "Offer is no longer pending decision (race condition or already decided)" };
+    return {
+      ok: false,
+      error: "Offer is no longer pending decision (race condition or already decided)",
+    };
   }
 
   // Transaction: Update opportunity + Create FlipperAcquisition
@@ -523,8 +542,14 @@ export async function rejectFlipperOffer(
 
   if (!offer) return { ok: false, error: "Offer not found" };
 
-  if (!offer.property.agentProfile || offer.property.agentProfile.userId !== agentCaller.userId) {
-    return { ok: false, error: "Forbidden: Agent A cannot manage offers for Agent B's listing" };
+  if (
+    !offer.property.agentProfile ||
+    offer.property.agentProfile.userId !== agentCaller.userId
+  ) {
+    return {
+      ok: false,
+      error: "Forbidden: Agent A cannot manage offers for Agent B's listing",
+    };
   }
 
   if (offer.status !== FlipperOfferStatus.SUBMITTED) {
@@ -544,7 +569,10 @@ export async function rejectFlipperOffer(
   `;
 
   if (updatedCount === 0) {
-    return { ok: false, error: "Offer is no longer pending decision (race condition or already decided)" };
+    return {
+      ok: false,
+      error: "Offer is no longer pending decision (race condition or already decided)",
+    };
   }
 
   await db.flipperOpportunity.update({
@@ -588,7 +616,10 @@ export async function getAgentFlipperOffers(
   agentCaller: AgentCaller,
 ): Promise<FlipperServiceResult<AgentFlipperOfferListItem[]>> {
   if (!agentCaller.active || agentCaller.role !== Role.AGENT) {
-    return { ok: false, error: "Only active Agent accounts can access agent Flipper offers" };
+    return {
+      ok: false,
+      error: "Only active Agent accounts can access agent Flipper offers",
+    };
   }
 
   const { db } = await import("@/lib/db");

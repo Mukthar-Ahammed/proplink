@@ -3,6 +3,7 @@ import { requirePageRole } from "@/lib/authz";
 import { listActiveAgentProfiles } from "@/services/listings/listingService";
 import { ActiveProfileSwitcher } from "@/components/agents/ActiveProfileSwitcher";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { AGENT_FRAME } from "@/components/portal/portalFrames";
 import { AGENT_NAV } from "@/app/agent/nav";
 import {
   SubscriptionGate,
@@ -42,14 +43,10 @@ export default async function AgentLayout({ children }: { children: React.ReactN
 
   return (
     <PortalShell
-      eyebrow="Agent portal"
-      title="Your stock,"
-      titleTail="your record"
-      standfirst="Private landlord stock, verified mandates and investor projects, in one place."
+      {...AGENT_FRAME}
       nav={AGENT_NAV.map((item) =>
         item.href === "/messages" ? { ...item, premium: true, locked } : item,
       )}
-      banner={{ src: "/banners/agent%20banner.png" }}
       aside={
         profiles.length > 1 && activeId ? (
           <ActiveProfileSwitcher

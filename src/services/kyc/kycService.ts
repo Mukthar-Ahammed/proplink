@@ -26,7 +26,10 @@ export const kycDocumentUploadSchema = z.object({
     .number()
     .int()
     .positive()
-    .max(MAX_KYC_DOCUMENT_BYTES, `File must be ≤ ${MAX_KYC_DOCUMENT_BYTES / (1024 * 1024)}MB`),
+    .max(
+      MAX_KYC_DOCUMENT_BYTES,
+      `File must be ≤ ${MAX_KYC_DOCUMENT_BYTES / (1024 * 1024)}MB`,
+    ),
   /** Filename is informational only; not stored. */
   filename: z.string().trim().min(1).max(255),
 });
@@ -58,8 +61,7 @@ export type KycPresignResult =
   | { ok: false; error: string };
 
 export type KycServiceResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+  { ok: true; data: T } | { ok: false; error: string };
 
 // ─── Caller identity (slim, pre-verified by auth()) ──────────────────────────
 

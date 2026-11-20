@@ -5,10 +5,7 @@ import { requireRole } from "@/lib/authz";
 import { Role } from "@/generated/prisma/enums";
 import { getFlipperProjectDetail } from "@/services/flipper/flipperProjectService";
 
-export async function GET(
-  _request: Request,
-  props: { params: Promise<{ id: string }> },
-) {
+export async function GET(_request: Request, props: { params: Promise<{ id: string }> }) {
   const authResult = await requireRole(Role.INVESTOR);
   if (!authResult.ok) return authResult.response;
 

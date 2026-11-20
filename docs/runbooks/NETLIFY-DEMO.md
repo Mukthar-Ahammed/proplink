@@ -65,6 +65,13 @@ production stay on Vercel ([`DEPLOYMENT.md`](../deployment/DEPLOYMENT.md)).
   "Failed to load external module pg-…" means the proxy's database driver
   was left external: `next.config.ts` bundles `pg` and `@prisma/adapter-pg`
   when `NETLIFY=true` (Netlify sets it on every build).
+- "Secrets scanning found secrets in build" naming a demo switch (for
+  example `PROPLINK_ENV`, `RATE_LIMIT_PROVIDER`, `MALWARE_SCANNER_PROVIDER`)
+  means that switch was marked secret; its value (`demo`, `memory`, `mock`)
+  appears throughout the code. Unmark it, or list it in
+  `SECRETS_SCAN_OMIT_KEYS` (comma-separated). Never disable scanning.
+- Function region: changing it from the default US region needs a paid
+  Netlify plan; on the free plan pages are slower (database in London).
 - `netlify build` does not work on Windows without symlink rights (EPERM in
   `@netlify/plugin-nextjs`); test builds on Netlify itself.
 

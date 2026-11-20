@@ -1,3 +1,4 @@
+import { isVerified, PersonName } from "@/components/profiles/PersonName";
 import { redirect } from "next/navigation";
 
 import { ActionButton } from "@/components/projects/ActionButton";
@@ -169,7 +170,11 @@ export default async function AccountReviewsPage() {
                 <p className="flex flex-wrap items-center gap-2">
                   <Stars rating={review.rating} />
                   <span className="text-muted">
-                    {review.subject.name ?? "Member"} · {STATUS[review.status]}
+                    <PersonName
+                      name={review.subject.name ?? "Member"}
+                      verified={isVerified(review.subject)}
+                    />{" "}
+                    · {STATUS[review.status]}
                     {review.status === "REJECTED" && review.moderationNote
                       ? `: ${review.moderationNote}`
                       : ""}

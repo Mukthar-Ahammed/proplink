@@ -25,7 +25,7 @@ const SAFE_PROJECT = {
   statusChangedAt: true,
   closedReason: true,
   listing: { select: { id: true, title: true } },
-  agent: { select: { name: true } },
+  agent: { select: { name: true, verificationBadge: { select: { profileId: true } } } },
 } as const;
 
 export async function listLandlordProjects(landlord: Actor) {

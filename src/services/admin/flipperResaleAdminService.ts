@@ -1,7 +1,13 @@
 import "server-only";
 
 import { z } from "zod";
-import { Role, FlipperResaleStatus, InvestorType, PropertyStatus, ListingSource } from "@/generated/prisma/enums";
+import {
+  Role,
+  FlipperResaleStatus,
+  InvestorType,
+  PropertyStatus,
+  ListingSource,
+} from "@/generated/prisma/enums";
 import { AdminCaller } from "@/services/admin/kycAdminService";
 
 // ─── Input Schemas ────────────────────────────────────────────────────────────
@@ -27,8 +33,7 @@ export type RejectResaleInput = z.infer<typeof rejectResaleSchema>;
 // ─── Result Type ──────────────────────────────────────────────────────────────
 
 export type ResaleAdminResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+  { ok: true; data: T } | { ok: false; error: string };
 
 // ─── Admin Queue Item Type ────────────────────────────────────────────────────
 
@@ -153,8 +158,8 @@ export async function getAdminResaleQueue(
     params?.status && params.status !== "ALL"
       ? { status: params.status }
       : params?.status === "ALL"
-      ? {}
-      : { status: FlipperResaleStatus.SUBMITTED }; // Default: pending review only
+        ? {}
+        : { status: FlipperResaleStatus.SUBMITTED }; // Default: pending review only
 
   const investorTypeFilter =
     params?.investorType && params.investorType !== "ALL"
@@ -170,10 +175,26 @@ export async function getAdminResaleQueue(
   const searchFilter = params?.search?.trim()
     ? {
         OR: [
-          { property: { title: { contains: params.search.trim(), mode: "insensitive" as const } } },
-          { property: { city: { contains: params.search.trim(), mode: "insensitive" as const } } },
-          { investor: { name: { contains: params.search.trim(), mode: "insensitive" as const } } },
-          { investor: { email: { contains: params.search.trim(), mode: "insensitive" as const } } },
+          {
+            property: {
+              title: { contains: params.search.trim(), mode: "insensitive" as const },
+            },
+          },
+          {
+            property: {
+              city: { contains: params.search.trim(), mode: "insensitive" as const },
+            },
+          },
+          {
+            investor: {
+              name: { contains: params.search.trim(), mode: "insensitive" as const },
+            },
+          },
+          {
+            investor: {
+              email: { contains: params.search.trim(), mode: "insensitive" as const },
+            },
+          },
         ],
       }
     : {};
@@ -462,7 +483,8 @@ export async function approveFlipperResale(
 
     return {
       ok: false,
-      error: "Resale listing is no longer pending review (race condition or already decided)",
+      error:
+        "Resale listing is no longer pending review (race condition or already decided)",
     };
   }
 
@@ -488,7 +510,10 @@ export async function approveFlipperResale(
     console.error("Failed to log resale approval audit event:", err);
   }
 
-  return { ok: true, data: { resaleId: input.resaleId, resalePropertyId: newResaleListing.id } };
+  return {
+    ok: true,
+    data: { resaleId: input.resaleId, resalePropertyId: newResaleListing.id },
+  };
 }
 
 // ─── Reject Resale Listing ────────────────────────────────────────────────────
@@ -507,7 +532,10 @@ export async function rejectFlipperResale(
 
   const parse = rejectResaleSchema.safeParse(input);
   if (!parse.success) {
-    return { ok: false, error: parse.error.issues[0]?.message ?? "Invalid rejection parameters" };
+    return {
+      ok: false,
+      error: parse.error.issues[0]?.message ?? "Invalid rejection parameters",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -544,7 +572,8 @@ export async function rejectFlipperResale(
   if (updatedCount === 0) {
     return {
       ok: false,
-      error: "Resale listing is no longer pending review (race condition or already decided)",
+      error:
+        "Resale listing is no longer pending review (race condition or already decided)",
     };
   }
 

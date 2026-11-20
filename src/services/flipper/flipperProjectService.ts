@@ -27,7 +27,11 @@ export type CreateProjectInput = z.infer<typeof createProjectSchema>;
 export const addProjectCostSchema = z.object({
   projectId: z.string().min(1, "projectId is required"),
   category: z.nativeEnum(FlipperCostCategory).optional(),
-  description: z.string().trim().min(3, "Description must be at least 3 characters").max(255),
+  description: z
+    .string()
+    .trim()
+    .min(3, "Description must be at least 3 characters")
+    .max(255),
   amountGBP: z
     .number()
     .int("Amount must be in integer pence")
@@ -49,8 +53,7 @@ export type CreateMilestoneInput = z.infer<typeof createMilestoneSchema>;
 // ─── Result Types ────────────────────────────────────────────────────────────
 
 export type FlipperProjectResult<T = void> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+  { ok: true; data: T } | { ok: false; error: string };
 
 // ─── Confirm Acquisition (Agent Only) ────────────────────────────────────────
 
@@ -59,7 +62,10 @@ export async function confirmFlipperAcquisition(
   input: { acquisitionId: string; agentNotes?: string },
 ): Promise<FlipperProjectResult<{ acquisitionId: string }>> {
   if (!agentCaller.active || agentCaller.role !== Role.AGENT) {
-    return { ok: false, error: "Only active Agent accounts can confirm acquisition completion" };
+    return {
+      ok: false,
+      error: "Only active Agent accounts can confirm acquisition completion",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -76,8 +82,14 @@ export async function confirmFlipperAcquisition(
   if (!acq) return { ok: false, error: "Acquisition record not found" };
 
   // Agent Ownership Guard
-  if (!acq.property.agentProfile || acq.property.agentProfile.userId !== agentCaller.userId) {
-    return { ok: false, error: "Forbidden: Agent A cannot confirm acquisitions for Agent B's listing" };
+  if (
+    !acq.property.agentProfile ||
+    acq.property.agentProfile.userId !== agentCaller.userId
+  ) {
+    return {
+      ok: false,
+      error: "Forbidden: Agent A cannot confirm acquisitions for Agent B's listing",
+    };
   }
 
   if (acq.status !== FlipperAcquisitionStatus.PENDING_COMPLETION) {
@@ -98,7 +110,11 @@ export async function confirmFlipperAcquisition(
   `;
 
   if (updatedCount === 0) {
-    return { ok: false, error: "Acquisition is no longer pending completion (race condition or already decided)" };
+    return {
+      ok: false,
+      error:
+        "Acquisition is no longer pending completion (race condition or already decided)",
+    };
   }
 
   // Audit
@@ -139,8 +155,14 @@ export async function cancelFlipperAcquisition(
 
   if (!acq) return { ok: false, error: "Acquisition record not found" };
 
-  if (!acq.property.agentProfile || acq.property.agentProfile.userId !== agentCaller.userId) {
-    return { ok: false, error: "Forbidden: Agent A cannot manage acquisitions for Agent B's listing" };
+  if (
+    !acq.property.agentProfile ||
+    acq.property.agentProfile.userId !== agentCaller.userId
+  ) {
+    return {
+      ok: false,
+      error: "Forbidden: Agent A cannot manage acquisitions for Agent B's listing",
+    };
   }
 
   if (acq.status !== FlipperAcquisitionStatus.PENDING_COMPLETION) {
@@ -178,12 +200,18 @@ export async function createFlipperProject(
   input: CreateProjectInput,
 ): Promise<FlipperProjectResult<{ projectId: string }>> {
   if (!caller.active || caller.role !== Role.INVESTOR || !hasFlipperCapability(caller)) {
-    return { ok: false, error: "Only active FLIPPER or BOTH investors can create refurbishment projects" };
+    return {
+      ok: false,
+      error: "Only active FLIPPER or BOTH investors can create refurbishment projects",
+    };
   }
 
   const parse = createProjectSchema.safeParse(input);
   if (!parse.success) {
-    return { ok: false, error: parse.error.issues[0]?.message ?? "Invalid project parameters" };
+    return {
+      ok: false,
+      error: parse.error.issues[0]?.message ?? "Invalid project parameters",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -203,7 +231,8 @@ export async function createFlipperProject(
   if (acq.status !== FlipperAcquisitionStatus.COMPLETED) {
     return {
       ok: false,
-      error: "A refurbishment project can only be created for a COMPLETED acquisition (acquisition completion must be confirmed by the agent first)",
+      error:
+        "A refurbishment project can only be created for a COMPLETED acquisition (acquisition completion must be confirmed by the agent first)",
     };
   }
 
@@ -213,7 +242,10 @@ export async function createFlipperProject(
   });
 
   if (existingProject) {
-    return { ok: false, error: "A refurbishment project already exists for this acquisition" };
+    return {
+      ok: false,
+      error: "A refurbishment project already exists for this acquisition",
+    };
   }
 
   const project = await db.flipperProject.create({
@@ -223,7 +255,9 @@ export async function createFlipperProject(
       propertyId: acq.propertyId,
       status: FlipperProjectStatus.PLANNING,
       plannedBudgetGBP: input.plannedBudgetGBP ?? 0,
-      targetCompletionDate: input.targetCompletionDate ? new Date(input.targetCompletionDate) : null,
+      targetCompletionDate: input.targetCompletionDate
+        ? new Date(input.targetCompletionDate)
+        : null,
     },
   });
 
@@ -251,12 +285,18 @@ export async function addFlipperProjectCost(
   input: AddProjectCostInput,
 ): Promise<FlipperProjectResult<{ costId: string }>> {
   if (!caller.active || caller.role !== Role.INVESTOR || !hasFlipperCapability(caller)) {
-    return { ok: false, error: "Only active FLIPPER or BOTH investors can add project costs" };
+    return {
+      ok: false,
+      error: "Only active FLIPPER or BOTH investors can add project costs",
+    };
   }
 
   const parse = addProjectCostSchema.safeParse(input);
   if (!parse.success) {
-    return { ok: false, error: parse.error.issues[0]?.message ?? "Invalid cost parameters" };
+    return {
+      ok: false,
+      error: parse.error.issues[0]?.message ?? "Invalid cost parameters",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -305,7 +345,10 @@ export async function removeFlipperProjectCost(
   costId: string,
 ): Promise<FlipperProjectResult<{ costId: string }>> {
   if (!caller.active || caller.role !== Role.INVESTOR || !hasFlipperCapability(caller)) {
-    return { ok: false, error: "Only active FLIPPER or BOTH investors can remove project costs" };
+    return {
+      ok: false,
+      error: "Only active FLIPPER or BOTH investors can remove project costs",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -348,12 +391,18 @@ export async function createProjectMilestone(
   input: CreateMilestoneInput,
 ): Promise<FlipperProjectResult<{ milestoneId: string }>> {
   if (!caller.active || caller.role !== Role.INVESTOR || !hasFlipperCapability(caller)) {
-    return { ok: false, error: "Only active FLIPPER or BOTH investors can manage milestones" };
+    return {
+      ok: false,
+      error: "Only active FLIPPER or BOTH investors can manage milestones",
+    };
   }
 
   const parse = createMilestoneSchema.safeParse(input);
   if (!parse.success) {
-    return { ok: false, error: parse.error.issues[0]?.message ?? "Invalid milestone parameters" };
+    return {
+      ok: false,
+      error: parse.error.issues[0]?.message ?? "Invalid milestone parameters",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -388,7 +437,10 @@ export async function updateProjectMilestone(
   input: { status?: FlipperMilestoneStatus; title?: string; description?: string },
 ): Promise<FlipperProjectResult<{ milestoneId: string }>> {
   if (!caller.active || caller.role !== Role.INVESTOR || !hasFlipperCapability(caller)) {
-    return { ok: false, error: "Only active FLIPPER or BOTH investors can manage milestones" };
+    return {
+      ok: false,
+      error: "Only active FLIPPER or BOTH investors can manage milestones",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -460,7 +512,10 @@ export async function getFlipperProjectDetail(
   projectId: string,
 ): Promise<FlipperProjectResult<FlipperProjectDetail>> {
   if (!caller.active || caller.role !== Role.INVESTOR || !hasFlipperCapability(caller)) {
-    return { ok: false, error: "Only active FLIPPER or BOTH investors can access project details" };
+    return {
+      ok: false,
+      error: "Only active FLIPPER or BOTH investors can access project details",
+    };
   }
 
   const { db } = await import("@/lib/db");
@@ -479,7 +534,10 @@ export async function getFlipperProjectDetail(
 
   // Investor Ownership Isolation Guard
   if (proj.investorUserId !== caller.userId) {
-    return { ok: false, error: "Forbidden: Investor A cannot access Investor B's refurbishment project" };
+    return {
+      ok: false,
+      error: "Forbidden: Investor A cannot access Investor B's refurbishment project",
+    };
   }
 
   const totalCostsGBP = proj.costs.reduce((sum, c) => sum + c.amountGBP, 0);

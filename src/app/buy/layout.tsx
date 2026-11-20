@@ -1,4 +1,5 @@
 import { PortalShell } from "@/components/portal/PortalShell";
+import { BUYER_FRAME } from "@/components/portal/portalFrames";
 import { BUYER_NAV } from "@/app/buy/nav";
 import { requirePageRole } from "@/lib/authz";
 
@@ -10,14 +11,7 @@ export default async function BuyerLayout({ children }: { children: React.ReactN
   await requirePageRole("BUYER");
 
   return (
-    <PortalShell
-      eyebrow="Buyer portal"
-      title="Find the"
-      titleTail="right defect"
-      standfirst="Every listing with disclosed defects and its EPC rating on the face of it."
-      nav={BUYER_NAV}
-      banner={{ src: "/banners/buyer%20portal%20banner.png" }}
-    >
+    <PortalShell {...BUYER_FRAME} nav={BUYER_NAV}>
       {children}
     </PortalShell>
   );

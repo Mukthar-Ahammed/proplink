@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/db", () => ({
   db: {
-    chatThreadMessage: { findUnique: vi.fn(), updateMany: vi.fn() },
+    chatThreadMessage: { findUnique: vi.fn(), findMany: vi.fn(), updateMany: vi.fn() },
     $queryRaw: vi.fn(),
     $executeRaw: vi.fn(),
   },
@@ -20,6 +20,8 @@ import { db } from "@/lib/db";
 import { consumeRateLimits } from "@/services/auth/supabaseAuthService";
 import {
   cleanBody,
+  COUNTERPART_SENDER,
+  listMessages,
   EMAIL_WINDOW_MINUTES,
   markRead,
   MAX_BODY,
@@ -117,5 +119,38 @@ describe("chat message rules", () => {
 
   it("emails at most once per thread per recipient per window", () => {
     expect(EMAIL_WINDOW_MINUTES).toBeGreaterThanOrEqual(5);
+  });
+
+  it("never sends the other person's account id to the browser (ADR-079)", async () => {
+    const OTHER = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
+    vi.mocked(threadAccess).mockResolvedValue({ ok: true, canRead: true } as never);
+    const row = (id: string, senderId: string) => ({
+      id,
+      threadId: THREAD,
+      senderId,
+      body: "hi",
+      clientMessageId: `client-${id}`,
+      createdAt: new Date("2026-01-01"),
+      readAt: null,
+      attachments: [],
+    });
+    mockDb.chatThreadMessage.findMany.mockResolvedValue([
+      row("m1", VIEWER.profileId),
+      row("m2", OTHER),
+    ] as never);
+    const result = await listMessages(VIEWER, THREAD);
+    if (!result.ok) throw new Error("expected messages");
+    expect(result.messages.map((m) => m.senderId)).toEqual([
+      VIEWER.profileId,
+      COUNTERPART_SENDER,
+    ]);
+    expect(JSON.stringify(result.messages)).not.toContain(OTHER);
+  });
+
+  it("broadcasts a bare read ping, without the reader's id", async () => {
+    vi.mocked(threadAccess).mockResolvedValue({ ok: true, canRead: true } as never);
+    mockDb.chatThreadMessage.updateMany.mockResolvedValue({ count: 1 });
+    await markRead(VIEWER, THREAD);
+    expect(JSON.stringify(mockDb.$executeRaw.mock.calls)).not.toContain(VIEWER.profileId);
   });
 });

@@ -40,3 +40,18 @@ Agents the invitation and company check.
   arrives when cards show the Agent or Landlord (Phase 2 Landlord listings /
   Task 8 profiles); `badgedProfileIds()` is ready for that batch lookup.
 - Rollback drops the table and trigger; audit rows remain.
+
+## Addendum (2026-11-20): the tick beside every shown name
+
+A verified person's name now carries a compact tick wherever it is shown:
+the site header (own name), Messages (thread list and conversation header),
+the Agent's project page (Lead, interested and nominated investors), pledge
+tables, the Solicitor's parties line, the Landlord's proposals, mandate and
+project pages (Agent) and the Agent's mandate page (Landlord), and the
+review list. `<PersonName name verified>` and `<VerifiedTick>`
+(`src/components/profiles/PersonName.tsx`) render it; services add
+`verificationBadge: { select: { profileId: true } }` (the `VERIFIED`
+fragment in `src/lib/verifiedSelect.ts`) next to the name, so the flag is
+always server-derived. The full "Verified" pill stays on profile pages and
+listing cards. Role-label names (e.g. "Lead Investor", "Investor 1") carry
+the tick too; it reveals verification, never identity.

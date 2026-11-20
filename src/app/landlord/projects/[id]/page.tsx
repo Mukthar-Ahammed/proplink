@@ -1,27 +1,31 @@
+import { isVerified, PersonName } from "@/components/profiles/PersonName";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AlertIcon, IconChip, ScaleIcon } from "@/components/investor/InvestorUi";
 import {
-  AlertIcon,
-  ArrowIcon,
-  ChartIcon,
-  IconChip,
-  InvestorSectionTitle,
-  ScaleIcon,
-  StatStrip,
-  StatusPill,
-} from "@/components/investor/InvestorUi";
+  DetailColumns,
+  DetailHeader,
+  DetailTabs,
+  FactList,
+  KeyFacts,
+  Panel,
+  TabBody,
+  pickTab,
+  type DetailTab,
+} from "@/components/portal/Detail";
 import { day } from "@/components/projects/format";
 import { ActionButton } from "@/components/projects/ActionButton";
 import { signAgreementAction } from "@/components/projects/agreementActions";
 import { AgreementList } from "@/components/projects/AgreementList";
 import { WorksPanel } from "@/components/projects/WorksPanel";
 import { LedgerPanel } from "@/components/projects/LedgerPanel";
+import { Lifecycle } from "@/components/projects/ProjectSummary";
+import { Badge } from "@/components/ui/badge";
 import { ledgerView } from "@/services/projects/settlement";
 import { worksView } from "@/services/projects/works";
-import { Lifecycle } from "@/components/projects/ProjectSummary";
 import { listAgreements } from "@/services/projects/agreements";
-import { Role } from "@/generated/prisma/enums";
+import { InvestorProjectStatus, Role } from "@/generated/prisma/enums";
 import { requirePageRole } from "@/lib/authz";
 import {
   formatPence,
@@ -33,20 +37,20 @@ import { getLandlordProject } from "@/services/projects/landlordView";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Landlord — Project", robots: { index: false } };
 
-const CARD = "rounded-3xl border border-line bg-white p-6 shadow-sm sm:p-7";
-
 /**
- * The Landlord's project view (Phase 4 Task 3a): the lifecycle and progress
- * of the project on their property. No investor identities, individual
- * pledges or private profiles are ever shown here.
+ * The Landlord's project view (Phase 4 Task 3a), split into tabs (ADR-080):
+ * Overview · Works & updates · Sale & settlement · Your agreement. No investor
+ * identities, individual pledges or private profiles are ever shown here.
  */
 export default async function LandlordProjectPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const session = await requirePageRole(Role.LANDLORD);
-  const { id } = await params;
+  const [{ id }, query] = await Promise.all([params, searchParams]);
   const landlord = {
     profileId: session.user.authUserId,
     legacyUserId: session.user.id,
@@ -54,135 +58,204 @@ export default async function LandlordProjectPage({
   };
   const project = await getLandlordProject(landlord, id);
   if (!project) notFound();
-  // OD-14: only agreements that name the Landlord, with only their own row.
-  const agreements = (await listAgreements(landlord, project.id)) ?? [];
-  // Task 3a: milestones, itemised costs and updates addressed to the Landlord.
-  const works = await worksView(landlord, project.id);
-  const [ledger, plan] = await Promise.all([
+  const [agreementList, works, ledger] = await Promise.all([
+    // OD-14: only agreements that name the Landlord, with only their own row.
+    listAgreements(landlord, project.id),
+    // Task 3a: milestones, itemised costs and updates addressed to the Landlord.
+    worksView(landlord, project.id),
     ledgerView(landlord, project.id),
-    // Only the Solicitor sees the settlement plan (every party's amounts).
-    Promise.resolve(null),
   ]);
+  const agreements = agreementList ?? [];
   const path = `/landlord/projects/${project.id}`;
+  const closed = project.status === InvestorProjectStatus.CLOSED;
+  const toSign = agreements.some(
+    (agreement) =>
+      agreement.status === "SENT" && agreement.mine?.signerStatus === "PENDING",
+  );
+  const modeLabel =
+    project.mode === "DEVELOPMENT_JV" ? "Development joint venture" : "Refurbishment";
+
+  const tabs: DetailTab[] = [{ key: "overview", label: "Overview" }];
+  if (agreements.length > 0) {
+    tabs.push({ key: "agreement", label: "Your agreement", attention: toSign });
+  }
+  if (works) tabs.push({ key: "works", label: "Works & updates" });
+  if (ledger) tabs.push({ key: "sale", label: "Sale & settlement" });
+  const tab = pickTab(query.tab, tabs);
 
   return (
-    <div className="space-y-10" data-testid="landlord-project">
-      <div className="space-y-4">
-        <Link
-          href="/landlord/projects"
-          className="group inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:text-accent-strong"
-        >
-          <ArrowIcon className="h-4 w-4 rotate-180 transition-transform group-hover:-translate-x-0.5" />
-          All projects
-        </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <IconChip>
-            <ChartIcon />
-          </IconChip>
-          <h2 className="font-display text-2xl leading-tight font-semibold tracking-[-0.02em] text-primary sm:text-[1.75rem]">
-            {project.listing.title}
-          </h2>
-          <StatusPill tone="accent">{statusLabel(project.status)}</StatusPill>
-        </div>
-      </div>
+    <div data-testid="landlord-project">
+      <DetailHeader
+        back={{ href: "/landlord/projects", label: "All projects" }}
+        eyebrow={modeLabel}
+        title={project.listing.title}
+        badges={
+          <>
+            <Badge tone={closed ? "warning" : "intel"}>
+              {statusLabel(project.status)}
+            </Badge>
+            {project.funded ? <Badge tone="success">Fully funded</Badge> : null}
+            {toSign ? <Badge tone="warning">Agreement to sign</Badge> : null}
+          </>
+        }
+      />
 
-      <div className={CARD}>
-        <p className="mb-4 text-xs font-semibold tracking-[0.14em] text-muted uppercase">
-          Where the project is
-        </p>
-        <Lifecycle status={project.status} />
-        {project.closedReason && (
-          <p className="mt-4 flex items-start gap-2.5 text-sm text-warning">
-            <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
-            Closed: {project.closedReason}
-          </p>
-        )}
-      </div>
-
-      <StatStrip
+      <KeyFacts
         items={[
           {
-            value: project.mode === "DEVELOPMENT_JV" ? "Development JV" : "Refurbishment",
             label: "Project type",
-            hint:
-              project.mode === "DEVELOPMENT_JV"
-                ? "You are a party where the agreement names you"
-                : "Refurbishment / build",
+            value: project.mode === "DEVELOPMENT_JV" ? "Development JV" : "Refurbishment",
           },
-          { value: project.agent.name ?? "Your agent", label: "Agent" },
           {
-            value: formatPence(project.capitalRequiredGBP),
-            label: "Capital to raise",
-            hint: project.funded
-              ? "Fully funded"
-              : `Funding by ${day(project.fundingDeadline)}`,
+            label: "Agent",
+            value: (
+              <PersonName
+                name={project.agent.name ?? "Your agent"}
+                verified={isVerified(project.agent)}
+              />
+            ),
+          },
+          { label: "Capital to raise", value: formatPence(project.capitalRequiredGBP) },
+          {
+            label: "Funding",
+            value: project.funded ? "Fully funded" : day(project.fundingDeadline),
+            hint: project.funded ? undefined : "Funding deadline",
           },
         ]}
       />
 
-      <div className="flex items-start gap-3 rounded-3xl border border-accent/20 bg-pale/70 p-5 sm:p-6">
-        <IconChip>
-          <ScaleIcon />
-        </IconChip>
-        <p className="text-sm leading-relaxed text-body">
-          {PROJECT_RESPONSIBILITY_NOTICE}
-        </p>
-      </div>
+      <DetailTabs basePath={path} tabs={tabs} current={tab} label="Project sections" />
 
-      {works && (
-        <section className="space-y-5">
-          <InvestorSectionTitle
-            title="Works and"
-            tail="updates"
-            description="Milestones, itemised costs and updates addressed to you."
+      {tab === "overview" && (
+        <TabBody>
+          <DetailColumns
+            main={
+              <>
+                <Panel title="Where the project is">
+                  <Lifecycle status={project.status} />
+                  {project.closedReason && (
+                    <p className="mt-4 flex items-start gap-2.5 text-sm text-warning">
+                      <AlertIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                      Closed: {project.closedReason}
+                    </p>
+                  )}
+                </Panel>
+                <Panel title="The project">
+                  <FactList
+                    items={[
+                      { label: "Type", value: modeLabel },
+                      {
+                        label: "Your role",
+                        value:
+                          project.mode === "DEVELOPMENT_JV"
+                            ? "You are a party where the agreement names you"
+                            : "Property owner",
+                      },
+                      {
+                        label: "Agent",
+                        value: (
+                          <PersonName
+                            name={project.agent.name ?? "Your agent"}
+                            verified={isVerified(project.agent)}
+                          />
+                        ),
+                      },
+                      {
+                        label: "Capital to raise",
+                        value: formatPence(project.capitalRequiredGBP),
+                      },
+                      {
+                        label: "Funding deadline",
+                        value: day(project.fundingDeadline),
+                      },
+                      { label: "Status", value: statusLabel(project.status) },
+                    ]}
+                  />
+                </Panel>
+              </>
+            }
+            side={
+              <>
+                {toSign && (
+                  <Panel
+                    title="Agreement to sign"
+                    tone="attention"
+                    description="An agreement that names you is waiting for your signature."
+                  >
+                    <Link
+                      href={`${path}?tab=agreement`}
+                      className="inline-flex items-center rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white hover:bg-accent-strong"
+                    >
+                      Review and sign
+                    </Link>
+                  </Panel>
+                )}
+                <div className="flex items-start gap-3 rounded-2xl border border-accent/20 bg-pale/70 p-5">
+                  <IconChip>
+                    <ScaleIcon />
+                  </IconChip>
+                  <p className="text-sm leading-relaxed text-body">
+                    {PROJECT_RESPONSIBILITY_NOTICE}
+                  </p>
+                </div>
+              </>
+            }
           />
-          <div className={CARD}>
+        </TabBody>
+      )}
+
+      {tab === "agreement" && (
+        <TabBody>
+          <Panel title="Your agreement" tone={toSign ? "attention" : "default"}>
+            <AgreementList
+              agreements={agreements}
+              renderActions={(agreement) =>
+                agreement.status === "SENT" &&
+                agreement.mine?.signerStatus === "PENDING" ? (
+                  <ActionButton
+                    action={signAgreementAction}
+                    hidden={{ agreementId: agreement.id, path }}
+                    label="Sign the agreement"
+                  />
+                ) : null
+              }
+            />
+          </Panel>
+        </TabBody>
+      )}
+
+      {tab === "works" && works && (
+        <TabBody>
+          <Panel
+            title="Works and updates"
+            description="Milestones, itemised costs and updates addressed to you."
+          >
             <WorksPanel
               view={works}
               projectId={project.id}
               projectStatus={project.status}
               path={path}
             />
-          </div>
-        </section>
+          </Panel>
+        </TabBody>
       )}
 
-      {ledger && (
-        <section className="space-y-5">
-          <InvestorSectionTitle
-            title="Sale and"
-            tail="settlement"
+      {tab === "sale" && ledger && (
+        <TabBody>
+          <Panel
+            title="Sale and settlement"
             description="Recorded by the project Solicitor. PropLink never holds or moves the money."
-          />
-          <div className={CARD}>
+          >
             <LedgerPanel
               view={ledger}
-              plan={plan}
+              // Only the Solicitor sees the settlement plan (every party's amounts).
+              plan={null}
               projectId={project.id}
               projectStatus={project.status}
               path={path}
             />
-          </div>
-        </section>
-      )}
-
-      {agreements.length > 0 && (
-        <section className="space-y-5">
-          <InvestorSectionTitle title="Your" tail="agreement" />
-          <AgreementList
-            agreements={agreements}
-            renderActions={(agreement) =>
-              agreement.status === "SENT" &&
-              agreement.mine?.signerStatus === "PENDING" ? (
-                <ActionButton
-                  action={signAgreementAction}
-                  hidden={{ agreementId: agreement.id, path }}
-                  label="Sign the agreement"
-                />
-              ) : null
-            }
-          />
-        </section>
+          </Panel>
+        </TabBody>
       )}
     </div>
   );

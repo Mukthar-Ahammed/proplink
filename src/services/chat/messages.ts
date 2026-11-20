@@ -66,9 +66,18 @@ const sendSchema = z.object({
   attachmentIds: z.array(z.uuid()).max(MAX_ATTACHMENTS).default([]),
 });
 
+/** What `senderId` reads as on a message the viewer did not send (ADR-079). */
+export const COUNTERPART_SENDER = "counterpart";
+
 export type ChatMessageView = {
   id: string;
   threadId: string;
+  /**
+   * The viewer's own profile id on their own messages, otherwise
+   * `COUNTERPART_SENDER`. The other person's account id never reaches the
+   * browser. It is only used to decide "mine or theirs", and a raw id would
+   * let a Lead link one co-investor across projects.
+   */
   senderId: string;
   body: string;
   clientMessageId: string;
@@ -82,11 +91,16 @@ async function view(
   message: Prisma.ChatThreadMessageGetPayload<{
     include: { attachments: { include: { file: { select: { originalName: true } } } } };
   }>,
+  /** Admin's logged read attributes each message, so it keeps real ids. */
+  options: { revealSenders?: boolean } = {},
 ): Promise<ChatMessageView> {
   return {
     id: message.id,
     threadId: message.threadId,
-    senderId: message.senderId,
+    senderId:
+      options.revealSenders || message.senderId === viewerId
+        ? message.senderId
+        : COUNTERPART_SENDER,
     body: message.body,
     clientMessageId: message.clientMessageId,
     createdAt: message.createdAt.toISOString(),
@@ -221,7 +235,9 @@ export async function sendMessage(
     throw error;
   }
 
-  await broadcast(threadId, "message", { id: stored.id, senderId: stored.senderId });
+  // Only a "something changed" ping: clients refetch through `listMessages`,
+  // which hides the other person's id (ADR-079).
+  await broadcast(threadId, "message", { id: stored.id });
   await notifyRecipient(access.counterpartId, threadId);
   return { ok: true, message: await view(sender.profileId, stored), duplicate: false };
 }
@@ -262,7 +278,8 @@ export async function markRead(viewer: Viewer, threadId: string) {
     where: { threadId, senderId: { not: viewer.profileId }, readAt: null },
     data: { readAt: new Date() },
   });
-  if (result.count > 0) await broadcast(threadId, "read", { by: viewer.profileId });
+  // A bare ping: the reader's id stays off the channel (ADR-079).
+  if (result.count > 0) await broadcast(threadId, "read", {});
   return { ok: true as const, marked: result.count };
 }
 
@@ -365,7 +382,7 @@ export async function adminReadThread(
     ok: true as const,
     thread,
     messages: await Promise.all(
-      messages.map((message) => view(admin.profileId, message)),
+      messages.map((message) => view(admin.profileId, message, { revealSenders: true })),
     ),
   };
 }

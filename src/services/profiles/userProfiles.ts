@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { ProfileVisibility, Role, UploadStatus } from "@/generated/prisma/enums";
 import { db } from "@/lib/db";
+import { createProfilePhotoUrl } from "@/services/uploads/pipeline";
 import {
   historicalRoiVisible,
   trackRecord,
@@ -34,6 +35,64 @@ export function generatePublicId(): string {
   let id = "PL-";
   for (let i = 0; i < 8; i += 1) id += ID_ALPHABET[randomInt(ID_ALPHABET.length)];
   return id;
+}
+
+/**
+ * The signed-in user's own profile photo URL for the site header, or null
+ * when none is set (the header then shows their initial). Never creates the
+ * profile record and never throws: a lookup failure must not break the chrome.
+ */
+export async function ownProfilePhotoUrl(profileId: string): Promise<string | null> {
+  try {
+    const row = await db.userProfile.findUnique({
+      where: { profileId },
+      select: { photoFileId: true },
+    });
+    return row?.photoFileId ? createProfilePhotoUrl(row.photoFileId) : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Profile photo URLs for people the viewer is already shown by name (chat
+ * participants), keyed by profile ID. Follows `viewProfile`'s rules: an
+ * Investor's photo only for self, Admin or the Agent on one of their
+ * projects; anyone else's photo for any signed-in viewer. Missing, hidden or
+ * failed lookups are simply absent (callers fall back to initials).
+ */
+export async function photoUrlsFor(
+  viewer: { profileId: string; role: Role },
+  profileIds: string[],
+): Promise<Map<string, string>> {
+  const urls = new Map<string, string>();
+  const ids = [...new Set(profileIds)];
+  if (ids.length === 0) return urls;
+  try {
+    const rows = await db.userProfile.findMany({
+      where: { profileId: { in: ids }, photoFileId: { not: null } },
+      select: {
+        profileId: true,
+        photoFileId: true,
+        profile: { select: { role: true, active: true } },
+      },
+    });
+    for (const row of rows) {
+      if (!row.photoFileId || !row.profile.active) continue;
+      if (row.profile.role === Role.INVESTOR) {
+        const allowed =
+          row.profileId === viewer.profileId ||
+          viewer.role === Role.ADMIN ||
+          (viewer.role === Role.AGENT &&
+            (await isProjectAgentFor(viewer.profileId, row.profileId)));
+        if (!allowed) continue;
+      }
+      urls.set(row.profileId, createProfilePhotoUrl(row.photoFileId));
+    }
+  } catch {
+    // A photo lookup must never break the page; initials are shown instead.
+  }
+  return urls;
 }
 
 /**

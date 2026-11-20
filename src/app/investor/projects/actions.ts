@@ -7,7 +7,7 @@ import type { ProjectFormState } from "@/components/projects/ProjectTermsForm";
 import { Role } from "@/generated/prisma/enums";
 import { requireRole } from "@/lib/authz";
 import { ensureProjectThread } from "@/services/chat/threads";
-import { askProjectQuestion, toggleFavourite } from "@/services/projects/community";
+import { resolveCoInvestorAlias, toggleFavourite } from "@/services/projects/community";
 import type { Actor } from "@/services/projects/common";
 import { respondToNomination } from "@/services/projects/lead";
 import { cancelPledge, createPledge } from "@/services/projects/pledges";
@@ -125,30 +125,22 @@ export async function projectChatAction(
   const investor = await investorActor();
   if (!investor) return { kind: "error", message: "Sign in as an Investor" };
   const withWhom = text(formData, "with");
-  const result = await ensureProjectThread(
-    investor,
-    text(formData, "projectId"),
-    withWhom === "agent" || withWhom === "lead"
-      ? withWhom
-      : { investorId: text(formData, "investorId") },
-  );
+  const projectId = text(formData, "projectId");
+  let target: "agent" | "lead" | { investorId: string };
+  if (withWhom === "agent" || withWhom === "lead") {
+    target = withWhom;
+  } else {
+    // The Lead picks a co-investor by alias, never by account id (ADR-079).
+    const investorId = await resolveCoInvestorAlias(
+      investor,
+      projectId,
+      text(formData, "coInvestor"),
+    );
+    if (!investorId)
+      return { kind: "error", message: "That co-investor is not on this project" };
+    target = { investorId };
+  }
+  const result = await ensureProjectThread(investor, projectId, target);
   if (!result.ok) return { kind: "error", message: result.error };
   redirect(`/messages/${result.threadId}`);
-}
-
-/** Task 3: ask a question in the project Q&A. */
-export async function askQuestionAction(
-  _previous: ProjectFormState,
-  formData: FormData,
-): Promise<ProjectFormState> {
-  const investor = await investorActor();
-  if (!investor) return { kind: "error", message: "Sign in as an Investor" };
-  const projectId = text(formData, "projectId");
-  const result = await askProjectQuestion(investor, projectId, text(formData, "body"));
-  if (!result.ok) return { kind: "error", message: result.error };
-  revalidatePath(`/investor/projects/${projectId}`);
-  return {
-    kind: "done",
-    message: "Sent to the agent. Answers are shared with the project's investors.",
-  };
 }

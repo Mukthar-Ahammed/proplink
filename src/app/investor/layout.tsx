@@ -1,4 +1,5 @@
 import { PortalShell } from "@/components/portal/PortalShell";
+import { INVESTOR_FRAME } from "@/components/portal/portalFrames";
 import { getInvestorNav } from "@/app/investor/nav";
 import { areFlipperFlowsEnabled } from "@/env";
 import { requirePageRole } from "@/lib/authz";
@@ -12,14 +13,7 @@ export default async function InvestorLayout({
   const nav = getInvestorNav(session.user.investorType, areFlipperFlowsEnabled());
 
   return (
-    <PortalShell
-      eyebrow="Investor portal"
-      title="Your syndicates,"
-      titleTail="your position"
-      standfirst="Expressions of interest, funding progress and the projects behind them."
-      nav={nav}
-      banner={{ src: "/banners/investor%20portal%20banner.png" }}
-    >
+    <PortalShell {...INVESTOR_FRAME} nav={nav}>
       {children}
     </PortalShell>
   );

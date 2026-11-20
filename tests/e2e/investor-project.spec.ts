@@ -124,13 +124,13 @@ test("the Agent publishes; an investor pledges with the calculator (criteria 5 a
   await agentPage
     .getByLabel("Summary")
     .fill("Full refurbishment of a terrace, then sale on the open market.");
-  await agentPage.getByLabel("Total capital required (£)").fill("100000");
-  await agentPage.getByLabel("Minimum pledge (£)").fill("1000");
+  await agentPage.getByLabel("Total capital required").fill("100000");
+  await agentPage.getByLabel("Minimum pledge").fill("1000");
   await agentPage
     .getByLabel("Funding deadline")
     .fill(new Date(Date.now() + 60 * 86_400_000).toISOString().slice(0, 10));
-  await agentPage.getByLabel("Purchase amount (£)").fill("150000");
-  await agentPage.getByLabel("Market value (£)").fill("220000");
+  await agentPage.getByLabel("Purchase amount").fill("150000");
+  await agentPage.getByLabel("Market value").fill("220000");
   await agentPage.getByRole("button", { name: "Publish to the Investor Portal" }).click();
   await agentPage.waitForURL(/\/agent\/projects\/[0-9a-f-]{36}$/, { timeout: 60_000 });
   projectId = agentPage.url().split("/").pop()!;
@@ -174,7 +174,8 @@ test("the Agent publishes; an investor pledges with the calculator (criteria 5 a
 
   const investorPage = await (await browser.newContext()).newPage();
   await login(investorPage, "investor@proplink.test", "Password123!");
-  await investorPage.goto(`/investor/projects/${projectId}`);
+  // ADR-080: the property lives on its own tab, the pledge form on "Invest".
+  await investorPage.goto(`/investor/projects/${projectId}?tab=property`);
   await investorPage.waitForLoadState("networkidle");
   // The property is only what the Agent disclosed: no street, title or Landlord.
   const property = investorPage.getByTestId("investor-property");
@@ -182,6 +183,8 @@ test("the Agent publishes; an investor pledges with the calculator (criteria 5 a
   await expect(property).not.toContainText("9 Hidden Lane");
   await expect(investorPage.locator("body")).not.toContainText(`Landlord title ${RUN}`);
 
+  await investorPage.goto(`/investor/projects/${projectId}?tab=invest`);
+  await investorPage.waitForLoadState("networkidle");
   const amount = investorPage.getByLabel("Your pledge (£)");
   const pledge = investorPage.getByRole("button", {
     name: "Pledge (expression of interest)",

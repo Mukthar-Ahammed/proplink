@@ -412,7 +412,14 @@ const REVIEW_SELECT = {
   createdAt: true,
   moderationNote: true,
   reviewer: { select: { id: true, name: true, role: true } },
-  subject: { select: { id: true, name: true, role: true } },
+  subject: {
+    select: {
+      id: true,
+      name: true,
+      role: true,
+      verificationBadge: { select: { profileId: true } },
+    },
+  },
 } as const;
 
 /** Admin queue: reviews awaiting a decision and open reports. */

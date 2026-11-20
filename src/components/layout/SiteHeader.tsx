@@ -5,6 +5,9 @@ import { logoutAction } from "@/app/(auth)/actions";
 import { KycPill } from "@/components/layout/KycPill";
 import { Logo } from "@/components/layout/Logo";
 import { PORTAL_HOME, PORTAL_LABEL } from "@/lib/portalHome";
+import { PersonName } from "@/components/profiles/PersonName";
+import { hasVerifiedBadge } from "@/services/profiles/badges";
+import { ownProfilePhotoUrl } from "@/services/profiles/userProfiles";
 
 /**
  * Global chrome (ADR-071): a floating white pill — logo left, a short row of
@@ -38,6 +41,13 @@ const PRIMARY_PILL =
 export async function SiteHeader() {
   const session = await auth();
   const user = session?.user;
+  // The profile photo (if set) replaces the initial beside the name.
+  const [photoUrl, verified] = user?.authUserId
+    ? await Promise.all([
+        ownProfilePhotoUrl(user.authUserId),
+        hasVerifiedBadge(user.authUserId),
+      ])
+    : [null, false];
 
   return (
     <>
@@ -80,15 +90,26 @@ export async function SiteHeader() {
                   </span>
                 )}
                 <span className="hidden items-center gap-2 lg:flex">
-                  <span
-                    aria-hidden
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-xs font-semibold text-primary ring-1 ring-line"
-                  >
-                    {(user.name ?? user.email ?? "?").trim().charAt(0).toUpperCase()}
-                  </span>
-                  <span className="max-w-[10rem] truncate text-sm text-muted">
-                    {user.name}
-                  </span>
+                  {photoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- signed, sandboxed image route
+                    <img
+                      src={photoUrl}
+                      alt=""
+                      className="h-8 w-8 rounded-full object-cover ring-1 ring-line"
+                    />
+                  ) : (
+                    <span
+                      aria-hidden
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-xs font-semibold text-primary ring-1 ring-line"
+                    >
+                      {(user.name ?? user.email ?? "?").trim().charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <PersonName
+                    name={user.name ?? ""}
+                    verified={verified}
+                    className="max-w-[10rem] text-sm text-muted"
+                  />
                 </span>
                 <form action={logoutAction}>
                   <SubmitButton

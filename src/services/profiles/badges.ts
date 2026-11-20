@@ -201,3 +201,25 @@ export async function badgedProfileIds(profileIds: string[]): Promise<Set<string
   });
   return new Set(rows.map((row) => row.profileId));
 }
+
+/** Whether this profile carries the verified badge (shown beside its name). */
+export async function hasVerifiedBadge(profileId: string): Promise<boolean> {
+  const badge = await db.verificationBadge.findUnique({
+    where: { profileId },
+    select: { profileId: true },
+  });
+  return Boolean(badge);
+}
+
+/** Which of these profiles carry the verified badge (one query for a list). */
+export async function verifiedProfileIds(
+  profileIds: readonly (string | null | undefined)[],
+): Promise<Set<string>> {
+  const ids = [...new Set(profileIds.filter((id): id is string => Boolean(id)))];
+  if (ids.length === 0) return new Set();
+  const rows = await db.verificationBadge.findMany({
+    where: { profileId: { in: ids } },
+    select: { profileId: true },
+  });
+  return new Set(rows.map((row) => row.profileId));
+}

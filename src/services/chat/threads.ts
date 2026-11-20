@@ -21,7 +21,8 @@ import {
 } from "@/services/billing/subscriptions";
 import { sendChatAuthorisedEmail } from "@/services/email/mailer";
 import { notifyProfile } from "@/services/landlord/marketplace";
-import { isProjectMember } from "@/services/projects/community";
+import { coInvestorAlias, isProjectMember } from "@/services/projects/community";
+import { photoUrlsFor } from "@/services/profiles/userProfiles";
 
 /**
  * Chat threads and their authorisation (Phase 3 Task 2, ADR-043). A chat is
@@ -500,15 +501,25 @@ export async function closeProjectThreads(
 
 /**
  * What a participant sees as the other person's name. Lead ↔ Co-Investor
- * chats show roles, not names: investors' profiles are private (Q4).
+ * chats never show names, because investors' profiles are private (Q4). The
+ * Lead (participant A) sees the co-investor's project alias, the same one as
+ * on the Lead's project page (ADR-079). The co-investor sees "Lead Investor",
+ * since a project has only one.
  */
 export function counterpartLabel(
-  thread: { pairType: ChatPairType; participantA: string },
+  thread: {
+    pairType: ChatPairType;
+    contextId: string;
+    participantA: string;
+    participantB: string;
+  },
   viewerId: string,
   counterpartName: string | null,
 ): string {
   if (thread.pairType === ChatPairType.LEAD_CO_INVESTOR) {
-    return thread.participantA === viewerId ? "A co-investor" : "The Lead Investor";
+    return thread.participantA === viewerId
+      ? coInvestorAlias(thread.contextId, thread.participantB)
+      : "Lead Investor";
   }
   return counterpartName ?? "PropLink member";
 }
@@ -526,8 +537,20 @@ export async function listThreadsFor(viewer: Viewer) {
     orderBy: [{ lastMessageAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
     take: 100,
     include: {
-      a: { select: { id: true, name: true } },
-      b: { select: { id: true, name: true } },
+      a: {
+        select: {
+          id: true,
+          name: true,
+          verificationBadge: { select: { profileId: true } },
+        },
+      },
+      b: {
+        select: {
+          id: true,
+          name: true,
+          verificationBadge: { select: { profileId: true } },
+        },
+      },
       _count: {
         select: {
           messages: { where: { readAt: null, senderId: { not: viewer.profileId } } },
@@ -536,8 +559,21 @@ export async function listThreadsFor(viewer: Viewer) {
     },
   });
   const titles = await contextTitles(threads);
+  const counterpartIdOf = (thread: (typeof threads)[number]) =>
+    thread.participantA === viewer.profileId ? thread.participantB : thread.participantA;
+  // Lead/co-investor chats are anonymised (aliases), so never show a photo there.
+  const photos = await photoUrlsFor(
+    viewer,
+    threads
+      .filter((thread) => thread.pairType !== ChatPairType.LEAD_CO_INVESTOR)
+      .map(counterpartIdOf),
+  );
   return threads.map((thread) => ({
     id: thread.id,
+    counterpartPhotoUrl:
+      thread.pairType === ChatPairType.LEAD_CO_INVESTOR
+        ? null
+        : (photos.get(counterpartIdOf(thread)) ?? null),
     pairType: thread.pairType,
     status: thread.status,
     title: titles.get(`${thread.contextType}:${thread.contextId}`) ?? "Conversation",
@@ -545,6 +581,10 @@ export async function listThreadsFor(viewer: Viewer) {
       thread,
       viewer.profileId,
       thread.participantA === viewer.profileId ? thread.b.name : thread.a.name,
+    ),
+    // Verified badge (ADR-027) beside the counterpart's name or role label.
+    counterpartVerified: Boolean(
+      (thread.participantA === viewer.profileId ? thread.b : thread.a).verificationBadge,
     ),
     unread: thread._count.messages,
     lastMessageAt: thread.lastMessageAt,

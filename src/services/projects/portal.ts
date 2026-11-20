@@ -231,6 +231,8 @@ export async function getInvestorProject(investor: Actor, projectId: string) {
       location: [view.addressLine1, view.city, view.postcode ?? view.postcodeDistrict]
         .filter(Boolean)
         .join(", "),
+      /** Outward code (e.g. "BA16"): keys the local sold-price comparables. */
+      postcodeDistrict: view.postcodeDistrict,
       landlordName: view.landlordName,
       propertyKind: view.propertyKind,
       propertyType: view.propertyType,

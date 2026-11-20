@@ -15,6 +15,7 @@ export function getInvestorNav(
   const nav: PortalNavItem[] = [
     { href: "/investor", label: "Dashboard" },
     { href: "/investor/projects", label: "Projects" },
+    { href: "/investor/saved", label: "Saved" },
     { href: "/messages", label: "Messages" },
   ];
   if (
